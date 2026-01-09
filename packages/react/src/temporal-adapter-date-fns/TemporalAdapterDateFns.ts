@@ -1,3 +1,5 @@
+// date-fns@<3 has no exports field defined
+// See https://github.com/date-fns/date-fns/issues/1781
 'use client';
 import { addDays } from 'date-fns/addDays';
 import { addHours } from 'date-fns/addHours';
@@ -57,13 +59,82 @@ import { startOfMonth } from 'date-fns/startOfMonth';
 import { startOfSecond } from 'date-fns/startOfSecond';
 import { startOfYear } from 'date-fns/startOfYear';
 import { startOfWeek } from 'date-fns/startOfWeek';
+// @ts-expect-error date-fns@<3 has no exports field defined (see https://github.com/date-fns/date-fns/issues/1781)
+// eslint-disable-next-line import/extensions
+import longFormatters from 'date-fns/_lib/format/longFormatters/index.js';
 import { TZDate } from '@date-fns/tz';
 import {
   TemporalAdapterFormats,
   DateBuilderReturnType,
   TemporalTimezone,
   TemporalAdapter,
+  TemporalFormatTokenConfigMap,
 } from '../types';
+
+const FORMAT_TOKEN_CONFIG_MAP: TemporalFormatTokenConfigMap = {
+  // Year
+  y: { sectionType: 'year', contentType: 'digit', maxLength: 4 },
+  yy: { sectionType: 'year', contentType: 'digit' },
+  yyy: { sectionType: 'year', contentType: 'digit', maxLength: 4 },
+  yyyy: { sectionType: 'year', contentType: 'digit' },
+
+  // Month
+  M: { sectionType: 'month', contentType: 'digit', maxLength: 2 },
+  MM: { sectionType: 'month', contentType: 'digit' },
+  MMMM: { sectionType: 'month', contentType: 'letter' },
+  MMM: { sectionType: 'month', contentType: 'letter' },
+  L: { sectionType: 'month', contentType: 'digit', maxLength: 2 },
+  LL: { sectionType: 'month', contentType: 'digit' },
+  LLL: { sectionType: 'month', contentType: 'letter' },
+  LLLL: { sectionType: 'month', contentType: 'letter' },
+
+  // Day of the month
+  d: { sectionType: 'day', contentType: 'digit', maxLength: 2 },
+  dd: { sectionType: 'day', contentType: 'digit' },
+  do: { sectionType: 'day', contentType: 'digit-with-letter' },
+
+  // Day of the week
+  E: { sectionType: 'weekDay', contentType: 'letter' },
+  EE: { sectionType: 'weekDay', contentType: 'letter' },
+  EEE: { sectionType: 'weekDay', contentType: 'letter' },
+  EEEE: { sectionType: 'weekDay', contentType: 'letter' },
+  EEEEE: { sectionType: 'weekDay', contentType: 'letter' },
+  i: { sectionType: 'weekDay', contentType: 'digit', maxLength: 1 },
+  ii: { sectionType: 'weekDay', contentType: 'digit' },
+  iii: { sectionType: 'weekDay', contentType: 'letter' },
+  iiii: { sectionType: 'weekDay', contentType: 'letter' },
+  // eslint-disable-next-line id-denylist
+  e: { sectionType: 'weekDay', contentType: 'digit', maxLength: 1 },
+  ee: { sectionType: 'weekDay', contentType: 'digit' },
+  eee: { sectionType: 'weekDay', contentType: 'letter' },
+  eeee: { sectionType: 'weekDay', contentType: 'letter' },
+  eeeee: { sectionType: 'weekDay', contentType: 'letter' },
+  eeeeee: { sectionType: 'weekDay', contentType: 'letter' },
+  c: { sectionType: 'weekDay', contentType: 'digit', maxLength: 1 },
+  cc: { sectionType: 'weekDay', contentType: 'digit' },
+  ccc: { sectionType: 'weekDay', contentType: 'letter' },
+  cccc: { sectionType: 'weekDay', contentType: 'letter' },
+  ccccc: { sectionType: 'weekDay', contentType: 'letter' },
+  cccccc: { sectionType: 'weekDay', contentType: 'letter' },
+
+  // Meridiem
+  a: { sectionType: 'meridiem', contentType: 'letter' },
+  aa: { sectionType: 'meridiem', contentType: 'letter' },
+  aaa: { sectionType: 'meridiem', contentType: 'letter' },
+
+  // Hours
+  H: { sectionType: 'hours', contentType: 'digit', maxLength: 2 },
+  HH: { sectionType: 'hours', contentType: 'digit' },
+  h: { sectionType: 'hours', contentType: 'digit', maxLength: 2 },
+  hh: { sectionType: 'hours', contentType: 'digit' },
+  // Minutes
+  m: { sectionType: 'minutes', contentType: 'digit', maxLength: 2 },
+  mm: { sectionType: 'minutes', contentType: 'digit' },
+
+  // Seconds
+  s: { sectionType: 'seconds', contentType: 'digit', maxLength: 2 },
+  ss: { sectionType: 'seconds', contentType: 'digit' },
+};
 
 const FORMATS: TemporalAdapterFormats = {
   // Digit formats with leading zeroes
@@ -79,6 +150,9 @@ const FORMATS: TemporalAdapterFormats = {
   dayOfMonth: 'd',
   hours24h: 'H',
   hours12h: 'h',
+
+  // Digit with letter formats
+  dayOfMonthWithLetter: 'do',
 
   // Letter formats
   month3Letters: 'MMM',
@@ -107,6 +181,8 @@ export class TemporalAdapterDateFns implements TemporalAdapter {
   private locale: DateFnsLocale;
 
   public formats = FORMATS;
+
+  public formatTokenConfigMap = FORMAT_TOKEN_CONFIG_MAP;
 
   public escapedCharacters = { start: "'", end: "'" };
 
@@ -222,6 +298,23 @@ export class TemporalAdapterDateFns implements TemporalAdapter {
 
   public formatByString = (value: Date, format: string) => {
     return dateFnsFormat(value, format, { locale: this.locale });
+  };
+
+  public expandFormat = (format: string) => {
+    const longFormatRegexp = /P+p+|P+|p+|''|'(''|[^'])+('|$)|./g;
+
+    // @see https://github.com/date-fns/date-fns/blob/master/src/format/index.js#L31
+    return format
+      .match(longFormatRegexp)!
+      .map((token: string) => {
+        const firstCharacter = token[0];
+        if (firstCharacter === 'p' || firstCharacter === 'P') {
+          const longFormatter = longFormatters[firstCharacter];
+          return longFormatter(token, this.locale.formatLong);
+        }
+        return token;
+      })
+      .join('');
   };
 
   public isEqual = (value: Date | null, comparing: Date | null) => {
