@@ -6,12 +6,11 @@ import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { useOnMount } from '@base-ui/utils/useOnMount';
 import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { useRenderElement } from '../../utils/useRenderElement';
-import { useDirection, TextDirection } from '../../direction-provider';
-import { useFieldRootContext, FieldRootContext } from '../../field/root/FieldRootContext';
+import { useDirection } from '../../direction-provider';
+import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useField } from '../../field/useField';
 import {
-  TemporalAdapter,
   TemporalSupportedObject,
   TemporalTimezone,
   TemporalValue,
@@ -27,35 +26,19 @@ import {
   TemporalFieldValueChangeEventDetails,
 } from './types';
 
-export interface StoreCreationContext {
-  adapter: TemporalAdapter;
-  direction: TextDirection;
-  fieldContext: FieldRootContext;
-  id: string | undefined;
-  resolvedFormat: string;
-}
-
-interface UseTemporalFieldRootParameters {
-  /** The original componentProps, passed through to useRenderElement. */
-  componentProps: Record<string, any>;
-  /** The forwarded ref from React.forwardRef. */
-  forwardedRef: React.ForwardedRef<HTMLDivElement>;
-  /** Factory to create the store instance. Called once on mount. */
-  createStore: (context: StoreCreationContext) => TemporalFieldStore<TemporalValue>;
-  /** The static config object from the store class. */
-  config: TemporalFieldConfiguration<TemporalValue>;
-  /** Resolves the default format when the `format` prop is undefined. */
-  getDefaultFormat: (adapter: TemporalAdapter) => string;
-  /** The step value for useSyncedValues. DateField passes 1, TimeField/DateTimeField pass `step ?? 1`. */
-  step: number;
-  // -- Props extracted from componentProps by the Root --
+export interface TemporalFieldRootResolvedProps {
   children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
+  actionsRef?: React.RefObject<TemporalFieldRootActions | null> | undefined;
+  inputRef?: React.Ref<HTMLInputElement> | undefined;
+  /** The resolved format string (default already applied by the Root component). */
+  format: string;
+  /** The step value. DateField passes 1, TimeField/DateTimeField pass `step ?? 1`. */
+  step: number;
   required?: boolean | undefined;
   readOnly?: boolean | undefined;
   disabled?: boolean | undefined;
   name?: string | undefined;
   id?: string | undefined;
-  inputRef?: React.Ref<HTMLInputElement> | undefined;
   onValueChange?:
     | ((value: TemporalValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
     | undefined;
@@ -63,13 +46,28 @@ interface UseTemporalFieldRootParameters {
   value?: TemporalValue | undefined;
   timezone?: TemporalTimezone | undefined;
   referenceDate?: TemporalSupportedObject | undefined;
-  format?: string | undefined;
   minDate?: TemporalSupportedObject | undefined;
   maxDate?: TemporalSupportedObject | undefined;
   placeholderGetters?: Partial<TemporalFieldPlaceholderGetters> | undefined;
-  actionsRef?: React.RefObject<TemporalFieldRootActions | null> | undefined;
+}
+
+interface UseTemporalFieldRootParameters {
+  // Rendering infrastructure
+  /** The original componentProps, passed through to useRenderElement. */
+  componentProps: Record<string, any>;
+  /** The forwarded ref from React.forwardRef. */
+  forwardedRef: React.ForwardedRef<HTMLDivElement>;
   /** Rest props to forward to the DOM element. */
   elementProps: Record<string, any>;
+
+  // Field type configuration
+  /** The static config object for this field type. */
+  config: TemporalFieldConfiguration<TemporalValue>;
+  /** Name of the field type (e.g. 'DateField'), used for dev warnings. */
+  instanceName: string;
+
+  // Component props (from the Root's componentProps, with defaults applied)
+  props: TemporalFieldRootResolvedProps;
 }
 
 /**
@@ -79,56 +77,68 @@ interface UseTemporalFieldRootParameters {
 export function useTemporalFieldRoot(
   parameters: UseTemporalFieldRootParameters,
 ): React.JSX.Element {
+  const { componentProps, forwardedRef, elementProps, config, instanceName, props } = parameters;
   const {
-    componentProps,
-    forwardedRef,
-    createStore,
-    config,
-    getDefaultFormat,
-    step,
     children,
+    actionsRef,
+    inputRef: inputRefProp,
+    format,
+    step,
     required,
     readOnly,
     disabled,
     name,
     id: idProp,
-    inputRef: inputRefProp,
     onValueChange,
     defaultValue,
     value,
     timezone,
     referenceDate,
-    format,
     minDate,
     maxDate,
     placeholderGetters,
-    actionsRef,
-    elementProps,
-  } = parameters;
+  } = props;
 
-  // 1. Shared hooks
   const fieldContext = useFieldRootContext();
   const adapter = useTemporalAdapter();
   const direction = useDirection();
   const id = useLabelableId({ id: idProp });
   const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
 
-  // 2. Format resolution
-  const resolvedFormat = format ?? getDefaultFormat(adapter);
-
-  // 3. Store creation (factory called once)
-  const store = useRefWithInit(() =>
-    createStore({ adapter, direction, fieldContext, id, resolvedFormat }),
+  const store = useRefWithInit(
+    () =>
+      new TemporalFieldStore(
+        {
+          readOnly,
+          disabled,
+          required,
+          onValueChange,
+          defaultValue,
+          value,
+          timezone,
+          referenceDate,
+          format,
+          step,
+          name,
+          id,
+          fieldContext,
+          adapter,
+          direction,
+          minDate,
+          maxDate,
+          placeholderGetters,
+        },
+        config,
+        instanceName,
+      ),
   ).current;
 
-  // 4. Callbacks (insertion effect — runs before layout effects)
   store.useContextCallback('onValueChange', onValueChange);
 
-  // 5. Derived state (layout effect — compares against old state to detect changes)
   useIsoLayoutEffect(
     () =>
       store.syncDerivedState({
-        format: resolvedFormat,
+        format,
         adapter,
         direction,
         config,
@@ -139,10 +149,10 @@ export function useTemporalFieldRoot(
         defaultValue,
         referenceDate,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- config is static per store class
     [
       store,
-      resolvedFormat,
+      config,
+      format,
       adapter,
       direction,
       minDate,
@@ -154,7 +164,6 @@ export function useTemporalFieldRoot(
     ],
   );
 
-  // 6. Simple 1:1 state mappings
   store.useSyncedValues({
     required: required ?? false,
     disabledProp: disabled ?? false,

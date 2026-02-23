@@ -117,11 +117,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
   constructor(
     parameters: TemporalFieldStoreSharedParameters<TValue>,
-    adapter: TemporalAdapter,
     config: TemporalFieldConfiguration<TValue>,
-    direction: TextDirection,
     instanceName: string,
   ) {
+    const { adapter, direction } = parameters;
     const manager = config.getManager(adapter);
     const value = parameters.value ?? parameters.defaultValue ?? manager.emptyValue;
     const validationProps = { minDate: parameters.minDate, maxDate: parameters.maxDate };
@@ -158,7 +157,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     super(
       {
-        ...deriveStateFromParameters(parameters, adapter, config, direction),
+        ...deriveStateFromParameters(parameters, config),
         manager,
         value,
         sections,

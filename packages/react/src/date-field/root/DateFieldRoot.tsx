@@ -1,7 +1,8 @@
 'use client';
 import * as React from 'react';
+import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { BaseUIComponentProps, MakeOptional } from '../../utils/types';
-import { DateFieldStore } from './DateFieldStore';
+import { dateFieldConfig, getDateFieldDefaultFormat } from './dateFieldConfig';
 import { FieldRoot } from '../../field';
 import { TemporalValue } from '../../types';
 import {
@@ -50,50 +51,35 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     ...elementProps
   } = componentProps;
 
+  const adapter = useTemporalAdapter();
+  const resolvedFormat = format ?? getDateFieldDefaultFormat(adapter);
+
   return useTemporalFieldRoot({
     componentProps,
     forwardedRef,
     elementProps,
-    createStore: (ctx) =>
-      new DateFieldStore({
-        readOnly,
-        disabled,
-        required,
-        onValueChange,
-        defaultValue,
-        value,
-        timezone,
-        referenceDate,
-        format: ctx.resolvedFormat,
-        name,
-        id: ctx.id,
-        fieldContext: ctx.fieldContext,
-        adapter: ctx.adapter,
-        direction: ctx.direction,
-        minDate,
-        maxDate,
-        placeholderGetters,
-      }),
-    config: DateFieldStore.config,
-    getDefaultFormat: DateFieldStore.getDefaultFormat,
-    step: 1,
-    children,
-    required,
-    readOnly,
-    disabled,
-    name,
-    id,
-    inputRef,
-    onValueChange,
-    defaultValue,
-    value,
-    timezone,
-    referenceDate,
-    format,
-    minDate,
-    maxDate,
-    placeholderGetters,
-    actionsRef,
+    config: dateFieldConfig,
+    instanceName: 'DateField',
+    props: {
+      children,
+      actionsRef,
+      inputRef,
+      format: resolvedFormat,
+      step: 1,
+      required,
+      readOnly,
+      disabled,
+      name,
+      id,
+      onValueChange,
+      defaultValue,
+      value,
+      timezone,
+      referenceDate,
+      minDate,
+      maxDate,
+      placeholderGetters,
+    },
   });
 });
 
@@ -117,7 +103,7 @@ export interface DateFieldRootProps
     Omit<BaseUIComponentProps<'div', DateFieldRootState>, 'children'>,
     Omit<
       MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
-      'fieldContext' | 'step'
+      'fieldContext' | 'step' | 'adapter' | 'direction'
     > {
   /**
    * The children of the component.

@@ -1,7 +1,8 @@
 'use client';
 import * as React from 'react';
+import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { BaseUIComponentProps, MakeOptional } from '../../utils/types';
-import { AmPmParameters, TimeFieldStore } from './TimeFieldStore';
+import { AmPmParameters, getTimeFieldDefaultFormat, timeFieldConfig } from './timeFieldConfig';
 import { FieldRoot } from '../../field';
 import { TemporalValue } from '../../types';
 import {
@@ -52,52 +53,35 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
     ...elementProps
   } = componentProps;
 
+  const adapter = useTemporalAdapter();
+  const resolvedFormat = format ?? getTimeFieldDefaultFormat(adapter, ampm);
+
   return useTemporalFieldRoot({
     componentProps,
     forwardedRef,
     elementProps,
-    createStore: (ctx) =>
-      new TimeFieldStore({
-        readOnly,
-        disabled,
-        required,
-        onValueChange,
-        defaultValue,
-        value,
-        timezone,
-        referenceDate,
-        format: ctx.resolvedFormat,
-        ampm,
-        step,
-        name,
-        id: ctx.id,
-        fieldContext: ctx.fieldContext,
-        adapter: ctx.adapter,
-        direction: ctx.direction,
-        minDate,
-        maxDate,
-        placeholderGetters,
-      }),
-    config: TimeFieldStore.config,
-    getDefaultFormat: (adapter) => TimeFieldStore.getDefaultFormat(adapter, ampm),
-    step: step ?? 1,
-    children,
-    required,
-    readOnly,
-    disabled,
-    name,
-    id,
-    inputRef,
-    onValueChange,
-    defaultValue,
-    value,
-    timezone,
-    referenceDate,
-    format,
-    minDate,
-    maxDate,
-    placeholderGetters,
-    actionsRef,
+    config: timeFieldConfig,
+    instanceName: 'TimeField',
+    props: {
+      children,
+      actionsRef,
+      inputRef,
+      format: resolvedFormat,
+      step: step ?? 1,
+      required,
+      readOnly,
+      disabled,
+      name,
+      id,
+      onValueChange,
+      defaultValue,
+      value,
+      timezone,
+      referenceDate,
+      minDate,
+      maxDate,
+      placeholderGetters,
+    },
   });
 });
 
@@ -119,7 +103,10 @@ export interface TimeFieldRootState extends FieldRoot.State {
 export interface TimeFieldRootProps
   extends
     Omit<BaseUIComponentProps<'div', TimeFieldRootState>, 'children'>,
-    Omit<MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>, 'fieldContext'>,
+    Omit<
+      MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
+      'fieldContext' | 'adapter' | 'direction'
+    >,
     AmPmParameters {
   /**
    * The children of the component.

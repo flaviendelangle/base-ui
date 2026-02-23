@@ -1,8 +1,9 @@
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { createTemporalRenderer } from '#test-utils';
-import { DateFieldStore } from '../root/DateFieldStore';
-import { TimeFieldStore } from '../../time-field/root/TimeFieldStore';
+import { TemporalFieldStore } from './TemporalFieldStore';
+import { dateFieldConfig } from '../root/dateFieldConfig';
+import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
 
 describe('TemporalFieldStore - Field Integration', () => {
@@ -22,22 +23,22 @@ describe('TemporalFieldStore - Field Integration', () => {
         invalid: false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(store.state.fieldContext).to.equal(mockFieldContext);
     });
 
     it('should store null when fieldContext is not provided', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(store.state.fieldContext).to.equal(null);
     });
@@ -48,12 +49,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         state: { disabled: false },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         fieldContext: initialFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(store.state.fieldContext).to.equal(initialFieldContext);
 
@@ -70,12 +71,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
   describe('disabled selector', () => {
     it('should return disabledProp when fieldContext is null', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         disabled: true,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -85,13 +86,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         state: { disabled: true },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         disabled: false,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -101,13 +102,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         state: { disabled: false },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         disabled: true,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -117,13 +118,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         state: { disabled: false },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         disabled: false,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.disabled(store.state)).to.equal(false);
     });
@@ -131,12 +132,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
   describe('name selector', () => {
     it('should return nameProp when fieldContext is null', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         name: 'localName',
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.name(store.state)).to.equal('localName');
     });
@@ -146,13 +147,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         name: 'fieldName',
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         name: 'localName',
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.name(store.state)).to.equal('fieldName');
     });
@@ -162,13 +163,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         name: undefined,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         name: 'localName',
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       expect(selectors.name(store.state)).to.equal('localName');
     });
@@ -184,12 +185,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Initial value is null, so setFilled should not be called yet for the initial state
       // But the effect should be registered
@@ -211,13 +212,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         defaultValue: adapter.date('2024-01-15', 'default'),
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Value is initially non-null, effect is registered so setFilled should be called on mount
       // The effect triggers when value changes
@@ -232,11 +233,11 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not call setFilled when fieldContext is null', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -258,13 +259,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         defaultValue: adapter.date('2024-01-15', 'default'),
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       setDirtySpy.resetHistory();
 
@@ -286,13 +287,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         defaultValue: adapter.date('2024-01-15', 'default'),
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       setDirtySpy.resetHistory();
 
@@ -305,12 +306,12 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not call setDirty when fieldContext is null', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         defaultValue: adapter.date('2024-01-15', 'default'),
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // This should not throw even without fieldContext
       store.updateFromString('01/16/2024');
@@ -333,12 +334,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         validation: { commit: validationCommitSpy },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -362,12 +363,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         validation: { commit: validationCommitSpy },
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -380,11 +381,11 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not call validation when fieldContext is null', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -403,12 +404,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         setFilled: () => {},
       } as any;
 
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time24Format,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       expect(store.state.fieldContext).to.equal(mockFieldContext);
     });
@@ -422,12 +423,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time24Format,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       setDirtySpy.resetHistory();
 
@@ -449,12 +450,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         validation: { commit: validationCommitSpy },
       } as any;
 
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time24Format,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       // Change time value
       store.updateFromString('14:30');
@@ -473,12 +474,12 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time24Format,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       setFilledSpy.resetHistory();
 
@@ -504,13 +505,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldValidateOnChange: () => false,
       } as any;
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         onValueChange: onValueChangeSpy,
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -535,14 +536,14 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should work without Field context (standalone mode)', () => {
       const onValueChangeSpy = spy();
 
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         onValueChange: onValueChangeSpy,
         disabled: true,
         name: 'standaloneField',
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Should work normally without Field context
       expect(store.state.disabledProp).to.equal(true);
@@ -564,12 +565,12 @@ describe('TemporalFieldStore - Field Integration', () => {
   describe('E2E editing scenarios', () => {
     it('should handle complete date entry in MM/DD/YYYY format', () => {
       const onValueChangeSpy = spy();
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -612,12 +613,12 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should handle complete date entry with letter month (MMM DD, YYYY)', () => {
       const monthNameFormat = `${adapter.formats.month3Letters} ${adapter.formats.dayOfMonthPadded}, ${adapter.formats.yearPadded}`;
       const onValueChangeSpy = spy();
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: monthNameFormat,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -659,12 +660,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
     it('should handle complete time entry in 24-hour format (HH:mm)', () => {
       const onValueChangeSpy = spy();
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time24Format,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -698,12 +699,12 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should handle complete time entry in 12-hour format with meridiem (hh:mm aa)', () => {
       const time12Format = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
       const onValueChangeSpy = spy();
-      const store = new TimeFieldStore({
+      const store = new TemporalFieldStore({
         format: time12Format,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, timeFieldConfig, 'TimeField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -745,12 +746,12 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should handle complete date entry in DD/MM/YYYY format', () => {
       const europeanDateFormat = `${adapter.formats.dayOfMonthPadded}/${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
       const onValueChangeSpy = spy();
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: europeanDateFormat,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -792,12 +793,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
     it('should handle pasting complete date string', () => {
       const onValueChangeSpy = spy();
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -825,12 +826,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
     it('should clear sectionToUpdateOnNextInvalidDate when format changes', () => {
       const defaultValue = adapter.date('2024-01-30', 'default');
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         defaultValue,
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Edit month from 01 to 02: Jan 30 → Feb 30 (invalid) → sets sectionToUpdateOnNextInvalidDate
       store.selectClosestDatePart(0); // month section
@@ -848,7 +849,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         defaultValue,
         adapter,
         direction: 'ltr',
-        config: DateFieldStore.config,
+        config: dateFieldConfig,
         minDate: undefined,
         maxDate: undefined,
         placeholderGetters: undefined,
@@ -861,12 +862,12 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not corrupt sections when format and value change simultaneously with a pending invalid date', () => {
-      const store = new DateFieldStore({
+      const store = new TemporalFieldStore({
         format: numericDateFormat,
         value: adapter.date('2024-01-30', 'default'),
         adapter,
         direction: 'ltr',
-      });
+      }, dateFieldConfig, 'DateField');
 
       // Edit month from 01 to 02: Jan 30 → Feb 30 (invalid) → sets sectionToUpdateOnNextInvalidDate
       store.selectClosestDatePart(0); // month section
@@ -885,7 +886,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         value: newValue,
         adapter,
         direction: 'ltr',
-        config: DateFieldStore.config,
+        config: dateFieldConfig,
         minDate: undefined,
         maxDate: undefined,
         placeholderGetters: undefined,

@@ -1,7 +1,12 @@
 'use client';
 import * as React from 'react';
+import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { BaseUIComponentProps, MakeOptional } from '../../utils/types';
-import { AmPmParameters, DateTimeFieldStore } from './DateTimeFieldStore';
+import {
+  AmPmParameters,
+  dateTimeFieldConfig,
+  getDateTimeFieldDefaultFormat,
+} from './dateTimeFieldConfig';
 import { FieldRoot } from '../../field';
 import { TemporalValue } from '../../types';
 import {
@@ -52,52 +57,35 @@ export const DateTimeFieldRoot = React.forwardRef(function DateTimeFieldRoot(
     ...elementProps
   } = componentProps;
 
+  const adapter = useTemporalAdapter();
+  const resolvedFormat = format ?? getDateTimeFieldDefaultFormat(adapter, ampm);
+
   return useTemporalFieldRoot({
     componentProps,
     forwardedRef,
     elementProps,
-    createStore: (ctx) =>
-      new DateTimeFieldStore({
-        readOnly,
-        disabled,
-        required,
-        onValueChange,
-        defaultValue,
-        value,
-        timezone,
-        referenceDate,
-        format: ctx.resolvedFormat,
-        ampm,
-        step,
-        name,
-        id: ctx.id,
-        fieldContext: ctx.fieldContext,
-        adapter: ctx.adapter,
-        direction: ctx.direction,
-        minDate,
-        maxDate,
-        placeholderGetters,
-      }),
-    config: DateTimeFieldStore.config,
-    getDefaultFormat: (adapter) => DateTimeFieldStore.getDefaultFormat(adapter, ampm),
-    step: step ?? 1,
-    children,
-    required,
-    readOnly,
-    disabled,
-    name,
-    id,
-    inputRef,
-    onValueChange,
-    defaultValue,
-    value,
-    timezone,
-    referenceDate,
-    format,
-    minDate,
-    maxDate,
-    placeholderGetters,
-    actionsRef,
+    config: dateTimeFieldConfig,
+    instanceName: 'DateTimeField',
+    props: {
+      children,
+      actionsRef,
+      inputRef,
+      format: resolvedFormat,
+      step: step ?? 1,
+      required,
+      readOnly,
+      disabled,
+      name,
+      id,
+      onValueChange,
+      defaultValue,
+      value,
+      timezone,
+      referenceDate,
+      minDate,
+      maxDate,
+      placeholderGetters,
+    },
   });
 });
 
@@ -119,7 +107,10 @@ export interface DateTimeFieldRootState extends FieldRoot.State {
 export interface DateTimeFieldRootProps
   extends
     Omit<BaseUIComponentProps<'div', DateTimeFieldRootState>, 'children'>,
-    Omit<MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>, 'fieldContext'>,
+    Omit<
+      MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
+      'fieldContext' | 'adapter' | 'direction'
+    >,
     AmPmParameters {
   /**
    * The children of the component.

@@ -66,16 +66,14 @@ const DATE_PART_TRANSFER_PRIORITY: Record<string, number> = {
  */
 export function deriveStateFromParameters<TValue extends TemporalSupportedValue>(
   parameters: TemporalFieldStoreSharedParameters<TValue>,
-  adapter: TemporalAdapter,
   config: TemporalFieldConfiguration<TValue>,
-  direction: TextDirection,
 ) {
   return {
     minDate: parameters.minDate,
     maxDate: parameters.maxDate,
-    direction,
+    direction: parameters.direction,
     config,
-    adapter,
+    adapter: parameters.adapter,
     referenceDateProp: parameters.referenceDate ?? null,
     valueProp: parameters.value,
     required: parameters.required ?? false,

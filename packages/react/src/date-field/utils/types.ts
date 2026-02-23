@@ -94,6 +94,14 @@ export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSuppo
    * @default 1
    */
   step?: number | undefined;
+  /**
+   * The adapter of the date library.
+   */
+  adapter: TemporalAdapter;
+  /**
+   * Text direction of the field.
+   */
+  direction: TextDirection;
 }
 
 export interface TemporalFieldState<TValue extends TemporalSupportedValue = any> {
