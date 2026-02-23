@@ -573,7 +573,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
      * Then we publish an invalid date.
      */
     if (
-      newActiveDateSections.every((sectionBis) => sectionBis.value !== '') &&
+      newActiveDateSections.every((section) => section.value !== '') &&
       (activeDate == null || adapter.isValid(activeDate))
     ) {
       this.setSectionUpdateToApplyOnNextInvalidDate(sectionIndex, newDatePartValue);
@@ -685,12 +685,16 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   public registerSection = (sectionElement: HTMLDivElement | null) => {
+    if (sectionElement == null) {
+      return undefined;
+    }
+
     const index = this.getSectionIndexFromDOMElement(sectionElement);
     if (index == null) {
       return undefined;
     }
 
-    this.sectionElementMap.set(index, sectionElement!);
+    this.sectionElementMap.set(index, sectionElement);
     return () => this.sectionElementMap.delete(index);
   };
 

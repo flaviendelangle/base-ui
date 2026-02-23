@@ -1,8 +1,9 @@
 'use client';
 import * as React from 'react';
+import { TemporalValue } from '../../types';
 import { TemporalFieldStore } from '../utils/TemporalFieldStore';
 
-export type DateFieldRootContext = TemporalFieldStore<any>;
+export type DateFieldRootContext = TemporalFieldStore<TemporalValue>;
 
 export const DateFieldRootContext = React.createContext<DateFieldRootContext | undefined>(
   undefined,
