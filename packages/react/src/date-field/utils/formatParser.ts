@@ -17,6 +17,7 @@ import { TextDirection } from '../../direction-provider';
 import { DATE_PART_GRANULARITY, isSeparator, isToken, removeLocalizedDigits } from './utils';
 import {
   getArbitraryDate,
+  getFormatTokenRegExps,
   getLocalizedDigits,
   getLongestMonthInCurrentYear,
   getWeekDaysStr,
@@ -585,14 +586,12 @@ export class FormatParser {
     const elements: (TemporalFieldToken | TemporalFieldSeparator)[] = [];
     let separator: string = '';
 
-    // This RegExp tests if the beginning of a string corresponds to a supported token
-    const validTokens = Object.keys(this.adapter.formatTokenConfigMap).sort(
-      (a, b) => b.length - a.length,
-    ); // Sort to put longest word first
-
+    // These RegExps test if the beginning of a string corresponds to a supported token.
+    // They are cached per adapter instance since they depend only on formatTokenConfigMap.
     const regExpFirstWordInFormat = /^([a-zA-Z]+)/;
-    const regExpWordOnlyComposedOfTokens = new RegExp(`^(${validTokens.join('|')})*$`);
-    const regExpFirstTokenInWord = new RegExp(`^(${validTokens.join('|')})`);
+    const { regExpWordOnlyComposedOfTokens, regExpFirstTokenInWord } = getFormatTokenRegExps(
+      this.adapter,
+    );
 
     const getEscapedPartOfCurrentChar = (i: number) =>
       escapedParts.find((escapeIndex) => escapeIndex.start <= i && escapeIndex.end >= i);

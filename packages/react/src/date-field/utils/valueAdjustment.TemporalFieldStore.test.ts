@@ -1514,32 +1514,31 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       describe('meridiem restriction', () => {
-        // it('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
-        //   const store = new TimeFieldStore({
-        //     format: time12Format,
-        //     adapter,
-        //     direction: 'ltr',
-        //     validationProps: {
-        //       minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
-        //       maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
-        //     },
-        //   });
+        // TODO: Meridiem restriction when both minDate and maxDate share the same meridiem is not yet implemented.
+        it.skip('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
+          const store = new TimeFieldStore({
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+            minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
+            maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
+          });
 
-        //   store.selectClosestDatePart(4); // meridiem section
-        //   store.updateDatePart({
-        //     sectionIndex: 4,
-        //     newDatePartValue: 'PM',
-        //     shouldGoToNextSection: false,
-        //   });
+          store.selectClosestDatePart(4); // meridiem section
+          store.updateDatePart({
+            sectionIndex: 4,
+            newDatePartValue: 'PM',
+            shouldGoToNextSection: false,
+          });
 
-        //   // ArrowUp from PM should stay PM (restricted to PM only)
-        //   store.adjustActiveDatePartValue('ArrowUp', 4);
-        //   expect(getDatePartValue(store, 4)).to.equal('PM');
+          // ArrowUp from PM should stay PM (restricted to PM only)
+          store.adjustActiveDatePartValue('ArrowUp', 4);
+          expect(getDatePartValue(store, 4)).to.equal('PM');
 
-        //   // ArrowDown from PM should also stay PM
-        //   store.adjustActiveDatePartValue('ArrowDown', 4);
-        //   expect(getDatePartValue(store, 4)).to.equal('PM');
-        // });
+          // ArrowDown from PM should also stay PM
+          store.adjustActiveDatePartValue('ArrowDown', 4);
+          expect(getDatePartValue(store, 4)).to.equal('PM');
+        });
 
         it('should not restrict meridiem when minDate is AM and maxDate is PM', () => {
           const store = new TimeFieldStore({

@@ -356,6 +356,8 @@ describe('FormatParser', () => {
       const firstTokenRtl = resultRtl.elements[0];
       const lastTokenLtr = resultLtr.elements[resultLtr.elements.length - 1];
 
+      expect('config' in firstTokenRtl).to.equal(true);
+      expect('config' in lastTokenLtr).to.equal(true);
       if ('config' in firstTokenRtl && 'config' in lastTokenLtr) {
         expect(firstTokenRtl.config.part).to.equal(lastTokenLtr.config.part);
       }
@@ -384,38 +386,34 @@ describe('FormatParser', () => {
       const format = 'yyyy';
       const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
 
-      if ('isPadded' in result.elements[0]) {
-        expect(result.elements[0].isPadded).to.be.a('boolean');
-      }
+      expect('isPadded' in result.elements[0]).to.equal(true);
+      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
     });
 
     it('should detect padded month tokens', () => {
       const format = 'MM';
       const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
 
-      if ('isPadded' in result.elements[0]) {
-        expect(result.elements[0].isPadded).to.be.a('boolean');
-      }
+      expect('isPadded' in result.elements[0]).to.equal(true);
+      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
     });
 
     it('should detect padded day tokens', () => {
       const format = 'dd';
       const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
 
-      if ('isPadded' in result.elements[0]) {
-        expect(result.elements[0].isPadded).to.be.a('boolean');
-      }
+      expect('isPadded' in result.elements[0]).to.equal(true);
+      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
     });
 
     it('should not pad letter-based tokens', () => {
       const format = adapter.formats.monthFullLetter;
       const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
 
-      // Letter content types should not be padded
       const firstToken = result.elements[0];
-      if ('config' in firstToken && firstToken.config.contentType === 'letter') {
-        expect(firstToken.isPadded).to.equal(false);
-      }
+      expect('config' in firstToken).to.equal(true);
+      expect((firstToken as any).config.contentType).to.equal('letter');
+      expect((firstToken as any).isPadded).to.equal(false);
     });
 
     it('should handle digit-with-letter format (ordinal)', () => {
@@ -424,14 +422,12 @@ describe('FormatParser', () => {
 
       const firstToken = result.elements[0];
       expect('config' in firstToken).to.equal(true);
-      if ('config' in firstToken) {
-        expect(firstToken.config.contentType).to.equal('digit-with-letter');
-        // isPadded is true because "1st".length > 1, but this is not zero-padding
-        expect(firstToken.isPadded).to.equal(true);
-        // maxLength is the digit count only (strips non-digits like "th", "st", etc.)
-        // For days, max is 31, so maxLength is 2
-        expect(firstToken.maxLength).to.equal(2);
-      }
+      expect((firstToken as any).config.contentType).to.equal('digit-with-letter');
+      // isPadded is true because "1st".length > 1, but this is not zero-padding
+      expect((firstToken as any).isPadded).to.equal(true);
+      // maxLength is the digit count only (strips non-digits like "th", "st", etc.)
+      // For days, max is 31, so maxLength is 2
+      expect((firstToken as any).maxLength).to.equal(2);
     });
   });
 

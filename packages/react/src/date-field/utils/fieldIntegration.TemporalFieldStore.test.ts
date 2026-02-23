@@ -3,6 +3,7 @@ import { spy } from 'sinon';
 import { createTemporalRenderer } from '#test-utils';
 import { DateFieldStore } from '../root/DateFieldStore';
 import { TimeFieldStore } from '../../time-field/root/TimeFieldStore';
+import { selectors } from './selectors';
 
 describe('TemporalFieldStore - Field Integration', () => {
   const { adapter } = createTemporalRenderer();
@@ -81,12 +82,10 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.disabledProp).to.equal(true);
-      // The selector would combine: fieldContext?.state.disabled || disabledProp
-      // With null fieldContext: null || true = true
+      expect(selectors.disabled(store.state)).to.equal(true);
     });
 
-    it('should combine fieldContext.state.disabled with disabledProp', () => {
+    it('should return true when fieldContext.state.disabled is true and disabledProp is false', () => {
       const mockFieldContext = {
         state: { disabled: true },
       } as any;
@@ -99,12 +98,10 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.disabledProp).to.equal(false);
-      expect(store.state.fieldContext?.state.disabled).to.equal(true);
-      // The selector would combine: true || false = true
+      expect(selectors.disabled(store.state)).to.equal(true);
     });
 
-    it('should use local disabled prop when fieldContext.state.disabled is false', () => {
+    it('should return true when disabledProp is true and fieldContext.state.disabled is false', () => {
       const mockFieldContext = {
         state: { disabled: false },
       } as any;
@@ -117,9 +114,23 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.disabledProp).to.equal(true);
-      expect(store.state.fieldContext?.state.disabled).to.equal(false);
-      // The selector would combine: false || true = true
+      expect(selectors.disabled(store.state)).to.equal(true);
+    });
+
+    it('should return false when both disabledProp and fieldContext.state.disabled are false', () => {
+      const mockFieldContext = {
+        state: { disabled: false },
+      } as any;
+
+      const store = new DateFieldStore({
+        format: numericDateFormat,
+        disabled: false,
+        fieldContext: mockFieldContext,
+        adapter,
+        direction: 'ltr',
+      });
+
+      expect(selectors.disabled(store.state)).to.equal(false);
     });
   });
 
@@ -132,9 +143,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.nameProp).to.equal('localName');
-      expect(store.state.fieldContext).to.equal(null);
-      // The selector would return: fieldContext?.name ?? nameProp = undefined ?? 'localName' = 'localName'
+      expect(selectors.name(store.state)).to.equal('localName');
     });
 
     it('should prefer fieldContext.name over nameProp', () => {
@@ -150,9 +159,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.nameProp).to.equal('localName');
-      expect(store.state.fieldContext?.name).to.equal('fieldName');
-      // The selector would return: 'fieldName' ?? 'localName' = 'fieldName'
+      expect(selectors.name(store.state)).to.equal('fieldName');
     });
 
     it('should fall back to nameProp when fieldContext.name is undefined', () => {
@@ -168,9 +175,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         direction: 'ltr',
       });
 
-      expect(store.state.nameProp).to.equal('localName');
-      expect(store.state.fieldContext?.name).to.equal(undefined);
-      // The selector would return: undefined ?? 'localName' = 'localName'
+      expect(selectors.name(store.state)).to.equal('localName');
     });
   });
 

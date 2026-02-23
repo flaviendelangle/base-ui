@@ -58,6 +58,11 @@ interface TemporalAdapterFieldCache {
    */
   ariaValueText?: Map<string, string | undefined> | undefined;
   /**
+   * Cached regular expressions derived from the adapter's format token map.
+   * These are used by FormatParser.parse() to tokenize format strings.
+   */
+  formatTokenRegExps?: FormatTokenRegExps | undefined;
+  /**
    * An arbitrary date used for locale-dependent computations where the actual date value doesn't matter.
    * This is cached to avoid repeated `adapter.now('default')` calls when only invariant information is needed
    * (e.g., number of months in a year, days in a week, hour boundaries, etc.).
@@ -347,6 +352,33 @@ export function getAriaValueText(
   const result = computeAriaValueText(adapter, section, timezone);
   cache.ariaValueText.set(key, result);
   return result;
+}
+
+export interface FormatTokenRegExps {
+  /** RegExp that matches a word composed entirely of valid tokens. */
+  regExpWordOnlyComposedOfTokens: RegExp;
+  /** RegExp that matches the first valid token at the start of a word. */
+  regExpFirstTokenInWord: RegExp;
+}
+
+/**
+ * Returns cached regular expressions derived from the adapter's format token map.
+ * These regexps are used by FormatParser to tokenize format strings and depend only
+ * on the adapter's `formatTokenConfigMap`, which is stable per adapter instance.
+ */
+export function getFormatTokenRegExps(adapter: TemporalAdapter): FormatTokenRegExps {
+  const cache = getAdapterFieldCache(adapter);
+  if (cache.formatTokenRegExps == null) {
+    const validTokens = Object.keys(adapter.formatTokenConfigMap).sort(
+      (a, b) => b.length - a.length,
+    );
+    const tokenPattern = validTokens.join('|');
+    cache.formatTokenRegExps = {
+      regExpWordOnlyComposedOfTokens: new RegExp(`^(${tokenPattern})*$`),
+      regExpFirstTokenInWord: new RegExp(`^(${tokenPattern})`),
+    };
+  }
+  return cache.formatTokenRegExps;
 }
 
 function computeAriaValueText(
