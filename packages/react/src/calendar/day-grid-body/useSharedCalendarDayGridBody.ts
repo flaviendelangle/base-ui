@@ -164,6 +164,7 @@ export function useSharedCalendarDayGridBody(
           adapter.addMonths(visibleMonth, decrement ? -amount : amount),
           event.nativeEvent,
           event.currentTarget as HTMLElement,
+          'keyboard',
         );
         executeAfterItemMapUpdate.current = (newMap: typeof itemMap) => {
           const newGridDays: TemporalSupportedObject[] = Object.values(store.getCurrentMonthDayGrid)
@@ -250,6 +251,7 @@ export function useSharedCalendarDayGridBody(
         adapter.addMonths(visibleMonth, decrement ? -1 : 1),
         event.nativeEvent,
         event.currentTarget as HTMLElement,
+        'keyboard',
       );
       // Ensure the `handleItemLooping` uses the latest state/render after the visible date update
       queueMicrotask(() => {

@@ -199,6 +199,36 @@ describe('SharedCalendarStore - visibleDate', () => {
       expect(adapter.isEqual(store.state.visibleDate, defaultVisibleDate)).to.equal(true);
     });
 
+    it("should pass reason 'month-change' in eventDetails when reason is 'month-change'", () => {
+      const onVisibleDateChange = spy();
+      const store = createStore(adapter, {
+        defaultVisibleDate: adapter.date('2025-02-01', 'default'),
+        onVisibleDateChange,
+      });
+      const newVisibleDate = adapter.date('2025-03-01', 'default');
+
+      store.setVisibleDate(newVisibleDate, undefined, undefined, 'month-change');
+
+      const eventDetails = onVisibleDateChange.firstCall
+        .args[1] as CalendarVisibleDateChangeEventDetails;
+      expect(eventDetails.reason).to.equal('month-change');
+    });
+
+    it("should pass reason 'keyboard' in eventDetails when reason is 'keyboard'", () => {
+      const onVisibleDateChange = spy();
+      const store = createStore(adapter, {
+        defaultVisibleDate: adapter.date('2025-02-01', 'default'),
+        onVisibleDateChange,
+      });
+      const newVisibleDate = adapter.date('2025-03-01', 'default');
+
+      store.setVisibleDate(newVisibleDate, undefined, undefined, 'keyboard');
+
+      const eventDetails = onVisibleDateChange.firstCall
+        .args[1] as CalendarVisibleDateChangeEventDetails;
+      expect(eventDetails.reason).to.equal('keyboard');
+    });
+
     it('should support conditionally calling eventDetails.cancel() when uncontrolled', () => {
       const defaultVisibleDate = adapter.date('2025-02-01', 'default');
       const store = createStore(adapter, {
@@ -278,7 +308,7 @@ describe('SharedCalendarStore - visibleDate', () => {
       const newVisibleDate = adapter.date('2025-03-01', 'default');
 
       // Without registered day grids, isDateCellVisible returns true
-      store.setVisibleDate(newVisibleDate, undefined, undefined, true);
+      store.setVisibleDate(newVisibleDate, undefined, undefined, undefined, true);
 
       // Should not update because skipIfAlreadyVisible is true and isDateCellVisible returns true
       expect(onVisibleDateChange.callCount).to.equal(0);

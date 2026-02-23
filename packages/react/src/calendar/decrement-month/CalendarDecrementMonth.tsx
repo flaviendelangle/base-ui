@@ -65,7 +65,12 @@ export const CalendarDecrementMonth = React.forwardRef(function CalendarDecremen
           if (isDisabled || event.detail !== 0) {
             return;
           }
-          store.setVisibleDate(targetDate, event.nativeEvent, event.currentTarget as HTMLElement);
+          store.setVisibleDate(
+            targetDate,
+            event.nativeEvent,
+            event.currentTarget as HTMLElement,
+            'month-change',
+          );
         },
         ...pointerHandlers,
       },

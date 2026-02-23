@@ -36,6 +36,25 @@ describe('<Calendar.DecrementMonth />', () => {
       expect(onVisibleDateChange.callCount).to.equal(1);
       expect(onVisibleDateChange.firstCall.args[0]).toEqualDateTime('2025-01-05T12:01:02.003Z');
     });
+
+    it("should call onVisibleDateChange with reason 'month-change' when clicked", async () => {
+      const onVisibleDateChange = spy();
+
+      const { user } = render(
+        <Calendar.Root
+          onVisibleDateChange={onVisibleDateChange}
+          visibleDate={adapter.date('2025-02-05', 'default')}
+        >
+          <Calendar.DecrementMonth />
+        </Calendar.Root>,
+      );
+
+      const button = screen.getByRole('button');
+
+      await user.click(button);
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('month-change');
+    });
   });
 
   describe('disabled state', () => {
@@ -137,6 +156,20 @@ describe('<Calendar.DecrementMonth />', () => {
       // Should stop after pointer up
       clock.tick(100);
       expect(onVisibleDateChange.callCount).to.equal(4);
+    });
+
+    it("should call onVisibleDateChange with reason 'month-change' when holding pointerdown", async () => {
+      const onVisibleDateChange = spy();
+      await renderCalendar({ onVisibleDateChange });
+
+      const button = screen.getByTestId('decrement');
+
+      fireEvent.pointerDown(button);
+
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('month-change');
+
+      fireEvent.pointerUp(button);
     });
 
     it('should stop at minDate boundary', async () => {

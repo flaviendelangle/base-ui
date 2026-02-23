@@ -94,7 +94,7 @@ export function useCalendarMonthButton(params: UseCalendarMonthButtonParameters)
         return false;
       }
 
-      store.setVisibleDate(targetDate, triggerNativeEvent, button ?? undefined);
+      store.setVisibleDate(targetDate, triggerNativeEvent, button ?? undefined, 'month-change');
       return true;
     }
 

@@ -149,13 +149,14 @@ export class SharedCalendarStore<
     visibleDate: TemporalSupportedObject,
     nativeEvent?: Event,
     trigger?: HTMLElement,
+    reason?: CalendarChangeEventReason,
     skipIfAlreadyVisible?: boolean,
   ) => {
     if (skipIfAlreadyVisible && this.isDateCellVisible(visibleDate)) {
       return;
     }
 
-    const eventDetails = createChangeEventDetails('day-press', nativeEvent, trigger);
+    const eventDetails = createChangeEventDetails(reason ?? 'day-press', nativeEvent, trigger);
 
     this.parameters.onVisibleDateChange?.(visibleDate, eventDetails);
     if (!eventDetails.isCanceled && this.parameters.visibleDate === undefined) {
@@ -420,7 +421,7 @@ export interface CalendarValueChangeHandlerContext<TError> {
   getValidationError: () => TError;
 }
 
-export type CalendarChangeEventReason = 'day-press' | 'none';
+export type CalendarChangeEventReason = 'day-press' | 'month-change' | 'keyboard';
 
 export type CalendarValueChangeEventDetails<TError> = BaseUIChangeEventDetails<
   CalendarChangeEventReason,
