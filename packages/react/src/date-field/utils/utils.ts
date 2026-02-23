@@ -69,6 +69,7 @@ export function deriveStateFromParameters<TValue extends TemporalSupportedValue>
   config: TemporalFieldConfiguration<TValue>,
 ) {
   return {
+    rawFormat: parameters.format,
     minDate: parameters.minDate,
     maxDate: parameters.maxDate,
     direction: parameters.direction,

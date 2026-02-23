@@ -209,6 +209,11 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   inputRef: React.RefObject<HTMLElement | null>;
   /**
+   * The raw format string as passed to props (e.g., "MM/DD/YYYY").
+   * This is the unparsed format string; the parsed representation is in `format`.
+   */
+  rawFormat: string;
+  /**
    * The parsed representation of the format string.
    */
   format: TemporalFieldParsedFormat;
@@ -223,10 +228,6 @@ export interface TemporalFieldCharacterEditingQuery {
 type TemporalFieldChangeReason = 'none';
 
 export interface TemporalFieldParsedFormat {
-  /**
-   * The raw format string (e.g. "MM/DD/YYYY").
-   */
-  rawFormat: string;
   elements: (TemporalFieldToken | TemporalFieldSeparator)[];
   granularity: TemporalFieldDatePartType;
 }
@@ -278,7 +279,7 @@ export interface TemporalFieldToken {
 export interface TemporalFieldSeparator {
   type: 'separator';
   /**
-   * Separator displayed as displayed the input.
+   * Separator displayed in the input.
    */
   value: string;
   /**

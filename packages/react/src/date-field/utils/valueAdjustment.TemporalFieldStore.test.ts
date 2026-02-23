@@ -29,7 +29,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.isAdjustSectionValueKeyCode('ArrowUp')).to.equal(true);
       expect(store.isAdjustSectionValueKeyCode('ArrowDown')).to.equal(true);
@@ -44,7 +44,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.isAdjustSectionValueKeyCode('Enter')).to.equal(false);
       expect(store.isAdjustSectionValueKeyCode('Space')).to.equal(false);
@@ -59,7 +59,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -76,7 +76,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
@@ -88,7 +88,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -107,7 +107,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -124,7 +124,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
@@ -136,7 +136,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -155,7 +155,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -172,7 +172,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -191,7 +191,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -208,7 +208,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -227,7 +227,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -246,7 +246,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -265,7 +265,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -282,7 +282,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -299,7 +299,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -316,7 +316,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -334,7 +334,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2024-01-31', 'default'), // January 31st
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // Verify initial state
         let value = selectors.value(store.state);
@@ -363,7 +363,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2024-03-31', 'default'), // March 31st
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // Verify initial state
         let value = selectors.value(store.state);
@@ -393,7 +393,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -410,7 +410,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -428,7 +428,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             format: numericDateFormat,
             adapter,
             direction: 'ltr',
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -441,7 +441,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             format: numericDateFormat,
             adapter,
             direction: 'ltr',
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
@@ -454,7 +454,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             format: numericDateFormat,
             adapter,
             direction: 'ltr',
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -467,7 +467,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             format: numericDateFormat,
             adapter,
             direction: 'ltr',
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
@@ -481,7 +481,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -494,7 +494,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
@@ -507,7 +507,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -520,7 +520,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
@@ -533,7 +533,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -547,7 +547,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -563,7 +563,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -580,7 +580,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -597,7 +597,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
 
         // Test 1st
@@ -633,7 +633,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -650,7 +650,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -667,7 +667,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -684,7 +684,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: ordinalDayFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section with ordinal
 
         // Test 21st
@@ -723,7 +723,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 5,
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -741,7 +741,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 5,
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -759,7 +759,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 5,
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -777,7 +777,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 5,
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -795,7 +795,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 5,
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -812,7 +812,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time24Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -833,7 +833,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -850,7 +850,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -867,7 +867,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -884,7 +884,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -901,7 +901,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -918,7 +918,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -935,7 +935,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
@@ -947,7 +947,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
@@ -961,7 +961,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -978,7 +978,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -995,7 +995,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -1014,7 +1014,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1031,7 +1031,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1048,7 +1048,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1071,7 +1071,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 2,
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1089,7 +1089,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           adapter,
           direction: 'ltr',
           step: 2,
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // year section
         store.updateDatePart({
           sectionIndex: 2,
@@ -1110,7 +1110,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         adapter,
         direction: 'ltr',
         readOnly: true,
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(2); // day section
       store.updateDatePart({
         sectionIndex: 2,
@@ -1127,7 +1127,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1144,7 +1144,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         format: time24Format,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
       store.selectClosestDatePart(0); // hours section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1161,7 +1161,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         format: time24Format,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
       store.selectClosestDatePart(0); // hours section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1187,7 +1187,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1208,7 +1208,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(0); // month section
 
@@ -1233,7 +1233,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(0); // month section
           store.updateDatePart({
@@ -1254,7 +1254,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1284,7 +1284,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1309,7 +1309,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(0); // month section
           store.updateDatePart({
@@ -1334,7 +1334,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
             maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1362,7 +1362,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-04-05', 'default'),
             maxDate: adapter.date('2024-04-20', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1388,7 +1388,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             minDate: adapter.date('2024-04-02', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1414,7 +1414,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             adapter,
             direction: 'ltr',
             maxDate: adapter.date('2025-07-15', 'default'),
-          }, dateFieldConfig, 'DateField');
+          }, dateFieldConfig);
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1443,7 +1443,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-01-01T10:30', 'default'),
             maxDate: adapter.date('2024-01-01T14:45', 'default'),
-          }, timeFieldConfig, 'TimeField');
+          }, timeFieldConfig);
 
           store.selectClosestDatePart(0); // hours section
           store.updateDatePart({
@@ -1468,7 +1468,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-01-01T10:30', 'default'),
             maxDate: adapter.date('2024-01-01T14:45', 'default'),
-          }, timeFieldConfig, 'TimeField');
+          }, timeFieldConfig);
 
           store.selectClosestDatePart(2); // minutes section
           store.updateDatePart({
@@ -1495,7 +1495,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-01-01T10:15', 'default'),
             maxDate: adapter.date('2024-01-01T10:45', 'default'),
-          }, timeFieldConfig, 'TimeField');
+          }, timeFieldConfig);
 
           store.selectClosestDatePart(2); // minutes section
           store.updateDatePart({
@@ -1523,7 +1523,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
             maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
-          }, timeFieldConfig, 'TimeField');
+          }, timeFieldConfig);
 
           store.selectClosestDatePart(4); // meridiem section
           store.updateDatePart({
@@ -1548,7 +1548,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             direction: 'ltr',
             minDate: adapter.date('2024-01-01T08:00', 'default'), // 8 AM
             maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM,
-          }, timeFieldConfig, 'TimeField');
+          }, timeFieldConfig);
 
           store.selectClosestDatePart(4); // meridiem section
           store.updateDatePart({
@@ -1577,7 +1577,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // weekDay section is index 0
         store.selectClosestDatePart(0);
@@ -1599,7 +1599,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('ArrowUp', 0);
@@ -1620,7 +1620,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('PageDown', 0);
@@ -1641,7 +1641,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('PageUp', 0);
@@ -1664,7 +1664,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // month section is index 2
         store.selectClosestDatePart(2);
@@ -1680,7 +1680,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // day section is index 4
         store.selectClosestDatePart(4);
@@ -1699,7 +1699,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         // year section is index 6
         store.selectClosestDatePart(6);

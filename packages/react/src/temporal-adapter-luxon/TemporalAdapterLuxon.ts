@@ -9,7 +9,54 @@ import {
   DateBuilderReturnType,
   TemporalTimezone,
   TemporalAdapter,
+  TemporalFormatTokenConfigMap,
 } from '../types';
+
+const FORMAT_TOKEN_CONFIG_MAP: TemporalFormatTokenConfigMap = {
+  // Year
+  y: { part: 'year', contentType: 'digit' },
+  yy: { part: 'year', contentType: 'digit' },
+  yyyy: { part: 'year', contentType: 'digit' },
+
+  // Month
+  L: { part: 'month', contentType: 'digit' },
+  LL: { part: 'month', contentType: 'digit' },
+  LLL: { part: 'month', contentType: 'letter' },
+  LLLL: { part: 'month', contentType: 'letter' },
+  M: { part: 'month', contentType: 'digit' },
+  MM: { part: 'month', contentType: 'digit' },
+  MMM: { part: 'month', contentType: 'letter' },
+  MMMM: { part: 'month', contentType: 'letter' },
+
+  // Day of the month
+  d: { part: 'day', contentType: 'digit' },
+  dd: { part: 'day', contentType: 'digit' },
+
+  // Day of the week
+  c: { part: 'weekDay', contentType: 'digit' },
+  ccc: { part: 'weekDay', contentType: 'letter' },
+  cccc: { part: 'weekDay', contentType: 'letter' },
+  E: { part: 'weekDay', contentType: 'digit' },
+  EEE: { part: 'weekDay', contentType: 'letter' },
+  EEEE: { part: 'weekDay', contentType: 'letter' },
+
+  // Meridiem
+  a: { part: 'meridiem', contentType: 'letter' },
+
+  // Hours
+  H: { part: 'hours', contentType: 'digit' },
+  HH: { part: 'hours', contentType: 'digit' },
+  h: { part: 'hours', contentType: 'digit' },
+  hh: { part: 'hours', contentType: 'digit' },
+
+  // Minutes
+  m: { part: 'minutes', contentType: 'digit' },
+  mm: { part: 'minutes', contentType: 'digit' },
+
+  // Seconds
+  s: { part: 'seconds', contentType: 'digit' },
+  ss: { part: 'seconds', contentType: 'digit' },
+};
 
 const FORMATS: TemporalAdapterFormats = {
   // Digit formats with leading zeroes
@@ -26,6 +73,9 @@ const FORMATS: TemporalAdapterFormats = {
   hours24h: 'H',
   hours12h: 'h',
 
+  // Digit with letter formats
+  dayOfMonthWithLetter: 'd', // Luxon doesn't have a specific token for this format..
+
   // Letter formats
   month3Letters: 'MMM',
   monthFullLetter: 'MMMM',
@@ -37,15 +87,14 @@ const FORMATS: TemporalAdapterFormats = {
   // Full formats
   localizedDateWithFullMonthAndWeekDay: 'DDDD',
   localizedNumericDate: 'D',
-  fullMonthAndYear: 'MMMM yyyy',
 };
 
 // Temporarily disabled to avoid docs being built with `| DateTime`
-// declare module '@base-ui/react/types' {
-//   interface TemporalSupportedObjectLookup {
-//     luxon: DateTime;
-//   }
-// }
+declare module '@base-ui/react/types' {
+  interface TemporalSupportedObjectLookup {
+    luxon: DateTime;
+  }
+}
 
 export class TemporalAdapterLuxon implements TemporalAdapter {
   public isTimezoneCompatible = true;
@@ -55,6 +104,8 @@ export class TemporalAdapterLuxon implements TemporalAdapter {
   private locale: string;
 
   public formats: TemporalAdapterFormats = FORMATS;
+
+  public formatTokenConfigMap = FORMAT_TOKEN_CONFIG_MAP;
 
   public escapedCharacters = { start: "'", end: "'" };
 
@@ -80,11 +131,12 @@ export class TemporalAdapterLuxon implements TemporalAdapter {
     value: T,
     timezone: TemporalTimezone,
   ): DateBuilderReturnType<T> => {
+    type R = DateBuilderReturnType<T>;
     if (value === null) {
-      return null;
+      return null as unknown as R;
     }
 
-    return DateTime.fromISO(value, { locale: this.locale, zone: timezone });
+    return DateTime.fromISO(value, { locale: this.locale, zone: timezone }) as unknown as R;
   };
 
   public parse = (value: string, format: string, timezone: TemporalTimezone): DateTime => {
@@ -148,8 +200,8 @@ export class TemporalAdapterLuxon implements TemporalAdapter {
     // Extract escaped section to avoid extending them
     const catchEscapedSectionsRegexp = /''|'(''|[^'])+('|$)|[^']*/g;
 
-    // This RegExp tests if a string is only mad of supported tokens
-    const validTokens = [...Object.keys(this.formatTokenMap), 'yyyyy'];
+    // This RegExp tests if a string is only made of supported tokens
+    const validTokens = [...Object.keys(this.formatTokenConfigMap), 'yyyyy'];
     const isWordComposedOfTokens = new RegExp(`^(${validTokens.join('|')})+$`);
 
     // Extract words to test if they are a token or a word to escape.

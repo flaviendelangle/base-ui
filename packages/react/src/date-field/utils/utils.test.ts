@@ -353,7 +353,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2030-06-20', 'default');
@@ -372,7 +372,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-09-15', 'default');
@@ -389,7 +389,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-25', 'default');
@@ -406,7 +406,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T09:30:45', 'default');
@@ -423,7 +423,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T14:55:45', 'default');
@@ -440,7 +440,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T14:30:10', 'default');
@@ -459,7 +459,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2030-09-25', 'default');
@@ -478,7 +478,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state).map((section) => {
         if ('token' in section && section.token.config.part === 'month') {
@@ -504,7 +504,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors
         .sections(store.state)
@@ -529,7 +529,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T08:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T08:30:00', 'default'); // 8 AM
@@ -546,7 +546,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T20:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T20:30:00', 'default'); // 8 PM
@@ -563,7 +563,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2024-03-15T14:30:00', 'default'); // 2 PM
@@ -583,7 +583,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
 
@@ -612,7 +612,7 @@ describe('mergeDateIntoReferenceDate', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const sections = selectors.sections(store.state);
       const source = adapter.date('2030-09-25', 'default');

@@ -61,7 +61,6 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
     forwardedRef,
     elementProps,
     config: timeFieldConfig,
-    instanceName: 'TimeField',
     props: {
       children,
       actionsRef,

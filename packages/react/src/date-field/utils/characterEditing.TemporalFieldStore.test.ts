@@ -23,7 +23,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         store.editSection({
@@ -40,7 +40,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         store.editSection({
@@ -57,7 +57,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         store.editSection({
@@ -76,7 +76,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type '0'
@@ -104,7 +104,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         // Type '1'
@@ -131,7 +131,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         const digits = ['2', '0', '2', '4'];
@@ -153,7 +153,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type '1' - should work
@@ -179,7 +179,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         // Type '3' - should work
@@ -207,7 +207,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type '9' - should move to next section (9*10 = 90 > 12)
@@ -224,7 +224,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         // Type 4 digits
@@ -254,7 +254,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         store.editSection({
@@ -271,7 +271,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type 'J' - could be Jan, Jun, Jul
@@ -296,7 +296,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type 'Jul' one by one
@@ -323,7 +323,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: monthNameDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
 
         // Type lowercase 'j'
@@ -343,7 +343,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -360,7 +360,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -377,7 +377,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           format: time12Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -402,7 +402,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: monthNameDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '5' for May (5th month)
@@ -420,7 +420,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: monthNameDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '0'
@@ -448,7 +448,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: monthNameDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '1'
@@ -477,7 +477,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: monthNameDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       // Type 'D' - should get 'Dec'
@@ -505,7 +505,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Type '0' in month section
       store.selectClosestDatePart(0);
@@ -532,7 +532,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: monthNameDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       // Type 'J'
@@ -558,7 +558,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: fullMonthNameFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       store.editSection({
@@ -575,7 +575,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: fullMonthNameFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       store.editSection({
@@ -599,7 +599,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       // Type '0'
@@ -628,7 +628,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section (empty)
 
       // Type '3'
@@ -646,7 +646,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
 
       // Type letter 'a' on numeric month - should match April and convert to 04
@@ -664,7 +664,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         format: time12Format,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
       store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
       // Type digit '1' on meridiem

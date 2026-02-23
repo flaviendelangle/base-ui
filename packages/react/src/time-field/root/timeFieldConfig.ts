@@ -3,6 +3,7 @@ import {
   TemporalFieldConfiguration,
   HiddenInputValidationProps,
 } from '../../date-field/utils/types';
+import { isDatePart } from '../../date-field/utils/utils';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { getTimeManager } from '../../utils/temporal/getTimeManager';
 /**
@@ -54,7 +55,8 @@ export const timeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
     parseDate(valueStr.trim(), referenceValue),
   getInitialReferenceValue: ({ value, ...other }) =>
     getInitialReferenceDate({ ...other, externalDate: value }),
-  clearDateSections: (sections) => sections.map((section) => ({ ...section, value: '' })),
+  clearDateSections: (sections) =>
+    sections.map((section) => (isDatePart(section) ? { ...section, value: '' } : section)),
   updateReferenceValue: (adapter, value, prevReferenceValue) =>
     adapter.isValid(value) ? value : prevReferenceValue,
   stringifyValue: (adapter, value) =>

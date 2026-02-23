@@ -59,7 +59,6 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     forwardedRef,
     elementProps,
     config: dateFieldConfig,
-    instanceName: 'DateField',
     props: {
       children,
       actionsRef,

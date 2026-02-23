@@ -18,7 +18,7 @@ describe('TemporalFieldStore - Value', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -33,7 +33,7 @@ describe('TemporalFieldStore - Value', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -56,7 +56,7 @@ describe('TemporalFieldStore - Value', () => {
           onValueChange: onValueChangeSpy,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -76,7 +76,7 @@ describe('TemporalFieldStore - Value', () => {
           onValueChange: onValueChangeSpy,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -92,7 +92,7 @@ describe('TemporalFieldStore - Value', () => {
           onValueChange: onValueChangeSpy,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         store.publish(adapter.date('2024-06-15', 'default'));
 
@@ -107,7 +107,7 @@ describe('TemporalFieldStore - Value', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('06/15/2024');
 
@@ -122,7 +122,7 @@ describe('TemporalFieldStore - Value', () => {
         format: time24Format,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       store.updateFromString('14:30');
 
@@ -138,7 +138,7 @@ describe('TemporalFieldStore - Value', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('06/15/2024');
 
@@ -153,7 +153,7 @@ describe('TemporalFieldStore - Value', () => {
         defaultValue: adapter.date('2024-06-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.state.value).to.not.equal(null);
       store.clear();
@@ -168,7 +168,7 @@ describe('TemporalFieldStore - Value', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.clear();
       expect(onValueChangeSpy.callCount).to.equal(1);
@@ -180,7 +180,7 @@ describe('TemporalFieldStore - Value', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // First set some section values without creating a complete date
       store.selectClosestDatePart(0);
@@ -207,7 +207,7 @@ describe('TemporalFieldStore - Value', () => {
         defaultValue: adapter.date('2024-06-15T14:30', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       expect(store.state.value).to.not.equal(null);
       store.clear();
@@ -222,7 +222,7 @@ describe('TemporalFieldStore - Value', () => {
         defaultValue: adapter.date('2024-01-01', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const newDate = adapter.date('2024-06-15', 'default');
       const derived = store.deriveStateFromNewValue(newDate);
@@ -240,7 +240,7 @@ describe('TemporalFieldStore - Value', () => {
         defaultValue: adapter.date('2024-01-01', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const newDate = adapter.date('2024-06-15', 'default');
       const derived = store.deriveStateFromNewValue(newDate);
@@ -254,7 +254,7 @@ describe('TemporalFieldStore - Value', () => {
         defaultValue: adapter.date('2024-01-01', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const derived = store.deriveStateFromNewValue(null as any);
 

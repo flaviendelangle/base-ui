@@ -4,9 +4,7 @@ import { warn } from '@base-ui/utils/warn';
 import { ownerDocument } from '@base-ui/utils/owner';
 import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
 import {
-  TemporalAdapter,
   TemporalFieldDatePartType,
-  TemporalFieldPlaceholderGetters,
   TemporalNonNullableValue,
   TemporalSupportedObject,
   TemporalSupportedValue,
@@ -48,7 +46,6 @@ import {
   removeLocalizedDigits,
   wrapInRange,
 } from './utils';
-import { TextDirection } from '../../direction-provider';
 import { selectors } from './selectors';
 import { getLocalizedDigits, getWeekDaysStr } from './adapter-cache';
 import { activeElement } from '../../floating-ui-react/utils';
@@ -82,7 +79,9 @@ const DIGITS_ONLY_REGEX = /^[0-9]+$/;
 const DIGITS_AND_LETTER_REGEX = /^(?:[a-zA-Z]+)?[0-9]+(?:[a-zA-Z]+)?$/;
 
 export interface TemporalFieldStoreContext<TValue extends TemporalSupportedValue> {
-  onValueChange?: (value: TValue, eventDetails: TemporalFieldValueChangeEventDetails) => void;
+  onValueChange?:
+    | ((value: TValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
+    | undefined;
 }
 
 export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends ReactStore<
@@ -90,10 +89,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   TemporalFieldStoreContext<TValue>,
   typeof selectors
 > {
-  private initialParameters: TemporalFieldStoreSharedParameters<TValue> | null = null;
-
-  private instanceName: string;
-
   private timeoutManager = new TimeoutManager();
 
   private sectionToUpdateOnNextInvalidDate: { index: number; value: string } | null = null;
@@ -118,7 +113,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   constructor(
     parameters: TemporalFieldStoreSharedParameters<TValue>,
     config: TemporalFieldConfiguration<TValue>,
-    instanceName: string,
   ) {
     const { adapter, direction } = parameters;
     const manager = config.getManager(adapter);
@@ -171,12 +165,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       selectors,
     );
 
-    this.instanceName = instanceName;
-
-    if (process.env.NODE_ENV !== 'production') {
-      this.initialParameters = parameters;
-    }
-
     // Character query sync
     this.registerStoreEffect(
       createSelectorMemoized(
@@ -216,6 +204,91 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         }
       },
     );
+
+    // Format / sections / manager derivation effect
+    // When format-related props change, re-parse the format and rebuild sections.
+    this.registerStoreEffect(
+      createSelectorMemoized(
+        (state: TemporalFieldState<TValue>) => state.rawFormat,
+        (state: TemporalFieldState<TValue>) => state.adapter,
+        (state: TemporalFieldState<TValue>) => state.direction,
+        (state: TemporalFieldState<TValue>) => state.placeholderGetters,
+        (state: TemporalFieldState<TValue>) => state.minDate,
+        (state: TemporalFieldState<TValue>) => state.maxDate,
+        (rawFormat, adapterVal, directionVal, placeholderGettersVal, minDateVal, maxDateVal) => ({
+          rawFormat,
+          adapter: adapterVal,
+          direction: directionVal,
+          placeholderGetters: placeholderGettersVal,
+          minDate: minDateVal,
+          maxDate: maxDateVal,
+        }),
+      ),
+      (previous, next) => {
+        // createSelectorMemoized may return a new object reference even when all input
+        // values are identical (due to its per-state-object __cacheKey__ mechanism).
+        // Guard against this to avoid infinite recursion when this.update() is called below.
+        if (
+          previous.rawFormat === next.rawFormat &&
+          previous.adapter === next.adapter &&
+          previous.direction === next.direction &&
+          previous.placeholderGetters === next.placeholderGetters &&
+          previous.minDate === next.minDate &&
+          previous.maxDate === next.maxDate
+        ) {
+          return;
+        }
+
+        const currentConfig = this.state.config;
+
+        const nextParsedFormat = FormatParser.parse(
+          next.adapter,
+          next.rawFormat,
+          next.direction,
+          next.placeholderGetters,
+          { minDate: next.minDate, maxDate: next.maxDate },
+        );
+        validateParsedFormat(this.state.manager.dateType, nextParsedFormat);
+
+        const newSections = currentConfig.getSectionsFromValue(this.state.value, (date) =>
+          buildSections(next.adapter, nextParsedFormat, date),
+        );
+
+        this.sectionToUpdateOnNextInvalidDate = null;
+
+        const newState: Partial<TemporalFieldState<TValue>> = {
+          format: nextParsedFormat,
+          sections: newSections,
+        };
+
+        if (next.adapter !== previous.adapter) {
+          newState.manager = currentConfig.getManager(next.adapter);
+        }
+
+        this.update(newState);
+      },
+    );
+
+    // Controlled value sync effect
+    // When valueProp changes (controlled mode), sync value and rebuild sections/referenceValue.
+    this.registerStoreEffect(
+      (state: TemporalFieldState<TValue>) => state.valueProp,
+      (previousValueProp, nextValueProp) => {
+        if (nextValueProp === undefined) {
+          return;
+        }
+
+        const newState: Partial<TemporalFieldState<TValue>> = {
+          value: nextValueProp,
+        };
+
+        if (nextValueProp !== previousValueProp) {
+          Object.assign(newState, this.deriveStateFromNewValue(nextValueProp));
+        }
+
+        this.update(newState);
+      },
+    );
   }
 
   /**
@@ -225,108 +298,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     return {
       clear: () => this.clear(),
     };
-  }
-
-  /**
-   * Updates the derived state of the field based on the new parameters provided to the root component.
-   * Handles format parsing, section building, manager rebuilding, and controlled value syncing.
-   * Simple 1:1 state mappings (required, readOnly, etc.) are handled by `useSyncedValues` in the Root component.
-   */
-  public syncDerivedState(params: SyncDerivedStateParams<TValue>) {
-    const { format, adapter, direction, config, minDate, maxDate, placeholderGetters, value, defaultValue, referenceDate } = params;
-
-    const newState: Partial<TemporalFieldState<TValue>> = {
-      minDate,
-      maxDate,
-      direction,
-      config,
-      adapter,
-      referenceDateProp: referenceDate ?? null,
-      valueProp: value,
-      placeholderGetters,
-    };
-
-    const validationProps = { minDate, maxDate };
-
-    // If the format changed, we need to rebuild the sections
-    const hasFormatChanged =
-      format !== this.state.format.rawFormat ||
-      placeholderGetters !== this.state.placeholderGetters ||
-      direction !== this.state.direction ||
-      adapter !== this.state.adapter ||
-      minDate !== this.state.minDate ||
-      maxDate !== this.state.maxDate;
-    const hasValueChanged =
-      value !== undefined && value !== this.state.valueProp;
-
-    if (hasFormatChanged) {
-      const parsedFormat = FormatParser.parse(
-        adapter,
-        format,
-        direction,
-        placeholderGetters,
-        validationProps,
-      );
-      validateParsedFormat(this.state.manager.dateType, parsedFormat);
-
-      newState.format = parsedFormat;
-
-      // When both format and value change, build sections from the new value directly.
-      // deriveStateFromNewValue cannot be used here because it reads parsedFormat from
-      // the store state which still contains the old format at this point.
-      const valueToUse = hasValueChanged ? (value as TValue) : this.state.value;
-      newState.sections = config.getSectionsFromValue(valueToUse, (date) =>
-        buildSections(adapter, parsedFormat, date),
-      );
-
-      // The pending invalid-date section patch references indices from the old format,
-      // so it must be discarded when sections are rebuilt.
-      this.sectionToUpdateOnNextInvalidDate = null;
-
-      if (hasValueChanged) {
-        newState.referenceValue = config.updateReferenceValue(
-          adapter,
-          value as TValue,
-          this.state.referenceValue,
-        );
-      }
-    } else if (hasValueChanged) {
-      Object.assign(newState, this.deriveStateFromNewValue(value as TValue));
-    }
-
-    // If the adapter changed, we need to rebuild the manager
-    if (adapter !== this.state.adapter) {
-      newState.manager = config.getManager(adapter);
-    }
-
-    // Controlled value sync
-    if (value !== undefined) {
-      newState.value = value;
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      const isControlled = value !== undefined;
-      const initialIsControlled = this.initialParameters?.value !== undefined;
-
-      if (initialIsControlled !== isControlled) {
-        warn(
-          `Base UI: A component is changing the ${
-            initialIsControlled ? '' : 'un'
-          }controlled value state of ${this.instanceName} to be ${initialIsControlled ? 'un' : ''}controlled.`,
-          'Elements should not switch from uncontrolled to controlled (or vice versa).',
-          'Decide between using a controlled or uncontrolled value element for the lifetime of the component.',
-          "The nature of the state is determined during the first render. It's considered controlled if the value is not `undefined`.",
-          'More info: https://fb.me/react-controlled-components',
-        );
-      } else if (JSON.stringify(this.initialParameters?.defaultValue) !== JSON.stringify(defaultValue)) {
-        warn(
-          `Base UI: A component is changing the default value state of an uncontrolled ${this.instanceName} after being initialized. `,
-          `To suppress this warning opt to use a controlled ${this.instanceName}.`,
-        );
-      }
-    }
-
-    this.update(newState);
   }
 
   public mountEffect = () => {
@@ -378,7 +349,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   /**
-   * Updates the one of the date in the value from its string representation.
+   * Updates the value from its string representation.
    */
   public updateFromString(valueStr: string) {
     const adapter = selectors.adapter(this.state);
@@ -387,7 +358,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     let invalidValue = false;
     const parseDateStr = (dateStr: string, referenceDate: TemporalSupportedObject) => {
-      const date = adapter.parse(dateStr, format.rawFormat, selectors.timezoneToRender(this.state));
+      const date = adapter.parse(
+        dateStr,
+        this.state.rawFormat,
+        selectors.timezoneToRender(this.state),
+      );
       if (!adapter.isValid(date)) {
         invalidValue = true;
         return null;
@@ -908,8 +883,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     this.subscribe((state) => {
       const nextValue = selector(state);
       if (nextValue !== previousValue) {
-        effect(previousValue, nextValue);
+        // Update previousValue before calling the effect so that re-entrant
+        // setState calls (from this.update() inside the effect) see the
+        // already-updated reference and can compare correctly.
+        const prev = previousValue;
         previousValue = nextValue;
+        effect(prev, nextValue);
       }
     });
   };
@@ -1479,17 +1458,4 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     return adapter.formatByString(adapter.parse(valueStr, currentFormat, timezone)!, newFormat);
   }
-}
-
-export interface SyncDerivedStateParams<TValue extends TemporalSupportedValue> {
-  format: string;
-  adapter: TemporalAdapter;
-  direction: TextDirection;
-  config: TemporalFieldConfiguration<TValue>;
-  minDate: TemporalSupportedObject | undefined;
-  maxDate: TemporalSupportedObject | undefined;
-  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
-  value: TValue | undefined;
-  defaultValue: TValue | undefined;
-  referenceDate: TemporalSupportedObject | undefined;
 }

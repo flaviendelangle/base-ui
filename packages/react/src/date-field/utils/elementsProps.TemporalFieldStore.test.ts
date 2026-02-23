@@ -28,7 +28,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0); // month section
         expect(props.role).to.equal('spinbutton');
@@ -40,7 +40,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-label']).to.equal('Month');
@@ -52,7 +52,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 2); // day section (index 2, after separator)
         expect(props['aria-label']).to.equal('Day');
@@ -64,7 +64,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 4); // year section
         expect(props['aria-label']).to.equal('Year');
@@ -76,7 +76,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15T14:30', 'default'),
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-label']).to.equal('Hours');
@@ -88,7 +88,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15T14:30', 'default'),
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
 
         const props = getProps(store, 2);
         expect(props['aria-label']).to.equal('Minutes');
@@ -100,7 +100,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-valuenow']).to.equal(3);
@@ -111,7 +111,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-valuenow']).to.equal(undefined);
@@ -122,7 +122,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-valuetext']).to.equal('Empty');
@@ -134,7 +134,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           defaultValue: adapter.date('2024-03-15', 'default'),
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0); // month
         expect(props['aria-valuemin']).to.equal(1);
@@ -148,7 +148,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.contentEditable).to.equal(true);
@@ -159,7 +159,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.tabIndex).to.equal(0);
@@ -171,7 +171,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           disabled: true,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.tabIndex).to.equal(-1);
@@ -183,7 +183,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           disabled: true,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-disabled']).to.equal(true);
@@ -195,7 +195,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           readOnly: true,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-readonly']).to.equal(true);
@@ -206,7 +206,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.inputMode).to.equal('numeric');
@@ -221,7 +221,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 1); // first separator "/"
       expect(props['aria-hidden']).to.equal(true);
@@ -233,7 +233,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 1);
       expect(props.children).to.equal('/');
@@ -245,7 +245,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 1);
       expect(props.role).to.equal(undefined);
@@ -257,7 +257,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 1);
       expect(props.tabIndex).to.equal(undefined);
@@ -271,7 +271,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15T14:30', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const props = getProps(store, 4); // meridiem section
       expect(props['aria-label']).to.equal('Meridiem');
@@ -283,7 +283,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15T14:30', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       const props = getProps(store, 4);
       expect(props.inputMode).to.equal('text');
@@ -297,7 +297,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 0); // month
       expect(props.children).to.equal('03');
@@ -308,7 +308,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       const props = getProps(store, 0); // month (empty)
       // The placeholder is defined by the token

@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { useOnMount } from '@base-ui/utils/useOnMount';
 import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
@@ -30,25 +29,26 @@ export interface TemporalFieldRootResolvedProps {
   children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
   actionsRef?: React.RefObject<TemporalFieldRootActions | null> | undefined;
   inputRef?: React.Ref<HTMLInputElement> | undefined;
-  /** The resolved format string (default already applied by the Root component). */
+  /**
+   * The resolved format string (default already applied by the Root component).
+   */
   format: string;
-  /** The step value. DateField passes 1, TimeField/DateTimeField pass `step ?? 1`. */
   step: number;
-  required?: boolean | undefined;
-  readOnly?: boolean | undefined;
-  disabled?: boolean | undefined;
-  name?: string | undefined;
-  id?: string | undefined;
-  onValueChange?:
+  required: boolean | undefined;
+  readOnly: boolean | undefined;
+  disabled: boolean | undefined;
+  name: string | undefined;
+  id: string | undefined;
+  onValueChange:
     | ((value: TemporalValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
     | undefined;
-  defaultValue?: TemporalValue | undefined;
-  value?: TemporalValue | undefined;
-  timezone?: TemporalTimezone | undefined;
-  referenceDate?: TemporalSupportedObject | undefined;
-  minDate?: TemporalSupportedObject | undefined;
-  maxDate?: TemporalSupportedObject | undefined;
-  placeholderGetters?: Partial<TemporalFieldPlaceholderGetters> | undefined;
+  defaultValue: TemporalValue | undefined;
+  value: TemporalValue | undefined;
+  timezone: TemporalTimezone | undefined;
+  referenceDate: TemporalSupportedObject | undefined;
+  minDate: TemporalSupportedObject | undefined;
+  maxDate: TemporalSupportedObject | undefined;
+  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
 }
 
 interface UseTemporalFieldRootParameters {
@@ -63,8 +63,6 @@ interface UseTemporalFieldRootParameters {
   // Field type configuration
   /** The static config object for this field type. */
   config: TemporalFieldConfiguration<TemporalValue>;
-  /** Name of the field type (e.g. 'DateField'), used for dev warnings. */
-  instanceName: string;
 
   // Component props (from the Root's componentProps, with defaults applied)
   props: TemporalFieldRootResolvedProps;
@@ -77,7 +75,7 @@ interface UseTemporalFieldRootParameters {
 export function useTemporalFieldRoot(
   parameters: UseTemporalFieldRootParameters,
 ): React.JSX.Element {
-  const { componentProps, forwardedRef, elementProps, config, instanceName, props } = parameters;
+  const { componentProps, forwardedRef, elementProps, config, props } = parameters;
   const {
     children,
     actionsRef,
@@ -129,42 +127,20 @@ export function useTemporalFieldRoot(
           placeholderGetters,
         },
         config,
-        instanceName,
       ),
   ).current;
 
   store.useContextCallback('onValueChange', onValueChange);
 
-  useIsoLayoutEffect(
-    () =>
-      store.syncDerivedState({
-        format,
-        adapter,
-        direction,
-        config,
-        minDate,
-        maxDate,
-        placeholderGetters,
-        value,
-        defaultValue,
-        referenceDate,
-      }),
-    [
-      store,
-      config,
-      format,
-      adapter,
-      direction,
-      minDate,
-      maxDate,
-      placeholderGetters,
-      value,
-      defaultValue,
-      referenceDate,
-    ],
-  );
-
   store.useSyncedValues({
+    rawFormat: format,
+    adapter,
+    direction,
+    config,
+    minDate,
+    maxDate,
+    placeholderGetters,
+    referenceDateProp: referenceDate ?? null,
     required: required ?? false,
     disabledProp: disabled ?? false,
     readOnly: readOnly ?? false,
@@ -172,14 +148,13 @@ export function useTemporalFieldRoot(
     id,
     timezoneProp: timezone,
     step,
+    fieldContext: fieldContext ?? null,
   });
 
-  // 7. Field context (frequently changing, independent)
-  store.useSyncedValue('fieldContext', fieldContext ?? null);
+  store.useControlledProp('valueProp', value);
 
   React.useImperativeHandle(actionsRef, () => store.getActions(), [store]);
 
-  // 8. State selectors, field integration, mount effect, children resolution
   const hiddenInputProps = store.useState('hiddenInputProps');
   const state = store.useState('rootState');
   const useFieldParams = store.useState('useFieldParams');
@@ -194,7 +169,6 @@ export function useTemporalFieldRoot(
       children
     );
 
-  // 9. Rendering
   const element = useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, useFieldParams.controlRef],

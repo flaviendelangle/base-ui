@@ -3,6 +3,7 @@ import {
   TemporalFieldConfiguration,
   HiddenInputValidationProps,
 } from '../../date-field/utils/types';
+import { isDatePart } from '../../date-field/utils/utils';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { getDateTimeManager } from '../../utils/temporal/getDateTimeManager';
 /**
@@ -55,7 +56,8 @@ export const dateTimeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
     parseDate(valueStr.trim(), referenceValue),
   getInitialReferenceValue: ({ value, ...other }) =>
     getInitialReferenceDate({ ...other, externalDate: value }),
-  clearDateSections: (sections) => sections.map((section) => ({ ...section, value: '' })),
+  clearDateSections: (sections) =>
+    sections.map((section) => (isDatePart(section) ? { ...section, value: '' } : section)),
   updateReferenceValue: (adapter, value, prevReferenceValue) =>
     adapter.isValid(value) ? value : prevReferenceValue,
   stringifyValue: (adapter, value) =>
@@ -101,11 +103,4 @@ export function getDateTimeFieldDefaultFormat(
     : `${f.localizedNumericDate}${c.start},${c.end} ${f.hours24hPadded}:${f.minutesPadded}`;
 }
 
-export interface AmPmParameters {
-  /**
-   * Whether to use 12-hour format with AM/PM or 24-hour format.
-   * Is ignored if a custom format is provided.
-   * @default based on the current locale
-   */
-  ampm?: boolean | undefined;
-}
+export type { AmPmParameters } from '../../time-field/root/timeFieldConfig';

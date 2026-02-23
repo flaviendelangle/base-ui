@@ -24,7 +24,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month section
 
@@ -42,7 +42,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month section (empty)
 
@@ -61,7 +61,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(2); // day section
 
@@ -85,7 +85,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Clear month
       store.selectClosestDatePart(0);
@@ -116,7 +116,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month section
 
@@ -146,7 +146,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('03/15/2024');
 
@@ -163,7 +163,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2023-01-01', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('12/31/2024');
 
@@ -180,7 +180,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('invalid date string');
 
@@ -197,7 +197,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.updateFromString('');
 
@@ -213,7 +213,7 @@ describe('TemporalFieldStore - Section', () => {
         format: time24Format,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       store.updateFromString('14:30');
 
@@ -228,7 +228,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Select month section and start typing
       store.selectClosestDatePart(0);
@@ -258,7 +258,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Edit the day
       store.selectClosestDatePart(2); // day section
@@ -285,7 +285,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Clear day
       store.selectClosestDatePart(2);
@@ -312,7 +312,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Edit the year
       store.selectClosestDatePart(0); // year section
@@ -341,7 +341,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Edit the month
       store.selectClosestDatePart(0); // month section
@@ -370,7 +370,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Edit the hour
       store.selectClosestDatePart(0); // hour section
@@ -398,7 +398,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Clear hour
       store.selectClosestDatePart(0);
@@ -426,7 +426,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Edit the hour
       store.selectClosestDatePart(0); // hour section
@@ -454,7 +454,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Enter 02/29/2024 (2024 is a leap year)
       store.selectClosestDatePart(0); // month
@@ -491,7 +491,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2023-02-28', 'default'), // 2023 is not a leap year
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Update year to 2024 (leap year)
       store.selectClosestDatePart(4);
@@ -522,7 +522,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year (4-digit)
       store.updateDatePart({
@@ -542,7 +542,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2023-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(4);
       store.updateDatePart({
@@ -563,7 +563,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month
       expect(store.state.selectedSection).to.equal(0);
@@ -580,7 +580,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month
       expect(store.state.selectedSection).to.equal(0);
@@ -597,7 +597,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year
       expect(store.state.selectedSection).to.equal(4);
@@ -614,7 +614,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year (last section)
       expect(store.state.selectedSection).to.equal(4);
@@ -628,7 +628,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month (first section)
       expect(store.state.selectedSection).to.equal(0);
@@ -645,7 +645,7 @@ describe('TemporalFieldStore - Section', () => {
         format: formatWithTrailingSeparator,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year (last datePart)
       expect(store.state.selectedSection).to.equal(4);
@@ -663,7 +663,7 @@ describe('TemporalFieldStore - Section', () => {
         format: formatWithLeadingSeparator,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // The first datePart is at index 1 (index 0 is the leading separator)
       store.selectClosestDatePart(1); // month
@@ -682,7 +682,7 @@ describe('TemporalFieldStore - Section', () => {
         format: formatWithLeadingSeparator,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Clicking on the leading separator (index 0) should select the first date part (index 1)
       store.selectClosestDatePart(0);
@@ -694,7 +694,7 @@ describe('TemporalFieldStore - Section', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       store.selectClosestDatePart(0);
       expect(store.state.selectedSection).to.equal(0);
@@ -711,7 +711,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Verify initial value
       const initialMonthPart = selectors.datePart(store.state, 0);
@@ -737,7 +737,7 @@ describe('TemporalFieldStore - Section', () => {
         defaultValue: adapter.date('2024-03-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Reset value to null
       store.clear();

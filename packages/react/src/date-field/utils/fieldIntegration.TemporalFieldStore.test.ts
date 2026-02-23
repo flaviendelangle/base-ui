@@ -28,7 +28,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.state.fieldContext).to.equal(mockFieldContext);
     });
@@ -38,7 +38,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.state.fieldContext).to.equal(null);
     });
@@ -54,7 +54,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: initialFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(store.state.fieldContext).to.equal(initialFieldContext);
 
@@ -76,7 +76,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         disabled: true,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -92,7 +92,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -108,7 +108,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.disabled(store.state)).to.equal(true);
     });
@@ -124,7 +124,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.disabled(store.state)).to.equal(false);
     });
@@ -137,7 +137,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         name: 'localName',
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.name(store.state)).to.equal('localName');
     });
@@ -153,7 +153,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.name(store.state)).to.equal('fieldName');
     });
@@ -169,7 +169,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       expect(selectors.name(store.state)).to.equal('localName');
     });
@@ -190,7 +190,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Initial value is null, so setFilled should not be called yet for the initial state
       // But the effect should be registered
@@ -218,7 +218,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Value is initially non-null, effect is registered so setFilled should be called on mount
       // The effect triggers when value changes
@@ -237,7 +237,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -265,7 +265,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       setDirtySpy.resetHistory();
 
@@ -293,7 +293,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       setDirtySpy.resetHistory();
 
@@ -311,7 +311,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         defaultValue: adapter.date('2024-01-15', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // This should not throw even without fieldContext
       store.updateFromString('01/16/2024');
@@ -339,7 +339,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -368,7 +368,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -385,7 +385,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         format: numericDateFormat,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -409,7 +409,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       expect(store.state.fieldContext).to.equal(mockFieldContext);
     });
@@ -428,7 +428,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       setDirtySpy.resetHistory();
 
@@ -455,7 +455,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Change time value
       store.updateFromString('14:30');
@@ -479,7 +479,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       setFilledSpy.resetHistory();
 
@@ -511,7 +511,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         fieldContext: mockFieldContext,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Change value
       store.updateFromString('01/15/2024');
@@ -543,7 +543,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         name: 'standaloneField',
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Should work normally without Field context
       expect(store.state.disabledProp).to.equal(true);
@@ -570,7 +570,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -618,7 +618,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -665,7 +665,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -704,7 +704,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, timeFieldConfig, 'TimeField');
+      }, timeFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -751,7 +751,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -798,7 +798,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         onValueChange: onValueChangeSpy,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Start with empty field
       expect(store.state.value).to.equal(null);
@@ -831,7 +831,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         defaultValue,
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Edit month from 01 to 02: Jan 30 → Feb 30 (invalid) → sets sectionToUpdateOnNextInvalidDate
       store.selectClosestDatePart(0); // month section
@@ -843,19 +843,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
 
-      // Change format via syncDerivedState (simulates parent re-render with new format prop)
-      store.syncDerivedState({
-        format: europeanDateFormat,
-        defaultValue,
-        adapter,
-        direction: 'ltr',
-        config: dateFieldConfig,
-        minDate: undefined,
-        maxDate: undefined,
-        placeholderGetters: undefined,
-        value: undefined,
-        referenceDate: undefined,
-      });
+      // Change format (simulates parent re-render with new format prop)
+      // The format store effect will detect the rawFormat change and rebuild sections.
+      store.update({ rawFormat: europeanDateFormat });
 
       // The stale pending patch should have been cleared
       expect((store as any).sectionToUpdateOnNextInvalidDate).to.equal(null);
@@ -867,7 +857,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         value: adapter.date('2024-01-30', 'default'),
         adapter,
         direction: 'ltr',
-      }, dateFieldConfig, 'DateField');
+      }, dateFieldConfig);
 
       // Edit month from 01 to 02: Jan 30 → Feb 30 (invalid) → sets sectionToUpdateOnNextInvalidDate
       store.selectClosestDatePart(0); // month section
@@ -879,20 +869,12 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
 
-      // Simulate parent re-render that changes BOTH format and value
+      // Simulate parent re-render that changes BOTH format and value.
+      // In the real component, useSyncedValues fires first (updating rawFormat),
+      // then useControlledProp fires second (updating valueProp).
       const newValue = adapter.date('2024-06-15', 'default');
-      store.syncDerivedState({
-        format: europeanDateFormat,
-        value: newValue,
-        adapter,
-        direction: 'ltr',
-        config: dateFieldConfig,
-        minDate: undefined,
-        maxDate: undefined,
-        placeholderGetters: undefined,
-        defaultValue: undefined,
-        referenceDate: undefined,
-      });
+      store.update({ rawFormat: europeanDateFormat });
+      store.set('valueProp', newValue);
 
       // Sections should reflect the NEW format (dd/MM/yyyy) with the NEW value
       const sections = store.state.sections.filter((s) => s.type === 'datePart');

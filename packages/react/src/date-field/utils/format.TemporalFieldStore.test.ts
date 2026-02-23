@@ -18,9 +18,9 @@ describe('TemporalFieldStore - Format', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
-        expect(selectors.format(store.state).rawFormat).to.equal(numericDateFormat);
+        expect(store.state.rawFormat).to.equal(numericDateFormat);
       });
 
       it('should return custom format when provided', () => {
@@ -29,9 +29,9 @@ describe('TemporalFieldStore - Format', () => {
           format: customFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
-        expect(selectors.format(store.state).rawFormat).to.equal(customFormat);
+        expect(store.state.rawFormat).to.equal(customFormat);
       });
 
       it('should return a parsed format with correct number of elements for date format', () => {
@@ -39,7 +39,7 @@ describe('TemporalFieldStore - Format', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const format = selectors.format(store.state);
         // MM/DD/YYYY = 5 elements: month, separator, day, separator, year
@@ -51,7 +51,7 @@ describe('TemporalFieldStore - Format', () => {
           format: time24Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
 
         const format = selectors.format(store.state);
         // HH:mm = 3 elements: hours, separator, minutes
@@ -63,7 +63,7 @@ describe('TemporalFieldStore - Format', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const format = selectors.format(store.state);
         // The most granular part in MM/DD/YYYY is 'day'
@@ -75,7 +75,7 @@ describe('TemporalFieldStore - Format', () => {
           format: time24Format,
           adapter,
           direction: 'ltr',
-        }, timeFieldConfig, 'TimeField');
+        }, timeFieldConfig);
 
         const format = selectors.format(store.state);
         // The most granular part in HH:mm is 'minutes'
@@ -87,7 +87,7 @@ describe('TemporalFieldStore - Format', () => {
           format: numericDateFormat,
           adapter,
           direction: 'ltr',
-        }, dateFieldConfig, 'DateField');
+        }, dateFieldConfig);
 
         const format = selectors.format(store.state);
         const tokens = format.elements.filter(isToken);
