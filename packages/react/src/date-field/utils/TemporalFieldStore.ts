@@ -94,7 +94,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
   private timeoutManager = new TimeoutManager();
 
-  public sectionToUpdateOnNextInvalidDate: { index: number; value: string } | null = null;
+  private sectionToUpdateOnNextInvalidDate: { index: number; value: string } | null = null;
 
   private sectionElementMap = new Map<number, HTMLElement>();
 
@@ -932,7 +932,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return;
     }
 
-    sectionElement.innerHTML = this.getDatePartRenderedValue(datePart);
+    sectionElement.textContent = this.getDatePartRenderedValue(datePart);
     this.syncSelectionToDOM();
   }
 

@@ -4,7 +4,13 @@ import {
   TemporalSupportedObject,
   TemporalFieldDatePartType,
 } from '../../types';
-import { isAfterDay, isBeforeDay, isTimePartAfter, isTimePartBefore } from './date-helpers';
+import {
+  isAfterDay,
+  isBeforeDay,
+  isTimePartAfter,
+  isTimePartBefore,
+  mergeDateAndTime,
+} from './date-helpers';
 import { ValidateDateValidationProps } from './validateDate';
 
 function roundDate(
@@ -28,19 +34,6 @@ function roundDate(
     default:
       return date;
   }
-}
-
-function setTimePart(
-  adapter: TemporalAdapter,
-  target: TemporalSupportedObject,
-  source: TemporalSupportedObject,
-): TemporalSupportedObject {
-  let result = target;
-  result = adapter.setHours(result, adapter.getHours(source));
-  result = adapter.setMinutes(result, adapter.getMinutes(source));
-  result = adapter.setSeconds(result, adapter.getSeconds(source));
-  result = adapter.setMilliseconds(result, adapter.getMilliseconds(source));
-  return result;
 }
 
 export function getInitialReferenceDate(
@@ -76,7 +69,7 @@ export function getInitialReferenceDate(
       adapter.isValid(minDate) &&
       isTimePartBefore(adapter, referenceDate, minDate)
     ) {
-      referenceDate = roundDate(adapter, granularity, setTimePart(adapter, referenceDate, minDate));
+      referenceDate = roundDate(adapter, granularity, mergeDateAndTime(adapter, referenceDate, minDate));
     }
 
     if (
@@ -84,7 +77,7 @@ export function getInitialReferenceDate(
       adapter.isValid(maxDate) &&
       isTimePartAfter(adapter, referenceDate, maxDate)
     ) {
-      referenceDate = roundDate(adapter, granularity, setTimePart(adapter, referenceDate, maxDate));
+      referenceDate = roundDate(adapter, granularity, mergeDateAndTime(adapter, referenceDate, maxDate));
     }
   }
 

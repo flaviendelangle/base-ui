@@ -44,8 +44,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
         },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue, tokenConfig, formatNowByToken) {
-      const digitAmount = formatNowByToken(tokenValue).length;
+    getTokenPlaceholder(placeholderGetters, tokenValue, tokenConfig, formatArbitraryDateByToken) {
+      const digitAmount = formatArbitraryDateByToken(tokenValue).length;
       if (placeholderGetters?.year === undefined) {
         return 'Y'.repeat(digitAmount);
       }
@@ -688,7 +688,7 @@ interface FormatParserDatePartConfig {
     placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined,
     tokenValue: string,
     tokenConfig: TemporalFormatTokenConfig,
-    formatNowByToken: (token: string) => string,
+    formatArbitraryDateByToken: (token: string) => string,
   ): string;
   isDigitTokenPadded: (
     adapter: TemporalAdapter,

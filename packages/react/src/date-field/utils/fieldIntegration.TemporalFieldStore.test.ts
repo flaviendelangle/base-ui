@@ -845,7 +845,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldGoToNextSection: false,
       });
 
-      expect(store.sectionToUpdateOnNextInvalidDate).to.not.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
 
       // Change format via syncState (simulates parent re-render with new format prop)
       store.syncState({
@@ -856,7 +856,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       });
 
       // The stale pending patch should have been cleared
-      expect(store.sectionToUpdateOnNextInvalidDate).to.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).to.equal(null);
     });
 
     it('should not corrupt sections when format and value change simultaneously with a pending invalid date', () => {
@@ -875,7 +875,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldGoToNextSection: false,
       });
 
-      expect(store.sectionToUpdateOnNextInvalidDate).to.not.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
 
       // Simulate parent re-render that changes BOTH format and value
       const newValue = adapter.date('2024-06-15', 'default');
