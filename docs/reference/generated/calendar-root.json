@@ -29,7 +29,7 @@
     },
     "onVisibleDateChange": {
       "type": "((visibleDate: Date, eventDetails: CalendarVisibleDateChangeEventDetails) => void)",
-      "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.\nHas `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.",
+      "description": "Event handler called when the visible date changes.\nProvides the new date as an argument.\nHas the change reason in the `eventDetails`.",
       "detailedType": "| ((\n    visibleDate: Date,\n    eventDetails: CalendarVisibleDateChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "isDateUnavailable": {

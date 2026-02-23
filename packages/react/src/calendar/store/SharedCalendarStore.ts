@@ -355,9 +355,9 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
    */
   defaultVisibleDate?: TemporalSupportedObject | undefined;
   /**
-   * Event handler called when the selected value changes.
-   * Provides the new value as an argument.
-   * Has `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.
+   * Event handler called when the visible date changes.
+   * Provides the new date as an argument.
+   * Has the change reason in the `eventDetails`.
    */
   onVisibleDateChange?:
     | ((
