@@ -119,10 +119,10 @@ export default function TimeFieldBasic() {
           </div>
         </section>
         <section>
-          <h2>TODO: Add clear icon</h2>
+          <h2>Clear button</h2>
           <div className={styles.Form}>
             <Field.Root name="time-field-with-clear" className={styles.Field}>
-              <Field.Label className={styles.Label}>With clear icon</Field.Label>
+              <Field.Label className={styles.Label}>With clear button</Field.Label>
               <TimeField.Root className={styles.Root}>
                 <TimeField.SectionList>
                   {(section) => (
@@ -133,7 +133,7 @@ export default function TimeFieldBasic() {
                     />
                   )}
                 </TimeField.SectionList>
-                {/* TODO: Add clear icon */}
+                <TimeField.Clear className={styles.Clear} />
               </TimeField.Root>
             </Field.Root>
           </div>

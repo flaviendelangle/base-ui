@@ -60,7 +60,7 @@ export default function DateFieldBasic() {
                 )}
               </DateField.Root>
             </Field.Root>
-            <Field.Root name="date-field-iso" className={styles.Field}>
+            <Field.Root name="date-field-prefix-suffix" className={styles.Field}>
               <Field.Label className={styles.Label}>Format with prefix and suffix</Field.Label>
               <DateField.Root className={styles.Root} format="'👉' yyyy-MM-dd '👈'">
                 {(section) => (

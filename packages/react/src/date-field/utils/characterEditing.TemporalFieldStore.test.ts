@@ -672,9 +672,9 @@ describe('TemporalFieldStore - Character Editing', () => {
         sectionIndex: 4,
       });
 
-      const datePart = selectors.datePart(store.state, 2);
+      const datePart = selectors.datePart(store.state, 4);
       // Meridiem sections should reject numeric input
-      expect(datePart!.value).to.be.oneOf(['', 'AM', 'PM']); // Either empty or a meridiem value
+      expect(datePart!.value).to.equal('');
     });
   });
 });

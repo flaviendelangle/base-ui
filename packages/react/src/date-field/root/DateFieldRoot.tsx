@@ -158,7 +158,7 @@ export interface DateFieldRootProps
    * The children of the component.
    * If a function is provided, it will be called with each section as its parameter.
    */
-  children?: React.ReactNode | ((section: TemporalFieldSection) => React.ReactNode);
+  children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
   /**
    * A ref to imperative actions.
    * - `clear`: Clears the field value.

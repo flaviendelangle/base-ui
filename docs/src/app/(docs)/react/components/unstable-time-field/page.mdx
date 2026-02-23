@@ -18,10 +18,15 @@ Import the component and assemble its parts:
 ```jsx title="Anatomy"
 import { TimeField } from '@base-ui/react/time-field';
 
+{/* Basic usage: render sections directly via children render function */}
 <TimeField.Root>
-  <TimeField.Section />
+  {(section) => <TimeField.Section section={section} />}
+</TimeField.Root>
+
+{/* With clear button: wrap sections in SectionList */}
+<TimeField.Root>
   <TimeField.SectionList>
-    <TimeField.Section />
+    {(section) => <TimeField.Section section={section} />}
   </TimeField.SectionList>
   <TimeField.Clear />
 </TimeField.Root>;

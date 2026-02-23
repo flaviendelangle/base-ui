@@ -3,7 +3,7 @@ export class TimeoutManager {
 
   private intervalIds: Map<string, number> = new Map();
 
-  startTimeout = (key: string, delay: number, fn: Function) => {
+  startTimeout = (key: string, delay: number, fn: () => void) => {
     this.clearTimeout(key);
     const id = setTimeout(() => {
       this.timeoutIds.delete(key);
@@ -13,8 +13,8 @@ export class TimeoutManager {
     this.timeoutIds.set(key, id);
   };
 
-  startInterval = (key: string, delay: number, fn: Function) => {
-    this.clearTimeout(key);
+  startInterval = (key: string, delay: number, fn: () => void) => {
+    this.clearInterval(key);
     const id = setInterval(
       fn,
       delay,

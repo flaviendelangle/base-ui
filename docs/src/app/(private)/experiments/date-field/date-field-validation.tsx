@@ -375,10 +375,10 @@ export default function DateFieldValidation() {
                   )}
                 </DateField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Date must be on or after {format(minDateLarge, 'MMM d, yyyy')}
+                  Date must be on or after {format(minDate, 'MMM d, yyyy')}
                 </Field.Error>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Date must be on or before {format(maxDateLarge, 'MMM d, yyyy')}
+                  Date must be on or before {format(maxDate, 'MMM d, yyyy')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -390,7 +390,7 @@ export default function DateFieldValidation() {
 
         {/* Format with week day + minDate validation */}
         <section>
-          <h2>Min Date (Jan 19, 2026) when the format contains week day</h2>
+          <h2>Min Date ({format(minDate, 'MMM d, yyyy')}) when the format contains week day</h2>
           <div className={styles.DemoList}>
             {/* Native form + label */}
             <form

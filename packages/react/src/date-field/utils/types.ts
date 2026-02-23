@@ -44,7 +44,7 @@ export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSuppo
    */
   referenceDate?: TemporalSupportedObject | undefined;
   /**
-   * Format of the date when rendered in the field.
+   * Format of the value when rendered in the field.
    */
   format: string;
   /**
@@ -58,7 +58,7 @@ export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSuppo
    */
   disabled?: boolean | undefined;
   /**
-   * Whether the user should be unable to select a date in the field.
+   * Whether the user should be unable to change the field value.
    * @default false
    */
   readOnly?: boolean | undefined;
@@ -162,7 +162,7 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   disabledProp: boolean;
   /**
-   * Whether the user should be unable to select a date in the field.
+   * Whether the user should be unable to change the field value.
    */
   readOnly: boolean;
   /**
