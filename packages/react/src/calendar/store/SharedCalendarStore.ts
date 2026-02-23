@@ -28,7 +28,7 @@ export class SharedCalendarStore<
 
   private dayGrids: Record<number, TemporalSupportedObject> = {};
 
-  public currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
+  private currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
 
   constructor(
     parameters: SharedCalendarStoreParameters<TValue, TError>,
@@ -199,6 +199,10 @@ export class SharedCalendarStore<
     return () => {
       delete this.dayGrids[id];
     };
+  };
+
+  public getCurrentMonthDayGrid = () => {
+    return this.currentMonthDayGrid;
   };
 
   /**

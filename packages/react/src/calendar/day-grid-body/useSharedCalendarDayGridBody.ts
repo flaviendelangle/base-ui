@@ -150,7 +150,7 @@ export function useSharedCalendarDayGridBody(
         if (event.shiftKey) {
           amount = 12;
         }
-        const gridDays = Object.values(store.currentMonthDayGrid)
+        const gridDays = Object.values(store.getCurrentMonthDayGrid())
           .flat() // Sort the days to ensure they are in the chronological order
           .sort((a, b) => adapter.getTime(a) - adapter.getTime(b));
         const currentDay = gridDays[highlightedIndex];
@@ -166,7 +166,7 @@ export function useSharedCalendarDayGridBody(
           event.currentTarget as HTMLElement,
         );
         executeAfterItemMapUpdate.current = (newMap: typeof itemMap) => {
-          const newGridDays: TemporalSupportedObject[] = Object.values(store.currentMonthDayGrid)
+          const newGridDays: TemporalSupportedObject[] = Object.values(store.getCurrentMonthDayGrid)
             .flat()
             // Sort the days to ensure they are in the chronological order
             .sort((a, b) => adapter.getTime(a) - adapter.getTime(b));
