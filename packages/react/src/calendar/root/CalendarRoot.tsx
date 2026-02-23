@@ -148,7 +148,7 @@ export const CalendarRoot = React.forwardRef(function CalendarRoot(
 
   // TODO: Improve localization support (right now it doesn't work well with RTL languages)
   const ariaLabel = React.useMemo(() => {
-    const formattedVisibleMonth = formatMonthFullLetterAndYear(adapter, visibleMonth).toLowerCase();
+    const formattedVisibleMonth = formatMonthFullLetterAndYear(adapter, visibleMonth);
     const prefix = ariaLabelProp ? `${ariaLabelProp}, ` : '';
 
     return `${prefix}${formattedVisibleMonth}`;
