@@ -3,7 +3,8 @@ export * from './alert-dialog';
 export * from './autocomplete';
 export * from './avatar';
 export * from './button';
-export * from './calendar';
+// TODO: enable before public release
+// export * from './calendar';
 export * from './checkbox';
 export * from './checkbox-group';
 export * from './collapsible';
@@ -34,7 +35,8 @@ export * from './separator';
 export * from './slider';
 export * from './switch';
 export * from './tabs';
-export * from './localization-provider';
+// TODO: enable before public release
+// export * from './localization-provider';
 export * from './toast';
 export * from './toggle';
 export * from './toggle-group';
