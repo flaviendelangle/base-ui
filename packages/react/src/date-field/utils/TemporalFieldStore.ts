@@ -6,6 +6,7 @@ import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
 import {
   TemporalAdapter,
   TemporalFieldDatePartType,
+  TemporalFieldPlaceholderGetters,
   TemporalNonNullableValue,
   TemporalSupportedObject,
   TemporalSupportedValue,
@@ -14,7 +15,6 @@ import {
   AdjustDatePartValueKeyCode,
   EditSectionParameters,
   TemporalFieldQueryApplier,
-  TemporalFieldModelUpdater,
   TemporalFieldParsedFormat,
   TemporalFieldState,
   TemporalFieldStoreSharedParameters,
@@ -81,13 +81,15 @@ const LETTERS_ONLY_REGEX = /^[a-zA-Z]+$/;
 const DIGITS_ONLY_REGEX = /^[0-9]+$/;
 const DIGITS_AND_LETTER_REGEX = /^(?:[a-zA-Z]+)?[0-9]+(?:[a-zA-Z]+)?$/;
 
+export interface TemporalFieldStoreContext<TValue extends TemporalSupportedValue> {
+  onValueChange?: (value: TValue, eventDetails: TemporalFieldValueChangeEventDetails) => void;
+}
+
 export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends ReactStore<
   TemporalFieldState<TValue>,
-  Record<string, never>,
+  TemporalFieldStoreContext<TValue>,
   typeof selectors
 > {
-  private parameters: TemporalFieldStoreSharedParameters<TValue>;
-
   private initialParameters: TemporalFieldStoreSharedParameters<TValue> | null = null;
 
   private instanceName: string;
@@ -166,11 +168,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         selectedSection: null,
         inputRef,
       },
-      {},
+      { onValueChange: parameters.onValueChange },
       selectors,
     );
 
-    this.parameters = parameters;
     this.instanceName = instanceName;
 
     if (process.env.NODE_ENV !== 'production') {
@@ -228,70 +229,43 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   /**
-   * Updates the state of the field based on the new parameters provided to the root component.
+   * Updates the derived state of the field based on the new parameters provided to the root component.
+   * Handles format parsing, section building, manager rebuilding, and controlled value syncing.
+   * Simple 1:1 state mappings (required, readOnly, etc.) are handled by `useSyncedValues` in the Root component.
    */
-  protected updateStateFromParameters(
-    parameters: TemporalFieldStoreSharedParameters<TValue>,
-    adapter: TemporalAdapter,
-    config: TemporalFieldConfiguration<TValue>,
-    direction: TextDirection,
-  ) {
-    const updateModel: TemporalFieldModelUpdater<
-      TemporalFieldState<TValue>,
-      TemporalFieldStoreSharedParameters<TValue>
-    > = (mutableNewState, controlledProp, defaultProp) => {
-      if (parameters[controlledProp] !== undefined) {
-        mutableNewState[controlledProp] = parameters[controlledProp] as any;
-      }
+  public syncDerivedState(params: SyncDerivedStateParams<TValue>) {
+    const { format, adapter, direction, config, minDate, maxDate, placeholderGetters, value, defaultValue, referenceDate } = params;
 
-      if (process.env.NODE_ENV !== 'production') {
-        const defaultValue = parameters[defaultProp];
-        const isControlled = parameters[controlledProp] !== undefined;
-        const initialDefaultValue = this.initialParameters?.[defaultProp];
-        const initialIsControlled = this.initialParameters?.[controlledProp] !== undefined;
-
-        if (initialIsControlled !== isControlled) {
-          warn(
-            `Base UI: A component is changing the ${
-              initialIsControlled ? '' : 'un'
-            }controlled ${controlledProp} state of ${this.instanceName} to be ${initialIsControlled ? 'un' : ''}controlled.`,
-            'Elements should not switch from uncontrolled to controlled (or vice versa).',
-            `Decide between using a controlled or uncontrolled ${controlledProp} element for the lifetime of the component.`,
-            "The nature of the state is determined during the first render. It's considered controlled if the value is not `undefined`.",
-            'More info: https://fb.me/react-controlled-components',
-          );
-        } else if (JSON.stringify(initialDefaultValue) !== JSON.stringify(defaultValue)) {
-          warn(
-            `Base UI: A component is changing the default ${controlledProp} state of an uncontrolled ${this.instanceName} after being initialized. `,
-            `To suppress this warning opt to use a controlled ${this.instanceName}.`,
-          );
-        }
-      }
+    const newState: Partial<TemporalFieldState<TValue>> = {
+      minDate,
+      maxDate,
+      direction,
+      config,
+      adapter,
+      referenceDateProp: referenceDate ?? null,
+      valueProp: value,
+      placeholderGetters,
     };
 
-    const newState = deriveStateFromParameters(parameters, adapter, config, direction) as Partial<
-      TemporalFieldState<TValue>
-    >;
-
-    const validationProps = { minDate: parameters.minDate, maxDate: parameters.maxDate };
+    const validationProps = { minDate, maxDate };
 
     // If the format changed, we need to rebuild the sections
     const hasFormatChanged =
-      parameters.format !== this.state.format.rawFormat ||
-      parameters.placeholderGetters !== this.state.placeholderGetters ||
+      format !== this.state.format.rawFormat ||
+      placeholderGetters !== this.state.placeholderGetters ||
       direction !== this.state.direction ||
       adapter !== this.state.adapter ||
-      parameters.minDate !== this.state.minDate ||
-      parameters.maxDate !== this.state.maxDate;
+      minDate !== this.state.minDate ||
+      maxDate !== this.state.maxDate;
     const hasValueChanged =
-      parameters.value !== undefined && parameters.value !== this.parameters.value;
+      value !== undefined && value !== this.state.valueProp;
 
     if (hasFormatChanged) {
       const parsedFormat = FormatParser.parse(
         adapter,
-        parameters.format,
+        format,
         direction,
-        parameters.placeholderGetters,
+        placeholderGetters,
         validationProps,
       );
       validateParsedFormat(this.state.manager.dateType, parsedFormat);
@@ -301,7 +275,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       // When both format and value change, build sections from the new value directly.
       // deriveStateFromNewValue cannot be used here because it reads parsedFormat from
       // the store state which still contains the old format at this point.
-      const valueToUse = hasValueChanged ? (parameters.value as TValue) : this.state.value;
+      const valueToUse = hasValueChanged ? (value as TValue) : this.state.value;
       newState.sections = config.getSectionsFromValue(valueToUse, (date) =>
         buildSections(adapter, parsedFormat, date),
       );
@@ -313,12 +287,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       if (hasValueChanged) {
         newState.referenceValue = config.updateReferenceValue(
           adapter,
-          parameters.value as TValue,
+          value as TValue,
           this.state.referenceValue,
         );
       }
     } else if (hasValueChanged) {
-      Object.assign(newState, this.deriveStateFromNewValue(parameters.value as TValue));
+      Object.assign(newState, this.deriveStateFromNewValue(value as TValue));
     }
 
     // If the adapter changed, we need to rebuild the manager
@@ -326,10 +300,34 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       newState.manager = config.getManager(adapter);
     }
 
-    updateModel(newState, 'value', 'defaultValue');
+    // Controlled value sync
+    if (value !== undefined) {
+      newState.value = value;
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      const isControlled = value !== undefined;
+      const initialIsControlled = this.initialParameters?.value !== undefined;
+
+      if (initialIsControlled !== isControlled) {
+        warn(
+          `Base UI: A component is changing the ${
+            initialIsControlled ? '' : 'un'
+          }controlled value state of ${this.instanceName} to be ${initialIsControlled ? 'un' : ''}controlled.`,
+          'Elements should not switch from uncontrolled to controlled (or vice versa).',
+          'Decide between using a controlled or uncontrolled value element for the lifetime of the component.',
+          "The nature of the state is determined during the first render. It's considered controlled if the value is not `undefined`.",
+          'More info: https://fb.me/react-controlled-components',
+        );
+      } else if (JSON.stringify(this.initialParameters?.defaultValue) !== JSON.stringify(defaultValue)) {
+        warn(
+          `Base UI: A component is changing the default value state of an uncontrolled ${this.instanceName} after being initialized. `,
+          `To suppress this warning opt to use a controlled ${this.instanceName}.`,
+        );
+      }
+    }
 
     this.update(newState);
-    this.parameters = parameters;
   }
 
   public mountEffect = () => {
@@ -354,8 +352,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       undefined,
     );
 
-    this.parameters.onValueChange?.(newValueWithInputTimezone, eventDetails);
-    if (!eventDetails.isCanceled && this.parameters.value === undefined) {
+    this.context.onValueChange?.(newValueWithInputTimezone, eventDetails);
+    if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
       this.update({
         value: newValueWithInputTimezone,
         ...this.deriveStateFromNewValue(value),
@@ -1482,4 +1480,17 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     return adapter.formatByString(adapter.parse(valueStr, currentFormat, timezone)!, newFormat);
   }
+}
+
+export interface SyncDerivedStateParams<TValue extends TemporalSupportedValue> {
+  format: string;
+  adapter: TemporalAdapter;
+  direction: TextDirection;
+  config: TemporalFieldConfiguration<TValue>;
+  minDate: TemporalSupportedObject | undefined;
+  maxDate: TemporalSupportedObject | undefined;
+  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
+  value: TValue | undefined;
+  defaultValue: TValue | undefined;
+  referenceDate: TemporalSupportedObject | undefined;
 }

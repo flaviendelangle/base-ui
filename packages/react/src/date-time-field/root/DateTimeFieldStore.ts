@@ -50,51 +50,51 @@ const STEP_MULTIPLIERS: Partial<Record<TemporalFieldDatePartType, number>> = {
   seconds: 1,
 };
 
-const config: TemporalFieldConfiguration<TemporalValue> = {
-  getManager: getDateTimeManager,
-  getSectionsFromValue: (date, getSectionsFromDate) => getSectionsFromDate(date),
-  getDateFromSection: (value) => value,
-  getDateSectionsFromValue: (sections) => sections,
-  updateDateInValue: (value, activeSection, activeDate) => activeDate,
-  parseValueStr: (valueStr, referenceValue, parseDate) =>
-    parseDate(valueStr.trim(), referenceValue),
-  getInitialReferenceValue: ({ value, ...other }) =>
-    getInitialReferenceDate({ ...other, externalDate: value }),
-  clearDateSections: (sections) => sections.map((section) => ({ ...section, value: '' })),
-  updateReferenceValue: (adapter, value, prevReferenceValue) =>
-    adapter.isValid(value) ? value : prevReferenceValue,
-  stringifyValue: (adapter, value) =>
-    adapter.isValid(value) ? adapter.toJsDate(value).toISOString() : '',
-  hiddenInputType: 'datetime-local',
-  stringifyValueForHiddenInput: formatDateTimeForNativeInput,
-  stringifyValidationPropsForHiddenInput: (adapter, validationProps, parsedFormat, step) => {
-    // Use parsedFormat.granularity to determine step multiplier
-    const multiplier = STEP_MULTIPLIERS[parsedFormat.granularity] ?? 60;
-    const nativeStep = step * multiplier;
-
-    const result: HiddenInputValidationProps = {
-      step: String(nativeStep),
-    };
-
-    // Always include seconds in min/max for rounding purposes
-    if (validationProps.minDate) {
-      const formatted = formatDateTimeForMinMax(adapter, validationProps.minDate);
-      if (formatted) {
-        result.min = formatted;
-      }
-    }
-    if (validationProps.maxDate) {
-      const formatted = formatDateTimeForMinMax(adapter, validationProps.maxDate);
-      if (formatted) {
-        result.max = formatted;
-      }
-    }
-
-    return result;
-  },
-};
-
 export class DateTimeFieldStore extends TemporalFieldStore<TemporalValue> {
+  static config: TemporalFieldConfiguration<TemporalValue> = {
+    getManager: getDateTimeManager,
+    getSectionsFromValue: (date, getSectionsFromDate) => getSectionsFromDate(date),
+    getDateFromSection: (value) => value,
+    getDateSectionsFromValue: (sections) => sections,
+    updateDateInValue: (value, activeSection, activeDate) => activeDate,
+    parseValueStr: (valueStr, referenceValue, parseDate) =>
+      parseDate(valueStr.trim(), referenceValue),
+    getInitialReferenceValue: ({ value, ...other }) =>
+      getInitialReferenceDate({ ...other, externalDate: value }),
+    clearDateSections: (sections) => sections.map((section) => ({ ...section, value: '' })),
+    updateReferenceValue: (adapter, value, prevReferenceValue) =>
+      adapter.isValid(value) ? value : prevReferenceValue,
+    stringifyValue: (adapter, value) =>
+      adapter.isValid(value) ? adapter.toJsDate(value).toISOString() : '',
+    hiddenInputType: 'datetime-local',
+    stringifyValueForHiddenInput: formatDateTimeForNativeInput,
+    stringifyValidationPropsForHiddenInput: (adapter, validationProps, parsedFormat, step) => {
+      // Use parsedFormat.granularity to determine step multiplier
+      const multiplier = STEP_MULTIPLIERS[parsedFormat.granularity] ?? 60;
+      const nativeStep = step * multiplier;
+
+      const result: HiddenInputValidationProps = {
+        step: String(nativeStep),
+      };
+
+      // Always include seconds in min/max for rounding purposes
+      if (validationProps.minDate) {
+        const formatted = formatDateTimeForMinMax(adapter, validationProps.minDate);
+        if (formatted) {
+          result.min = formatted;
+        }
+      }
+      if (validationProps.maxDate) {
+        const formatted = formatDateTimeForMinMax(adapter, validationProps.maxDate);
+        if (formatted) {
+          result.max = formatted;
+        }
+      }
+
+      return result;
+    },
+  };
+
   constructor(parameters: DateTimeFieldStoreParameters) {
     const { adapter, direction, ampm, ...sharedParameters } = parameters;
 
@@ -104,27 +104,13 @@ export class DateTimeFieldStore extends TemporalFieldStore<TemporalValue> {
         format: sharedParameters.format ?? DateTimeFieldStore.getDefaultFormat(adapter, ampm),
       },
       adapter,
-      config,
+      DateTimeFieldStore.config,
       direction,
       'DateTimeField',
     );
   }
 
-  public syncState(parameters: DateTimeFieldStoreParameters) {
-    const { adapter, direction, ampm, ...sharedParameters } = parameters;
-
-    super.updateStateFromParameters(
-      {
-        ...sharedParameters,
-        format: sharedParameters.format ?? DateTimeFieldStore.getDefaultFormat(adapter, ampm),
-      },
-      adapter,
-      config,
-      direction,
-    );
-  }
-
-  private static getDefaultFormat(adapter: TemporalAdapter, ampm: boolean | undefined) {
+  static getDefaultFormat(adapter: TemporalAdapter, ampm: boolean | undefined) {
     const ampmWithDefault = ampm ?? adapter.is12HourCycleInCurrentLocale();
     const f = adapter.formats;
     const c = adapter.escapedCharacters;

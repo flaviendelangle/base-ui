@@ -62,12 +62,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         state: { disabled: true },
       } as any;
 
-      store.syncState({
-        format: numericDateFormat,
-        fieldContext: newFieldContext,
-        adapter,
-        direction: 'ltr',
-      });
+      store.set('fieldContext', newFieldContext);
 
       expect(store.state.fieldContext).to.equal(newFieldContext);
     });
@@ -847,12 +842,18 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
 
-      // Change format via syncState (simulates parent re-render with new format prop)
-      store.syncState({
+      // Change format via syncDerivedState (simulates parent re-render with new format prop)
+      store.syncDerivedState({
         format: europeanDateFormat,
         defaultValue,
         adapter,
         direction: 'ltr',
+        config: DateFieldStore.config,
+        minDate: undefined,
+        maxDate: undefined,
+        placeholderGetters: undefined,
+        value: undefined,
+        referenceDate: undefined,
       });
 
       // The stale pending patch should have been cleared
@@ -879,11 +880,17 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Simulate parent re-render that changes BOTH format and value
       const newValue = adapter.date('2024-06-15', 'default');
-      store.syncState({
+      store.syncDerivedState({
         format: europeanDateFormat,
         value: newValue,
         adapter,
         direction: 'ltr',
+        config: DateFieldStore.config,
+        minDate: undefined,
+        maxDate: undefined,
+        placeholderGetters: undefined,
+        defaultValue: undefined,
+        referenceDate: undefined,
       });
 
       // Sections should reflect the NEW format (dd/MM/yyyy) with the NEW value

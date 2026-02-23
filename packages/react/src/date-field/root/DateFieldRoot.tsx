@@ -1,17 +1,8 @@
 'use client';
 import * as React from 'react';
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
-import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { BaseUIComponentProps, MakeOptional } from '../../utils/types';
-import { useRenderElement } from '../../utils/useRenderElement';
-import { useDirection } from '../../direction-provider';
 import { DateFieldStore } from './DateFieldStore';
-import { DateFieldRootContext } from './DateFieldRootContext';
 import { FieldRoot } from '../../field';
-import { useFieldRootContext } from '../../field/root/FieldRootContext';
-import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { TemporalValue } from '../../types';
 import {
   TemporalFieldSection,
@@ -38,10 +29,10 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     // Form props
     required,
     readOnly,
-    disabled: disabledProp,
-    name: nameProp,
-    id: idProp,
-    inputRef: inputRefProp,
+    disabled,
+    name,
+    id,
+    inputRef,
     // Value props
     onValueChange,
     defaultValue,
@@ -59,77 +50,51 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     ...elementProps
   } = componentProps;
 
-  const fieldContext = useFieldRootContext();
-  const adapter = useTemporalAdapter();
-  const direction = useDirection();
-
-  const id = useLabelableId({ id: idProp });
-  const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
-
-  const parameters = React.useMemo(
-    () => ({
-      readOnly,
-      disabled: disabledProp,
-      required,
-      onValueChange,
-      defaultValue,
-      value,
-      timezone,
-      referenceDate,
-      format,
-      name: nameProp,
-      id,
-      fieldContext,
-      adapter,
-      direction,
-      minDate,
-      maxDate,
-      placeholderGetters,
-    }),
-    [
-      readOnly,
-      disabledProp,
-      required,
-      onValueChange,
-      defaultValue,
-      value,
-      timezone,
-      referenceDate,
-      format,
-      nameProp,
-      id,
-      fieldContext,
-      adapter,
-      direction,
-      minDate,
-      maxDate,
-      placeholderGetters,
-    ],
-  );
-
-  const store = useRefWithInit(() => new DateFieldStore(parameters)).current;
-
-  useIsoLayoutEffect(() => store.syncState(parameters), [store, parameters, adapter, direction]);
-
-  React.useImperativeHandle(actionsRef, () => store.getActions(), [store]);
-
-  const { state, hiddenInputProps, rootRef, resolvedChildren } = useTemporalFieldRoot({
-    store,
+  return useTemporalFieldRoot({
+    componentProps,
+    forwardedRef,
+    elementProps,
+    createStore: (ctx) =>
+      new DateFieldStore({
+        readOnly,
+        disabled,
+        required,
+        onValueChange,
+        defaultValue,
+        value,
+        timezone,
+        referenceDate,
+        format: ctx.resolvedFormat,
+        name,
+        id: ctx.id,
+        fieldContext: ctx.fieldContext,
+        adapter: ctx.adapter,
+        direction: ctx.direction,
+        minDate,
+        maxDate,
+        placeholderGetters,
+      }),
+    config: DateFieldStore.config,
+    getDefaultFormat: DateFieldStore.getDefaultFormat,
+    step: 1,
     children,
+    required,
+    readOnly,
+    disabled,
+    name,
+    id,
+    inputRef,
+    onValueChange,
+    defaultValue,
+    value,
+    timezone,
+    referenceDate,
+    format,
+    minDate,
+    maxDate,
+    placeholderGetters,
+    actionsRef,
   });
-
-  const element = useRenderElement('div', componentProps, {
-    state,
-    ref: [forwardedRef, rootRef],
-    props: [store.rootEventHandlers, { children: resolvedChildren }, elementProps],
-  });
-
-  return (
-    <DateFieldRootContext.Provider value={store}>
-      <input {...hiddenInputProps} {...store.hiddenInputEventHandlers} ref={hiddenInputRef} />
-      {element}
-    </DateFieldRootContext.Provider>
-  );
 });
 
 export interface DateFieldRootState extends FieldRoot.State {
