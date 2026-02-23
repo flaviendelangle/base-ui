@@ -234,9 +234,9 @@ An easily stylable calendar component.
       - Animating with `motion/react`
   - API reference
 - Exports:
-  - Calendar - Root
-    - Props: children, className, defaultValue, defaultVisibleDate, disabled, invalid, isDateUnavailable, maxDate, minDate, monthPageSize, onValueChange, onVisibleDateChange, readOnly, referenceDate, render, style, timezone, value, visibleDate
-    - Data Attributes: data-disabled, data-empty, data-invalid, data-navigation-direction, data-readonly
+  - Calendar - DayButton
+    - Props: className, format, nativeButton, render, style
+    - Data Attributes: data-current, data-disabled, data-outside-month, data-selected, data-unavailable
   - Calendar - DayGrid
     - Props: className, render, style
   - Calendar - DayGridBody
@@ -251,17 +251,17 @@ An easily stylable calendar component.
     - Props: children, className, render, style
   - Calendar - DayGridRow
     - Props: children, className, render, style, value
-  - Calendar - DayButton
-    - Props: className, format, nativeButton, render, style
-    - Data Attributes: data-current, data-disabled, data-outside-month, data-selected, data-unavailable
-  - Calendar - SetMonth
-    - Props: className, nativeButton, render, style, target
+  - Calendar - DecrementMonth
+    - Props: className, nativeButton, render, style
     - Data Attributes: data-disabled
   - Calendar - IncrementMonth
     - Props: className, nativeButton, render, style
     - Data Attributes: data-disabled
-  - Calendar - DecrementMonth
-    - Props: className, nativeButton, render, style
+  - Calendar - Root
+    - Props: children, className, defaultValue, defaultVisibleDate, disabled, invalid, isDateUnavailable, maxDate, minDate, monthPageSize, onValueChange, onVisibleDateChange, readOnly, referenceDate, render, style, timezone, value, visibleDate
+    - Data Attributes: data-disabled, data-empty, data-invalid, data-navigation-direction, data-readonly
+  - Calendar - SetMonth
+    - Props: className, nativeButton, render, style, target
     - Data Attributes: data-disabled
   - Calendar - Viewport
     - Props: children
