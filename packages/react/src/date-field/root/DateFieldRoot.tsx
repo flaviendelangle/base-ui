@@ -102,7 +102,7 @@ export interface DateFieldRootProps
     Omit<BaseUIComponentProps<'div', DateFieldRootState>, 'children'>,
     Omit<
       MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
-      'fieldContext' | 'step' | 'adapter' | 'direction'
+      'fieldContext' | 'step' | 'adapter' | 'direction' | 'translations'
     > {
   /**
    * The children of the component.

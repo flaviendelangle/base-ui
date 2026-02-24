@@ -1,8 +1,5 @@
 import { TemporalAdapter, TemporalValue } from '../../types';
-import {
-  TemporalFieldConfiguration,
-  HiddenInputValidationProps,
-} from '../utils/types';
+import { TemporalFieldConfiguration, HiddenInputValidationProps } from '../utils/types';
 import { isDatePart } from '../utils/utils';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { getDateManager } from '../../utils/temporal/getDateManager';

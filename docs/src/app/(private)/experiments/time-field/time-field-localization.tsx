@@ -4,7 +4,7 @@ import { fr } from 'date-fns/locale/fr';
 import { Field } from '@base-ui/react/field';
 import { TimeField } from '@base-ui/react/time-field';
 import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
-import { TemporalLocaleProvider } from '@base-ui/react/temporal-locale-provider';
+import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import styles from './time-field-localization.module.css';
 
 const CUSTOM_TIME_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
@@ -19,7 +19,7 @@ export default function TimeFieldLocalization() {
       <h1>Time Field Localization</h1>
       <div className={styles.Page}>
         <section className={styles.Form}>
-          <TemporalLocaleProvider locale={fr}>
+          <LocalizationProvider temporalLocale={fr}>
             <Field.Root name="time-field-fr-default" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 French locale (24h clock by default)
@@ -50,7 +50,7 @@ export default function TimeFieldLocalization() {
                 )}
               </TimeField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
+          </LocalizationProvider>
         </section>
       </div>
     </div>

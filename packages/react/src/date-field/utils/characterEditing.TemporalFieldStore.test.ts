@@ -19,11 +19,14 @@ describe('TemporalFieldStore - Character Editing', () => {
   describe('numeric editing - digit sections', () => {
     describe('single digit entry', () => {
       it('should update month section with single digit', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         store.editSection({
@@ -36,11 +39,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should update day section with single digit', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         store.editSection({
@@ -53,11 +59,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should update year section with single digit', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         store.editSection({
@@ -72,11 +81,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
     describe('multi-digit entry with concatenation', () => {
       it('should concatenate digits for month (0 then 9)', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type '0'
@@ -100,11 +112,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should concatenate digits for day (1 then 5)', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         // Type '1'
@@ -127,11 +142,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should concatenate digits for year (2, 0, 2, 4)', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         const digits = ['2', '0', '2', '4'];
@@ -149,11 +167,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
     describe('boundary validation', () => {
       it('should reject month value above 12', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type '1' - should work
@@ -175,11 +196,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should reject day value above 31', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section (index 2 because of separator at index 1)
 
         // Type '3' - should work
@@ -203,11 +227,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
     describe('automatic navigation', () => {
       it('should move to next section when typing digit that would exceed maximum', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type '9' - should move to next section (9*10 = 90 > 12)
@@ -220,11 +247,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should complete year section after typing max length', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(4); // year section (index 4 because of separators)
 
         // Type 4 digits
@@ -250,11 +280,14 @@ describe('TemporalFieldStore - Character Editing', () => {
   describe('letter editing - letter sections', () => {
     describe('month name editing', () => {
       it('should update month section with letter (J -> Jan)', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         store.editSection({
@@ -267,11 +300,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should concatenate letters for month (J then u -> Jun)', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type 'J' - could be Jan, Jun, Jul
@@ -292,11 +328,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should complete and move to next section when only one match (Ju then l -> Jul)', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type 'Jul' one by one
@@ -319,11 +358,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should handle case-insensitive input', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
 
         // Type lowercase 'j'
@@ -339,11 +381,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
     describe('meridiem editing', () => {
       it('should update meridiem with A -> AM', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -356,11 +401,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should update meridiem with P -> PM', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -373,11 +421,14 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       it('should complete meridiem after typing unique letter', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
         store.editSection({
@@ -398,11 +449,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
   describe('mixed editing - digit section with letter input', () => {
     it('should support typing digit on letter-format month (5 -> May)', () => {
-      const store = new TemporalFieldStore({
-        format: monthNameDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: monthNameDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '5' for May (5th month)
@@ -416,11 +470,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should support typing 0 then 7 on letter-format month (07 -> Jul)', () => {
-      const store = new TemporalFieldStore({
-        format: monthNameDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: monthNameDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '0'
@@ -444,11 +501,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should support typing digit 1 then 2 on letter-format month (12 -> Dec)', () => {
-      const store = new TemporalFieldStore({
-        format: monthNameDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: monthNameDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section (letter format)
 
       // Type '1'
@@ -473,11 +533,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
   describe('query management', () => {
     it('should reset query when typing invalid continuation', () => {
-      const store = new TemporalFieldStore({
-        format: monthNameDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: monthNameDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       // Type 'D' - should get 'Dec'
@@ -501,11 +564,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should reset query when switching sections', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
 
       // Type '0' in month section
       store.selectClosestDatePart(0);
@@ -528,11 +594,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should maintain query when continuing to type in same section', () => {
-      const store = new TemporalFieldStore({
-        format: monthNameDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: monthNameDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       // Type 'J'
@@ -554,11 +623,14 @@ describe('TemporalFieldStore - Character Editing', () => {
 
   describe('full month name format', () => {
     it('should handle full month name typing (J -> January)', () => {
-      const store = new TemporalFieldStore({
-        format: fullMonthNameFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: fullMonthNameFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       store.editSection({
@@ -571,11 +643,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should narrow down with more letters (Ja -> January)', () => {
-      const store = new TemporalFieldStore({
-        format: fullMonthNameFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: fullMonthNameFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       store.editSection({
@@ -595,11 +670,14 @@ describe('TemporalFieldStore - Character Editing', () => {
   describe('edge cases', () => {
     it('should handle resetCharacterQuery', () => {
       vi.useFakeTimers();
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       // Type '0'
@@ -624,11 +702,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should handle empty section', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section (empty)
 
       // Type '3'
@@ -642,11 +723,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should support letter input on digit month sections (a -> April -> 04)', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
 
       // Type letter 'a' on numeric month - should match April and convert to 04
@@ -660,11 +744,14 @@ describe('TemporalFieldStore - Character Editing', () => {
     });
 
     it('should reject numeric input for meridiem section', () => {
-      const store = new TemporalFieldStore({
-        format: time12Format,
-        adapter,
-        direction: 'ltr',
-      }, timeFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: time12Format,
+          adapter,
+          direction: 'ltr',
+        },
+        timeFieldConfig,
+      );
       store.selectClosestDatePart(4); // meridiem section (index 4 because of separators)
 
       // Type digit '1' on meridiem

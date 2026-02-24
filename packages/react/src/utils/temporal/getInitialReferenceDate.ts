@@ -69,7 +69,11 @@ export function getInitialReferenceDate(
       adapter.isValid(minDate) &&
       isTimePartBefore(adapter, referenceDate, minDate)
     ) {
-      referenceDate = roundDate(adapter, granularity, mergeDateAndTime(adapter, referenceDate, minDate));
+      referenceDate = roundDate(
+        adapter,
+        granularity,
+        mergeDateAndTime(adapter, referenceDate, minDate),
+      );
     }
 
     if (
@@ -77,7 +81,11 @@ export function getInitialReferenceDate(
       adapter.isValid(maxDate) &&
       isTimePartAfter(adapter, referenceDate, maxDate)
     ) {
-      referenceDate = roundDate(adapter, granularity, mergeDateAndTime(adapter, referenceDate, maxDate));
+      referenceDate = roundDate(
+        adapter,
+        granularity,
+        mergeDateAndTime(adapter, referenceDate, maxDate),
+      );
     }
   }
 

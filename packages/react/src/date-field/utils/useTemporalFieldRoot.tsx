@@ -4,6 +4,7 @@ import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { useOnMount } from '@base-ui/utils/useOnMount';
 import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
+import { useTranslations } from '../../localization-provider/LocalizationContext';
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useDirection } from '../../direction-provider';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
@@ -99,6 +100,7 @@ export function useTemporalFieldRoot(
 
   const fieldContext = useFieldRootContext();
   const adapter = useTemporalAdapter();
+  const translations = useTranslations();
   const direction = useDirection();
   const id = useLabelableId({ id: idProp });
   const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
@@ -121,6 +123,7 @@ export function useTemporalFieldRoot(
           id,
           fieldContext,
           adapter,
+          translations,
           direction,
           minDate,
           maxDate,
@@ -135,6 +138,7 @@ export function useTemporalFieldRoot(
   store.useSyncedValues({
     rawFormat: format,
     adapter,
+    translations,
     direction,
     config,
     minDate,

@@ -45,7 +45,6 @@ export function isTimePartBefore(
   return getMillisecondsInDay(adapter, dateA) < getMillisecondsInDay(adapter, dateB);
 }
 
-
 export function areDatesEqual(
   adapter: TemporalAdapter,
   a: TemporalSupportedObject | null,

@@ -2,11 +2,7 @@ import { createSelector, createSelectorMemoized } from '@base-ui/utils/store';
 import { visuallyHiddenInput } from '@base-ui/utils/visuallyHidden';
 import { NOOP } from '@base-ui/utils/empty';
 import { TemporalAdapter } from '../../types';
-import {
-  TemporalFieldState as State,
-  TemporalFieldDatePart,
-  TemporalFieldSection,
-} from './types';
+import { TemporalFieldState as State, TemporalFieldDatePart, TemporalFieldSection } from './types';
 import type { FieldRootContext } from '../../field/root/FieldRootContext';
 import { getTimezoneToRender, isDatePart, removeLocalizedDigits } from './utils';
 import {
@@ -16,20 +12,9 @@ import {
   getMonthsStr,
   getWeekDaysStr,
 } from './adapter-cache';
+import { temporalFieldSectionLabelKey } from '../../translations/types';
 
 const SEPARATOR_STYLE: React.CSSProperties = { whiteSpace: 'pre' };
-
-const translations = {
-  empty: 'Empty',
-  year: 'Year',
-  month: 'Month',
-  day: 'Day',
-  weekDay: 'Week day',
-  hours: 'Hours',
-  minutes: 'Minutes',
-  seconds: 'Seconds',
-  meridiem: 'Meridiem',
-};
 
 const adapterSelector = createSelector((state: State) => state.adapter);
 const timezoneToRenderSelector = createSelectorMemoized(
@@ -69,6 +54,7 @@ const areAllSectionsEmptySelector = createSelectorMemoized(
 );
 
 const formatSelector = createSelector((state: State) => state.format);
+const translationsSelector = createSelector((state: State) => state.translations);
 
 export const selectors = {
   // Base
@@ -170,12 +156,7 @@ export const selectors = {
       validationProps,
       step,
     ) => ({
-      ...config.stringifyValidationPropsForHiddenInput(
-        adapter,
-        validationProps,
-        format,
-        step,
-      ),
+      ...config.stringifyValidationPropsForHiddenInput(adapter, validationProps, format, step),
       type: config.hiddenInputType,
       value: config.stringifyValueForHiddenInput(adapter, value, format.granularity),
       name,
@@ -201,11 +182,7 @@ export const selectors = {
     valueSelector,
     formatSelector,
     (id, name, adapter, config, fieldContext, inputRef, value, format) => {
-      const formValue = config.stringifyValueForHiddenInput(
-        adapter,
-        value,
-        format.granularity,
-      );
+      const formValue = config.stringifyValueForHiddenInput(adapter, value, format.granularity);
       const commit = fieldContext != null ? fieldContext.validation.commit : NOOP;
 
       return {
@@ -224,12 +201,14 @@ export const selectors = {
     disabledSelector,
     readOnlySelector,
     timezoneToRenderSelector,
+    translationsSelector,
     (
       adapter,
       editable,
       disabled,
       readOnly,
       timezone,
+      translations,
       section: TemporalFieldSection,
     ): React.HTMLAttributes<HTMLDivElement> => {
       // Date part
@@ -242,8 +221,8 @@ export const selectors = {
           'aria-valuemax': section.token.boundaries.characterEditing.maximum,
           'aria-valuetext': section.value
             ? getAriaValueText(adapter, section, timezone)
-            : translations.empty,
-          'aria-label': translations[section.token.config.part],
+            : translations.temporalFieldEmptySectionText,
+          'aria-label': translations[temporalFieldSectionLabelKey[section.token.config.part]],
           'aria-disabled': disabled,
 
           // Other

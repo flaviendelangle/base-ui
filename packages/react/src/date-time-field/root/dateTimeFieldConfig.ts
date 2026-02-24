@@ -91,10 +91,7 @@ export const dateTimeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
   },
 };
 
-export function getDateTimeFieldDefaultFormat(
-  adapter: TemporalAdapter,
-  ampm: boolean | undefined,
-) {
+export function getDateTimeFieldDefaultFormat(adapter: TemporalAdapter, ampm: boolean | undefined) {
   const ampmWithDefault = ampm ?? adapter.is12HourCycleInCurrentLocale();
   const f = adapter.formats;
   const c = adapter.escapedCharacters;

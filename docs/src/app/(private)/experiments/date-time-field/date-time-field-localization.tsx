@@ -5,7 +5,7 @@ import { de } from 'date-fns/locale/de';
 import { Field } from '@base-ui/react/field';
 import { DateTimeField } from '@base-ui/react/date-time-field';
 import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
-import { TemporalLocaleProvider } from '@base-ui/react/temporal-locale-provider';
+import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import styles from './date-time-field-localization.module.css';
 
 const FRENCH_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
@@ -24,7 +24,7 @@ export default function DateTimeFieldLocalization() {
       <h1>Date Time Field Localization</h1>
       <div className={styles.Page}>
         <section className={styles.Form}>
-          <TemporalLocaleProvider locale={fr}>
+          <LocalizationProvider temporalLocale={fr}>
             <Field.Root name="datetime-field-fr-custom" className={styles.Field}>
               <Field.Label className={styles.Label}>French (date + placeholders)</Field.Label>
               <DateTimeField.Root
@@ -40,8 +40,8 @@ export default function DateTimeFieldLocalization() {
                 )}
               </DateTimeField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
-          <TemporalLocaleProvider locale={de}>
+          </LocalizationProvider>
+          <LocalizationProvider temporalLocale={de}>
             <Field.Root name="datetime-field-de-default" className={styles.Field}>
               <Field.Label className={styles.Label}>German (date + placeholders)</Field.Label>
               <DateTimeField.Root
@@ -57,8 +57,8 @@ export default function DateTimeFieldLocalization() {
                 )}
               </DateTimeField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
-          <TemporalLocaleProvider locale={de}>
+          </LocalizationProvider>
+          <LocalizationProvider temporalLocale={de}>
             <Field.Root name="datetime-field-de-12h" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 German (date + placeholders) with 12-hour format
@@ -77,7 +77,7 @@ export default function DateTimeFieldLocalization() {
                 )}
               </DateTimeField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
+          </LocalizationProvider>
         </section>
       </div>
     </div>

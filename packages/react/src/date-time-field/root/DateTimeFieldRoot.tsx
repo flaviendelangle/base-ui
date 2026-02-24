@@ -108,7 +108,7 @@ export interface DateTimeFieldRootProps
     Omit<BaseUIComponentProps<'div', DateTimeFieldRootState>, 'children'>,
     Omit<
       MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
-      'fieldContext' | 'adapter' | 'direction'
+      'fieldContext' | 'adapter' | 'direction' | 'translations'
     >,
     AmPmParameters {
   /**

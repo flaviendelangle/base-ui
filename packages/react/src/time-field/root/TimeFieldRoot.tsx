@@ -104,7 +104,7 @@ export interface TimeFieldRootProps
     Omit<BaseUIComponentProps<'div', TimeFieldRootState>, 'children'>,
     Omit<
       MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
-      'fieldContext' | 'adapter' | 'direction'
+      'fieldContext' | 'adapter' | 'direction' | 'translations'
     >,
     AmPmParameters {
   /**

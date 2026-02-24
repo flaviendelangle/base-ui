@@ -11,6 +11,7 @@ import {
   TemporalFieldDatePartType,
   TemporalFieldPlaceholderGetters,
 } from '../../types';
+import type { BaseUITranslations } from '../../translations/types';
 import { GetInitialReferenceDateValidationProps } from '../../utils/temporal/getInitialReferenceDate';
 import { TemporalManager, TemporalTimezoneProps } from '../../utils/temporal/types';
 import { ValidateDateValidationProps } from '../../utils/temporal/validateDate';
@@ -102,6 +103,11 @@ export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSuppo
    * Text direction of the field.
    */
   direction: TextDirection;
+  /**
+   * Translations for component labels.
+   * @default enUS
+   */
+  translations?: BaseUITranslations | undefined;
 }
 
 export interface TemporalFieldState<TValue extends TemporalSupportedValue = any> {
@@ -217,6 +223,10 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    * The parsed representation of the format string.
    */
   format: TemporalFieldParsedFormat;
+  /**
+   * Translations for component labels.
+   */
+  translations: BaseUITranslations;
 }
 
 export interface TemporalFieldCharacterEditingQuery {

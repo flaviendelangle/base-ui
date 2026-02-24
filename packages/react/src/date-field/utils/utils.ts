@@ -6,6 +6,7 @@ import {
   TemporalSupportedValue,
   TemporalTimezone,
 } from '../../types';
+import { enUS } from '../../translations/enUS';
 import { TemporalManager } from '../../utils/temporal/types';
 import {
   getLongestMonthInCurrentYear,
@@ -86,6 +87,7 @@ export function deriveStateFromParameters<TValue extends TemporalSupportedValue>
     placeholderGetters: parameters.placeholderGetters,
     fieldContext: parameters.fieldContext ?? null,
     step: parameters.step ?? 1,
+    translations: parameters.translations ?? enUS,
   };
 }
 

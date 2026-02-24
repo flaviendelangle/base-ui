@@ -5,7 +5,7 @@ import { de } from 'date-fns/locale/de';
 import { Field } from '@base-ui/react/field';
 import { DateField } from '@base-ui/react/date-field';
 import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
-import { TemporalLocaleProvider } from '@base-ui/react/temporal-locale-provider';
+import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import styles from './date-field-localization.module.css';
 
 const FRENCH_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
@@ -24,7 +24,7 @@ export default function DateFieldLocalization() {
       <h1>Date Field Localization</h1>
       <div className={styles.Page}>
         <section className={styles.Form}>
-          <TemporalLocaleProvider locale={fr}>
+          <LocalizationProvider temporalLocale={fr}>
             <Field.Root name="date-field-fr" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 French locale (date + placeholders)
@@ -42,8 +42,8 @@ export default function DateFieldLocalization() {
                 )}
               </DateField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
-          <TemporalLocaleProvider locale={de}>
+          </LocalizationProvider>
+          <LocalizationProvider temporalLocale={de}>
             <Field.Root name="date-field-de" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 German locale (date + placeholders)
@@ -61,7 +61,7 @@ export default function DateFieldLocalization() {
                 )}
               </DateField.Root>
             </Field.Root>
-          </TemporalLocaleProvider>
+          </LocalizationProvider>
         </section>
       </div>
     </div>

@@ -303,7 +303,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
     this.syncSelectionToDOM();
-    const unsubscribe = this.registerStoreEffect(selectors.selectedSection, this.syncSelectionToDOM);
+    const unsubscribe = this.registerStoreEffect(
+      selectors.selectedSection,
+      this.syncSelectionToDOM,
+    );
 
     return () => {
       unsubscribe();

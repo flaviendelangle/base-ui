@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
+import { TemporalValue } from '../../types';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
@@ -19,17 +20,20 @@ describe('TemporalFieldStore - Value Adjustment', () => {
   // Date format with ordinal day
   const ordinalDayFormat = `${adapter.formats.month3Letters} ${adapter.formats.dayOfMonthWithLetter}, ${adapter.formats.yearPadded}`;
 
-  function getDatePartValue(store: TemporalFieldStore, sectionIndex: number) {
+  function getDatePartValue(store: TemporalFieldStore<TemporalValue>, sectionIndex: number) {
     return selectors.datePart(store.state, sectionIndex)?.value ?? '';
   }
 
   describe('isAdjustSectionValueKeyCode', () => {
     it('should return true for valid key codes', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
 
       expect(store.isAdjustSectionValueKeyCode('ArrowUp')).to.equal(true);
       expect(store.isAdjustSectionValueKeyCode('ArrowDown')).to.equal(true);
@@ -40,11 +44,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should return false for invalid key codes', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
 
       expect(store.isAdjustSectionValueKeyCode('Enter')).to.equal(false);
       expect(store.isAdjustSectionValueKeyCode('Space')).to.equal(false);
@@ -55,11 +62,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
   describe('adjustActiveSectionValue - digit sections', () => {
     describe('ArrowUp', () => {
       it('should increment day by 1', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -72,11 +82,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set minimum value when section is empty', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
@@ -84,11 +97,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around to minimum when exceeding maximum', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -103,11 +119,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('ArrowDown', () => {
       it('should decrement day by 1', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -120,11 +139,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set maximum value when section is empty', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
@@ -132,11 +154,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around to maximum when going below minimum', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -151,11 +176,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageUp', () => {
       it('should increment day by 5', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -168,11 +196,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around when exceeding maximum', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -187,11 +218,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageDown', () => {
       it('should decrement day by 5', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -204,11 +238,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around when going below minimum', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -223,11 +260,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('Home', () => {
       it('should set day to minimum value', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -242,11 +282,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('End', () => {
       it('should set day to maximum value', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -261,11 +304,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('month section', () => {
       it('should increment month by 1', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -278,11 +324,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around from December to January', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -295,11 +344,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set minimum month value with Home', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -312,11 +364,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set maximum month value with End', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -329,12 +384,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should keep day value when incrementing month to a month with fewer days', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          defaultValue: adapter.date('2024-01-31', 'default'), // January 31st
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            defaultValue: adapter.date('2024-01-31', 'default'), // January 31st
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // Verify initial state
         let value = selectors.value(store.state);
@@ -358,12 +416,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should keep day value when decrementing month to a month with fewer days', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          defaultValue: adapter.date('2024-03-31', 'default'), // March 31st
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            defaultValue: adapter.date('2024-03-31', 'default'), // March 31st
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // Verify initial state
         let value = selectors.value(store.state);
@@ -389,11 +450,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('year section', () => {
       it('should increment year by 1', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -406,11 +470,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should decrement year by 1', () => {
-        const store = new TemporalFieldStore({
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: numericDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -424,11 +491,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
       describe('initialization (empty year section)', () => {
         it('should set current year when pressing ArrowUp and no minDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -437,11 +507,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing PageUp and no minDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
@@ -450,11 +523,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing ArrowDown and no maxDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -463,11 +539,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing PageDown and no maxDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
@@ -476,12 +555,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set minDate year when pressing ArrowUp and minDate is set', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2020-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -489,12 +571,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set minDate year when pressing PageUp and minDate is set', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2020-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
@@ -502,12 +587,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set maxDate year when pressing ArrowDown and maxDate is set', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              maxDate: adapter.date('2030-12-31', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -515,12 +603,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set maxDate year when pressing PageDown and maxDate is set', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              maxDate: adapter.date('2030-12-31', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
@@ -528,12 +619,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing ArrowDown with minDate but no maxDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2020-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2020-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -542,12 +636,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing ArrowUp with maxDate but no minDate', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            maxDate: adapter.date('2030-12-31', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              maxDate: adapter.date('2030-12-31', 'default'),
+            },
+            dateFieldConfig,
+          );
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -559,11 +656,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('day section with ordinal suffix (digit-with-letter)', () => {
       it('should increment day with ordinal suffix', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -576,11 +676,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should decrement day with ordinal suffix', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -593,11 +696,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should handle special ordinal suffixes (1st, 2nd, 3rd)', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
 
         // Test 1st
@@ -629,11 +735,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around at month boundary', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -646,11 +755,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set minimum value with Home', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -663,11 +775,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set maximum value with End', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
         store.updateDatePart({
           sectionIndex: 2,
@@ -680,11 +795,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should handle 21st, 22nd, 23rd correctly', () => {
-        const store = new TemporalFieldStore({
-          format: ordinalDayFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: ordinalDayFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // day section with ordinal
 
         // Test 21st
@@ -718,12 +836,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('minutes section with step', () => {
       it('should increment minutes by 5 (step)', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-          step: 5,
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+            step: 5,
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -736,12 +857,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should decrement minutes by 5 (step)', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-          step: 5,
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+            step: 5,
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -754,12 +878,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should snap to nearest step when not aligned', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-          step: 5,
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+            step: 5,
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -772,12 +899,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around at 60 minutes', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-          step: 5,
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+            step: 5,
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -790,12 +920,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should not apply step to non-most-granular sections', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-          step: 5,
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+            step: 5,
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -808,11 +941,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should default step to 1 when not specified', () => {
-        const store = new TemporalFieldStore({
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time24Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(2); // minutes section
         store.updateDatePart({
           sectionIndex: 2,
@@ -829,11 +965,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
   describe('adjustActiveSectionValue - letter sections', () => {
     describe('month letter section', () => {
       it('should cycle through month names with ArrowUp', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -846,11 +985,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should cycle through month names with ArrowDown', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -863,11 +1005,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around from December to January', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -880,11 +1025,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around from January to December', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -897,11 +1045,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set first month with Home', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -914,11 +1065,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set last month with End', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -931,11 +1085,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set first month when empty and pressing ArrowUp', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
@@ -943,11 +1100,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set last month when empty and pressing ArrowDown', () => {
-        const store = new TemporalFieldStore({
-          format: monthNameDateFormat,
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthNameDateFormat,
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
@@ -957,11 +1117,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('meridiem section', () => {
       it('should toggle between AM and PM with ArrowUp', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -974,11 +1137,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should toggle between PM and AM with ArrowDown', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -991,11 +1157,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around from PM to AM', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(4); // meridiem section
         store.updateDatePart({
           sectionIndex: 4,
@@ -1010,11 +1179,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('12-hour format hours', () => {
       it('should wrap hours from 12 to 1 when incrementing', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1027,11 +1199,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap hours from 1 to 12 when decrementing', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1044,11 +1219,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should increment hours correctly in 12-hour format', () => {
-        const store = new TemporalFieldStore({
-          format: time12Format,
-          adapter,
-          direction: 'ltr',
-        }, timeFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: time12Format,
+            adapter,
+            direction: 'ltr',
+          },
+          timeFieldConfig,
+        );
         store.selectClosestDatePart(0); // hours section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1066,12 +1244,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       const monthYearFormat = `${adapter.formats.month3Letters} ${adapter.formats.yearPadded}`;
 
       it('should skip months by step when month is the most granular section', () => {
-        const store = new TemporalFieldStore({
-          format: monthYearFormat,
-          adapter,
-          direction: 'ltr',
-          step: 2,
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthYearFormat,
+            adapter,
+            direction: 'ltr',
+            step: 2,
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -1084,12 +1265,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should not apply step to year when month is the most granular', () => {
-        const store = new TemporalFieldStore({
-          format: monthYearFormat,
-          adapter,
-          direction: 'ltr',
-          step: 2,
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: monthYearFormat,
+            adapter,
+            direction: 'ltr',
+            step: 2,
+          },
+          dateFieldConfig,
+        );
         store.selectClosestDatePart(2); // year section
         store.updateDatePart({
           sectionIndex: 2,
@@ -1105,12 +1289,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
   describe('adjustActiveSectionValue - edge cases', () => {
     it('should not update store when not editable', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-        readOnly: true,
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+          readOnly: true,
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(2); // day section
       store.updateDatePart({
         sectionIndex: 2,
@@ -1123,11 +1310,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should preserve padding for single-digit values', () => {
-      const store = new TemporalFieldStore({
-        format: numericDateFormat,
-        adapter,
-        direction: 'ltr',
-      }, dateFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: numericDateFormat,
+          adapter,
+          direction: 'ltr',
+        },
+        dateFieldConfig,
+      );
       store.selectClosestDatePart(0); // month section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1140,11 +1330,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should handle hours section correctly', () => {
-      const store = new TemporalFieldStore({
-        format: time24Format,
-        adapter,
-        direction: 'ltr',
-      }, timeFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: time24Format,
+          adapter,
+          direction: 'ltr',
+        },
+        timeFieldConfig,
+      );
       store.selectClosestDatePart(0); // hours section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1157,11 +1350,14 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should wrap hours at 24', () => {
-      const store = new TemporalFieldStore({
-        format: time24Format,
-        adapter,
-        direction: 'ltr',
-      }, timeFieldConfig);
+      const store = new TemporalFieldStore(
+        {
+          format: time24Format,
+          adapter,
+          direction: 'ltr',
+        },
+        timeFieldConfig,
+      );
       store.selectClosestDatePart(0); // hours section
       store.updateDatePart({
         sectionIndex: 0,
@@ -1181,13 +1377,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         // year: [2024, 2024], month: [4, 7], day: unchanged
 
         it('should restrict year section to the single valid year', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2024-07-03', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1202,13 +1401,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should restrict month range when years are the same', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2024-07-03', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(0); // month section
 
@@ -1227,13 +1429,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should wrap month within restricted range', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2024-07-03', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(0); // month section
           store.updateDatePart({
@@ -1248,13 +1453,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should not restrict day section when years are same but months differ', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2024-07-03', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2024-07-03', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1278,13 +1486,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         // year: [2024, 2025], month: unchanged, day: unchanged
 
         it('should restrict year range', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2025-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1303,13 +1514,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should not restrict month when years differ', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2025-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(0); // month section
           store.updateDatePart({
@@ -1328,13 +1542,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should not restrict day when years differ', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-            maxDate: adapter.date('2025-01-01', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+              maxDate: adapter.date('2025-01-01', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1356,13 +1573,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         // year: [2024, 2024], month: [4, 4], day: [5, 20]
 
         it('should restrict day range when year and month are the same', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-05', 'default'),
-            maxDate: adapter.date('2024-04-20', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-05', 'default'),
+              maxDate: adapter.date('2024-04-20', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(2); // day section
           store.updateDatePart({
@@ -1383,12 +1603,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
       describe('only minDate provided', () => {
         it('should restrict min side only, max stays structural', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-04-02', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-04-02', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1409,12 +1632,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
       describe('only maxDate provided', () => {
         it('should restrict max side only, min stays structural', () => {
-          const store = new TemporalFieldStore({
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-            maxDate: adapter.date('2025-07-15', 'default'),
-          }, dateFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: numericDateFormat,
+              adapter,
+              direction: 'ltr',
+              maxDate: adapter.date('2025-07-15', 'default'),
+            },
+            dateFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // year section
           store.updateDatePart({
@@ -1437,13 +1663,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     describe('TimeField - minDate and maxDate', () => {
       describe('different hours', () => {
         it('should restrict hours range', () => {
-          const store = new TemporalFieldStore({
-            format: time24Format,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-01-01T10:30', 'default'),
-            maxDate: adapter.date('2024-01-01T14:45', 'default'),
-          }, timeFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: time24Format,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-01-01T10:30', 'default'),
+              maxDate: adapter.date('2024-01-01T14:45', 'default'),
+            },
+            timeFieldConfig,
+          );
 
           store.selectClosestDatePart(0); // hours section
           store.updateDatePart({
@@ -1462,13 +1691,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should not restrict minutes when hours differ', () => {
-          const store = new TemporalFieldStore({
-            format: time24Format,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-01-01T10:30', 'default'),
-            maxDate: adapter.date('2024-01-01T14:45', 'default'),
-          }, timeFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: time24Format,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-01-01T10:30', 'default'),
+              maxDate: adapter.date('2024-01-01T14:45', 'default'),
+            },
+            timeFieldConfig,
+          );
 
           store.selectClosestDatePart(2); // minutes section
           store.updateDatePart({
@@ -1489,13 +1721,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
       describe('same hour', () => {
         it('should restrict minutes when hours are the same', () => {
-          const store = new TemporalFieldStore({
-            format: time24Format,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-01-01T10:15', 'default'),
-            maxDate: adapter.date('2024-01-01T10:45', 'default'),
-          }, timeFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: time24Format,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-01-01T10:15', 'default'),
+              maxDate: adapter.date('2024-01-01T10:45', 'default'),
+            },
+            timeFieldConfig,
+          );
 
           store.selectClosestDatePart(2); // minutes section
           store.updateDatePart({
@@ -1517,13 +1752,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       describe('meridiem restriction', () => {
         // TODO: Meridiem restriction when both minDate and maxDate share the same meridiem is not yet implemented.
         it.skip('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
-          const store = new TemporalFieldStore({
-            format: time12Format,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
-            maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
-          }, timeFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: time12Format,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
+              maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
+            },
+            timeFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // meridiem section
           store.updateDatePart({
@@ -1542,13 +1780,16 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should not restrict meridiem when minDate is AM and maxDate is PM', () => {
-          const store = new TemporalFieldStore({
-            format: time12Format,
-            adapter,
-            direction: 'ltr',
-            minDate: adapter.date('2024-01-01T08:00', 'default'), // 8 AM
-            maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM,
-          }, timeFieldConfig);
+          const store = new TemporalFieldStore(
+            {
+              format: time12Format,
+              adapter,
+              direction: 'ltr',
+              minDate: adapter.date('2024-01-01T08:00', 'default'), // 8 AM
+              maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM,
+            },
+            timeFieldConfig,
+          );
 
           store.selectClosestDatePart(4); // meridiem section
           store.updateDatePart({
@@ -1572,12 +1813,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('ArrowDown', () => {
       it('should decrement weekDay when format has both weekDay and day', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // weekDay section is index 0
         store.selectClosestDatePart(0);
@@ -1594,12 +1838,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('ArrowUp', () => {
       it('should increment weekDay when format has both weekDay and day', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('ArrowUp', 0);
@@ -1615,12 +1862,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageDown', () => {
       it('should decrement weekDay by 5 when format has both weekDay and day', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('PageDown', 0);
@@ -1636,12 +1886,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageUp', () => {
       it('should increment weekDay by 5 when format has both weekDay and day', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday (day 5)
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         store.selectClosestDatePart(0);
         store.adjustActiveDatePartValue('PageUp', 0);
@@ -1659,12 +1912,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('other date parts should still work', () => {
       it('should increment month correctly with weekDay in format', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // month section is index 2
         store.selectClosestDatePart(2);
@@ -1675,12 +1931,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should increment day correctly with weekDay in format', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // day section is index 4
         store.selectClosestDatePart(4);
@@ -1694,12 +1953,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should increment year correctly with weekDay in format', () => {
-        const store = new TemporalFieldStore({
-          format: weekDayDateFormat,
-          defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
-          adapter,
-          direction: 'ltr',
-        }, dateFieldConfig);
+        const store = new TemporalFieldStore(
+          {
+            format: weekDayDateFormat,
+            defaultValue: adapter.date('2026-01-30', 'default'), // Friday, January 30, 2026
+            adapter,
+            direction: 'ltr',
+          },
+          dateFieldConfig,
+        );
 
         // year section is index 6
         store.selectClosestDatePart(6);

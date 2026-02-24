@@ -18,12 +18,14 @@ Import the component and assemble its parts:
 ```jsx title="Anatomy"
 import { DateField } from '@base-ui/react/date-field';
 
-{/* Basic usage: render sections directly via children render function */}
-<DateField.Root>
-  {(section) => <DateField.Section section={section} />}
-</DateField.Root>
+{
+  /* Basic usage: render sections directly via children render function */
+}
+<DateField.Root>{(section) => <DateField.Section section={section} />}</DateField.Root>;
 
-{/* With clear button: wrap sections in SectionList */}
+{
+  /* With clear button: wrap sections in SectionList */
+}
 <DateField.Root>
   <DateField.SectionList>
     {(section) => <DateField.Section section={section} />}
@@ -64,7 +66,7 @@ import { DemoDateFieldValidation } from './demos/validation';
 
 ### Localization
 
-Use `<TemporalLocaleProvider>` to set the locale and `placeholderGetters` to customize placeholder text.
+Use `<LocalizationProvider>` to set the locale and `placeholderGetters` to customize placeholder text.
 
 The `placeholderGetters` prop is a temporary solution. It will no longer be needed once a built-in localization system is implemented.
 

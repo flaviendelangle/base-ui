@@ -159,72 +159,72 @@ describe('<DateField /> - DOM Interactions', () => {
   });
 
   describe('ArrowLeft / ArrowRight (section navigation)', () => {
-      it('should move focus to the next section on ArrowRight', async () => {
-        await render(
-          <DateField
-            format={numericDateFormat}
-            defaultValue={adapter.date('2024-03-15', 'default')}
-          />,
-        );
+    it('should move focus to the next section on ArrowRight', async () => {
+      await render(
+        <DateField
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+        />,
+      );
 
-        const sections = screen.getAllByRole('spinbutton');
-        fireEvent.focus(sections[0]); // month section
-        fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
+      const sections = screen.getAllByRole('spinbutton');
+      fireEvent.focus(sections[0]); // month section
+      fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
 
-        // Day section (index 1) should now be selected
-        expect(sections[1]).to.have.attribute('aria-valuenow', '15');
-      });
-
-      it('should move focus to the previous section on ArrowLeft', async () => {
-        await render(
-          <DateField
-            format={numericDateFormat}
-            defaultValue={adapter.date('2024-03-15', 'default')}
-          />,
-        );
-
-        const sections = screen.getAllByRole('spinbutton');
-        // Focus on day section (second spinbutton)
-        fireEvent.focus(sections[1]);
-        fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
-
-        // Month section (index 0) should now be selected
-        expect(sections[0]).to.have.attribute('aria-valuenow', '3');
-      });
-
-      it('should not move past the first section on ArrowLeft', async () => {
-        await render(
-          <DateField
-            format={numericDateFormat}
-            defaultValue={adapter.date('2024-03-15', 'default')}
-          />,
-        );
-
-        const sections = screen.getAllByRole('spinbutton');
-        fireEvent.focus(sections[0]); // already at first section
-        fireEvent.keyDown(sections[0], { key: 'ArrowLeft' });
-
-        // Should stay on month section
-        expect(sections[0]).to.have.attribute('aria-valuenow', '3');
-      });
-
-      it('should not move past the last section on ArrowRight', async () => {
-        await render(
-          <DateField
-            format={numericDateFormat}
-            defaultValue={adapter.date('2024-03-15', 'default')}
-          />,
-        );
-
-        const sections = screen.getAllByRole('spinbutton');
-        const lastSection = sections[sections.length - 1];
-        fireEvent.focus(lastSection); // year section
-        fireEvent.keyDown(lastSection, { key: 'ArrowRight' });
-
-        // Should stay on year section
-        expect(lastSection).to.have.attribute('aria-valuenow', '2024');
-      });
+      // Day section (index 1) should now be selected
+      expect(sections[1]).to.have.attribute('aria-valuenow', '15');
     });
+
+    it('should move focus to the previous section on ArrowLeft', async () => {
+      await render(
+        <DateField
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      // Focus on day section (second spinbutton)
+      fireEvent.focus(sections[1]);
+      fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
+
+      // Month section (index 0) should now be selected
+      expect(sections[0]).to.have.attribute('aria-valuenow', '3');
+    });
+
+    it('should not move past the first section on ArrowLeft', async () => {
+      await render(
+        <DateField
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      fireEvent.focus(sections[0]); // already at first section
+      fireEvent.keyDown(sections[0], { key: 'ArrowLeft' });
+
+      // Should stay on month section
+      expect(sections[0]).to.have.attribute('aria-valuenow', '3');
+    });
+
+    it('should not move past the last section on ArrowRight', async () => {
+      await render(
+        <DateField
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      const lastSection = sections[sections.length - 1];
+      fireEvent.focus(lastSection); // year section
+      fireEvent.keyDown(lastSection, { key: 'ArrowRight' });
+
+      // Should stay on year section
+      expect(lastSection).to.have.attribute('aria-valuenow', '2024');
+    });
+  });
 
   describe('Value change callback', () => {
     it('should call onValueChange when section value changes via ArrowUp', async () => {
