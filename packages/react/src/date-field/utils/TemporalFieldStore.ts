@@ -187,14 +187,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       createSelectorMemoized(
         selectors.characterQuery,
         selectors.sections,
-        selectors.activeDatePart,
-        (characterQuery, sectionsList, activeSection) => ({
+        (characterQuery, sectionsList) => ({
           characterQuery,
           sections: sectionsList,
-          activeSection,
         }),
       ),
-      (_, { characterQuery, sections: sectionsList, activeSection }) => {
+      (_, { characterQuery, sections: sectionsList }) => {
         if (characterQuery == null) {
           return;
         }
@@ -202,8 +200,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         const querySection = sectionsList[characterQuery.sectionIndex];
 
         const shouldReset =
-          (isDatePart(querySection) && querySection.token.config.part !== characterQuery.part) ||
-          activeSection == null; /* && error != null */ // TODO: Support error state
+          isDatePart(querySection) && querySection.token.config.part !== characterQuery.part;
 
         if (shouldReset) {
           this.set('characterQuery', null);
