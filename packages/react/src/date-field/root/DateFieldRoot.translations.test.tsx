@@ -4,7 +4,7 @@ import { DateField as DateFieldBase } from '@base-ui/react/date-field';
 import { TimeField as TimeFieldBase } from '@base-ui/react/time-field';
 import { DateTimeField as DateTimeFieldBase } from '@base-ui/react/date-time-field';
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
-import { frFR } from '@base-ui/react/translations/frFR';
+import { frFR } from '@base-ui/react/translations';
 import { createRenderer, createTemporalRenderer } from '#test-utils';
 
 describe('Temporal field translations', () => {

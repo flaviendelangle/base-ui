@@ -15,7 +15,7 @@ import {
   TemporalFieldQueryApplier,
   TemporalFieldParsedFormat,
   TemporalFieldState,
-  TemporalFieldStoreSharedParameters,
+  TemporalFieldStoreParameters,
   TemporalFieldConfiguration,
   TemporalFieldRootActions,
   TemporalFieldCharacterEditingQuery,
@@ -111,7 +111,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   ]);
 
   constructor(
-    parameters: TemporalFieldStoreSharedParameters<TValue>,
+    parameters: TemporalFieldStoreParameters<TValue>,
     config: TemporalFieldConfiguration<TValue>,
   ) {
     const { adapter, direction } = parameters;

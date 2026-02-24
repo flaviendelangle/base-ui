@@ -1,16 +1,11 @@
 'use client';
 import * as React from 'react';
 import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
-import { BaseUIComponentProps, MakeOptional } from '../../utils/types';
+import { BaseUIComponentProps } from '../../utils/types';
 import { dateFieldConfig, getDateFieldDefaultFormat } from './dateFieldConfig';
 import { FieldRoot } from '../../field';
-import { TemporalValue } from '../../types';
-import {
-  TemporalFieldSection,
-  TemporalFieldStoreSharedParameters,
-  TemporalFieldRootActions,
-} from '../utils/types';
-import { useTemporalFieldRoot } from '../utils/useTemporalFieldRoot';
+import { TemporalFieldRootActions } from '../utils/types';
+import { useTemporalFieldRoot, UseTemporalFieldRootProps } from '../utils/useTemporalFieldRoot';
 
 /**
  * Groups all parts of the date field.
@@ -100,21 +95,7 @@ export interface DateFieldRootState extends FieldRoot.State {
 export interface DateFieldRootProps
   extends
     Omit<BaseUIComponentProps<'div', DateFieldRootState>, 'children'>,
-    Omit<
-      MakeOptional<TemporalFieldStoreSharedParameters<TemporalValue>, 'format'>,
-      'fieldContext' | 'step' | 'adapter' | 'direction' | 'translations'
-    > {
-  /**
-   * The children of the component.
-   * If a function is provided, it will be called with each section as its parameter.
-   */
-  children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
-  /**
-   * A ref to imperative actions.
-   * - `clear`: Clears the field value.
-   */
-  actionsRef?: React.RefObject<DateFieldRoot.Actions | null> | undefined;
-}
+    Partial<Omit<UseTemporalFieldRootProps, 'step'>> {}
 
 export type DateFieldRootActions = TemporalFieldRootActions;
 

@@ -10,46 +10,36 @@ import { useDirection } from '../../direction-provider';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useField } from '../../field/useField';
-import {
-  TemporalSupportedObject,
-  TemporalTimezone,
-  TemporalValue,
-  TemporalFieldPlaceholderGetters,
-} from '../../types';
+import { TemporalValue } from '../../types';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { DateFieldRootContext } from '../root/DateFieldRootContext';
 import { DateFieldSectionList } from '../section-list/DateFieldSectionList';
 import {
+  TemporalFieldStoreParameters,
   TemporalFieldSection,
   TemporalFieldConfiguration,
   TemporalFieldRootActions,
-  TemporalFieldValueChangeEventDetails,
 } from './types';
 
-export interface TemporalFieldRootResolvedProps {
-  children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
-  actionsRef?: React.RefObject<TemporalFieldRootActions | null> | undefined;
-  inputRef?: React.Ref<HTMLInputElement> | undefined;
+export interface UseTemporalFieldRootProps
+  extends Omit<
+    TemporalFieldStoreParameters<TemporalValue>,
+    'adapter' | 'direction' | 'translations' | 'fieldContext'
+  > {
   /**
-   * The resolved format string (default already applied by the Root component).
+   * The children of the component.
+   * If a function is provided, it will be called with each section as its parameter.
    */
-  format: string;
-  step: number;
-  required: boolean | undefined;
-  readOnly: boolean | undefined;
-  disabled: boolean | undefined;
-  name: string | undefined;
-  id: string | undefined;
-  onValueChange:
-    | ((value: TemporalValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
-    | undefined;
-  defaultValue: TemporalValue | undefined;
-  value: TemporalValue | undefined;
-  timezone: TemporalTimezone | undefined;
-  referenceDate: TemporalSupportedObject | undefined;
-  minDate: TemporalSupportedObject | undefined;
-  maxDate: TemporalSupportedObject | undefined;
-  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
+  children?: React.ReactNode | ((section: TemporalFieldSection, index: number) => React.ReactNode);
+  /**
+   * A ref to imperative actions.
+   * - `clear`: Clears the field value.
+   */
+  actionsRef?: React.RefObject<TemporalFieldRootActions | null> | undefined;
+  /**
+   * A ref to access the hidden input element.
+   */
+  inputRef?: React.Ref<HTMLInputElement> | undefined;
 }
 
 interface UseTemporalFieldRootParameters {
@@ -66,7 +56,7 @@ interface UseTemporalFieldRootParameters {
   config: TemporalFieldConfiguration<TemporalValue>;
 
   // Component props (from the Root's componentProps, with defaults applied)
-  props: TemporalFieldRootResolvedProps;
+  props: UseTemporalFieldRootProps;
 }
 
 /**

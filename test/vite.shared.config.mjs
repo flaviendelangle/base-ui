@@ -23,6 +23,10 @@ export default defineConfig({
               process.cwd(),
               'packages/react/src/localization-provider',
             ),
+            '@base-ui/react/translations': path.join(
+              process.cwd(),
+              'packages/react/src/translations',
+            ),
           }
         : {
             '@base-ui/react': path.join(process.cwd(), 'packages/react/src'),

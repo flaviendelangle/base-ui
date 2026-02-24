@@ -1,4 +1,3 @@
-import { TextDirection } from '../../direction-provider';
 import {
   TemporalAdapter,
   TemporalFieldDatePartType,
@@ -20,7 +19,7 @@ import {
   TemporalFieldQueryApplier,
   TemporalFieldParsedFormat,
   TemporalFieldSection,
-  TemporalFieldStoreSharedParameters,
+  TemporalFieldStoreParameters,
   TemporalFieldToken,
   TemporalFieldConfiguration,
   TemporalFieldSeparator,
@@ -66,7 +65,7 @@ const DATE_PART_TRANSFER_PRIORITY: Record<string, number> = {
  * This do not contain state properties that don't update whenever the parameters update.
  */
 export function deriveStateFromParameters<TValue extends TemporalSupportedValue>(
-  parameters: TemporalFieldStoreSharedParameters<TValue>,
+  parameters: TemporalFieldStoreParameters<TValue>,
   config: TemporalFieldConfiguration<TValue>,
 ) {
   return {
@@ -85,8 +84,8 @@ export function deriveStateFromParameters<TValue extends TemporalSupportedValue>
     id: parameters.id,
     timezoneProp: parameters.timezone,
     placeholderGetters: parameters.placeholderGetters,
-    fieldContext: parameters.fieldContext ?? null,
-    step: parameters.step ?? 1,
+    fieldContext: parameters.fieldContext,
+    step: parameters.step,
     translations: parameters.translations ?? enUS,
   };
 }

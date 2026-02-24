@@ -13,88 +13,98 @@ import {
 } from '../../types';
 import type { BaseUITranslations } from '../../translations/types';
 import { GetInitialReferenceDateValidationProps } from '../../utils/temporal/getInitialReferenceDate';
-import { TemporalManager, TemporalTimezoneProps } from '../../utils/temporal/types';
-import { ValidateDateValidationProps } from '../../utils/temporal/validateDate';
+import { TemporalManager } from '../../utils/temporal/types';
 
 /**
- * Parameters shared across all temporal field stores.
+ * Parameters for constructing a TemporalFieldStore.
+ * All properties are required (must be explicitly provided), but some accept `undefined`.
  */
-export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSupportedValue>
-  extends TemporalTimezoneProps, ValidateDateValidationProps {
+export interface TemporalFieldStoreParameters<TValue extends TemporalSupportedValue> {
   /**
    * The controlled value that should be selected.
    * To render an uncontrolled temporal field, use the `defaultValue` prop instead.
    */
-  value?: TValue | undefined;
+  value: TValue | undefined;
   /**
    * The uncontrolled value that should be initially selected.
    * To render a controlled temporal field, use the `value` prop instead.
    */
-  defaultValue?: TValue | undefined;
+  defaultValue: TValue | undefined;
   /**
    * Event handler called when the selected value changes.
    * Provides the new value as an argument.
    * Has `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.
    */
-  onValueChange?:
+  onValueChange:
     | ((value: TValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
     | undefined;
   /**
    * The date used to generate the new value when both `value` and `defaultValue` are empty.
    * @default 'The closest valid date using the validation props.'
    */
-  referenceDate?: TemporalSupportedObject | undefined;
+  referenceDate: TemporalSupportedObject | undefined;
   /**
    * Format of the value when rendered in the field.
    */
   format: string;
-  /**
-   * Whether the user must enter a value before submitting a form.
-   * @default false
-   */
-  required?: boolean | undefined;
-  /**
-   * Whether the component should ignore user interaction.
-   * @default false
-   */
-  disabled?: boolean | undefined;
-  /**
-   * Whether the user should be unable to change the field value.
-   * @default false
-   */
-  readOnly?: boolean | undefined;
-  /**
-   * Identifies the field when a form is submitted.
-   */
-  name?: string | undefined;
-  /**
-   * The id of the hidden input element.
-   */
-  id?: string | undefined;
-  /**
-   * A ref to access the hidden input element.
-   */
-  inputRef?: React.Ref<HTMLInputElement> | undefined;
-  /**
-   * Methods to generate the placeholders for each section type.
-   * Used when the field is empty or when a section is empty.
-   * If a section type is not specified, a default placeholder will be used.
-   * @default {}
-   */
-  placeholderGetters?: Partial<TemporalFieldPlaceholderGetters> | undefined;
-  /**
-   * The field context from Field.Root.
-   * Contains state, callbacks, validation, etc.
-   * Used internally when the temporal field is rendered inside a Field component.
-   */
-  fieldContext?: FieldRootContext | null | undefined;
   /**
    * The step increment for the most granular section of the field.
    * For example, with format 'HH:mm' and step=5, pressing ArrowUp on the minutes section
    * will increment by 5 (e.g., 10 -> 15 -> 20).
    * @default 1
    */
-  step?: number | undefined;
+  step: number;
+  /**
+   * Whether the user must enter a value before submitting a form.
+   * @default false
+   */
+  required: boolean | undefined;
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled: boolean | undefined;
+  /**
+   * Whether the user should be unable to change the field value.
+   * @default false
+   */
+  readOnly: boolean | undefined;
+  /**
+   * Identifies the field when a form is submitted.
+   */
+  name: string | undefined;
+  /**
+   * The id of the hidden input element.
+   */
+  id: string | undefined;
+  /**
+   * Methods to generate the placeholders for each section type.
+   * Used when the field is empty or when a section is empty.
+   * If a section type is not specified, a default placeholder will be used.
+   * @default {}
+   */
+  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
+  /**
+   * Minimal selectable date.
+   */
+  minDate: TemporalSupportedObject | undefined;
+  /**
+   * Maximal selectable date.
+   */
+  maxDate: TemporalSupportedObject | undefined;
+  /**
+   * Choose which timezone to use for the value.
+   * Example: "default", "system", "UTC", "America/New_York".
+   * If you pass values from other timezones to some props, they will be converted to this timezone before being used.
+   * @default 'The timezone of the "value" or "defaultValue" prop if defined, "default" otherwise.'
+   */
+  timezone: TemporalTimezone | undefined;
+  /**
+   * The field context from Field.Root.
+   * Contains state, callbacks, validation, etc.
+   * Used internally when the temporal field is rendered inside a Field component.
+   */
+  fieldContext: FieldRootContext | null;
   /**
    * The adapter of the date library.
    */
@@ -107,7 +117,7 @@ export interface TemporalFieldStoreSharedParameters<TValue extends TemporalSuppo
    * Translations for component labels.
    * @default enUS
    */
-  translations?: BaseUITranslations | undefined;
+  translations: BaseUITranslations | undefined;
 }
 
 export interface TemporalFieldState<TValue extends TemporalSupportedValue = any> {
@@ -465,15 +475,6 @@ export interface TemporalFieldDatePartValueBoundaries {
     maximum: number;
   };
 }
-
-export type TemporalFieldModelUpdater<
-  State extends TemporalFieldState<any>,
-  Parameters extends TemporalFieldStoreSharedParameters<any>,
-> = (
-  newState: Partial<State>,
-  controlledProp: keyof Parameters & keyof State & string,
-  defaultProp: keyof Parameters,
-) => void;
 
 export interface TemporalFieldValidationProps {
   minDate?: TemporalSupportedObject | undefined;
