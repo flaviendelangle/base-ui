@@ -21,11 +21,10 @@ import {
   TemporalFieldRootActions,
 } from './types';
 
-export interface UseTemporalFieldRootProps
-  extends Omit<
-    TemporalFieldStoreParameters<TemporalValue>,
-    'adapter' | 'direction' | 'translations' | 'fieldContext'
-  > {
+export interface UseTemporalFieldRootProps extends Omit<
+  TemporalFieldStoreParameters<TemporalValue>,
+  'adapter' | 'direction' | 'translations' | 'fieldContext'
+> {
   /**
    * The children of the component.
    * If a function is provided, it will be called with each section as its parameter.

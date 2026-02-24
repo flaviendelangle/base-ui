@@ -29,10 +29,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
   describe('isAdjustSectionValueKeyCode', () => {
     it('should return true for valid key codes', () => {
-      const store = new TemporalFieldStore(
-        DEFAULT_PARAMETERS,
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       expect(store.isAdjustSectionValueKeyCode('ArrowUp')).to.equal(true);
       expect(store.isAdjustSectionValueKeyCode('ArrowDown')).to.equal(true);
@@ -43,10 +40,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should return false for invalid key codes', () => {
-      const store = new TemporalFieldStore(
-        DEFAULT_PARAMETERS,
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       expect(store.isAdjustSectionValueKeyCode('Enter')).to.equal(false);
       expect(store.isAdjustSectionValueKeyCode('Space')).to.equal(false);
@@ -57,10 +51,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
   describe('adjustActiveSectionValue - digit sections', () => {
     describe('ArrowUp', () => {
       it('should increment day by 1', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -73,10 +64,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set minimum value when section is empty', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
@@ -84,10 +72,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around to minimum when exceeding maximum', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -102,10 +87,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('ArrowDown', () => {
       it('should decrement day by 1', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -118,10 +100,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set maximum value when section is empty', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
@@ -129,10 +108,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around to maximum when going below minimum', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -147,10 +123,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageUp', () => {
       it('should increment day by 5', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -163,10 +136,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around when exceeding maximum', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -181,10 +151,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('PageDown', () => {
       it('should decrement day by 5', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -197,10 +164,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around when going below minimum', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -215,10 +179,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('Home', () => {
       it('should set day to minimum value', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -233,10 +194,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('End', () => {
       it('should set day to maximum value', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(2); // day section
         store.updateDatePart({
           sectionIndex: 2,
@@ -251,10 +209,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('month section', () => {
       it('should increment month by 1', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -267,10 +222,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should wrap around from December to January', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -283,10 +235,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set minimum month value with Home', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -299,10 +248,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should set maximum month value with End', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(0); // month section
         store.updateDatePart({
           sectionIndex: 0,
@@ -371,10 +317,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
     describe('year section', () => {
       it('should increment year by 1', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -387,10 +330,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       it('should decrement year by 1', () => {
-        const store = new TemporalFieldStore(
-          DEFAULT_PARAMETERS,
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
         store.selectClosestDatePart(4); // year section
         store.updateDatePart({
           sectionIndex: 4,
@@ -404,10 +344,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
       describe('initialization (empty year section)', () => {
         it('should set current year when pressing ArrowUp and no minDate', () => {
-          const store = new TemporalFieldStore(
-            DEFAULT_PARAMETERS,
-            dateFieldConfig,
-          );
+          const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
@@ -416,10 +353,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing PageUp and no minDate', () => {
-          const store = new TemporalFieldStore(
-            DEFAULT_PARAMETERS,
-            dateFieldConfig,
-          );
+          const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
@@ -428,10 +362,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing ArrowDown and no maxDate', () => {
-          const store = new TemporalFieldStore(
-            DEFAULT_PARAMETERS,
-            dateFieldConfig,
-          );
+          const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
@@ -440,10 +371,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         it('should set current year when pressing PageDown and no maxDate', () => {
-          const store = new TemporalFieldStore(
-            DEFAULT_PARAMETERS,
-            dateFieldConfig,
-          );
+          const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
@@ -1049,10 +977,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     });
 
     it('should preserve padding for single-digit values', () => {
-      const store = new TemporalFieldStore(
-        DEFAULT_PARAMETERS,
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
       store.selectClosestDatePart(0); // month section
       store.updateDatePart({
         sectionIndex: 0,
