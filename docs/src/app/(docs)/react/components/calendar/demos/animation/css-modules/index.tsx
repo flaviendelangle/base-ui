@@ -3,7 +3,7 @@ import * as React from 'react';
 import clsx from 'clsx';
 import { format } from 'date-fns/format';
 import { Calendar } from '@base-ui/react/calendar';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../../calendar.module.css';
 import indexStyles from './index.module.css';
 
@@ -14,7 +14,7 @@ export default function AnimatedCalendar() {
         <React.Fragment>
           <header className={styles.Header}>
             <Calendar.DecrementMonth className={styles.DecrementMonth}>
-              <ArrowLeft />
+              <ChevronLeft />
             </Calendar.DecrementMonth>
             <div className={indexStyles.HeaderLabelWrapper}>
               <Calendar.Viewport>
@@ -24,7 +24,7 @@ export default function AnimatedCalendar() {
               </Calendar.Viewport>
             </div>
             <Calendar.IncrementMonth className={styles.IncrementMonth}>
-              <ArrowRight />
+              <ChevronRight />
             </Calendar.IncrementMonth>
           </header>
           <Calendar.DayGrid className={clsx(styles.DayGrid, indexStyles.DayGrid)}>

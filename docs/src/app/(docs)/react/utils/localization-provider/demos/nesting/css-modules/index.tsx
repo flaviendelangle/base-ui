@@ -4,7 +4,7 @@ import { format } from 'date-fns/format';
 import { fr, zhCN } from 'date-fns/locale';
 import { LocalizationProvider, useTemporalLocale } from '@base-ui/react/localization-provider';
 import { Calendar } from '@base-ui/react/calendar';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../../../calendar.module.css';
 import indexStyles from './index.module.css';
 
@@ -29,13 +29,13 @@ function LocalizedCalendar() {
         <React.Fragment>
           <header className={styles.Header}>
             <Calendar.DecrementMonth className={styles.DecrementMonth}>
-              <ArrowLeft />
+              <ChevronLeft />
             </Calendar.DecrementMonth>
             <span className={styles.HeaderLabel}>
               {format(visibleDate, 'MMMM yyyy', { locale })}
             </span>
             <Calendar.IncrementMonth className={styles.IncrementMonth}>
-              <ArrowRight />
+              <ChevronRight />
             </Calendar.IncrementMonth>
           </header>
           <Calendar.DayGrid className={styles.DayGrid}>
