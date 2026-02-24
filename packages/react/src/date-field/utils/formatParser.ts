@@ -1,10 +1,11 @@
 import {
   TemporalAdapter,
   TemporalFieldDatePartType,
-  TemporalFieldPlaceholderGetters,
   TemporalFormatTokenConfig,
   TemporalSupportedObject,
 } from '../../types';
+import type { BaseUITranslations } from '../../translations/types';
+import { enUS } from '../../translations/enUS';
 import {
   TemporalFieldDatePart,
   TemporalFieldDatePartValueBoundaries,
@@ -44,16 +45,9 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
         },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue, tokenConfig, formatArbitraryDateByToken) {
+    getTokenPlaceholder(translations, tokenValue, tokenConfig, formatArbitraryDateByToken) {
       const digitAmount = formatArbitraryDateByToken(tokenValue).length;
-      if (placeholderGetters?.year === undefined) {
-        return 'Y'.repeat(digitAmount);
-      }
-
-      return placeholderGetters.year({
-        digitAmount,
-        format: tokenValue,
-      });
+      return translations.temporalFieldYearPlaceholder({ digitAmount });
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
       // Uncomment if Day.js support is added.
@@ -94,14 +88,9 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
             },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue, tokenConfig) {
-      if (placeholderGetters?.month === undefined) {
-        return tokenConfig.contentType === 'letter' ? 'MMMM' : 'MM';
-      }
-
-      return placeholderGetters.month({
+    getTokenPlaceholder(translations, tokenValue, tokenConfig) {
+      return translations.temporalFieldMonthPlaceholder({
         contentType: tokenConfig.contentType,
-        format: tokenValue,
       });
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
@@ -130,14 +119,9 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
         adjustment: boundaries,
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue, tokenConfig) {
-      if (placeholderGetters?.weekDay === undefined) {
-        return tokenConfig.contentType === 'letter' ? 'EEEE' : 'EE';
-      }
-
-      return placeholderGetters.weekDay({
+    getTokenPlaceholder(translations, tokenValue, tokenConfig) {
+      return translations.temporalFieldWeekDayPlaceholder({
         contentType: tokenConfig.contentType,
-        format: tokenValue,
       });
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
@@ -181,12 +165,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
             },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue) {
-      if (placeholderGetters?.day === undefined) {
-        return 'DD';
-      }
-
-      return placeholderGetters.day({ format: tokenValue });
+    getTokenPlaceholder(translations) {
+      return translations.temporalFieldDayPlaceholder();
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
       return adapter.formatByString(adapter.startOfMonth(now), tokenValue).length > 1;
@@ -242,12 +222,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
             },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue) {
-      if (placeholderGetters?.hours === undefined) {
-        return '--';
-      }
-
-      return placeholderGetters.hours({ format: tokenValue });
+    getTokenPlaceholder(translations) {
+      return translations.temporalFieldHoursPlaceholder();
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
       return adapter.formatByString(adapter.setHours(now, 1), tokenValue).length > 1;
@@ -282,12 +258,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
             },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue) {
-      if (placeholderGetters?.minutes === undefined) {
-        return '--';
-      }
-
-      return placeholderGetters.minutes({ format: tokenValue });
+    getTokenPlaceholder(translations) {
+      return translations.temporalFieldMinutesPlaceholder();
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
       return adapter.formatByString(adapter.setMinutes(now, 1), tokenValue).length > 1;
@@ -324,12 +296,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
             },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue) {
-      if (placeholderGetters?.seconds === undefined) {
-        return '--';
-      }
-
-      return placeholderGetters.seconds({ format: tokenValue });
+    getTokenPlaceholder(translations) {
+      return translations.temporalFieldSecondsPlaceholder();
     },
     isDigitTokenPadded(adapter, tokenValue, now) {
       return adapter.formatByString(adapter.setSeconds(now, 1), tokenValue).length > 1;
@@ -365,12 +333,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
           : { minimum: getMeridiemValue(minDate), maximum: getMeridiemValue(maxDate) },
       };
     },
-    getTokenPlaceholder(placeholderGetters, tokenValue) {
-      if (placeholderGetters?.meridiem === undefined) {
-        return '--';
-      }
-
-      return placeholderGetters.meridiem({ format: tokenValue });
+    getTokenPlaceholder(translations) {
+      return translations.temporalFieldMeridiemPlaceholder();
     },
     isDigitTokenPadded() {
       // Meridiem is never a digit date part.
@@ -398,7 +362,7 @@ export class FormatParser {
 
   private format: string;
 
-  private placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
+  private translations: BaseUITranslations;
 
   private validationProps: TemporalFieldValidationProps;
 
@@ -413,16 +377,10 @@ export class FormatParser {
     adapter: TemporalAdapter,
     format: string,
     direction: TextDirection,
-    placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined,
+    translations: BaseUITranslations,
     validationProps: TemporalFieldValidationProps,
   ) {
-    const parser = new FormatParser(
-      adapter,
-      format,
-      direction,
-      placeholderGetters,
-      validationProps,
-    );
+    const parser = new FormatParser(adapter, format, direction, translations, validationProps);
     const expandedFormat = parser.expandFormat();
     const escapedParts = parser.computeEscapedParts(expandedFormat);
     const parsedFormat = parser.parse(expandedFormat, escapedParts);
@@ -447,7 +405,7 @@ export class FormatParser {
     tokenValue: string,
     validationProps: TemporalFieldValidationProps,
   ): TemporalFieldToken {
-    const parser = new FormatParser(adapter, '', 'ltr', undefined, validationProps);
+    const parser = new FormatParser(adapter, '', 'ltr', enUS, validationProps);
     return parser.createToken(tokenValue);
   }
 
@@ -473,13 +431,13 @@ export class FormatParser {
     adapter: TemporalAdapter,
     format: string,
     direction: TextDirection,
-    placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined,
+    translations: BaseUITranslations,
     validationProps: TemporalFieldValidationProps,
   ) {
     this.adapter = adapter;
     this.format = format;
     this.direction = direction;
-    this.placeholderGetters = placeholderGetters;
+    this.translations = translations;
     this.validationProps = validationProps;
   }
 
@@ -568,7 +526,7 @@ export class FormatParser {
       isMostGranularPart: false,
       maxLength,
       placeholder: helpers.getTokenPlaceholder(
-        this.placeholderGetters,
+        this.translations,
         tokenValue,
         tokenConfig,
         this.formatArbitraryDateByToken,
@@ -685,7 +643,7 @@ interface FormatParserDatePartConfig {
     validationProps: ValidateDateValidationProps,
   ): TemporalFieldDatePartValueBoundaries;
   getTokenPlaceholder(
-    placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined,
+    translations: BaseUITranslations,
     tokenValue: string,
     tokenConfig: TemporalFormatTokenConfig,
     formatArbitraryDateByToken: (token: string) => string,

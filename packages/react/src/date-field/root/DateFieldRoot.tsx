@@ -40,7 +40,6 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     minDate,
     maxDate,
     // Other props
-    placeholderGetters,
     actionsRef,
     // Props forwarded to the DOM element
     ...elementProps
@@ -72,7 +71,6 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
       referenceDate,
       minDate,
       maxDate,
-      placeholderGetters,
     },
   });
 });

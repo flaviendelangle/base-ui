@@ -84,7 +84,6 @@ export function useTemporalFieldRoot(
     referenceDate,
     minDate,
     maxDate,
-    placeholderGetters,
   } = props;
 
   const fieldContext = useFieldRootContext();
@@ -116,7 +115,6 @@ export function useTemporalFieldRoot(
           direction,
           minDate,
           maxDate,
-          placeholderGetters,
         },
         config,
       ),
@@ -132,7 +130,6 @@ export function useTemporalFieldRoot(
     config,
     minDate,
     maxDate,
-    placeholderGetters,
     referenceDateProp: referenceDate ?? null,
     required: required ?? false,
     disabledProp: disabled ?? false,

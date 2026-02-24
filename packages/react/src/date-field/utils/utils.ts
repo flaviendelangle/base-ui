@@ -83,7 +83,6 @@ export function deriveStateFromParameters<TValue extends TemporalSupportedValue>
     nameProp: parameters.name,
     id: parameters.id,
     timezoneProp: parameters.timezone,
-    placeholderGetters: parameters.placeholderGetters,
     fieldContext: parameters.fieldContext,
     step: parameters.step,
     translations: parameters.translations ?? enUS,

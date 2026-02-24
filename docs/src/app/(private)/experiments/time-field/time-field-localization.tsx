@@ -3,15 +3,8 @@ import * as React from 'react';
 import { fr } from 'date-fns/locale/fr';
 import { Field } from '@base-ui/react/field';
 import { TimeField } from '@base-ui/react/time-field';
-import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import styles from './time-field-localization.module.css';
-
-const CUSTOM_TIME_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
-  hours: () => 'hh',
-  minutes: () => 'mm',
-  meridiem: () => 'AM',
-};
 
 export default function TimeFieldLocalization() {
   return (
@@ -34,13 +27,17 @@ export default function TimeFieldLocalization() {
                 )}
               </TimeField.Root>
             </Field.Root>
+          </LocalizationProvider>
+          <LocalizationProvider
+            translations={{
+              temporalFieldHoursPlaceholder: () => 'hh',
+              temporalFieldMinutesPlaceholder: () => 'mm',
+              temporalFieldMeridiemPlaceholder: () => 'AM',
+            }}
+          >
             <Field.Root name="time-field-fr-seconds" className={styles.Field}>
               <Field.Label className={styles.Label}>Custom placeholders</Field.Label>
-              <TimeField.Root
-                className={styles.Root}
-                placeholderGetters={CUSTOM_TIME_PLACEHOLDER_GETTERS}
-                ampm
-              >
+              <TimeField.Root className={styles.Root} ampm>
                 {(section) => (
                   <TimeField.Section
                     key={section.index}

@@ -45,7 +45,6 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
     minDate,
     maxDate,
     // Other props
-    placeholderGetters,
     actionsRef,
     // Props forwarded to the DOM element
     ...elementProps
@@ -77,7 +76,6 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
       referenceDate,
       minDate,
       maxDate,
-      placeholderGetters,
     },
   });
 });

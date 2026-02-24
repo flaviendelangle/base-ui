@@ -119,11 +119,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const value = parameters.value ?? parameters.defaultValue ?? manager.emptyValue;
     const validationProps = { minDate: parameters.minDate, maxDate: parameters.maxDate };
 
+    const derivedState = deriveStateFromParameters(parameters, config);
+
     const parsedFormat = FormatParser.parse(
       adapter,
       parameters.format,
       direction,
-      parameters.placeholderGetters,
+      derivedState.translations,
       validationProps,
     );
     validateParsedFormat(manager.dateType, parsedFormat);
@@ -212,14 +214,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         (state: TemporalFieldState<TValue>) => state.rawFormat,
         (state: TemporalFieldState<TValue>) => state.adapter,
         (state: TemporalFieldState<TValue>) => state.direction,
-        (state: TemporalFieldState<TValue>) => state.placeholderGetters,
+        (state: TemporalFieldState<TValue>) => state.translations,
         (state: TemporalFieldState<TValue>) => state.minDate,
         (state: TemporalFieldState<TValue>) => state.maxDate,
-        (rawFormat, adapterVal, directionVal, placeholderGettersVal, minDateVal, maxDateVal) => ({
+        (rawFormat, adapterVal, directionVal, translationsVal, minDateVal, maxDateVal) => ({
           rawFormat,
           adapter: adapterVal,
           direction: directionVal,
-          placeholderGetters: placeholderGettersVal,
+          translations: translationsVal,
           minDate: minDateVal,
           maxDate: maxDateVal,
         }),
@@ -232,7 +234,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           previous.rawFormat === next.rawFormat &&
           previous.adapter === next.adapter &&
           previous.direction === next.direction &&
-          previous.placeholderGetters === next.placeholderGetters &&
+          previous.translations === next.translations &&
           previous.minDate === next.minDate &&
           previous.maxDate === next.maxDate
         ) {
@@ -245,7 +247,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           next.adapter,
           next.rawFormat,
           next.direction,
-          next.placeholderGetters,
+          next.translations,
           { minDate: next.minDate, maxDate: next.maxDate },
         );
         validateParsedFormat(this.state.manager.dateType, nextParsedFormat);

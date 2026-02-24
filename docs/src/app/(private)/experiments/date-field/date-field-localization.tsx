@@ -4,19 +4,8 @@ import { fr } from 'date-fns/locale/fr';
 import { de } from 'date-fns/locale/de';
 import { Field } from '@base-ui/react/field';
 import { DateField } from '@base-ui/react/date-field';
-import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import styles from './date-field-localization.module.css';
-
-const FRENCH_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
-  year: (params) => 'A'.repeat(params.digitAmount),
-  day: () => 'DD',
-};
-
-const GERMAN_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
-  year: (params) => 'J'.repeat(params.digitAmount),
-  day: () => 'TT',
-};
 
 export default function DateFieldLocalization() {
   return (
@@ -24,15 +13,18 @@ export default function DateFieldLocalization() {
       <h1>Date Field Localization</h1>
       <div className={styles.Page}>
         <section className={styles.Form}>
-          <LocalizationProvider temporalLocale={fr}>
+          <LocalizationProvider
+            temporalLocale={fr}
+            translations={{
+              temporalFieldYearPlaceholder: ({ digitAmount }) => 'A'.repeat(digitAmount),
+              temporalFieldDayPlaceholder: () => 'JJ',
+            }}
+          >
             <Field.Root name="date-field-fr" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 French locale (date + placeholders)
               </Field.Label>
-              <DateField.Root
-                className={styles.Root}
-                placeholderGetters={FRENCH_PLACEHOLDER_GETTERS}
-              >
+              <DateField.Root className={styles.Root}>
                 {(section) => (
                   <DateField.Section
                     key={section.index}
@@ -43,15 +35,18 @@ export default function DateFieldLocalization() {
               </DateField.Root>
             </Field.Root>
           </LocalizationProvider>
-          <LocalizationProvider temporalLocale={de}>
+          <LocalizationProvider
+            temporalLocale={de}
+            translations={{
+              temporalFieldYearPlaceholder: ({ digitAmount }) => 'J'.repeat(digitAmount),
+              temporalFieldDayPlaceholder: () => 'TT',
+            }}
+          >
             <Field.Root name="date-field-de" className={styles.Field}>
               <Field.Label className={styles.Label}>
                 German locale (date + placeholders)
               </Field.Label>
-              <DateField.Root
-                className={styles.Root}
-                placeholderGetters={GERMAN_PLACEHOLDER_GETTERS}
-              >
+              <DateField.Root className={styles.Root}>
                 {(section) => (
                   <DateField.Section
                     key={section.index}

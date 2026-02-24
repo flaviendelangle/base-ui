@@ -4,31 +4,23 @@ import { fr } from 'date-fns/locale/fr';
 import { de } from 'date-fns/locale/de';
 import { Field } from '@base-ui/react/field';
 import { DateTimeField } from '@base-ui/react/date-time-field';
-import { TemporalFieldPlaceholderGetters } from '@base-ui/react/types';
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import fieldStyles from '../../date-time-field.module.css';
 import styles from './index.module.css';
 
-const FRENCH_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
-  year: (params) => 'A'.repeat(params.digitAmount),
-  day: () => 'JJ',
-};
-
-const GERMAN_PLACEHOLDER_GETTERS: Partial<TemporalFieldPlaceholderGetters> = {
-  year: (params) => 'J'.repeat(params.digitAmount),
-  day: () => 'TT',
-};
-
 export default function ExampleDateTimeFieldLocalization() {
   return (
     <div className={styles.Wrapper}>
-      <LocalizationProvider temporalLocale={fr}>
+      <LocalizationProvider
+        temporalLocale={fr}
+        translations={{
+          temporalFieldYearPlaceholder: ({ digitAmount }) => 'A'.repeat(digitAmount),
+          temporalFieldDayPlaceholder: () => 'JJ',
+        }}
+      >
         <Field.Root className={fieldStyles.Field}>
           <Field.Label className={fieldStyles.Label}>French locale</Field.Label>
-          <DateTimeField.Root
-            className={fieldStyles.Root}
-            placeholderGetters={FRENCH_PLACEHOLDER_GETTERS}
-          >
+          <DateTimeField.Root className={fieldStyles.Root}>
             {(section) => (
               <DateTimeField.Section
                 key={section.index}
@@ -39,13 +31,16 @@ export default function ExampleDateTimeFieldLocalization() {
           </DateTimeField.Root>
         </Field.Root>
       </LocalizationProvider>
-      <LocalizationProvider temporalLocale={de}>
+      <LocalizationProvider
+        temporalLocale={de}
+        translations={{
+          temporalFieldYearPlaceholder: ({ digitAmount }) => 'J'.repeat(digitAmount),
+          temporalFieldDayPlaceholder: () => 'TT',
+        }}
+      >
         <Field.Root className={fieldStyles.Field}>
           <Field.Label className={fieldStyles.Label}>German locale</Field.Label>
-          <DateTimeField.Root
-            className={fieldStyles.Root}
-            placeholderGetters={GERMAN_PLACEHOLDER_GETTERS}
-          >
+          <DateTimeField.Root className={fieldStyles.Root}>
             {(section) => (
               <DateTimeField.Section
                 key={section.index}

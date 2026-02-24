@@ -23,9 +23,9 @@
       "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: TemporalFieldValueChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "actionsRef": {
-      "type": "RefObject<DateField.Root.Actions | null>",
+      "type": "RefObject<TemporalFieldRootActions | null>",
       "description": "A ref to imperative actions.\n- `clear`: Clears the field value.",
-      "detailedType": "| React.RefObject<DateField.Root.Actions | null>\n| undefined"
+      "detailedType": "| React.RefObject<TemporalFieldRootActions | null>\n| undefined"
     },
     "maxDate": {
       "type": "Date",
@@ -36,12 +36,6 @@
       "type": "Date",
       "description": "Minimal selectable date.",
       "detailedType": "Date | undefined"
-    },
-    "placeholderGetters": {
-      "type": "Partial<TemporalFieldPlaceholderGetters>",
-      "default": "{}",
-      "description": "Methods to generate the placeholders for each section type.\nUsed when the field is empty or when a section is empty.\nIf a section type is not specified, a default placeholder will be used.",
-      "detailedType": "| {\n    year?: (params: {\n      digitAmount: number\n      format: string\n    }) => string\n    month?: (params: {\n      contentType: TemporalFieldSectionContentType\n      format: string\n    }) => string\n    day?: (params: { format: string }) => string\n    weekDay?: (params: {\n      contentType: TemporalFieldSectionContentType\n      format: string\n    }) => string\n    hours?: (params: { format: string }) => string\n    minutes?: (params: { format: string }) => string\n    seconds?: (params: { format: string }) => string\n    meridiem?: (params: { format: string }) => string\n  }\n| undefined"
     },
     "referenceDate": {
       "type": "Date",

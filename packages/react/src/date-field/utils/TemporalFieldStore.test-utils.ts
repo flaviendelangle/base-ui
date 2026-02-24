@@ -17,7 +17,6 @@ export function createDefaultStoreParameters(
     readOnly: undefined,
     name: undefined,
     id: undefined,
-    placeholderGetters: undefined,
     minDate: undefined,
     maxDate: undefined,
     timezone: undefined,

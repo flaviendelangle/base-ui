@@ -1,5 +1,6 @@
 import { createTemporalRenderer } from '#test-utils';
 import { FormatParser } from './formatParser';
+import { enUS } from '../../translations/enUS';
 
 describe('FormatParser', () => {
   const { adapter } = createTemporalRenderer();
@@ -8,7 +9,7 @@ describe('FormatParser', () => {
     it('should support escaped characters in start separator', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(2);
       expect(result.elements[0]).to.deep.include({
@@ -24,7 +25,7 @@ describe('FormatParser', () => {
     it('should support escaped characters between sections separator', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${adapter.formats.monthFullLetter} ${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[0]).to.deep.include({
@@ -43,7 +44,7 @@ describe('FormatParser', () => {
       () => {
         const { start: startChar, end: endChar } = adapter.escapedCharacters;
         const format = `${adapter.formats.monthFullLetter} ${startChar}Escaped ${startChar}${endChar} ${adapter.formats.yearPadded}`;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         expect(result.elements).to.have.lengthOf(3);
         expect(result.elements[0]).to.deep.include({
@@ -61,7 +62,7 @@ describe('FormatParser', () => {
     it('should support several escaped parts', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${startChar}Escaped${endChar} ${adapter.formats.monthFullLetter} ${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(4);
       expect(result.elements[0]).to.deep.include({
@@ -82,7 +83,7 @@ describe('FormatParser', () => {
     it('should support format with only escaped parts', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${startChar}Escaped${endChar} ${startChar}Escaped${endChar}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // When there are no tokens, escaped parts are absorbed and result in empty format
       expect(result.elements).to.deep.equal([]);
@@ -92,7 +93,7 @@ describe('FormatParser', () => {
   describe('format without separators', () => {
     it('should support format without separators', () => {
       const format = `${adapter.formats.dayOfMonth}${adapter.formats.month3Letters}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(2);
       expect(result.elements[0]).to.deep.include({
@@ -166,7 +167,7 @@ describe('FormatParser', () => {
   describe('placeholders', () => {
     it('should use default placeholders', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       result.elements.forEach((element) => {
         if ('placeholder' in element) {
@@ -182,9 +183,7 @@ describe('FormatParser', () => {
         adapter,
         format,
         'ltr',
-        {
-          year: () => 'CustomYear',
-        },
+        { ...enUS, temporalFieldYearPlaceholder: () => 'CustomYear' },
         {},
       );
 
@@ -200,9 +199,7 @@ describe('FormatParser', () => {
         adapter,
         format,
         'ltr',
-        {
-          month: () => 'CustomMonth',
-        },
+        { ...enUS, temporalFieldMonthPlaceholder: () => 'CustomMonth' },
         {},
       );
 
@@ -218,9 +215,7 @@ describe('FormatParser', () => {
         adapter,
         format,
         'ltr',
-        {
-          day: () => 'CustomDay',
-        },
+        { ...enUS, temporalFieldDayPlaceholder: () => 'CustomDay' },
         {},
       );
 
@@ -235,7 +230,7 @@ describe('FormatParser', () => {
     it('should include prefix as the first separator element', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${startChar}Prefix${endChar} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(2);
       expect(result.elements[0]).to.deep.include({
@@ -250,7 +245,7 @@ describe('FormatParser', () => {
     it('should include suffix as the last separator element', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${adapter.formats.yearPadded} ${startChar}Suffix${endChar}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(2);
       expect(result.elements[0]).to.deep.include({
@@ -265,7 +260,7 @@ describe('FormatParser', () => {
     it('should include both prefix and suffix as separator elements', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${startChar}Before${endChar} ${adapter.formats.yearPadded} ${startChar}After${endChar}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[0]).to.deep.include({
@@ -285,7 +280,7 @@ describe('FormatParser', () => {
   describe('separators', () => {
     it('should parse format with slash separator', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Find separators between tokens - they are now inlined as separate elements
       const separators = result.elements.filter((element) => !('placeholder' in element));
@@ -296,7 +291,7 @@ describe('FormatParser', () => {
 
     it('should parse format with dot separator', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate).replace(/\//g, '.');
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const separators = result.elements.filter((element) => !('placeholder' in element));
       separators.forEach((separator) => {
@@ -306,7 +301,7 @@ describe('FormatParser', () => {
 
     it('should parse format with dash separator', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate).replace(/\//g, '-');
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const separators = result.elements.filter((element) => !('placeholder' in element));
       separators.forEach((separator) => {
@@ -316,7 +311,7 @@ describe('FormatParser', () => {
 
     it('should parse format with space separator', () => {
       const format = `${adapter.formats.monthFullLetter} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[1]).to.deep.include({ value: ' ' });
@@ -324,7 +319,7 @@ describe('FormatParser', () => {
 
     it('should handle multiple character separators', () => {
       const format = `${adapter.formats.monthFullLetter} / ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[1]).to.deep.include({ value: ' / ' });
@@ -334,7 +329,7 @@ describe('FormatParser', () => {
   describe('RTL support', () => {
     it('should handle RTL direction with space separators', () => {
       const format = `${adapter.formats.monthFullLetter} ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'rtl', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'rtl', enUS, {});
 
       // RTL should add unicode control characters around space separators
       expect(result.elements).to.have.lengthOf(3);
@@ -348,8 +343,8 @@ describe('FormatParser', () => {
 
     it('should reverse token order in RTL', () => {
       const format = `${adapter.formats.monthFullLetter} ${adapter.formats.yearPadded}`;
-      const resultLtr = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-      const resultRtl = FormatParser.parse(adapter, format, 'rtl', undefined, {});
+      const resultLtr = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+      const resultRtl = FormatParser.parse(adapter, format, 'rtl', enUS, {});
 
       // In RTL, the format string itself is reversed
       expect(resultRtl.elements).to.have.lengthOf(3);
@@ -367,7 +362,7 @@ describe('FormatParser', () => {
   describe('format expansion', () => {
     it('should expand localized format tokens', () => {
       const format = adapter.formats.localizedNumericDate;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Should have multiple elements after expansion
       expect(result.elements.length).to.be.greaterThan(0);
@@ -375,7 +370,7 @@ describe('FormatParser', () => {
 
     it('should handle already expanded formats', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements.length).to.be.greaterThan(0);
     });
@@ -384,7 +379,7 @@ describe('FormatParser', () => {
   describe('isPadded detection', () => {
     it('should detect padded year tokens', () => {
       const format = 'yyyy';
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect('isPadded' in result.elements[0]).to.equal(true);
       expect((result.elements[0] as any).isPadded).to.be.a('boolean');
@@ -392,7 +387,7 @@ describe('FormatParser', () => {
 
     it('should detect padded month tokens', () => {
       const format = 'MM';
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect('isPadded' in result.elements[0]).to.equal(true);
       expect((result.elements[0] as any).isPadded).to.be.a('boolean');
@@ -400,7 +395,7 @@ describe('FormatParser', () => {
 
     it('should detect padded day tokens', () => {
       const format = 'dd';
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect('isPadded' in result.elements[0]).to.equal(true);
       expect((result.elements[0] as any).isPadded).to.be.a('boolean');
@@ -408,7 +403,7 @@ describe('FormatParser', () => {
 
     it('should not pad letter-based tokens', () => {
       const format = adapter.formats.monthFullLetter;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const firstToken = result.elements[0];
       expect('config' in firstToken).to.equal(true);
@@ -418,7 +413,7 @@ describe('FormatParser', () => {
 
     it('should handle digit-with-letter format (ordinal)', () => {
       const format = adapter.formats.dayOfMonthWithLetter; // 'do'
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const firstToken = result.elements[0];
       expect('config' in firstToken).to.equal(true);
@@ -434,7 +429,7 @@ describe('FormatParser', () => {
   describe('complex formats', () => {
     it('should parse full date format', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Count tokens (elements with placeholder property)
       const tokens = result.elements.filter((el) => 'placeholder' in el);
@@ -443,7 +438,7 @@ describe('FormatParser', () => {
 
     it('should parse date with weekday', () => {
       const format = `${adapter.formats.weekday3Letters} ${adapter.expandFormat(adapter.formats.localizedNumericDate)}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const tokens = result.elements.filter((el) => 'placeholder' in el);
       expect(tokens.length).to.be.greaterThan(2);
@@ -451,7 +446,7 @@ describe('FormatParser', () => {
 
     it('should parse time format', () => {
       const format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Should contain hours and minutes
       const tokens = result.elements.filter((el) => 'config' in el);
@@ -464,7 +459,7 @@ describe('FormatParser', () => {
 
     it('should parse datetime format', () => {
       const format = `${adapter.expandFormat(adapter.formats.localizedNumericDate)} ${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Should have both date and time tokens
       const tokens = result.elements.filter((el) => 'config' in el);
@@ -476,7 +471,7 @@ describe('FormatParser', () => {
   describe('edge cases', () => {
     it('should handle format with consecutive tokens', () => {
       const format = `${adapter.formats.yearPadded}${adapter.formats.monthPadded}${adapter.formats.dayOfMonth}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[0]).to.deep.include({
@@ -492,7 +487,7 @@ describe('FormatParser', () => {
 
     it('should handle format with multiple spaces', () => {
       const format = `${adapter.formats.monthFullLetter}   ${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[0]).to.deep.include({
@@ -509,7 +504,7 @@ describe('FormatParser', () => {
     it('should handle empty escaped strings', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${adapter.formats.yearPadded}${startChar}${endChar}${adapter.formats.monthFullLetter}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(2);
       expect(result.elements[0]).to.deep.include({
@@ -523,7 +518,7 @@ describe('FormatParser', () => {
     it('should handle format with special characters', () => {
       const { start: startChar, end: endChar } = adapter.escapedCharacters;
       const format = `${adapter.formats.yearPadded}${startChar}@#$${endChar}${adapter.formats.monthFullLetter}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       expect(result.elements).to.have.lengthOf(3);
       expect(result.elements[0]).to.deep.include({
@@ -541,7 +536,7 @@ describe('FormatParser', () => {
   describe('token properties', () => {
     it('should set correct value for each token', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       result.elements.forEach((element) => {
         expect(element.value).to.be.a('string');
@@ -551,7 +546,7 @@ describe('FormatParser', () => {
 
     it('should set correct config for each token', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       result.elements.forEach((element) => {
         if ('config' in element) {
@@ -564,7 +559,7 @@ describe('FormatParser', () => {
 
     it('should have separators between tokens', () => {
       const format = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonth}/${adapter.formats.yearPadded}`;
-      const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+      const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Format: token, separator, token, separator, token = 5 elements
       expect(result.elements).to.have.lengthOf(5);
@@ -590,7 +585,7 @@ describe('FormatParser', () => {
     describe('without validation props', () => {
       it('should return default year boundaries', () => {
         const format = adapter.formats.yearPadded;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -602,7 +597,7 @@ describe('FormatParser', () => {
 
       it('should return default month boundaries', () => {
         const format = adapter.formats.monthPadded;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -614,7 +609,7 @@ describe('FormatParser', () => {
 
       it('should return default day boundaries', () => {
         const format = adapter.formats.dayOfMonth;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -626,7 +621,7 @@ describe('FormatParser', () => {
 
       it('should return default hours boundaries (24h)', () => {
         const format = adapter.formats.hours24hPadded;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -638,7 +633,7 @@ describe('FormatParser', () => {
 
       it('should return default minutes boundaries', () => {
         const format = adapter.formats.minutesPadded;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -650,7 +645,7 @@ describe('FormatParser', () => {
 
       it('should return default seconds boundaries', () => {
         const format = adapter.formats.secondsPadded;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -662,7 +657,7 @@ describe('FormatParser', () => {
 
       it('should return default meridiem boundaries', () => {
         const format = adapter.formats.meridiem;
-        const result = FormatParser.parse(adapter, format, 'ltr', undefined, {});
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
         expect('boundaries' in token).to.equal(true);
@@ -677,7 +672,7 @@ describe('FormatParser', () => {
       describe('year adjustment boundaries with minDate/maxDate', () => {
         it('should restrict year adjustment boundaries to minDate/maxDate years', () => {
           const format = adapter.formats.yearPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2020-01-01', 'default'),
             maxDate: adapter.date('2025-12-31', 'default'),
           });
@@ -694,7 +689,7 @@ describe('FormatParser', () => {
 
         it('should only restrict adjustment minimum when only minDate is provided', () => {
           const format = adapter.formats.yearPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2020-01-01', 'default'),
           });
 
@@ -709,7 +704,7 @@ describe('FormatParser', () => {
 
         it('should only restrict adjustment maximum when only maxDate is provided', () => {
           const format = adapter.formats.yearPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             maxDate: adapter.date('2025-12-31', 'default'),
           });
 
@@ -726,7 +721,7 @@ describe('FormatParser', () => {
       describe('month adjustment boundaries with minDate/maxDate', () => {
         it('should restrict month adjustment boundaries when minDate and maxDate share the same year', () => {
           const format = adapter.formats.monthPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-03-01', 'default'),
             maxDate: adapter.date('2024-10-31', 'default'),
           });
@@ -741,7 +736,7 @@ describe('FormatParser', () => {
 
         it('should not restrict month adjustment boundaries when minDate and maxDate have different years', () => {
           const format = adapter.formats.monthPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2023-03-01', 'default'),
             maxDate: adapter.date('2024-10-31', 'default'),
           });
@@ -758,7 +753,7 @@ describe('FormatParser', () => {
       describe('day adjustment boundaries with minDate/maxDate', () => {
         it('should restrict day adjustment boundaries when minDate and maxDate share the same month', () => {
           const format = adapter.formats.dayOfMonth;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-05', 'default'),
             maxDate: adapter.date('2024-06-25', 'default'),
           });
@@ -773,7 +768,7 @@ describe('FormatParser', () => {
 
         it('should not restrict day adjustment boundaries when minDate and maxDate have different months', () => {
           const format = adapter.formats.dayOfMonth;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-05-05', 'default'),
             maxDate: adapter.date('2024-06-25', 'default'),
           });
@@ -790,7 +785,7 @@ describe('FormatParser', () => {
       describe('hours adjustment boundaries with minDate/maxDate', () => {
         it('should restrict hours adjustment boundaries when minDate and maxDate share the same day', () => {
           const format = adapter.formats.hours24hPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T08:00:00', 'default'),
             maxDate: adapter.date('2024-06-15T18:00:00', 'default'),
           });
@@ -805,7 +800,7 @@ describe('FormatParser', () => {
 
         it('should not restrict hours adjustment boundaries when minDate and maxDate have different days', () => {
           const format = adapter.formats.hours24hPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-14T08:00:00', 'default'),
             maxDate: adapter.date('2024-06-15T18:00:00', 'default'),
           });
@@ -822,7 +817,7 @@ describe('FormatParser', () => {
       describe('minutes adjustment boundaries with minDate/maxDate', () => {
         it('should restrict minutes adjustment boundaries when minDate and maxDate share the same hour', () => {
           const format = adapter.formats.minutesPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:10:00', 'default'),
             maxDate: adapter.date('2024-06-15T14:50:00', 'default'),
           });
@@ -837,7 +832,7 @@ describe('FormatParser', () => {
 
         it('should not restrict minutes adjustment boundaries when minDate and maxDate have different hours', () => {
           const format = adapter.formats.minutesPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T13:10:00', 'default'),
             maxDate: adapter.date('2024-06-15T14:50:00', 'default'),
           });
@@ -854,7 +849,7 @@ describe('FormatParser', () => {
       describe('seconds adjustment boundaries with minDate/maxDate', () => {
         it('should restrict seconds adjustment boundaries when minDate and maxDate share the same minute', () => {
           const format = adapter.formats.secondsPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:30:05', 'default'),
             maxDate: adapter.date('2024-06-15T14:30:45', 'default'),
           });
@@ -869,7 +864,7 @@ describe('FormatParser', () => {
 
         it('should not restrict seconds adjustment boundaries when minDate and maxDate have different minutes', () => {
           const format = adapter.formats.secondsPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:29:05', 'default'),
             maxDate: adapter.date('2024-06-15T14:30:45', 'default'),
           });
@@ -884,7 +879,7 @@ describe('FormatParser', () => {
 
         it('should not restrict seconds adjustment boundaries when minDate and maxDate have different hours', () => {
           const format = adapter.formats.secondsPadded;
-          const result = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T13:30:05', 'default'),
             maxDate: adapter.date('2024-06-15T14:30:45', 'default'),
           });
@@ -901,8 +896,8 @@ describe('FormatParser', () => {
       describe('characterEditing is never affected by validation props', () => {
         it('should not change characterEditing for year even with minDate/maxDate', () => {
           const format = adapter.formats.yearPadded;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2020-01-01', 'default'),
             maxDate: adapter.date('2025-12-31', 'default'),
           });
@@ -916,8 +911,8 @@ describe('FormatParser', () => {
 
         it('should not change characterEditing for month even with minDate/maxDate', () => {
           const format = adapter.formats.monthPadded;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-03-01', 'default'),
             maxDate: adapter.date('2024-10-31', 'default'),
           });
@@ -931,8 +926,8 @@ describe('FormatParser', () => {
 
         it('should not change characterEditing for day even with minDate/maxDate', () => {
           const format = adapter.formats.dayOfMonth;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-05', 'default'),
             maxDate: adapter.date('2024-06-25', 'default'),
           });
@@ -946,8 +941,8 @@ describe('FormatParser', () => {
 
         it('should not change characterEditing for hours even with minDate/maxDate', () => {
           const format = adapter.formats.hours24hPadded;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T08:00:00', 'default'),
             maxDate: adapter.date('2024-06-15T18:00:00', 'default'),
           });
@@ -961,8 +956,8 @@ describe('FormatParser', () => {
 
         it('should not change characterEditing for minutes even with minDate/maxDate', () => {
           const format = adapter.formats.minutesPadded;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:10:00', 'default'),
             maxDate: adapter.date('2024-06-15T14:50:00', 'default'),
           });
@@ -976,8 +971,8 @@ describe('FormatParser', () => {
 
         it('should not change characterEditing for seconds even with minDate/maxDate', () => {
           const format = adapter.formats.secondsPadded;
-          const resultWithout = FormatParser.parse(adapter, format, 'ltr', undefined, {});
-          const resultWith = FormatParser.parse(adapter, format, 'ltr', undefined, {
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:30:05', 'default'),
             maxDate: adapter.date('2024-06-15T14:30:45', 'default'),
           });

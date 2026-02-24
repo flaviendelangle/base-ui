@@ -1,5 +1,3 @@
-import { TemporalFieldSectionContentType } from './temporal-adapter';
-
 /**
  * Lookup in which each date library can register its supported date object type.
  *
@@ -49,14 +47,3 @@ export type TemporalNonNullableValue<TValue extends TemporalSupportedValue> =
       ? TemporalSupportedObject | TemporalNonNullableRangeValue
       : TemporalNonNullableRangeValue
     : TemporalSupportedObject;
-
-export interface TemporalFieldPlaceholderGetters {
-  year: (params: { digitAmount: number; format: string }) => string;
-  month: (params: { contentType: TemporalFieldSectionContentType; format: string }) => string;
-  day: (params: { format: string }) => string;
-  weekDay: (params: { contentType: TemporalFieldSectionContentType; format: string }) => string;
-  hours: (params: { format: string }) => string;
-  minutes: (params: { format: string }) => string;
-  seconds: (params: { format: string }) => string;
-  meridiem: (params: { format: string }) => string;
-}

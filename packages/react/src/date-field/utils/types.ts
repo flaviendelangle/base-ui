@@ -9,7 +9,6 @@ import {
   TemporalSupportedValue,
   TemporalTimezone,
   TemporalFieldDatePartType,
-  TemporalFieldPlaceholderGetters,
 } from '../../types';
 import type { BaseUITranslations } from '../../translations/types';
 import { GetInitialReferenceDateValidationProps } from '../../utils/temporal/getInitialReferenceDate';
@@ -77,13 +76,6 @@ export interface TemporalFieldStoreParameters<TValue extends TemporalSupportedVa
    * The id of the hidden input element.
    */
   id: string | undefined;
-  /**
-   * Methods to generate the placeholders for each section type.
-   * Used when the field is empty or when a section is empty.
-   * If a section type is not specified, a default placeholder will be used.
-   * @default {}
-   */
-  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
   /**
    * Minimal selectable date.
    */
@@ -198,10 +190,6 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    * The id of the hidden input element.
    */
   id: string | undefined;
-  /**
-   * Methods to generate the placeholders for each section type.
-   */
-  placeholderGetters: Partial<TemporalFieldPlaceholderGetters> | undefined;
   /**
    * The minimum selectable date.
    */
