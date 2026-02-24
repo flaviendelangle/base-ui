@@ -655,6 +655,18 @@ describe('FormatParser', () => {
         }
       });
 
+      it('should return default weekDay boundaries (letter format)', () => {
+        const format = adapter.formats.weekday3Letters;
+        const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+
+        const token = result.elements[0];
+        expect('boundaries' in token).to.equal(true);
+        if ('boundaries' in token) {
+          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
+          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 7 });
+        }
+      });
+
       it('should return default meridiem boundaries', () => {
         const format = adapter.formats.meridiem;
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
@@ -778,6 +790,57 @@ describe('FormatParser', () => {
           if ('boundaries' in token) {
             expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 31 });
             expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 31 });
+          }
+        });
+      });
+
+      describe('weekDay adjustment boundaries with minDate/maxDate', () => {
+        it('should restrict weekDay adjustment boundaries when minDate and maxDate share the same week', () => {
+          // 2024-06-12 is a Wednesday, 2024-06-14 is a Friday
+          const format = adapter.formats.weekday3Letters;
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
+            minDate: adapter.date('2024-06-12', 'default'),
+            maxDate: adapter.date('2024-06-14', 'default'),
+          });
+
+          const token = result.elements[0];
+          expect('boundaries' in token).to.equal(true);
+          if ('boundaries' in token) {
+            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
+            // Wednesday to Friday = positions 4 to 6 in a week starting on Sunday
+            const formattedMin = adapter.formatByString(
+              adapter.date('2024-06-12', 'default')!,
+              adapter.formats.weekday3Letters,
+            );
+            const formattedMax = adapter.formatByString(
+              adapter.date('2024-06-14', 'default')!,
+              adapter.formats.weekday3Letters,
+            );
+            expect(token.boundaries.adjustment.minimum).to.be.greaterThanOrEqual(1);
+            expect(token.boundaries.adjustment.maximum).to.be.lessThanOrEqual(7);
+            expect(token.boundaries.adjustment.maximum).to.be.greaterThanOrEqual(
+              token.boundaries.adjustment.minimum,
+            );
+            // Verify the boundaries are actually restricted (not the full 1-7 range)
+            expect(
+              token.boundaries.adjustment.maximum - token.boundaries.adjustment.minimum,
+            ).to.equal(2); // Wed-Thu-Fri = 3 days = range of 2
+          }
+        });
+
+        it('should not restrict weekDay adjustment boundaries when minDate and maxDate have different weeks', () => {
+          // 2024-06-10 is a Monday, 2024-06-21 is a Friday (different weeks)
+          const format = adapter.formats.weekday3Letters;
+          const result = FormatParser.parse(adapter, format, 'ltr', enUS, {
+            minDate: adapter.date('2024-06-10', 'default'),
+            maxDate: adapter.date('2024-06-21', 'default'),
+          });
+
+          const token = result.elements[0];
+          expect('boundaries' in token).to.equal(true);
+          if ('boundaries' in token) {
+            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
+            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 7 });
           }
         });
       });
@@ -960,6 +1023,21 @@ describe('FormatParser', () => {
           const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
             minDate: adapter.date('2024-06-15T14:10:00', 'default'),
             maxDate: adapter.date('2024-06-15T14:50:00', 'default'),
+          });
+
+          if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
+            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+              resultWithout.elements[0].boundaries.characterEditing,
+            );
+          }
+        });
+
+        it('should not change characterEditing for weekDay even with minDate/maxDate', () => {
+          const format = adapter.formats.weekday3Letters;
+          const resultWithout = FormatParser.parse(adapter, format, 'ltr', enUS, {});
+          const resultWith = FormatParser.parse(adapter, format, 'ltr', enUS, {
+            minDate: adapter.date('2024-06-12', 'default'),
+            maxDate: adapter.date('2024-06-14', 'default'),
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {

@@ -101,7 +101,7 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
     },
   },
   weekDay: {
-    getBoundaries(adapter, tokenValue, tokenConfig) {
+    getBoundaries(adapter, tokenValue, tokenConfig, validationProps) {
       let boundaries: { minimum: number; maximum: number };
       if (tokenConfig.contentType === 'digit') {
         const daysInWeek = getWeekDaysStr(adapter, tokenValue).map(Number);
@@ -113,10 +113,41 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
         boundaries = { minimum: 1, maximum: 7 };
       }
 
+      const minDate = validationProps.minDate ?? null;
+      const maxDate = validationProps.maxDate ?? null;
+
+      // Only use minDate and maxDate to restrict weekDay if they share the same week
+      const shouldIgnoreValidation =
+        !adapter.isValid(minDate) ||
+        !adapter.isValid(maxDate) ||
+        !adapter.isSameDay(adapter.startOfWeek(minDate), adapter.startOfWeek(maxDate));
+
+      if (shouldIgnoreValidation) {
+        return {
+          characterEditing: boundaries,
+          adjustment: boundaries,
+        };
+      }
+
+      let adjustmentBoundaries: { minimum: number; maximum: number };
+      if (tokenConfig.contentType === 'digit') {
+        adjustmentBoundaries = {
+          minimum: Number(adapter.formatByString(minDate, tokenValue)),
+          maximum: Number(adapter.formatByString(maxDate, tokenValue)),
+        };
+      } else {
+        const formattedDaysInWeek = getWeekDaysStr(adapter, tokenValue);
+        adjustmentBoundaries = {
+          minimum:
+            formattedDaysInWeek.indexOf(adapter.formatByString(minDate, tokenValue)) + 1,
+          maximum:
+            formattedDaysInWeek.indexOf(adapter.formatByString(maxDate, tokenValue)) + 1,
+        };
+      }
+
       return {
         characterEditing: boundaries,
-        // TODO: See if we can add support for minDate/maxDate affecting weekDay boundaries
-        adjustment: boundaries,
+        adjustment: adjustmentBoundaries,
       };
     },
     getTokenPlaceholder(translations, tokenValue, tokenConfig) {
