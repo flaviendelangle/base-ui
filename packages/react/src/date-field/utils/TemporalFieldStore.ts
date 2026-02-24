@@ -1042,16 +1042,19 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return dp.value;
     }
 
+    const boundaries = dp.token.boundaries.adjustment;
+    const indexOffset = dp.token.boundaries.characterEditing.minimum;
+
+    let newValue: number;
+
     if (delta === 'boundary') {
-      return direction === 'up' ? options[0] : options[options.length - 1];
+      newValue = direction === 'up' ? boundaries.minimum : boundaries.maximum;
+    } else {
+      const currentValue = options.indexOf(dp.value) + indexOffset;
+      newValue = currentValue + delta * stepVal;
     }
 
-    const currentIndex = options.indexOf(dp.value);
-    const newIndex = (currentIndex + delta * stepVal) % options.length;
-    // Handle negative modulo (JS returns negative for negative dividend)
-    const wrappedIndex = (newIndex + options.length) % options.length;
-
-    return options[wrappedIndex];
+    return options[wrapInRange(newValue, boundaries.minimum, boundaries.maximum) - indexOffset];
   }
 
   private getActiveElement() {

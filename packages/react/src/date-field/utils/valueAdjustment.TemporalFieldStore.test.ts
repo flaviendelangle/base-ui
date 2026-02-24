@@ -1352,8 +1352,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       describe('meridiem restriction', () => {
-        // TODO: Meridiem restriction when both minDate and maxDate share the same meridiem is not yet implemented.
-        it.skip('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
+        it('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
