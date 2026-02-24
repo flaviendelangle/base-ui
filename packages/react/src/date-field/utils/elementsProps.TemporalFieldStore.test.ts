@@ -5,6 +5,7 @@ import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
+import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
@@ -35,6 +36,8 @@ describe('TemporalFieldStore - Elements Props', () => {
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
   const time12Format = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
 
+  const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
+
   function getSections(store: TemporalFieldStore<TemporalValue>) {
     return selectors.sections(store.state);
   }
@@ -49,10 +52,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set role to spinbutton', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -64,10 +65,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-label to Month for month sections', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -79,10 +78,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-label to Day for day sections', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -94,10 +91,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-label to Year for year sections', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -109,10 +104,9 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-label to Hours for hours sections', () => {
         const store = new TemporalFieldStore(
           {
+            ...DEFAULT_PARAMETERS,
             format: time24Format,
             defaultValue: adapter.date('2024-03-15T14:30', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           timeFieldConfig,
         );
@@ -124,10 +118,9 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-label to Minutes for minutes sections', () => {
         const store = new TemporalFieldStore(
           {
+            ...DEFAULT_PARAMETERS,
             format: time24Format,
             defaultValue: adapter.date('2024-03-15T14:30', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           timeFieldConfig,
         );
@@ -139,10 +132,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-valuenow to numeric month value', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -152,14 +143,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       });
 
       it('should set aria-valuenow to undefined when section is empty', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-valuenow']).to.equal(undefined);
@@ -171,10 +155,9 @@ describe('TemporalFieldStore - Elements Props', () => {
         it('should set aria-valuenow to numeric month value', () => {
           const store = new TemporalFieldStore(
             {
-              format: numericDateFormat,
+              ...DEFAULT_PARAMETERS,
               defaultValue: adapter.date('2024-03-15', 'default'),
               adapter: localizedAdapter,
-              direction: 'ltr',
             },
             dateFieldConfig,
           );
@@ -186,10 +169,9 @@ describe('TemporalFieldStore - Elements Props', () => {
         it('should set aria-valuenow to numeric day value', () => {
           const store = new TemporalFieldStore(
             {
-              format: numericDateFormat,
+              ...DEFAULT_PARAMETERS,
               defaultValue: adapter.date('2024-03-15', 'default'),
               adapter: localizedAdapter,
-              direction: 'ltr',
             },
             dateFieldConfig,
           );
@@ -201,10 +183,9 @@ describe('TemporalFieldStore - Elements Props', () => {
         it('should set aria-valuenow to numeric year value', () => {
           const store = new TemporalFieldStore(
             {
-              format: numericDateFormat,
+              ...DEFAULT_PARAMETERS,
               defaultValue: adapter.date('2024-03-15', 'default'),
               adapter: localizedAdapter,
-              direction: 'ltr',
             },
             dateFieldConfig,
           );
@@ -216,10 +197,10 @@ describe('TemporalFieldStore - Elements Props', () => {
         it('should set aria-valuenow to numeric hours value', () => {
           const store = new TemporalFieldStore(
             {
+              ...DEFAULT_PARAMETERS,
               format: time24Format,
               defaultValue: adapter.date('2024-03-15T14:30', 'default'),
               adapter: localizedAdapter,
-              direction: 'ltr',
             },
             timeFieldConfig,
           );
@@ -231,10 +212,10 @@ describe('TemporalFieldStore - Elements Props', () => {
         it('should set aria-valuenow to numeric minutes value', () => {
           const store = new TemporalFieldStore(
             {
+              ...DEFAULT_PARAMETERS,
               format: time24Format,
               defaultValue: adapter.date('2024-03-15T14:30', 'default'),
               adapter: localizedAdapter,
-              direction: 'ltr',
             },
             timeFieldConfig,
           );
@@ -245,14 +226,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       });
 
       it('should set aria-valuetext to Empty when section value is empty', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props['aria-valuetext']).to.equal('Empty');
@@ -261,10 +235,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-valuemin and aria-valuemax from token boundaries', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             defaultValue: adapter.date('2024-03-15', 'default'),
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -277,28 +249,14 @@ describe('TemporalFieldStore - Elements Props', () => {
 
     describe('interactivity attributes', () => {
       it('should set contentEditable to true when editable', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.contentEditable).to.equal(true);
       });
 
       it('should set tabIndex to 0 when editable', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.tabIndex).to.equal(0);
@@ -307,10 +265,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set tabIndex to -1 when disabled', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             disabled: true,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -322,10 +278,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-disabled to true when disabled', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             disabled: true,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -337,10 +291,8 @@ describe('TemporalFieldStore - Elements Props', () => {
       it('should set aria-readonly to true when readOnly', () => {
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             readOnly: true,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -350,14 +302,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       });
 
       it('should set inputMode to numeric for digit sections', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
         expect(props.inputMode).to.equal('numeric');
@@ -369,10 +314,8 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should set aria-hidden to true on separator sections', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -384,10 +327,8 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should set children to separator value', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -399,10 +340,8 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should not set role on separator sections', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -414,10 +353,8 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should not set tabIndex on separator sections', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -431,10 +368,9 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should set aria-label to Meridiem', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           defaultValue: adapter.date('2024-03-15T14:30', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -446,10 +382,9 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should set inputMode to text for letter content type', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           defaultValue: adapter.date('2024-03-15T14:30', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -463,10 +398,8 @@ describe('TemporalFieldStore - Elements Props', () => {
     it('should set children to section value when section has value', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -476,14 +409,7 @@ describe('TemporalFieldStore - Elements Props', () => {
     });
 
     it('should set children to placeholder when section is empty', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       const props = getProps(store, 0); // month (empty)
       // The placeholder is defined by the token

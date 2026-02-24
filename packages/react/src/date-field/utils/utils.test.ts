@@ -6,6 +6,7 @@ import {
   mergeDateIntoReferenceDate,
 } from './utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
+import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
@@ -346,14 +347,14 @@ describe('mergeDateIntoReferenceDate', () => {
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}:${adapter.formats.secondsPadded}`;
   const time12Format = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
 
+  const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
+
   describe('transferring date parts', () => {
     it('should transfer year from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -372,10 +373,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer month from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -392,10 +391,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer day from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -412,10 +409,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer hours from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -432,10 +428,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer minutes from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -452,10 +447,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer seconds from source to reference date', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           defaultValue: adapter.date('2024-03-15T14:30:45', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -474,10 +468,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should transfer all date parts when shouldLimitToEditedSections is false', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -496,10 +488,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should only transfer modified sections when shouldLimitToEditedSections is true', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -525,10 +515,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should not transfer any sections when none are modified and shouldLimitToEditedSections is true', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -553,10 +541,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should convert PM reference to AM when source is AM', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           defaultValue: adapter.date('2024-03-15T08:30:00', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -573,10 +560,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should convert AM reference to PM when source is PM', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           defaultValue: adapter.date('2024-03-15T20:30:00', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -593,10 +579,9 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should leave hours unchanged when meridiem matches', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           defaultValue: adapter.date('2024-03-15T14:30:00', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -616,10 +601,8 @@ describe('mergeDateIntoReferenceDate', () => {
     it('should skip separator sections', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -648,10 +631,8 @@ describe('mergeDateIntoReferenceDate', () => {
       // The function sorts by DATE_PART_GRANULARITY, so year (1) should be processed before month (2) before day (3).
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-03-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );

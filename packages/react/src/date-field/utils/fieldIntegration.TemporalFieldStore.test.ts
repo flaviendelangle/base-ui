@@ -5,6 +5,7 @@ import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
+import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
 
 describe('TemporalFieldStore - Field Integration', () => {
   const { adapter } = createTemporalRenderer();
@@ -14,6 +15,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
   // Time formats
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
+
+  const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
 
   describe('fieldContext storage', () => {
     it('should store fieldContext in state when provided in parameters', () => {
@@ -25,10 +28,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -37,14 +38,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should store null when fieldContext is not provided', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       expect(store.state.fieldContext).to.equal(null);
     });
@@ -57,10 +51,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           fieldContext: initialFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -82,10 +74,8 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should return disabledProp when fieldContext is null', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           disabled: true,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -100,11 +90,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           disabled: false,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -119,11 +107,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           disabled: true,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -138,11 +124,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           disabled: false,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -155,10 +139,8 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should return nameProp when fieldContext is null', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           name: 'localName',
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -173,11 +155,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           name: 'localName',
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -192,11 +172,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           name: 'localName',
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -217,10 +195,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -247,11 +223,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-15', 'default'),
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -269,14 +243,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not call setFilled when fieldContext is null', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -300,11 +267,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-15', 'default'),
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -331,11 +296,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-15', 'default'),
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -353,10 +316,8 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should not call setDirty when fieldContext is null', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -384,10 +345,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -416,10 +375,8 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -435,14 +392,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
 
     it('should not call validation when fieldContext is null', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       // This should not throw even without fieldContext
       store.updateFromString('01/15/2024');
@@ -463,10 +413,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -485,10 +434,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -515,10 +463,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -542,10 +489,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -576,11 +522,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           onValueChange: onValueChangeSpy,
           fieldContext: mockFieldContext,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -610,12 +554,10 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           onValueChange: onValueChangeSpy,
           disabled: true,
           name: 'standaloneField',
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -642,10 +584,8 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -693,10 +633,9 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: monthNameFormat,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -743,10 +682,9 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -785,10 +723,9 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time12Format,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -835,10 +772,9 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: europeanDateFormat,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -885,10 +821,8 @@ describe('TemporalFieldStore - Field Integration', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -921,10 +855,8 @@ describe('TemporalFieldStore - Field Integration', () => {
       const defaultValue = adapter.date('2024-01-30', 'default');
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -950,10 +882,8 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should not corrupt sections when format and value change simultaneously with a pending invalid date', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           value: adapter.date('2024-01-30', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );

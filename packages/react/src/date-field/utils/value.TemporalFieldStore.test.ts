@@ -5,23 +5,19 @@ import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
+import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
 
 describe('TemporalFieldStore - Value', () => {
   const { adapter } = createTemporalRenderer();
   const numericDateFormat = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded}`;
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
 
+  const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
+
   describe('publish', () => {
     describe('uncontrolled mode', () => {
       it('should update store value when no controlled value prop is provided', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -32,14 +28,7 @@ describe('TemporalFieldStore - Value', () => {
       });
 
       it('should update sections to match new value', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
@@ -58,11 +47,9 @@ describe('TemporalFieldStore - Value', () => {
         const controlledValue = adapter.date('2024-01-01', 'default');
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             value: controlledValue,
             onValueChange: onValueChangeSpy,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -82,10 +69,8 @@ describe('TemporalFieldStore - Value', () => {
         const onValueChangeSpy = spy();
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             onValueChange: onValueChangeSpy,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -101,10 +86,8 @@ describe('TemporalFieldStore - Value', () => {
         const onValueChangeSpy = spy();
         const store = new TemporalFieldStore(
           {
-            format: numericDateFormat,
+            ...DEFAULT_PARAMETERS,
             onValueChange: onValueChangeSpy,
-            adapter,
-            direction: 'ltr',
           },
           dateFieldConfig,
         );
@@ -118,14 +101,7 @@ describe('TemporalFieldStore - Value', () => {
 
   describe('updateFromString', () => {
     it('should parse a date string and update the value', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.updateFromString('06/15/2024');
 
@@ -137,11 +113,7 @@ describe('TemporalFieldStore - Value', () => {
 
     it('should parse a time string and update the value', () => {
       const store = new TemporalFieldStore(
-        {
-          format: time24Format,
-          adapter,
-          direction: 'ltr',
-        },
+        { ...DEFAULT_PARAMETERS, format: time24Format },
         timeFieldConfig,
       );
 
@@ -156,10 +128,8 @@ describe('TemporalFieldStore - Value', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -174,10 +144,8 @@ describe('TemporalFieldStore - Value', () => {
     it('should set value to null when value is non-null', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-06-15', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -191,11 +159,9 @@ describe('TemporalFieldStore - Value', () => {
       const onValueChangeSpy = spy();
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-06-15', 'default'),
           onValueChange: onValueChangeSpy,
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -206,14 +172,7 @@ describe('TemporalFieldStore - Value', () => {
     });
 
     it('should clear section values when value is already null (double-clear)', () => {
-      const store = new TemporalFieldStore(
-        {
-          format: numericDateFormat,
-          adapter,
-          direction: 'ltr',
-        },
-        dateFieldConfig,
-      );
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       // First set some section values without creating a complete date
       store.selectClosestDatePart(0);
@@ -237,10 +196,9 @@ describe('TemporalFieldStore - Value', () => {
     it('should work with TimeFieldStore', () => {
       const store = new TemporalFieldStore(
         {
+          ...DEFAULT_PARAMETERS,
           format: time24Format,
           defaultValue: adapter.date('2024-06-15T14:30', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         timeFieldConfig,
       );
@@ -255,10 +213,8 @@ describe('TemporalFieldStore - Value', () => {
     it('should rebuild sections from a valid new value', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-01', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -276,10 +232,8 @@ describe('TemporalFieldStore - Value', () => {
     it('should update reference value for a valid date', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-01', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );
@@ -293,10 +247,8 @@ describe('TemporalFieldStore - Value', () => {
     it('should return sections with empty values for null value', () => {
       const store = new TemporalFieldStore(
         {
-          format: numericDateFormat,
+          ...DEFAULT_PARAMETERS,
           defaultValue: adapter.date('2024-01-01', 'default'),
-          adapter,
-          direction: 'ltr',
         },
         dateFieldConfig,
       );

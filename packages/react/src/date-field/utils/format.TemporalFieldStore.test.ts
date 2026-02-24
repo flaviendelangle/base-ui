@@ -5,23 +5,19 @@ import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
 import { isToken } from './utils';
+import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
 
 describe('TemporalFieldStore - Format', () => {
   const { adapter } = createTemporalRenderer();
   const numericDateFormat = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded}`;
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
 
+  const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
+
   describe('selectors', () => {
     describe('format', () => {
       it('should return the raw format string', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         expect(store.state.rawFormat).to.equal(numericDateFormat);
       });
@@ -29,11 +25,7 @@ describe('TemporalFieldStore - Format', () => {
       it('should return custom format when provided', () => {
         const customFormat = `${adapter.formats.yearPadded}-${adapter.formats.monthPadded}-${adapter.formats.dayOfMonthPadded}`;
         const store = new TemporalFieldStore(
-          {
-            format: customFormat,
-            adapter,
-            direction: 'ltr',
-          },
+          { ...DEFAULT_PARAMETERS, format: customFormat },
           dateFieldConfig,
         );
 
@@ -41,14 +33,7 @@ describe('TemporalFieldStore - Format', () => {
       });
 
       it('should return a parsed format with correct number of elements for date format', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const format = selectors.format(store.state);
         // MM/DD/YYYY = 5 elements: month, separator, day, separator, year
@@ -57,11 +42,7 @@ describe('TemporalFieldStore - Format', () => {
 
       it('should return a parsed format with correct number of elements for time format', () => {
         const store = new TemporalFieldStore(
-          {
-            format: time24Format,
-            adapter,
-            direction: 'ltr',
-          },
+          { ...DEFAULT_PARAMETERS, format: time24Format },
           timeFieldConfig,
         );
 
@@ -71,14 +52,7 @@ describe('TemporalFieldStore - Format', () => {
       });
 
       it('should return correct granularity for date format', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const format = selectors.format(store.state);
         // The most granular part in MM/DD/YYYY is 'day'
@@ -87,11 +61,7 @@ describe('TemporalFieldStore - Format', () => {
 
       it('should return correct granularity for time format', () => {
         const store = new TemporalFieldStore(
-          {
-            format: time24Format,
-            adapter,
-            direction: 'ltr',
-          },
+          { ...DEFAULT_PARAMETERS, format: time24Format },
           timeFieldConfig,
         );
 
@@ -101,14 +71,7 @@ describe('TemporalFieldStore - Format', () => {
       });
 
       it('should identify tokens correctly in parsed format', () => {
-        const store = new TemporalFieldStore(
-          {
-            format: numericDateFormat,
-            adapter,
-            direction: 'ltr',
-          },
-          dateFieldConfig,
-        );
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const format = selectors.format(store.state);
         const tokens = format.elements.filter(isToken);
