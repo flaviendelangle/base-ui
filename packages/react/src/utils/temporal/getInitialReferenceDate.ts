@@ -55,11 +55,19 @@ export function getInitialReferenceDate(
     referenceDate = adapter.setTimezone(externalReferenceDate, timezone);
   } else {
     referenceDate = roundDate(adapter, granularity, adapter.now(timezone));
-    if (minDate != null && isBeforeDay(adapter, referenceDate, minDate)) {
+    if (
+      minDate != null &&
+      adapter.isValid(minDate) &&
+      isBeforeDay(adapter, referenceDate, minDate)
+    ) {
       referenceDate = roundDate(adapter, granularity, minDate);
     }
 
-    if (maxDate != null && isAfterDay(adapter, referenceDate, maxDate)) {
+    if (
+      maxDate != null &&
+      adapter.isValid(maxDate) &&
+      isAfterDay(adapter, referenceDate, maxDate)
+    ) {
       referenceDate = roundDate(adapter, granularity, maxDate);
     }
 

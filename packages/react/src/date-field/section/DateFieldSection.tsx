@@ -38,10 +38,11 @@ export const DateFieldSection = React.forwardRef(function DateFieldSection(
   const store = useDateFieldRootContext();
   const propsFromState = store.useState('sectionProps', section);
 
+  const isSeparator = section.type === 'separator';
   const state: DateFieldSection.State = {
     sectionIndex: section.index,
-    empty: section.value === '',
-    separator: section.type === 'separator',
+    empty: !isSeparator && section.value === '',
+    separator: isSeparator,
   };
 
   return useRenderElement('div', componentProps, {

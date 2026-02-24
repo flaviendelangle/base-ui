@@ -5,7 +5,6 @@ import {
   TemporalSupportedValue,
   TemporalTimezone,
 } from '../../types';
-import { enUS } from '../../translations/enUS';
 import { TemporalManager } from '../../utils/temporal/types';
 import {
   getLongestMonthInCurrentYear,
@@ -19,9 +18,7 @@ import {
   TemporalFieldQueryApplier,
   TemporalFieldParsedFormat,
   TemporalFieldSection,
-  TemporalFieldStoreParameters,
   TemporalFieldToken,
-  TemporalFieldConfiguration,
   TemporalFieldSeparator,
   TemporalFieldDatePart,
 } from './types';
@@ -59,35 +56,6 @@ const DATE_PART_TRANSFER_PRIORITY: Record<string, number> = {
   seconds: 7,
   meridiem: 8,
 };
-
-/**
- * Returns the properties of the state that are derived from the parameters.
- * This do not contain state properties that don't update whenever the parameters update.
- */
-export function deriveStateFromParameters<TValue extends TemporalSupportedValue>(
-  parameters: TemporalFieldStoreParameters<TValue>,
-  config: TemporalFieldConfiguration<TValue>,
-) {
-  return {
-    rawFormat: parameters.format,
-    minDate: parameters.minDate,
-    maxDate: parameters.maxDate,
-    direction: parameters.direction,
-    config,
-    adapter: parameters.adapter,
-    referenceDateProp: parameters.referenceDate ?? null,
-    valueProp: parameters.value,
-    required: parameters.required ?? false,
-    disabledProp: parameters.disabled ?? false,
-    readOnly: parameters.readOnly ?? false,
-    nameProp: parameters.name,
-    id: parameters.id,
-    timezoneProp: parameters.timezone,
-    fieldContext: parameters.fieldContext,
-    step: parameters.step,
-    translations: parameters.translations ?? enUS,
-  };
-}
 
 export function applyLocalizedDigits(valueStr: string, localizedDigits: LocalizedDigits | null) {
   if (localizedDigits == null) {
@@ -195,8 +163,8 @@ export function cleanDigitDatePartValue(
       if (token.config.part !== 'day') {
         throw new Error(
           [
-            `Base UI: The token "${token.value}" is a digit format with letter in it.'
-             This type of format is only supported for 'day' sections`,
+            `Base UI: The token "${token.value}" is a digit format with letter in it.`,
+            `This type of format is only supported for 'day' sections.`,
           ].join('\n'),
         );
       }
@@ -346,6 +314,8 @@ export function wrapInRange(value: number, min: number, max: number): number {
 
 /**
  * Aligns a value to the nearest step boundary in the given direction.
+ * Note: Only works correctly for non-negative values (which is always the case
+ * since date part values are bounded by min/max).
  * - 'up' rounds down (e.g., alignToStep(22, 5, 'up') => 20)
  * - 'down' rounds up (e.g., alignToStep(22, 5, 'down') => 25)
  */
@@ -354,8 +324,7 @@ export function alignToStep(value: number, step: number, direction: 'up' | 'down
     return value;
   }
   if (direction === 'down') {
-    // For JS: -3 % 5 = -3 (should be 2), so we use (step + value) % step
-    return value + step - ((step + value) % step);
+    return value + step - (value % step);
   }
   return value - (value % step);
 }

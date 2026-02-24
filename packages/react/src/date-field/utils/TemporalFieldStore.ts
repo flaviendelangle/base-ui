@@ -29,7 +29,6 @@ import { FormatParser } from './formatParser';
 import {
   alignToStep,
   buildSections,
-  deriveStateFromParameters,
   getAdjustmentDelta,
   getDirection,
   getTimezoneToRender,
@@ -46,6 +45,7 @@ import {
   removeLocalizedDigits,
   wrapInRange,
 } from './utils';
+import { enUS } from '../../translations/enUS';
 import { selectors } from './selectors';
 import { getLocalizedDigits, getWeekDaysStr } from './adapter-cache';
 import { activeElement } from '../../floating-ui-react/utils';
@@ -118,14 +118,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const manager = config.getManager(adapter);
     const value = parameters.value ?? parameters.defaultValue ?? manager.emptyValue;
     const validationProps = { minDate: parameters.minDate, maxDate: parameters.maxDate };
-
-    const derivedState = deriveStateFromParameters(parameters, config);
+    const translations = parameters.translations ?? enUS;
 
     const parsedFormat = FormatParser.parse(
       adapter,
       parameters.format,
       direction,
-      derivedState.translations,
+      translations,
       validationProps,
     );
     validateParsedFormat(manager.dateType, parsedFormat);
@@ -153,7 +152,23 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     super(
       {
-        ...deriveStateFromParameters(parameters, config),
+        rawFormat: parameters.format,
+        minDate: parameters.minDate,
+        maxDate: parameters.maxDate,
+        direction,
+        config,
+        adapter,
+        referenceDateProp: parameters.referenceDate ?? null,
+        valueProp: parameters.value,
+        required: parameters.required ?? false,
+        disabledProp: parameters.disabled ?? false,
+        readOnly: parameters.readOnly ?? false,
+        nameProp: parameters.name,
+        id: parameters.id,
+        timezoneProp: parameters.timezone,
+        fieldContext: parameters.fieldContext,
+        step: parameters.step,
+        translations,
         manager,
         value,
         sections,
@@ -585,12 +600,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   public selectClosestDatePart(sectionIndex: number) {
     const sectionsList = selectors.sections(this.state);
 
-    // First, try to find a date part by searching backward
-    let closestIndex = this.getAdjacentDatePartIndex(sectionsList, sectionIndex, -1);
+    // First, try to find a date part by searching forward (common case: sectionIndex 0)
+    let closestIndex = this.getAdjacentDatePartIndex(sectionsList, sectionIndex, 1);
 
-    // If we didn't find a date part searching backward, search forward
+    // If we didn't find a date part searching forward, search backward
     if (closestIndex == null) {
-      closestIndex = this.getAdjacentDatePartIndex(sectionsList, sectionIndex, 1);
+      closestIndex = this.getAdjacentDatePartIndex(sectionsList, sectionIndex, -1);
     }
 
     if (closestIndex != null) {
@@ -647,10 +662,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       newDatePartValue: response.datePartValue,
       shouldGoToNextSection: response.shouldGoToNextSection,
     });
-  }
-
-  public isAdjustSectionValueKeyCode(keyCode: string): keyCode is AdjustDatePartValueKeyCode {
-    return TemporalFieldStore.adjustKeyCodes.has(keyCode as AdjustDatePartValueKeyCode);
   }
 
   /**
@@ -813,44 +824,31 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
 
-      // eslint-disable-next-line default-case
-      switch (true) {
-        // Move selection to the section on the right
-        case event.key === 'ArrowRight': {
-          event.preventDefault();
-          this.selectRightDatePart();
-          break;
-        }
-
-        // Move selection to the section on the left
-        case event.key === 'ArrowLeft': {
-          event.preventDefault();
-          this.selectLeftDatePart();
-          break;
-        }
-
-        // Reset the value of the current section
-        case event.key === 'Delete': {
-          event.preventDefault();
-
-          if (!selectors.editable(this.state)) {
-            break;
-          }
-
+      // Move selection to the section on the right
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        this.selectRightDatePart();
+      }
+      // Move selection to the section on the left
+      else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        this.selectLeftDatePart();
+      }
+      // Reset the value of the current section
+      else if (event.key === 'Delete') {
+        event.preventDefault();
+        if (selectors.editable(this.state)) {
           this.updateDatePart({
             sectionIndex,
             newDatePartValue: '',
             shouldGoToNextSection: false,
           });
-          break;
         }
-
-        // Increment / decrement the current section value
-        case this.isAdjustSectionValueKeyCode(event.key): {
-          event.preventDefault();
-          this.adjustActiveDatePartValue(event.key, sectionIndex);
-          break;
-        }
+      }
+      // Increment / decrement the current section value
+      else if (TemporalFieldStore.adjustKeyCodes.has(event.key as AdjustDatePartValueKeyCode)) {
+        event.preventDefault();
+        this.adjustActiveDatePartValue(event.key as AdjustDatePartValueKeyCode, sectionIndex);
       }
     },
 

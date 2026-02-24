@@ -258,7 +258,7 @@ export const selectors = {
     (disabledFromState, readOnly, areAllSectionsEmpty, disabledProp: boolean) => ({
       props: {
         tabIndex: -1,
-        children: '✕',
+        children: 'x',
         'aria-readonly': readOnly || undefined,
       },
       state: {

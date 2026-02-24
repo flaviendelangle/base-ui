@@ -27,27 +27,6 @@ describe('TemporalFieldStore - Value Adjustment', () => {
     return selectors.datePart(store.state, sectionIndex)?.value ?? '';
   }
 
-  describe('isAdjustSectionValueKeyCode', () => {
-    it('should return true for valid key codes', () => {
-      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
-
-      expect(store.isAdjustSectionValueKeyCode('ArrowUp')).to.equal(true);
-      expect(store.isAdjustSectionValueKeyCode('ArrowDown')).to.equal(true);
-      expect(store.isAdjustSectionValueKeyCode('PageUp')).to.equal(true);
-      expect(store.isAdjustSectionValueKeyCode('PageDown')).to.equal(true);
-      expect(store.isAdjustSectionValueKeyCode('Home')).to.equal(true);
-      expect(store.isAdjustSectionValueKeyCode('End')).to.equal(true);
-    });
-
-    it('should return false for invalid key codes', () => {
-      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
-
-      expect(store.isAdjustSectionValueKeyCode('Enter')).to.equal(false);
-      expect(store.isAdjustSectionValueKeyCode('Space')).to.equal(false);
-      expect(store.isAdjustSectionValueKeyCode('a')).to.equal(false);
-    });
-  });
-
   describe('adjustActiveSectionValue - digit sections', () => {
     describe('ArrowUp', () => {
       it('should increment day by 1', () => {
