@@ -95,7 +95,8 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
       return;
     }
 
-    // create the wrapper element of the same type as the source element
+    // Create the wrapper element of the same type as the source element.
+    // It has to be an element of the same tag, especially if it's the calendar body (`tbody`).
     const wrapper = document.createElement(source.localName);
     for (const child of Array.from(source.childNodes)) {
       wrapper.appendChild(child.cloneNode(true));
