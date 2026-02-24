@@ -150,9 +150,9 @@ export function useSharedCalendarDayGridBody(
         if (event.shiftKey) {
           amount = 12;
         }
-        const gridDays = Object.values(store.currentMonthDayGrid)
+        const gridDays = Object.values(store.getCurrentMonthDayGrid())
           .flat() // Sort the days to ensure they are in the chronological order
-          .sort((a, b) => a.getTime() - b.getTime());
+          .sort((a, b) => adapter.getTime(a) - adapter.getTime(b));
         const currentDay = gridDays[highlightedIndex];
         if (!currentDay) {
           return;
@@ -162,14 +162,15 @@ export function useSharedCalendarDayGridBody(
         const currentYear = adapter.getYear(currentDay);
         store.setVisibleDate(
           adapter.addMonths(visibleMonth, decrement ? -amount : amount),
-          event,
-          false,
+          event.nativeEvent,
+          event.currentTarget as HTMLElement,
+          'keyboard',
         );
         executeAfterItemMapUpdate.current = (newMap: typeof itemMap) => {
-          const newGridDays: TemporalSupportedObject[] = Object.values(store.currentMonthDayGrid)
+          const newGridDays: TemporalSupportedObject[] = Object.values(store.getCurrentMonthDayGrid)
             .flat()
             // Sort the days to ensure they are in the chronological order
-            .sort((a, b) => a.getTime() - b.getTime());
+            .sort((a, b) => adapter.getTime(a) - adapter.getTime(b));
           // Try to find the same day in the new month
           const sameDayInNewMonthIndex = newGridDays.findIndex(
             (day) =>
@@ -246,7 +247,12 @@ export function useSharedCalendarDayGridBody(
         }
       }
       const decrement = BACKWARD_KEYS.has(eventKey);
-      store.setVisibleDate(adapter.addMonths(visibleMonth, decrement ? -1 : 1), event, false);
+      store.setVisibleDate(
+        adapter.addMonths(visibleMonth, decrement ? -1 : 1),
+        event.nativeEvent,
+        event.currentTarget as HTMLElement,
+        'keyboard',
+      );
       // Ensure the `handleItemLooping` uses the latest state/render after the visible date update
       queueMicrotask(() => {
         handleItemLooping(eventKey, prevIndex, elementsRef, decrement);
@@ -279,7 +285,7 @@ export interface UseSharedCalendarDayGridBodyParameters {
       ) => React.ReactNode);
   /**
    * Will render the requested amount of weeks by adding weeks of the next month if needed.
-   * Set it to 6 to create a Gregorian calendar where all months have the same amount of weeks.
+   * Set it to 6 to create a Gregorian calendar where all months have the same number of weeks.
    */
   fixedWeekNumber?: number | undefined;
   /**

@@ -4,7 +4,7 @@
   "props": {
     "fixedWeekNumber": {
       "type": "number",
-      "description": "Will render the requested amount of weeks by adding weeks of the next month if needed.\nSet it to 6 to create a Gregorian calendar where all months have the same amount of weeks.",
+      "description": "Will render the requested amount of weeks by adding weeks of the next month if needed.\nSet it to 6 to create a Gregorian calendar where all months have the same number of weeks.",
       "detailedType": "number | undefined"
     },
     "offset": {
@@ -14,9 +14,9 @@
       "detailedType": "number | undefined"
     },
     "children": {
-      "type": "ReactNode | ((week: Date | DateTime, index: number, weeks: (Date | DateTime)[]) => ReactNode)",
+      "type": "ReactNode | ((week: Date, index: number, weeks: Date[]) => ReactNode)",
       "description": "The children of the component.\nIf a function is provided, it will be called for each week to render as its parameter.",
-      "detailedType": "| React.ReactNode\n| ((\n    week: Date | DateTime,\n    index: number,\n    weeks: (Date | DateTime)[],\n  ) => ReactNode)"
+      "detailedType": "| React.ReactNode\n| ((\n    week: Date,\n    index: number,\n    weeks: Date[],\n  ) => ReactNode)"
     },
     "className": {
       "type": "string | ((state: Calendar.DayGridBody.State) => string | undefined)",

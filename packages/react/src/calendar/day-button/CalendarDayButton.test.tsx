@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { screen } from '@mui/internal-test-utils';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { Calendar } from '@base-ui/react/calendar';
@@ -9,6 +10,7 @@ describe('<Calendar.DayButton />', () => {
 
   describeConformance(<Calendar.DayButton />, () => ({
     refInstanceof: window.HTMLButtonElement,
+    button: true,
     render(node) {
       const date = adapter.now('default');
 
@@ -45,7 +47,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
 
       await user.click(button);
       expect(onValueChange.callCount).to.equal(1);
@@ -74,7 +76,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
 
       await user.click(button);
       expect(onValueChange.callCount).to.equal(1);
@@ -103,7 +105,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
 
       await user.click(button);
       expect(onValueChange.callCount).to.equal(1);
@@ -132,7 +134,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
 
       await user.click(button);
       expect(onValueChange.callCount).to.equal(1);
@@ -161,7 +163,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-selected', 'true');
       expect(button).to.have.attribute('data-selected');
     });
@@ -186,7 +188,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-selected', 'true');
       expect(button).to.have.attribute('data-selected');
     });
@@ -211,7 +213,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('aria-selected', 'true');
       expect(button).not.to.have.attribute('data-selected');
     });
@@ -235,7 +237,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-disabled', 'true');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -260,7 +262,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-disabled', 'true');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -285,7 +287,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-disabled', 'true');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -307,7 +309,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('aria-disabled');
       expect(button).not.to.have.attribute('data-disabled');
     });
@@ -331,7 +333,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('aria-current', 'date');
       expect(button).to.have.attribute('data-current');
     });
@@ -353,7 +355,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('aria-current');
       expect(button).not.to.have.attribute('data-current');
     });
@@ -398,7 +400,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('data-outside-month');
       expect(button).to.have.attribute('aria-disabled', 'true');
     });
@@ -422,7 +424,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('data-unavailable');
       expect(button).not.to.have.attribute('aria-disabled');
     });
@@ -444,7 +446,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('data-unavailable');
       expect(button).to.have.attribute('aria-disabled', 'true');
     });
@@ -468,7 +470,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button.textContent).to.equal('4');
     });
 
@@ -489,7 +491,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button.textContent).to.equal('04');
     });
   });
@@ -512,7 +514,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).toHaveAccessibleName(
         adapter.format(date, 'localizedDateWithFullMonthAndWeekDay'),
       );
@@ -537,7 +539,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '0');
     });
 
@@ -558,7 +560,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '-1');
     });
 
@@ -579,7 +581,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '0');
     });
 
@@ -600,7 +602,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '0');
     });
 
@@ -626,7 +628,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '-1');
     });
 
@@ -647,7 +649,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '-1');
     });
 
@@ -668,7 +670,7 @@ describe('<Calendar.DayButton />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('tabindex', '-1');
     });
   });

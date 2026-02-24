@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { screen } from '@mui/internal-test-utils';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { Calendar } from '@base-ui/react/calendar';
@@ -9,6 +10,7 @@ describe('<Calendar.SetMonth />', () => {
 
   describeConformance(<Calendar.SetMonth target={adapter.now('default')} />, () => ({
     refInstanceof: window.HTMLButtonElement,
+    button: true,
     render(node) {
       return render(<Calendar.Root>{node}</Calendar.Root>);
     },
@@ -27,11 +29,30 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button')!;
+      const button = screen.getByRole('button');
 
       await user.click(button);
       expect(onVisibleDateChange.callCount).to.equal(1);
       expect(onVisibleDateChange.firstCall.args[0]).toEqualDateTime('2025-01-05T12:01:02.003Z');
+    });
+
+    it("should call onVisibleDateChange with reason 'month-change' when clicked", async () => {
+      const onVisibleDateChange = spy();
+
+      const { user } = render(
+        <Calendar.Root
+          onVisibleDateChange={onVisibleDateChange}
+          visibleDate={adapter.date('2025-02-05', 'default')}
+        >
+          <Calendar.SetMonth target={adapter.date('2025-01-01', 'default')} />
+        </Calendar.Root>,
+      );
+
+      const button = screen.getByRole('button');
+
+      await user.click(button);
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('month-change');
     });
   });
 
@@ -43,7 +64,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('disabled');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -55,7 +76,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('disabled');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -67,7 +88,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('disabled');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -79,7 +100,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('disabled');
       expect(button).not.to.have.attribute('data-disabled');
     });
@@ -91,7 +112,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).to.have.attribute('disabled');
       expect(button).to.have.attribute('data-disabled');
     });
@@ -103,7 +124,7 @@ describe('<Calendar.SetMonth />', () => {
         </Calendar.Root>,
       );
 
-      const button = document.querySelector('button');
+      const button = screen.getByRole('button');
       expect(button).not.to.have.attribute('disabled');
       expect(button).not.to.have.attribute('data-disabled');
     });

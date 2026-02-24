@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { act, screen, fireEvent } from '@mui/internal-test-utils';
 import { expect } from 'chai';
+import { spy } from 'sinon';
 import { Calendar } from '@base-ui/react/calendar';
 import { createTemporalRenderer, describeConformance } from '#test-utils';
 
@@ -8,6 +10,8 @@ describe('<Calendar.DayGridBody />', () => {
 
   describeConformance(<Calendar.DayGridBody />, () => ({
     refInstanceof: window.HTMLTableSectionElement,
+    testRenderPropWith: 'tbody',
+    wrappingAllowed: false,
     render(node) {
       return render(
         <Calendar.Root>
@@ -34,7 +38,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(4);
     });
 
@@ -54,7 +58,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(5);
     });
 
@@ -74,7 +78,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(6);
     });
 
@@ -94,7 +98,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(6);
     });
 
@@ -114,7 +118,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(6);
     });
 
@@ -134,7 +138,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(6);
     });
 
@@ -154,7 +158,7 @@ describe('<Calendar.DayGridBody />', () => {
         </Calendar.Root>,
       );
 
-      const rows = document.querySelectorAll('[data-testid="week-row"]');
+      const rows = screen.getAllByTestId('week-row');
       expect(rows.length).to.equal(5);
     });
   });
@@ -184,7 +188,7 @@ describe('<Calendar.DayGridBody />', () => {
       );
 
       // Check that February (02) days are rendered - February 2025 has 28 days
-      expect(document.querySelectorAll('[data-testid="month-02"]').length).to.equal(28);
+      expect(screen.getAllByTestId('month-02').length).to.equal(28);
     });
 
     it('should render the next month when offset is 1', () => {
@@ -211,7 +215,7 @@ describe('<Calendar.DayGridBody />', () => {
       );
 
       // Check that March (03) days are rendered - March has 31 days
-      expect(document.querySelectorAll('[data-testid="month-03"]').length).to.equal(31);
+      expect(screen.getAllByTestId('month-03').length).to.equal(31);
     });
 
     it('should render the previous month when offset is -1', () => {
@@ -238,7 +242,7 @@ describe('<Calendar.DayGridBody />', () => {
       );
 
       // Check that January (01) days are rendered - January has 31 days
-      expect(document.querySelectorAll('[data-testid="month-01"]').length).to.equal(31);
+      expect(screen.getAllByTestId('month-01').length).to.equal(31);
     });
 
     it('should render multiple months with different offsets', () => {
@@ -280,10 +284,10 @@ describe('<Calendar.DayGridBody />', () => {
       );
 
       // Current month (February - 02) has 28 days
-      expect(document.querySelectorAll('[data-testid="current-month-02"]').length).to.equal(28);
+      expect(screen.getAllByTestId('current-month-02').length).to.equal(28);
 
       // Next month (March - 03) has 31 days
-      expect(document.querySelectorAll('[data-testid="next-month-03"]').length).to.equal(31);
+      expect(screen.getAllByTestId('next-month-03').length).to.equal(31);
     });
 
     it('should default to offset 0 when not provided', () => {
@@ -310,7 +314,60 @@ describe('<Calendar.DayGridBody />', () => {
       );
 
       // Check that February (02) days are rendered - February 2025 has 28 days
-      expect(document.querySelectorAll('[data-testid="month-02"]').length).to.equal(28);
+      expect(screen.getAllByTestId('month-02').length).to.equal(28);
+    });
+  });
+
+  describe('keyboard navigation', () => {
+    function renderCalendarWithDayGrid(
+      onVisibleDateChange: ReturnType<typeof spy>,
+      date: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>,
+    ) {
+      return render(
+        <Calendar.Root visibleDate={date} onVisibleDateChange={onVisibleDateChange}>
+          <Calendar.DayGrid>
+            <Calendar.DayGridBody data-testid="grid-body">
+              {(week) => (
+                <Calendar.DayGridRow value={week} key={week.toString()}>
+                  {(day) => (
+                    <Calendar.DayGridCell value={day} key={day.toString()}>
+                      <Calendar.DayButton />
+                    </Calendar.DayGridCell>
+                  )}
+                </Calendar.DayGridRow>
+              )}
+            </Calendar.DayGridBody>
+          </Calendar.DayGrid>
+        </Calendar.Root>,
+      );
+    }
+
+    it("should call onVisibleDateChange with reason 'keyboard' when pressing PageDown", () => {
+      const onVisibleDateChange = spy();
+      const date = adapter.date('2025-02-15', 'default');
+
+      renderCalendarWithDayGrid(onVisibleDateChange, date);
+
+      const [firstDayButton] = screen.getAllByRole('button');
+      act(() => firstDayButton.focus());
+      fireEvent.keyDown(firstDayButton, { key: 'PageDown' });
+
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('keyboard');
+    });
+
+    it("should call onVisibleDateChange with reason 'keyboard' when pressing PageUp", () => {
+      const onVisibleDateChange = spy();
+      const date = adapter.date('2025-02-15', 'default');
+
+      renderCalendarWithDayGrid(onVisibleDateChange, date);
+
+      const [firstDayButton] = screen.getAllByRole('button');
+      act(() => firstDayButton.focus());
+      fireEvent.keyDown(firstDayButton, { key: 'PageUp' });
+
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('keyboard');
     });
   });
 });

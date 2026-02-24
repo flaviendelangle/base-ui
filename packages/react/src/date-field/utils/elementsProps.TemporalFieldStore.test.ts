@@ -1,9 +1,33 @@
 import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
+import { TemporalAdapter } from '../../types';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
 import { selectors } from './selectors';
+
+const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+function localizeDigits(str: string): string {
+  return str.replace(/[0-9]/g, (d) => ARABIC_INDIC_DIGITS[parseInt(d, 10)]);
+}
+
+/**
+ * Creates an adapter proxy whose `formatByString` replaces ASCII digits
+ * with Arabic-Indic digits.  This causes `getLocalizedDigits` to detect
+ * a non-ASCII numbering system and lets us verify that `aria-valuenow`
+ * is correctly de-localized before numeric conversion.
+ */
+function createLocalizedAdapter(adapter: TemporalAdapter): TemporalAdapter {
+  return new Proxy(adapter, {
+    get(target, prop) {
+      if (prop === 'formatByString') {
+        return (value: any, format: string) => localizeDigits(target.formatByString(value, format));
+      }
+      return (target as any)[prop];
+    },
+  });
+}
 
 describe('TemporalFieldStore - Elements Props', () => {
   const { adapter } = createTemporalRenderer();
@@ -115,6 +139,70 @@ describe('TemporalFieldStore - Elements Props', () => {
 
         const props = getProps(store, 0);
         expect(props['aria-valuenow']).to.equal(undefined);
+      });
+
+      describe('with localized digits (Arabic-Indic)', () => {
+        const localizedAdapter = createLocalizedAdapter(adapter);
+
+        it('should set aria-valuenow to numeric month value', () => {
+          const store = new TemporalFieldStore({
+            format: numericDateFormat,
+            defaultValue: adapter.date('2024-03-15', 'default'),
+            adapter: localizedAdapter,
+            direction: 'ltr',
+          }, dateFieldConfig);
+
+          const props = getProps(store, 0); // month
+          expect(props['aria-valuenow']).to.equal(3);
+        });
+
+        it('should set aria-valuenow to numeric day value', () => {
+          const store = new TemporalFieldStore({
+            format: numericDateFormat,
+            defaultValue: adapter.date('2024-03-15', 'default'),
+            adapter: localizedAdapter,
+            direction: 'ltr',
+          }, dateFieldConfig);
+
+          const props = getProps(store, 2); // day
+          expect(props['aria-valuenow']).to.equal(15);
+        });
+
+        it('should set aria-valuenow to numeric year value', () => {
+          const store = new TemporalFieldStore({
+            format: numericDateFormat,
+            defaultValue: adapter.date('2024-03-15', 'default'),
+            adapter: localizedAdapter,
+            direction: 'ltr',
+          }, dateFieldConfig);
+
+          const props = getProps(store, 4); // year
+          expect(props['aria-valuenow']).to.equal(2024);
+        });
+
+        it('should set aria-valuenow to numeric hours value', () => {
+          const store = new TemporalFieldStore({
+            format: time24Format,
+            defaultValue: adapter.date('2024-03-15T14:30', 'default'),
+            adapter: localizedAdapter,
+            direction: 'ltr',
+          }, timeFieldConfig);
+
+          const props = getProps(store, 0); // hours
+          expect(props['aria-valuenow']).to.equal(14);
+        });
+
+        it('should set aria-valuenow to numeric minutes value', () => {
+          const store = new TemporalFieldStore({
+            format: time24Format,
+            defaultValue: adapter.date('2024-03-15T14:30', 'default'),
+            adapter: localizedAdapter,
+            direction: 'ltr',
+          }, timeFieldConfig);
+
+          const props = getProps(store, 2); // minutes
+          expect(props['aria-valuenow']).to.equal(30);
+        });
       });
 
       it('should set aria-valuetext to Empty when section value is empty', () => {

@@ -28,7 +28,7 @@ export class SharedCalendarStore<
 
   private dayGrids: Record<number, TemporalSupportedObject> = {};
 
-  public currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
+  private currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
 
   constructor(
     parameters: SharedCalendarStoreParameters<TValue, TError>,
@@ -119,6 +119,14 @@ export class SharedCalendarStore<
     updateModel(newState, 'value', 'defaultValue');
     updateModel(newState, 'visibleDate', 'defaultVisibleDate');
 
+    // Update the visible date if the timezone has changed and the visible date is not controlled.
+    if (parameters.visibleDate === undefined && parameters.timezone !== this.parameters.timezone) {
+      newState.visibleDate = adapter.setTimezone(
+        this.state.visibleDate,
+        parameters.timezone ?? 'default',
+      );
+    }
+
     if (
       parameters.value !== undefined &&
       this.parameters.value !== undefined &&
@@ -136,22 +144,20 @@ export class SharedCalendarStore<
   };
 
   /**
-   * Sets the visible data.
+   * Sets the visible date.
    */
   public setVisibleDate = (
     visibleDate: TemporalSupportedObject,
-    event: React.SyntheticEvent,
-    skipIfAlreadyVisible: boolean,
+    nativeEvent?: Event,
+    trigger?: HTMLElement,
+    reason?: CalendarChangeEventReason,
+    skipIfAlreadyVisible?: boolean,
   ) => {
     if (skipIfAlreadyVisible && this.isDateCellVisible(visibleDate)) {
       return;
     }
 
-    const eventDetails = createChangeEventDetails(
-      'day-press',
-      event.nativeEvent,
-      event.currentTarget as HTMLElement,
-    );
+    const eventDetails = createChangeEventDetails(reason ?? 'day-press', nativeEvent, trigger);
 
     this.parameters.onVisibleDateChange?.(visibleDate, eventDetails);
     if (!eventDetails.isCanceled && this.parameters.visibleDate === undefined) {
@@ -195,6 +201,10 @@ export class SharedCalendarStore<
     return () => {
       delete this.dayGrids[id];
     };
+  };
+
+  public getCurrentMonthDayGrid = () => {
+    return this.currentMonthDayGrid;
   };
 
   /**
@@ -327,6 +337,7 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
   readOnly?: boolean | undefined;
   /**
    * Whether the calendar is forcefully marked as invalid.
+   * @default false
    */
   invalid?: boolean | undefined;
   /**
@@ -345,9 +356,9 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
    */
   defaultVisibleDate?: TemporalSupportedObject | undefined;
   /**
-   * Event handler called when the selected value changes.
-   * Provides the new value as an argument.
-   * Has `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.
+   * Event handler called when the visible date changes.
+   * Provides the new date as an argument.
+   * Has the change reason in the `eventDetails`.
    */
   onVisibleDateChange?:
     | ((
@@ -357,6 +368,9 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
     | undefined;
   /**
    * The date used to generate the new value when both `value` and `defaultValue` are empty.
+   * It can be used to:
+   * - set a desired time on the selected date;
+   * - set a desired default year or month;
    * @default 'The closest valid date using the validation props.'
    */
   referenceDate?: TemporalSupportedObject | undefined;
@@ -408,7 +422,7 @@ export interface CalendarValueChangeHandlerContext<TError> {
   getValidationError: () => TError;
 }
 
-export type CalendarChangeEventReason = 'day-press' | 'none';
+export type CalendarChangeEventReason = 'day-press' | 'month-change' | 'keyboard';
 
 export type CalendarValueChangeEventDetails<TError> = BaseUIChangeEventDetails<
   CalendarChangeEventReason,

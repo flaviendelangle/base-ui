@@ -5,12 +5,12 @@
     "defaultValue": {
       "type": "TemporalValue",
       "description": "The uncontrolled value that should be initially selected.\nTo render a controlled (Range)Calendar, use the `value` prop instead.",
-      "detailedType": "Date | DateTime | null | undefined"
+      "detailedType": "Date | null | undefined"
     },
     "value": {
       "type": "TemporalValue",
       "description": "The controlled value that should be selected.\nTo render an uncontrolled (Range)Calendar, use the `defaultValue` prop instead.",
-      "detailedType": "Date | DateTime | null | undefined"
+      "detailedType": "Date | null | undefined"
     },
     "onValueChange": {
       "type": "((value: TemporalValue, eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>) => void)",
@@ -18,24 +18,34 @@
       "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>,\n  ) => void)\n| undefined"
     },
     "defaultVisibleDate": {
-      "type": "Date | DateTime",
+      "type": "Date",
       "description": "The date used to decide which month should be initially displayed in the Day Grid.\nTo render a controlled Calendar, use the `visibleDate` prop instead.",
-      "detailedType": "Date | DateTime | undefined"
+      "detailedType": "Date | undefined"
+    },
+    "visibleDate": {
+      "type": "Date",
+      "description": "The date used to decide which month should be displayed in the Day Grid.\nTo render an uncontrolled Calendar, use the `defaultVisibleDate` prop instead.",
+      "detailedType": "Date | undefined"
+    },
+    "onVisibleDateChange": {
+      "type": "((visibleDate: Date, eventDetails: CalendarVisibleDateChangeEventDetails) => void)",
+      "description": "Event handler called when the visible date changes.\nProvides the new date as an argument.\nHas the change reason in the `eventDetails`.",
+      "detailedType": "| ((\n    visibleDate: Date,\n    eventDetails: CalendarVisibleDateChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "isDateUnavailable": {
-      "type": "((day: Date | DateTime) => boolean)",
+      "type": "((day: Date) => boolean)",
       "description": "Mark specific dates as unavailable.\nThose dates will not be selectable but they will still be focusable with the keyboard.",
-      "detailedType": "((day: Date | DateTime) => boolean) | undefined"
+      "detailedType": "((day: Date) => boolean) | undefined"
     },
     "maxDate": {
-      "type": "Date | DateTime",
+      "type": "Date",
       "description": "Maximal selectable date.",
-      "detailedType": "Date | DateTime | undefined"
+      "detailedType": "Date | undefined"
     },
     "minDate": {
-      "type": "Date | DateTime",
+      "type": "Date",
       "description": "Minimal selectable date.",
-      "detailedType": "Date | DateTime | undefined"
+      "detailedType": "Date | undefined"
     },
     "monthPageSize": {
       "type": "number",
@@ -43,27 +53,17 @@
       "description": "The amount of months to move by when navigating.\nThis is mostly useful when displaying multiple day grids.",
       "detailedType": "number | undefined"
     },
-    "onVisibleDateChange": {
-      "type": "((visibleDate: Date | DateTime, eventDetails: CalendarVisibleDateChangeEventDetails) => void)",
-      "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.\nHas `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.",
-      "detailedType": "| ((\n    visibleDate: Date | DateTime,\n    eventDetails: CalendarVisibleDateChangeEventDetails,\n  ) => void)\n| undefined"
-    },
     "referenceDate": {
-      "type": "Date | DateTime",
+      "type": "Date",
       "default": "'The closest valid date using the validation props.'",
-      "description": "The date used to generate the new value when both `value` and `defaultValue` are empty.",
-      "detailedType": "Date | DateTime | undefined"
+      "description": "The date used to generate the new value when both `value` and `defaultValue` are empty.\nIt can be used to:\n- set a desired time on the selected date;\n- set a desired default year or month;",
+      "detailedType": "Date | undefined"
     },
     "timezone": {
       "type": "string",
       "default": "'The timezone of the \"value\" or \"defaultValue\" prop if defined, \"default\" otherwise.'",
       "description": "Choose which timezone to use for the value.\nExample: \"default\", \"system\", \"UTC\", \"America/New_York\".\nIf you pass values from other timezones to some props, they will be converted to this timezone before being used.",
       "detailedType": "string | undefined"
-    },
-    "visibleDate": {
-      "type": "Date | DateTime",
-      "description": "The date used to decide which month should be displayed in the Day Grid.\nTo render an uncontrolled Calendar, use the `defaultVisibleDate` prop instead.",
-      "detailedType": "Date | DateTime | undefined"
     },
     "disabled": {
       "type": "boolean",
@@ -79,6 +79,7 @@
     },
     "invalid": {
       "type": "boolean",
+      "default": "false",
       "description": "Whether the calendar is forcefully marked as invalid.",
       "detailedType": "boolean | undefined"
     },
@@ -110,7 +111,7 @@
       "description": "Present when the calendar is readonly."
     },
     "data-invalid": {
-      "description": "Present when the current value is invalid."
+      "description": "Present when the current value is invalid (fails validation)."
     },
     "data-empty": {
       "description": "Present when the current value is empty."

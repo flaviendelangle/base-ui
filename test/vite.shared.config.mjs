@@ -19,9 +19,9 @@ export default defineConfig({
               process.cwd(),
               'packages/react/src/date-time-field',
             ),
-            '@base-ui/react/temporal-locale-provider': path.join(
+            '@base-ui/react/localization-provider': path.join(
               process.cwd(),
-              'packages/react/src/temporal-locale-provider',
+              'packages/react/src/localization-provider',
             ),
           }
         : {
