@@ -172,12 +172,9 @@ export function getWeekDaysStr(adapter: TemporalAdapter, format: string) {
 
   const arbitraryDate = getArbitraryDate(adapter);
   const startDate = adapter.startOfWeek(arbitraryDate);
-  const endDate = adapter.endOfWeek(arbitraryDate);
 
-  let current = startDate;
-  while (adapter.isBefore(current, endDate)) {
-    elements.push(current);
-    current = adapter.addDays(current, 1);
+  for (let i = 0; i < 7; i++) {
+    elements.push(adapter.addDays(startDate, i));
   }
 
   const result = elements.map((weekDay) => adapter.formatByString(weekDay, format));

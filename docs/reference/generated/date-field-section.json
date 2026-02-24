@@ -1,6 +1,6 @@
 {
   "name": "DateFieldSection",
-  "description": "Renders a the content of a temporal field's section.\nRenders a `<div>` element.",
+  "description": "Renders the content of a temporal field's section.\nRenders a `<div>` element.",
   "props": {
     "section": {
       "type": "TemporalFieldSection",

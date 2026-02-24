@@ -5,12 +5,12 @@
     "defaultValue": {
       "type": "TemporalValue",
       "description": "The uncontrolled value that should be initially selected.\nTo render a controlled (Range)Calendar, use the `value` prop instead.",
-      "detailedType": "Date | null | undefined"
+      "detailedType": "Date | DateTime | null | undefined"
     },
     "value": {
       "type": "TemporalValue",
       "description": "The controlled value that should be selected.\nTo render an uncontrolled (Range)Calendar, use the `defaultValue` prop instead.",
-      "detailedType": "Date | null | undefined"
+      "detailedType": "Date | DateTime | null | undefined"
     },
     "onValueChange": {
       "type": "((value: TemporalValue, eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>) => void)",
@@ -18,24 +18,24 @@
       "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>,\n  ) => void)\n| undefined"
     },
     "defaultVisibleDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "The date used to decide which month should be initially displayed in the Day Grid.\nTo render a controlled Calendar, use the `visibleDate` prop instead.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "isDateUnavailable": {
-      "type": "((day: Date) => boolean)",
+      "type": "((day: Date | DateTime) => boolean)",
       "description": "Mark specific dates as unavailable.\nThose dates will not be selectable but they will still be focusable with the keyboard.",
-      "detailedType": "((day: Date) => boolean) | undefined"
+      "detailedType": "((day: Date | DateTime) => boolean) | undefined"
     },
     "maxDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "Maximal selectable date.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "minDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "Minimal selectable date.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "monthPageSize": {
       "type": "number",
@@ -44,15 +44,15 @@
       "detailedType": "number | undefined"
     },
     "onVisibleDateChange": {
-      "type": "((visibleDate: Date, eventDetails: CalendarVisibleDateChangeEventDetails) => void)",
+      "type": "((visibleDate: Date | DateTime, eventDetails: CalendarVisibleDateChangeEventDetails) => void)",
       "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.\nHas `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.",
-      "detailedType": "| ((\n    visibleDate: Date,\n    eventDetails: CalendarVisibleDateChangeEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    visibleDate: Date | DateTime,\n    eventDetails: CalendarVisibleDateChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "referenceDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "default": "'The closest valid date using the validation props.'",
       "description": "The date used to generate the new value when both `value` and `defaultValue` are empty.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "timezone": {
       "type": "string",
@@ -61,9 +61,9 @@
       "detailedType": "string | undefined"
     },
     "visibleDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "The date used to decide which month should be displayed in the Day Grid.\nTo render an uncontrolled Calendar, use the `defaultVisibleDate` prop instead.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "disabled": {
       "type": "boolean",

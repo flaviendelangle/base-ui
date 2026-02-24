@@ -68,7 +68,7 @@ function validateParsedFormat(dateType: string, parsedFormat: TemporalFieldParse
     if (invalidDatePartEl) {
       warn(
         `Base UI: The field component you are using is not compatible with the "${invalidDatePartEl.config.part}" date section.`,
-        `The supported date parts are ["${supportedSections.join('", "')}"]\`.`,
+        `The supported date parts are ["${supportedSections.join('", "')}"].`,
       );
     }
   }
@@ -303,9 +303,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
     this.syncSelectionToDOM();
-    this.registerStoreEffect(selectors.selectedSection, this.syncSelectionToDOM);
+    const unsubscribe = this.registerStoreEffect(selectors.selectedSection, this.syncSelectionToDOM);
 
-    return this.timeoutManager.clearAll;
+    return () => {
+      unsubscribe();
+      this.timeoutManager.clearAll();
+    };
   };
 
   /**
@@ -326,7 +329,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
       this.update({
         value: newValueWithInputTimezone,
-        ...this.deriveStateFromNewValue(value),
+        ...this.deriveStateFromNewValue(newValueWithInputTimezone),
       });
     }
 
@@ -394,13 +397,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       this.update({
         sections: emptySections,
         characterQuery: null,
-        selectedSection: 0,
       });
+      this.selectClosestDatePart(0);
     } else {
       this.update({
         characterQuery: null,
-        selectedSection: 0,
       });
+      this.selectClosestDatePart(0);
       this.publish(manager.emptyValue);
     }
   }
@@ -502,7 +505,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
      * Decide which section should be focused
      */
     if (shouldGoToNextSection) {
-      this.selectNextDatePart();
+      this.selectRightDatePart();
     }
 
     /**
@@ -554,7 +557,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     /**
      * If the previous date is not null,
-     * Then we publish the date as `newActiveDate to prevent error state oscillation`.
+     * Then we publish the date as `newActiveDate` to prevent error state oscillation.
+     * Note: intentionally falls through to `set('sections', ...)` below,
+     * which overrides the sections derived by `publish` to keep the user-typed values.
      * @link: https://github.com/mui/mui-x/issues/17967
      */
     if (activeDate != null) {
@@ -563,8 +568,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
 
     /**
-     * If the previous date is already null,
-     * Then we don't publish the date and we update the sections.
+     * Update the sections with the new values.
+     * This runs in both cases (activeDate null or not):
+     * - When `activeDate` is null, this is the only update (no publish).
+     * - When `activeDate` is not null, this overrides the sections derived from the published
+     *   invalid date to keep the section values the user actually typed.
      */
     return this.set('sections', newSections);
   }
@@ -585,7 +593,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectNextDatePart() {
+  public selectRightDatePart() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -598,7 +606,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectPreviousDatePart() {
+  public selectLeftDatePart() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -719,7 +727,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
 
-      const sectionIndex = this.getSectionIndexFromDOMElement(event.target as HTMLElement)!;
+      const sectionIndex = this.getSectionIndexFromDOMElement(event.target as HTMLElement);
+      if (sectionIndex == null) {
+        return;
+      }
       this.selectClosestDatePart(sectionIndex);
     },
 
@@ -799,17 +810,17 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
       // eslint-disable-next-line default-case
       switch (true) {
-        // Move selection to next section
+        // Move selection to the section on the right
         case event.key === 'ArrowRight': {
           event.preventDefault();
-          this.selectNextDatePart();
+          this.selectRightDatePart();
           break;
         }
 
-        // Move selection to previous section
+        // Move selection to the section on the left
         case event.key === 'ArrowLeft': {
           event.preventDefault();
-          this.selectPreviousDatePart();
+          this.selectLeftDatePart();
           break;
         }
 
@@ -853,7 +864,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
 
-      const sectionIndex = this.getSectionIndexFromDOMElement(event.target)!;
+      const sectionIndex = this.getSectionIndexFromDOMElement(event.target);
+      if (sectionIndex == null) {
+        return;
+      }
       this.selectClosestDatePart(sectionIndex);
     },
 
@@ -880,7 +894,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   ) => {
     let previousValue = selector(this.state);
 
-    this.subscribe((state) => {
+    return this.subscribe((state) => {
       const nextValue = selector(state);
       if (nextValue !== previousValue) {
         // Update previousValue before calling the effect so that re-entrant

@@ -133,7 +133,7 @@ export default function TimeFieldBasic() {
                     />
                   )}
                 </TimeField.SectionList>
-                <TimeField.Clear className={styles.Clear} />
+                <TimeField.Clear className={styles.Clear} aria-label="Clear" />
               </TimeField.Root>
             </Field.Root>
           </div>

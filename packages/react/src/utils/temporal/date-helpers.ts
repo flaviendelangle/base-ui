@@ -14,8 +14,13 @@ export function mergeDateAndTime(
   return mergedDate;
 }
 
-function getSecondsInDay(adapter: TemporalAdapter, date: TemporalSupportedObject) {
-  return adapter.getHours(date) * 3600 + adapter.getMinutes(date) * 60 + adapter.getSeconds(date);
+function getMillisecondsInDay(adapter: TemporalAdapter, date: TemporalSupportedObject) {
+  return (
+    adapter.getHours(date) * 3_600_000 +
+    adapter.getMinutes(date) * 60_000 +
+    adapter.getSeconds(date) * 1_000 +
+    adapter.getMilliseconds(date)
+  );
 }
 
 /**
@@ -26,7 +31,7 @@ export function isTimePartAfter(
   dateA: TemporalSupportedObject,
   dateB: TemporalSupportedObject,
 ): boolean {
-  return getSecondsInDay(adapter, dateA) > getSecondsInDay(adapter, dateB);
+  return getMillisecondsInDay(adapter, dateA) > getMillisecondsInDay(adapter, dateB);
 }
 
 /**
@@ -37,7 +42,7 @@ export function isTimePartBefore(
   dateA: TemporalSupportedObject,
   dateB: TemporalSupportedObject,
 ): boolean {
-  return getSecondsInDay(adapter, dateA) < getSecondsInDay(adapter, dateB);
+  return getMillisecondsInDay(adapter, dateA) < getMillisecondsInDay(adapter, dateB);
 }
 
 export function areDatesEqual(

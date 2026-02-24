@@ -10,12 +10,12 @@
     "defaultValue": {
       "type": "TemporalValue",
       "description": "The uncontrolled value that should be initially selected.\nTo render a controlled temporal field, use the `value` prop instead.",
-      "detailedType": "Date | null | undefined"
+      "detailedType": "Date | DateTime | null | undefined"
     },
     "value": {
       "type": "TemporalValue",
       "description": "The controlled value that should be selected.\nTo render an uncontrolled temporal field, use the `defaultValue` prop instead.",
-      "detailedType": "Date | null | undefined"
+      "detailedType": "Date | DateTime | null | undefined"
     },
     "onValueChange": {
       "type": "((value: TemporalValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)",
@@ -28,14 +28,14 @@
       "detailedType": "| React.RefObject<DateField.Root.Actions | null>\n| undefined"
     },
     "maxDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "Maximal selectable date.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "minDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "description": "Minimal selectable date.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "placeholderGetters": {
       "type": "Partial<TemporalFieldPlaceholderGetters>",
@@ -44,10 +44,10 @@
       "detailedType": "| {\n    year?: (params: {\n      digitAmount: number\n      format: string\n    }) => string\n    month?: (params: {\n      contentType: TemporalFieldSectionContentType\n      format: string\n    }) => string\n    day?: (params: { format: string }) => string\n    weekDay?: (params: {\n      contentType: TemporalFieldSectionContentType\n      format: string\n    }) => string\n    hours?: (params: { format: string }) => string\n    minutes?: (params: { format: string }) => string\n    seconds?: (params: { format: string }) => string\n    meridiem?: (params: { format: string }) => string\n  }\n| undefined"
     },
     "referenceDate": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "default": "'The closest valid date using the validation props.'",
       "description": "The date used to generate the new value when both `value` and `defaultValue` are empty.",
-      "detailedType": "Date | undefined"
+      "detailedType": "Date | DateTime | undefined"
     },
     "timezone": {
       "type": "string",
@@ -57,7 +57,7 @@
     },
     "format": {
       "type": "string",
-      "description": "Format of the date when rendered in the field.",
+      "description": "Format of the value when rendered in the field.",
       "detailedType": "string | undefined"
     },
     "disabled": {
@@ -69,7 +69,7 @@
     "readOnly": {
       "type": "boolean",
       "default": "false",
-      "description": "Whether the user should be unable to select a date in the field.",
+      "description": "Whether the user should be unable to change the field value.",
       "detailedType": "boolean | undefined"
     },
     "required": {
@@ -84,9 +84,9 @@
       "detailedType": "React.Ref<HTMLInputElement> | undefined"
     },
     "children": {
-      "type": "ReactNode | ((section: TemporalFieldSection) => ReactNode)",
+      "type": "ReactNode | ((section: TemporalFieldSection, index: number) => ReactNode)",
       "description": "The children of the component.\nIf a function is provided, it will be called with each section as its parameter.",
-      "detailedType": "| React.ReactNode\n| ((section: TemporalFieldSection) => ReactNode)"
+      "detailedType": "| React.ReactNode\n| ((\n    section: TemporalFieldSection,\n    index: number,\n  ) => ReactNode)"
     },
     "className": {
       "type": "string | ((state: DateField.Root.State) => string | undefined)",

@@ -7,8 +7,15 @@ import {
   TemporalFieldDatePart,
   TemporalFieldSection,
 } from './types';
-import { getTimezoneToRender, isDatePart } from './utils';
-import { getAriaValueText, getMeridiemsStr, getMonthsStr, getWeekDaysStr } from './adapter-cache';
+import type { FieldRootContext } from '../../field/root/FieldRootContext';
+import { getTimezoneToRender, isDatePart, removeLocalizedDigits } from './utils';
+import {
+  getAriaValueText,
+  getLocalizedDigits,
+  getMeridiemsStr,
+  getMonthsStr,
+  getWeekDaysStr,
+} from './adapter-cache';
 
 const SEPARATOR_STYLE: React.CSSProperties = { whiteSpace: 'pre' };
 
@@ -95,11 +102,12 @@ export const selectors = {
   datePart: createSelectorMemoized(
     (state: State) => state.sections,
     (sectionsList, sectionIndex: number) => {
-      if (!isDatePart(sectionsList[sectionIndex])) {
+      const section = sectionsList[sectionIndex];
+      if (!isDatePart(section)) {
         return null;
       }
 
-      return { ...sectionsList[sectionIndex], index: sectionIndex };
+      return section;
     },
   ),
   activeDatePart: createSelectorMemoized(
@@ -115,10 +123,7 @@ export const selectors = {
         return null;
       }
 
-      return {
-        ...activeSection,
-        index: activeSectionIndex,
-      };
+      return activeSection;
     },
   ),
 
@@ -132,7 +137,7 @@ export const selectors = {
     disabledSelector,
     invalidSelector,
     fieldContextSelector,
-    (required, readOnly, disabled, invalid, fieldContext: any) => ({
+    (required, readOnly, disabled, invalid, fieldContext: FieldRootContext | null) => ({
       ...(fieldContext?.state || {}),
       required,
       readOnly,
@@ -293,28 +298,32 @@ function getAriaValueNow(
     return undefined;
   }
 
+  const localizedDigits = getLocalizedDigits(adapter);
+
   switch (section.token.config.part) {
     case 'month': {
       if (section.token.config.contentType === 'letter') {
         const index = getMonthsStr(adapter, section.token.value).indexOf(section.value);
         return index >= 0 ? index + 1 : undefined;
       }
-      return Number(section.value);
+      return Number(removeLocalizedDigits(section.value, localizedDigits));
     }
     case 'weekDay': {
       if (section.token.config.contentType === 'letter') {
         const index = getWeekDaysStr(adapter, section.token.value).indexOf(section.value);
         return index >= 0 ? index + 1 : undefined;
       }
-      return Number(section.value);
+      return Number(removeLocalizedDigits(section.value, localizedDigits));
     }
     case 'day':
-      return parseInt(section.value, 10);
+      return parseInt(removeLocalizedDigits(section.value, localizedDigits), 10);
     case 'meridiem': {
       const index = getMeridiemsStr(adapter, section.token.value).indexOf(section.value);
       return index >= 0 ? index : undefined;
     }
     default:
-      return section.token.config.contentType !== 'letter' ? Number(section.value) : undefined;
+      return section.token.config.contentType !== 'letter'
+        ? Number(removeLocalizedDigits(section.value, localizedDigits))
+        : undefined;
   }
 }

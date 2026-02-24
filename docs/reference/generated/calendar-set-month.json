@@ -9,7 +9,7 @@
       "detailedType": "boolean | undefined"
     },
     "target": {
-      "type": "Date",
+      "type": "Date | DateTime",
       "required": true,
       "description": "The month to navigate to."
     },

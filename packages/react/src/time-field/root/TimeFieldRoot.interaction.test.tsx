@@ -225,7 +225,7 @@ describe('<TimeField /> - DOM Interactions', () => {
       });
     });
 
-    it('should not adjust value on ArrowUp when disabled', async () => {
+    it('should set tabIndex to -1 on sections when disabled', async () => {
       await render(
         <TimeField
           format={time24Format}
@@ -235,11 +235,9 @@ describe('<TimeField /> - DOM Interactions', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      fireEvent.focus(sections[0]);
-      fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
-
-      // Value should remain unchanged
-      expect(sections[0]).to.have.attribute('aria-valuenow', '14');
+      sections.forEach((section) => {
+        expect(section.tabIndex).to.equal(-1);
+      });
     });
   });
 

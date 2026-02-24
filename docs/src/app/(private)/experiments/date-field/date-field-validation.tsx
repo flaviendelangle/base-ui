@@ -294,10 +294,10 @@ export default function DateFieldValidation() {
                   )}
                 </DateField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Date must be on or after {format(minDateLarge, 'MMM d, yyyy')}
+                  Date must be on or after {format(minDate, 'MMM d, yyyy')}
                 </Field.Error>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Date must be on or before {format(maxDateLarge, 'MMM d, yyyy')}
+                  Date must be on or before {format(maxDate, 'MMM d, yyyy')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -375,10 +375,10 @@ export default function DateFieldValidation() {
                   )}
                 </DateField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Date must be on or after {format(minDate, 'MMM d, yyyy')}
+                  Date must be on or after {format(minDateLarge, 'MMM d, yyyy')}
                 </Field.Error>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Date must be on or before {format(maxDate, 'MMM d, yyyy')}
+                  Date must be on or before {format(maxDateLarge, 'MMM d, yyyy')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>

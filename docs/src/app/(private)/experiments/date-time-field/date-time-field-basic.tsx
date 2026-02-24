@@ -157,7 +157,7 @@ export default function DateTimeFieldBasic() {
                     />
                   )}
                 </DateTimeField.SectionList>
-                <DateTimeField.Clear className={styles.Clear} />
+                <DateTimeField.Clear className={styles.Clear} aria-label="Clear" />
               </DateTimeField.Root>
             </Field.Root>
           </div>
