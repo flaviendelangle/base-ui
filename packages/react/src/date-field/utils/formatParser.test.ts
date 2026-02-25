@@ -807,15 +807,6 @@ describe('FormatParser', () => {
           expect('boundaries' in token).to.equal(true);
           if ('boundaries' in token) {
             expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
-            // Wednesday to Friday = positions 4 to 6 in a week starting on Sunday
-            const formattedMin = adapter.formatByString(
-              adapter.date('2024-06-12', 'default')!,
-              adapter.formats.weekday3Letters,
-            );
-            const formattedMax = adapter.formatByString(
-              adapter.date('2024-06-14', 'default')!,
-              adapter.formats.weekday3Letters,
-            );
             expect(token.boundaries.adjustment.minimum).to.be.greaterThanOrEqual(1);
             expect(token.boundaries.adjustment.maximum).to.be.lessThanOrEqual(7);
             expect(token.boundaries.adjustment.maximum).to.be.greaterThanOrEqual(
