@@ -167,7 +167,9 @@ export function useSharedCalendarDayGridBody(
           'keyboard',
         );
         executeAfterItemMapUpdate.current = (newMap: typeof itemMap) => {
-          const newGridDays: TemporalSupportedObject[] = Object.values(store.getCurrentMonthDayGrid)
+          const newGridDays: TemporalSupportedObject[] = Object.values(
+            store.getCurrentMonthDayGrid(),
+          )
             .flat()
             // Sort the days to ensure they are in the chronological order
             .sort((a, b) => adapter.getTime(a) - adapter.getTime(b));
