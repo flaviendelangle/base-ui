@@ -316,10 +316,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
-    const unsubscribe = this.observe(
-      selectors.selectedSection,
-      this.syncSelectionToDOM,
-    );
+    const unsubscribe = this.observe(selectors.selectedSection, this.syncSelectionToDOM);
 
     return () => {
       unsubscribe();
@@ -883,7 +880,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       });
     },
   };
-
 
   private getDatePartRenderedValue(datePart: TemporalFieldDatePart) {
     return datePart.value || datePart.token.placeholder;

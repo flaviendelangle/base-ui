@@ -138,10 +138,8 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
       } else {
         const formattedDaysInWeek = getWeekDaysStr(adapter, tokenValue);
         adjustmentBoundaries = {
-          minimum:
-            formattedDaysInWeek.indexOf(adapter.formatByString(minDate, tokenValue)) + 1,
-          maximum:
-            formattedDaysInWeek.indexOf(adapter.formatByString(maxDate, tokenValue)) + 1,
+          minimum: formattedDaysInWeek.indexOf(adapter.formatByString(minDate, tokenValue)) + 1,
+          maximum: formattedDaysInWeek.indexOf(adapter.formatByString(maxDate, tokenValue)) + 1,
         };
       }
 
