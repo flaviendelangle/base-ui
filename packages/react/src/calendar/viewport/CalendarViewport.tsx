@@ -22,6 +22,13 @@ const getNavigationDirectionAttribute = (navigationDirection: CalendarNavigation
   }
 };
 
+const DATA_ATTRIBUTES = [
+  CalendarViewportDataAttributes.current,
+  CalendarViewportDataAttributes.startingStyle,
+  CalendarViewportDataAttributes.endingStyle,
+  CalendarViewportDataAttributes.navigationDirection,
+];
+
 /**
  * A viewport for displaying calendar month transitions.
  * This component is only required if you want to animate certain part of a calendar when navigating between months.
@@ -150,13 +157,7 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
         );
       }
     } else {
-      const attributes = [
-        CalendarViewportDataAttributes.current,
-        CalendarViewportDataAttributes.startingStyle,
-        CalendarViewportDataAttributes.endingStyle,
-        CalendarViewportDataAttributes.navigationDirection,
-      ];
-      for (const attribute of attributes) {
+      for (const attribute of DATA_ATTRIBUTES) {
         currentContainerRef.current.removeAttribute(attribute);
       }
     }
