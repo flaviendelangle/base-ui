@@ -127,7 +127,14 @@ const isSetMonthButtonDisabledSelector = createSelector(
   },
 );
 
-const visibleDateSelector = createSelector((state: State) => state.visibleDate);
+const visibleDateSelector = createSelectorMemoized(
+  (state: State) => state.visibleDateProp,
+  (state: State) => state.visibleDate,
+  (state: State) => state.adapter,
+  timezoneToRenderSelector,
+  (visibleDateProp, visibleDate, adapter, timezone) =>
+    adapter.setTimezone(visibleDateProp ?? visibleDate, timezone),
+);
 
 const visibleMonthSelector = createSelectorMemoized(
   (state: State) => state.adapter,
@@ -231,6 +238,10 @@ const isDayButtonTabbableSelector = createSelector(
 );
 
 export const selectors = {
+  /**
+   * Returns the timezone to use for rendering.
+   */
+  timezoneToRender: timezoneToRenderSelector,
   /**
    * Returns the state of the root element.
    */

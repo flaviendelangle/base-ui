@@ -1,5 +1,4 @@
-import { Store } from '@base-ui/utils/store';
-import { warn } from '@base-ui/utils/warn';
+import { ReactStore } from '@base-ui/utils/store';
 import { TemporalSupportedObject, TemporalSupportedValue } from '../../types/temporal';
 import { TemporalAdapter } from '../../types/temporal-adapter';
 import { ValidateDateValidationProps } from '../../utils/temporal/validateDate';
@@ -13,18 +12,26 @@ import { mergeDateAndTime } from '../../utils/temporal/date-helpers';
 import { CalendarNavigationDirection, SharedCalendarState as State } from './SharedCalendarState';
 import { selectors } from './selectors';
 
+export interface SharedCalendarStoreContext<TValue extends TemporalSupportedValue, TError> {
+  onValueChange?:
+    | ((value: TValue, eventDetails: CalendarValueChangeEventDetails<TError>) => void)
+    | undefined;
+  onVisibleDateChange?:
+    | ((
+        visibleDate: TemporalSupportedObject,
+        eventDetails: CalendarVisibleDateChangeEventDetails,
+      ) => void)
+    | undefined;
+}
+
 /**
  * Store managing the state of the Calendar and the Range Calendar components.
  */
-export class SharedCalendarStore<
-  TValue extends TemporalSupportedValue,
-  TError,
-> extends Store<State> {
+export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> extends ReactStore<
+  State<TValue>,
+  SharedCalendarStoreContext<TValue, TError>
+> {
   private valueManager: ValueManager<TValue>;
-
-  private parameters: SharedCalendarStoreParameters<TValue, TError>;
-
-  private initialParameters: SharedCalendarStoreParameters<TValue, TError> | null = null;
 
   private dayGrids: Record<number, TemporalSupportedObject> = {};
 
@@ -54,93 +61,72 @@ export class SharedCalendarStore<
       });
     }
 
-    super({
-      ...SharedCalendarStore.deriveStateFromParameters(parameters, adapter, manager),
-      visibleDate: initialVisibleDate,
-      initialReferenceDateFromValue,
-      value,
-      navigationDirection: 'none',
-    });
+    super(
+      {
+        adapter,
+        manager,
+        timezoneProp: parameters.timezone,
+        referenceDateProp: parameters.referenceDate ?? null,
+        minDate: parameters.minDate,
+        maxDate: parameters.maxDate,
+        isDateUnavailable: parameters.isDateUnavailable,
+        disabled: parameters.disabled ?? false,
+        readOnly: parameters.readOnly ?? false,
+        invalidProp: parameters.invalid,
+        monthPageSize: parameters.monthPageSize ?? 1,
+        visibleDate: initialVisibleDate,
+        visibleDateProp: parameters.visibleDate,
+        initialReferenceDateFromValue,
+        value,
+        valueProp: parameters.value,
+        navigationDirection: 'none',
+      },
+      {
+        onValueChange: parameters.onValueChange,
+        onVisibleDateChange: parameters.onVisibleDateChange,
+      },
+    );
 
     this.valueManager = valueManager;
-    this.parameters = parameters;
 
-    if (process.env.NODE_ENV !== 'production') {
-      this.initialParameters = parameters;
-    }
-  }
+    // When the controlled value prop changes, sync the internal value
+    // and auto-update visibleDate to the active date.
+    this.observe(
+      (state) => state.valueProp,
+      (newValueProp, oldValueProp) => {
+        if (
+          newValueProp !== undefined &&
+          oldValueProp !== undefined &&
+          !this.state.adapter.isEqual(newValueProp, oldValueProp)
+        ) {
+          const visibleDate = this.valueManager.getActiveDateFromValue(newValueProp);
+          if (this.state.adapter.isValid(visibleDate)) {
+            this.setVisibleDate(visibleDate, undefined, undefined, 'month-change', true);
+          }
+        }
+      },
+    );
 
-  public updateStateFromParameters = (
-    parameters: SharedCalendarStoreParameters<TValue, TError>,
-    adapter: TemporalAdapter,
-    manager: TemporalManager<TValue, TError, any>,
-  ) => {
-    const updateModel: ModelUpdater<TValue, TError> = (
-      mutableNewState,
-      controlledProp,
-      defaultProp,
-    ) => {
-      if (parameters[controlledProp] !== undefined) {
-        mutableNewState[controlledProp] = parameters[controlledProp] as any;
-      }
-
-      if (process.env.NODE_ENV !== 'production') {
-        const defaultValue = parameters[defaultProp];
-        const isControlled = parameters[controlledProp] !== undefined;
-        const initialDefaultValue = this.initialParameters?.[defaultProp];
-        const initialIsControlled = this.initialParameters?.[controlledProp] !== undefined;
-
-        if (initialIsControlled !== isControlled) {
-          warn(
-            `Base UI: A component is changing the ${
-              initialIsControlled ? '' : 'un'
-            }controlled ${controlledProp} state of (Range)Calendar to be ${initialIsControlled ? 'un' : ''}controlled.`,
-            'Elements should not switch from uncontrolled to controlled (or vice versa).',
-            `Decide between using a controlled or uncontrolled ${controlledProp} element for the lifetime of the component.`,
-            "The nature of the state is determined during the first render. It's considered controlled if the value is not `undefined`.",
-            'More info: https://fb.me/react-controlled-components',
-          );
-        } else if (JSON.stringify(initialDefaultValue) !== JSON.stringify(defaultValue)) {
-          warn(
-            `Base UI: A component is changing the default ${controlledProp} state of an uncontrolled (Range)Calendar after being initialized. `,
-            `To suppress this warning opt to use a controlled (Range)Calendar.`,
+    // When the controlled visible date prop changes, update the navigation direction.
+    this.observe(
+      (state) => state.visibleDateProp,
+      (newVisibleDateProp, oldVisibleDateProp) => {
+        if (
+          newVisibleDateProp !== undefined &&
+          oldVisibleDateProp !== undefined &&
+          !this.state.adapter.isEqual(newVisibleDateProp, oldVisibleDateProp)
+        ) {
+          this.set(
+            'navigationDirection',
+            this.getNavigationDirectionFromVisibleDateChange(
+              newVisibleDateProp,
+              oldVisibleDateProp,
+            ),
           );
         }
-      }
-    };
-
-    const newState = SharedCalendarStore.deriveStateFromParameters(
-      parameters,
-      adapter,
-      manager,
-    ) as Partial<State<TValue>>;
-
-    updateModel(newState, 'value', 'defaultValue');
-    updateModel(newState, 'visibleDate', 'defaultVisibleDate');
-
-    // Update the visible date if the timezone has changed and the visible date is not controlled.
-    if (parameters.visibleDate === undefined && parameters.timezone !== this.parameters.timezone) {
-      newState.visibleDate = adapter.setTimezone(
-        this.state.visibleDate,
-        parameters.timezone ?? 'default',
-      );
-    }
-
-    if (
-      parameters.value !== undefined &&
-      this.parameters.value !== undefined &&
-      !adapter.isEqual(parameters.value, this.parameters.value)
-    ) {
-      const activeDate = this.valueManager.getActiveDateFromValue(parameters.value);
-      if (adapter.isValid(activeDate)) {
-        newState.visibleDate = activeDate;
-        newState.navigationDirection = this.getNavigationDirectionFromVisibleDateChange(activeDate);
-      }
-    }
-
-    this.update(newState);
-    this.parameters = parameters;
-  };
+      },
+    );
+  }
 
   /**
    * Sets the visible date.
@@ -158,11 +144,14 @@ export class SharedCalendarStore<
 
     const eventDetails = createChangeEventDetails(reason ?? 'day-press', nativeEvent, trigger);
 
-    this.parameters.onVisibleDateChange?.(visibleDate, eventDetails);
-    if (!eventDetails.isCanceled && this.parameters.visibleDate === undefined) {
+    this.context.onVisibleDateChange?.(visibleDate, eventDetails);
+    if (!eventDetails.isCanceled && this.state.visibleDateProp === undefined) {
       this.update({
         visibleDate,
-        navigationDirection: this.getNavigationDirectionFromVisibleDateChange(visibleDate),
+        navigationDirection: this.getNavigationDirectionFromVisibleDateChange(
+          visibleDate,
+          this.state.visibleDate,
+        ),
       });
     }
   };
@@ -223,30 +212,6 @@ export class SharedCalendarStore<
   };
 
   /**
-   * Returns the properties of the state that are derived from the parameters.
-   * This do not contain state properties that don't update whenever the parameters update.
-   */
-  private static deriveStateFromParameters<TValue extends TemporalSupportedValue, TError>(
-    parameters: SharedCalendarStoreParameters<TValue, TError>,
-    adapter: TemporalAdapter,
-    manager: TemporalManager<TValue, TError, any>,
-  ) {
-    return {
-      adapter,
-      manager,
-      timezoneProp: parameters.timezone,
-      referenceDateProp: parameters.referenceDate ?? null,
-      minDate: parameters.minDate,
-      maxDate: parameters.maxDate,
-      isDateUnavailable: parameters.isDateUnavailable,
-      disabled: parameters.disabled ?? false,
-      readOnly: parameters.readOnly ?? false,
-      invalidProp: parameters.invalid,
-      monthPageSize: parameters.monthPageSize ?? 1,
-    };
-  }
-
-  /**
    * Sets the value.
    * Should only be used internally through `selectDate` method.
    */
@@ -268,8 +233,8 @@ export class SharedCalendarStore<
       },
     );
 
-    this.parameters.onValueChange?.(newValueWithInputTimezone, eventDetails);
-    if (!eventDetails.isCanceled && this.parameters.value === undefined) {
+    this.context.onValueChange?.(newValueWithInputTimezone, eventDetails);
+    if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
       this.set('value', newValueWithInputTimezone);
     }
   }
@@ -284,14 +249,17 @@ export class SharedCalendarStore<
       );
     }
 
-    return true;
+    return false;
   }
 
   /**
    * Determines the navigation direction based on the new and the previous visible date.
    */
-  private getNavigationDirectionFromVisibleDateChange(visibleDate: TemporalSupportedObject) {
-    const prevVisibleDateTimestamp = this.state.adapter.getTime(this.state.visibleDate);
+  private getNavigationDirectionFromVisibleDateChange(
+    visibleDate: TemporalSupportedObject,
+    previousVisibleDate: TemporalSupportedObject,
+  ) {
+    const prevVisibleDateTimestamp = this.state.adapter.getTime(previousVisibleDate);
     const visibleDateTimestamp = this.state.adapter.getTime(visibleDate);
 
     let newNavigationDirection: CalendarNavigationDirection = 'none';
@@ -432,11 +400,3 @@ export type CalendarVisibleDateChangeEventDetails = BaseUIChangeEventDetails<
   CalendarChangeEventReason,
   {}
 >;
-
-type ModelUpdater<TValue extends TemporalSupportedValue, TError> = (
-  newState: Partial<State<TValue>>,
-  controlledProp: keyof SharedCalendarStoreParameters<TValue, TError> &
-    keyof State<TValue> &
-    string,
-  defaultProp: keyof SharedCalendarStoreParameters<TValue, TError>,
-) => void;

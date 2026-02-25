@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import { useStore } from '@base-ui/utils/store';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { TemporalValue } from '../../types/temporal';
 import { SharedCalendarRootContext } from './SharedCalendarRootContext';
@@ -89,50 +88,49 @@ export const CalendarRoot = React.forwardRef(function CalendarRoot(
   const adapter = useTemporalAdapter();
   const manager = React.useMemo(() => getDateManager(adapter), [adapter]);
 
-  const parameters = React.useMemo(
-    () => ({
-      readOnly,
-      disabled,
-      invalid,
-      monthPageSize,
-      onValueChange,
-      defaultValue,
-      value,
-      timezone,
-      referenceDate,
-      onVisibleDateChange,
-      visibleDate,
-      defaultVisibleDate,
-      isDateUnavailable,
-      minDate,
-      maxDate,
-    }),
-    [
-      readOnly,
-      disabled,
-      invalid,
-      monthPageSize,
-      onValueChange,
-      defaultValue,
-      value,
-      timezone,
-      referenceDate,
-      onVisibleDateChange,
-      visibleDate,
-      defaultVisibleDate,
-      isDateUnavailable,
-      minDate,
-      maxDate,
-    ],
-  );
-
   const store = useRefWithInit(
-    () => new SharedCalendarStore(parameters, adapter, manager, calendarValueManager),
+    () =>
+      new SharedCalendarStore(
+        {
+          readOnly,
+          disabled,
+          invalid,
+          monthPageSize,
+          onValueChange,
+          defaultValue,
+          value,
+          timezone,
+          referenceDate,
+          onVisibleDateChange,
+          visibleDate,
+          defaultVisibleDate,
+          isDateUnavailable,
+          minDate,
+          maxDate,
+        },
+        adapter,
+        manager,
+        calendarValueManager,
+      ),
   ).current;
 
-  useIsoLayoutEffect(() => {
-    store.updateStateFromParameters(parameters, adapter, manager);
-  }, [store, parameters, adapter, manager]);
+  store.useControlledProp('valueProp', value);
+  store.useControlledProp('visibleDateProp', visibleDate);
+  store.useContextCallback('onValueChange', onValueChange);
+  store.useContextCallback('onVisibleDateChange', onVisibleDateChange);
+  store.useSyncedValues({
+    adapter,
+    manager,
+    timezoneProp: timezone,
+    referenceDateProp: referenceDate ?? null,
+    minDate,
+    maxDate,
+    isDateUnavailable,
+    disabled: disabled ?? false,
+    readOnly: readOnly ?? false,
+    invalidProp: invalid,
+    monthPageSize: monthPageSize ?? 1,
+  });
 
   const visibleMonth = useStore(store, selectors.visibleMonth);
   const state: CalendarRoot.State = useStore(store, selectors.rootElementState);
