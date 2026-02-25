@@ -10,7 +10,6 @@ import {
   CalendarValueChangeEventDetails,
 } from '../SharedCalendarStore';
 import { calendarValueManager } from '../../root/CalendarRoot';
-import { selectors } from '../selectors';
 
 /**
  * Creates a mock MouseEvent for testing selectDate.
