@@ -150,17 +150,6 @@ describe('SharedCalendarStore - visibleDate', () => {
       expect(onVisibleDateChange.callCount).to.equal(1);
       expect(adapter.isEqual(onVisibleDateChange.firstCall.args[0], newVisibleDate)).to.equal(true);
     });
-
-    it('should update visibleDate when updateStateFromParameters is called with new visibleDate', () => {
-      const initialVisibleDate = adapter.date('2025-02-01', 'default');
-      const store = createStore(adapter, { visibleDate: initialVisibleDate });
-      const manager = getDateManager(adapter);
-
-      const newVisibleDate = adapter.date('2025-03-01', 'default');
-      store.updateStateFromParameters({ visibleDate: newVisibleDate }, adapter, manager);
-
-      expect(adapter.isEqual(store.state.visibleDate, newVisibleDate)).to.equal(true);
-    });
   });
 
   describe('onVisibleDateChange callback', () => {
@@ -307,7 +296,7 @@ describe('SharedCalendarStore - visibleDate', () => {
       });
       const newVisibleDate = adapter.date('2025-03-01', 'default');
 
-      // Without registered day grids, isDateCellVisible returns true
+      (store as any).isDateCellVisible = () => true; // Mock to simulate that the date is already visible
       store.setVisibleDate(newVisibleDate, undefined, undefined, undefined, true);
 
       // Should not update because skipIfAlreadyVisible is true and isDateCellVisible returns true
@@ -331,46 +320,20 @@ describe('SharedCalendarStore - visibleDate', () => {
 
   describe('visibleDate synchronization with value', () => {
     it('should update visibleDate when controlled value changes to a valid date', () => {
+      const onVisibleDateChange = spy();
       const initialValue = adapter.date('2025-02-15', 'default');
-      const store = createStore(adapter, { value: initialValue, visibleDate: initialValue });
-      const manager = getDateManager(adapter);
+      const store = createStore(adapter, { value: initialValue, onVisibleDateChange });
 
       // Change the controlled value to a different month
       const newValue = adapter.date('2025-05-20', 'default');
-      store.updateStateFromParameters(
-        { value: newValue, visibleDate: store.state.visibleDate },
-        adapter,
-        manager,
-      );
+      store.set('valueProp', newValue);
 
       // visibleDate should be updated to match the new value
       expect(adapter.isEqual(store.state.visibleDate, newValue)).to.equal(true);
-    });
 
-    it('should set navigationDirection when value changes and visibleDate is updated', () => {
-      const initialValue = adapter.date('2025-02-15', 'default');
-      const store = createStore(adapter, { value: initialValue, visibleDate: initialValue });
-      const manager = getDateManager(adapter);
-
-      // Change to a future value
-      const futureValue = adapter.date('2025-05-20', 'default');
-      store.updateStateFromParameters(
-        { value: futureValue, visibleDate: store.state.visibleDate },
-        adapter,
-        manager,
-      );
-
-      expect(store.state.navigationDirection).to.equal('next');
-
-      // Change to a past value
-      const pastValue = adapter.date('2025-01-10', 'default');
-      store.updateStateFromParameters(
-        { value: pastValue, visibleDate: store.state.visibleDate },
-        adapter,
-        manager,
-      );
-
-      expect(store.state.navigationDirection).to.equal('previous');
+      // onVisibleDateChange should be called with the new visible date
+      expect(onVisibleDateChange.callCount).to.equal(1);
+      expect(adapter.isEqual(onVisibleDateChange.firstCall.args[0], newValue)).to.equal(true);
     });
   });
 });

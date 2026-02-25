@@ -147,24 +147,6 @@ describe('SharedCalendarStore - value', () => {
       expect(onValueChange.callCount).to.equal(1);
       expect(adapter.isEqual(onValueChange.firstCall.args[0], selectedDate)).to.equal(true);
     });
-
-    it('should update value when updateStateFromParameters is called with new value', () => {
-      const initialValue = adapter.date('2025-02-15', 'default');
-      const store = createStore(adapter, { value: initialValue });
-      const manager = getDateManager(adapter);
-
-      const newValue = adapter.date('2025-02-20', 'default');
-      store.updateStateFromParameters(
-        {
-          value: newValue,
-          visibleDate: adapter.date('2025-02-01', 'default'),
-        },
-        adapter,
-        manager,
-      );
-
-      expect(adapter.isEqual(store.state.value, newValue)).to.equal(true);
-    });
   });
 
   describe('onValueChange callback', () => {

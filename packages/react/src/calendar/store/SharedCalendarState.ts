@@ -14,9 +14,19 @@ export interface SharedCalendarState<TValue extends TemporalSupportedValue = any
    */
   value: TValue;
   /**
+   * The controlled value prop.
+   * `undefined` means the value is uncontrolled.
+   */
+  readonly valueProp: TValue | undefined;
+  /**
    * The date that is currently visible in the calendar.
    */
   visibleDate: TemporalSupportedObject;
+  /**
+   * The controlled visible date prop.
+   * `undefined` means the visible date is uncontrolled.
+   */
+  readonly visibleDateProp: TemporalSupportedObject | undefined;
   /**
    * The direction the calendar is currently navigating in.
    */
