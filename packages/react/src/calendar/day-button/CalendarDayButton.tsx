@@ -12,6 +12,7 @@ import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdap
 import { useCalendarDayGridCellContext } from '../day-grid-cell/SharedCalendarDayGridCellContext';
 import { CompositeItem } from '../../composite/item/CompositeItem';
 import { selectors } from '../store';
+import { UseSharedCalendarDayGridBodyItemMetadata } from '../day-grid-body/useSharedCalendarDayGridBody';
 
 const stateAttributesMapping: StateAttributesMapping<CalendarDayButton.State> = {
   selected(value) {
@@ -79,7 +80,7 @@ const InnerCalendarDayButton = React.forwardRef(function InnerCalendarDayButton(
     [adapter, value, format],
   );
 
-  const itemMetadata = React.useMemo(
+  const itemMetadata = React.useMemo<UseSharedCalendarDayGridBodyItemMetadata>(
     () => ({ focusableWhenDisabled: !isDisabled && !isOutsideCurrentMonth }),
     [isDisabled, isOutsideCurrentMonth],
   );

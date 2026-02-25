@@ -219,7 +219,7 @@ const isDayButtonTabbableSelector = createSelector(
 
     const monthKey = getMonthKey(adapter, date);
 
-    // If the month has registed tabbable cells, we check if the date is one of them.
+    // If the month has registered tabbable cells, we check if the date is one of them.
     if (tabbableCellsPerMonth.has(monthKey)) {
       const dateKey = getDateKey(adapter, date);
       return tabbableCellsPerMonth.get(monthKey)!.has(dateKey);

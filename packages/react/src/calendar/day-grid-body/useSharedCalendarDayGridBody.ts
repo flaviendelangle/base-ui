@@ -35,7 +35,7 @@ export function useSharedCalendarDayGridBody(
   const adapter = useTemporalAdapter();
   const store = useSharedCalendarRootContext();
   const visibleMonth = useStore(store, selectors.visibleMonth);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const ref = React.useRef<HTMLTableSectionElement>(null);
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
   const executeAfterItemMapUpdate = React.useRef<(newMap: any) => void>(null);
 
@@ -316,5 +316,5 @@ export interface UseSharedCalendarDayGridBodyReturnValue {
   /**
    * The ref to apply to the element.
    */
-  ref: React.RefObject<HTMLDivElement | null>;
+  ref: React.RefObject<HTMLTableSectionElement | null>;
 }
