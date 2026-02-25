@@ -142,7 +142,10 @@ export function getGridNavigatedIndex(
         nextRow = 0;
       }
       if (onLoop) {
-        nextRow = onLoop(event, prevIndex, nextRow);
+        const clampedCol = Math.min(colInRow, rows[nextRow].length - 1);
+        const targetItemIndex = rows[nextRow][clampedCol] ?? rows[nextRow][0];
+        const returnedItemIndex = onLoop(event, prevIndex, targetItemIndex);
+        nextRow = rowIndexMap[returnedItemIndex] ?? nextRow;
       }
     }
 
