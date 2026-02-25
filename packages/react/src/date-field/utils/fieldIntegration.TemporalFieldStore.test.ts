@@ -24,6 +24,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         name: 'testField',
         state: { disabled: false },
         invalid: false,
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -47,6 +48,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       const initialFieldContext = {
         name: 'field1',
         state: { disabled: false },
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -86,6 +88,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should return true when fieldContext.state.disabled is true and disabledProp is false', () => {
       const mockFieldContext = {
         state: { disabled: true },
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -103,6 +106,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should return true when disabledProp is true and fieldContext.state.disabled is false', () => {
       const mockFieldContext = {
         state: { disabled: false },
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -120,6 +124,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should return false when both disabledProp and fieldContext.state.disabled are false', () => {
       const mockFieldContext = {
         state: { disabled: false },
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -151,6 +156,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should prefer fieldContext.name over nameProp', () => {
       const mockFieldContext = {
         name: 'fieldName',
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -168,6 +174,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     it('should fall back to nameProp when fieldContext.name is undefined', () => {
       const mockFieldContext = {
         name: undefined,
+        setFilled: () => {},
       } as any;
 
       const store = new TemporalFieldStore(
@@ -183,7 +190,7 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
   });
 
-  describe('setFilled integration via registerStoreEffect', () => {
+  describe('setFilled integration via observe', () => {
     it('should call setFilled(true) when value changes from null to non-null', () => {
       const setFilledSpy = spy();
       const mockFieldContext = {

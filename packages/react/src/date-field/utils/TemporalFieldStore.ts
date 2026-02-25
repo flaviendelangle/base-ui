@@ -183,7 +183,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
 
     // Character query sync
-    this.registerStoreEffect(
+    this.observe(
       createSelectorMemoized(
         selectors.characterQuery,
         selectors.sections,
@@ -192,7 +192,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           sections: sectionsList,
         }),
       ),
-      (_, { characterQuery, sections: sectionsList }) => {
+      ({ characterQuery, sections: sectionsList }) => {
         if (characterQuery == null) {
           return;
         }
@@ -209,9 +209,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
 
     // Filled state sync when value changes
-    this.registerStoreEffect(
+    this.observe(
       (state) => state.value,
-      (_previousValue, nextValue) => {
+      (nextValue) => {
         const fieldContext = this.state.fieldContext;
         if (fieldContext) {
           fieldContext.setFilled(nextValue !== null);
@@ -221,7 +221,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     // Format / sections / manager derivation effect
     // When format-related props change, re-parse the format and rebuild sections.
-    this.registerStoreEffect(
+    this.observe(
       createSelectorMemoized(
         (state: TemporalFieldState<TValue>) => state.rawFormat,
         (state: TemporalFieldState<TValue>) => state.adapter,
@@ -238,7 +238,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           maxDate: maxDateVal,
         }),
       ),
-      (previous, next) => {
+      (next, previous) => {
         // createSelectorMemoized may return a new object reference even when all input
         // values are identical (due to its per-state-object __cacheKey__ mechanism).
         // Guard against this to avoid infinite recursion when this.update() is called below.
@@ -285,9 +285,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     // Controlled value sync effect
     // When valueProp changes (controlled mode), sync value and rebuild sections/referenceValue.
-    this.registerStoreEffect(
+    this.observe(
       (state: TemporalFieldState<TValue>) => state.valueProp,
-      (previousValueProp, nextValueProp) => {
+      (nextValueProp, previousValueProp) => {
         if (nextValueProp === undefined) {
           return;
         }
@@ -316,8 +316,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
-    this.syncSelectionToDOM();
-    const unsubscribe = this.registerStoreEffect(
+    const unsubscribe = this.observe(
       selectors.selectedSection,
       this.syncSelectionToDOM,
     );
@@ -885,27 +884,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     },
   };
 
-  /**
-   * Registers an effect to be run when the value returned by the selector changes.
-   */
-  private registerStoreEffect = <Value>(
-    selector: (state: TemporalFieldState<TValue>) => Value,
-    effect: (previous: Value, next: Value) => void,
-  ) => {
-    let previousValue = selector(this.state);
-
-    return this.subscribe((state) => {
-      const nextValue = selector(state);
-      if (nextValue !== previousValue) {
-        // Update previousValue before calling the effect so that re-entrant
-        // setState calls (from this.update() inside the effect) see the
-        // already-updated reference and can compare correctly.
-        const prev = previousValue;
-        previousValue = nextValue;
-        effect(prev, nextValue);
-      }
-    });
-  };
 
   private getDatePartRenderedValue(datePart: TemporalFieldDatePart) {
     return datePart.value || datePart.token.placeholder;
