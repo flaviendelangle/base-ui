@@ -22,6 +22,7 @@ import {
   PAGE_UP,
   PAGE_DOWN,
 } from '../../composite/composite';
+import { validateDate } from '../../utils/temporal/validateDate';
 
 const BACKWARD_KEYS = new Set([ARROW_UP, ARROW_LEFT]);
 const CUSTOM_NAVIGATION_KEYS = new Set([HOME, END, PAGE_UP, PAGE_DOWN]);
@@ -188,6 +189,22 @@ export function useSharedCalendarDayGridBody(
         if (!currentDay) {
           return;
         }
+
+        const targetDate = adapter.addMonths(currentDay, decrement ? -amount : amount);
+
+        const { minDate, maxDate } = store.state;
+        // Check if the target date would be within min/max bounds
+        if (minDate != null || maxDate != null) {
+          const validationError = validateDate({
+            adapter,
+            value: targetDate,
+            validationProps: { minDate, maxDate },
+          });
+          if (validationError != null) {
+            return;
+          }
+        }
+
         const dayOfMonth = adapter.getDate(currentDay);
         const currentMonth = adapter.getMonth(currentDay);
         const currentYear = adapter.getYear(currentDay);
@@ -235,12 +252,26 @@ export function useSharedCalendarDayGridBody(
       const eventKey = event.key;
       const decrement = BACKWARD_KEYS.has(eventKey);
 
+      const targetMonth = adapter.addMonths(visibleMonth, decrement ? -1 : 1);
+
+      const { minDate, maxDate } = store.state;
+      if (minDate != null || maxDate != null) {
+        // Check if the target month has any valid (non-disabled) days within min/max bounds.
+        if (
+          (minDate != null && adapter.isBefore(adapter.endOfMonth(targetMonth), minDate)) ||
+          (maxDate != null && adapter.isAfter(adapter.startOfMonth(targetMonth), maxDate))
+        ) {
+          // The entire target month is outside the valid range; stay put.
+          return prevIndex;
+        }
+      }
+
       // Change the visible month and focus the equivalent day once the new month's
       // DOM has been committed. This covers every arrow-key loop scenario, including
       // cases where an outside-month day is visible as the first/last row of the
       // current grid — the visible date must always update when crossing a month boundary.
       store.setVisibleDate(
-        adapter.addMonths(visibleMonth, decrement ? -1 : 1),
+        targetMonth,
         event.nativeEvent,
         event.currentTarget as HTMLElement,
         'keyboard',

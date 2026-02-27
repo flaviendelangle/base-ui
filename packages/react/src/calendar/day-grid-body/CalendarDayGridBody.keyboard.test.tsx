@@ -10,9 +10,18 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
   function renderUncontrolledCalendar(
     defaultDate: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>,
     onVisibleDateChange?: ReturnType<typeof spy>,
+    options?: {
+      minDate?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
+      maxDate?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
+    },
   ) {
     return render(
-      <Calendar.Root defaultVisibleDate={defaultDate} onVisibleDateChange={onVisibleDateChange}>
+      <Calendar.Root
+        defaultVisibleDate={defaultDate}
+        onVisibleDateChange={onVisibleDateChange}
+        minDate={options?.minDate}
+        maxDate={options?.maxDate}
+      >
         <Calendar.DayGrid>
           <Calendar.DayGridBody>
             {(week) => (
@@ -406,6 +415,205 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
       expect(onVisibleDateChange.firstCall.args[1].reason).to.equal('keyboard');
       expect(onVisibleDateChange.firstCall.args[0]).toEqual(adapter.startOfMonth(mar31));
       expect(getDayButton(mar31)).toHaveFocus();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Keyboard navigation should NOT trigger when the target day is disabled
+  // (outside minDate/maxDate bounds).
+  // ---------------------------------------------------------------------------
+
+  describe('disabled day boundary (minDate / maxDate)', () => {
+    describe('PageDown', () => {
+      it('should not navigate to the next month if the same day would be after maxDate', async () => {
+        const onVisibleDateChange = spy();
+        const date = adapter.date('2025-02-15', 'default');
+        const maxDate = adapter.date('2025-02-28', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(date),
+          onVisibleDateChange,
+          {
+            maxDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(date).focus();
+        });
+        await user.keyboard('[PageDown]');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(date)).toHaveFocus();
+      });
+    });
+
+    describe('PageUp', () => {
+      it('should not navigate to the previous month if the same day would be before minDate', async () => {
+        const onVisibleDateChange = spy();
+        const date = adapter.date('2025-02-15', 'default');
+        const minDate = adapter.date('2025-02-01', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(date),
+          onVisibleDateChange,
+          {
+            minDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(date).focus();
+        });
+        await user.keyboard('[PageUp]');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(date)).toHaveFocus();
+      });
+    });
+
+    describe('Shift+PageDown', () => {
+      it('should not navigate 12 months forward if the same day would be after maxDate', async () => {
+        const onVisibleDateChange = spy();
+        const date = adapter.date('2025-02-15', 'default');
+        const maxDate = adapter.date('2025-12-31', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(date),
+          onVisibleDateChange,
+          {
+            maxDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(date).focus();
+        });
+        await user.keyboard('[ShiftLeft>][PageDown][/ShiftLeft]');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(date)).toHaveFocus();
+      });
+    });
+
+    describe('Shift+PageUp', () => {
+      it('should not navigate 12 months backward if the same day would be before minDate', async () => {
+        const onVisibleDateChange = spy();
+        const date = adapter.date('2025-02-15', 'default');
+        const minDate = adapter.date('2025-01-01', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(date),
+          onVisibleDateChange,
+          {
+            minDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(date).focus();
+        });
+        await user.keyboard('[ShiftLeft>][PageUp][/ShiftLeft]');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(date)).toHaveFocus();
+      });
+    });
+
+    describe('ArrowRight', () => {
+      it('should not wrap to the next month when the last day is at maxDate', async () => {
+        const onVisibleDateChange = spy();
+        const feb28 = adapter.date('2025-02-28', 'default');
+        const maxDate = adapter.date('2025-02-28', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(feb28),
+          onVisibleDateChange,
+          {
+            maxDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(feb28).focus();
+        });
+        await user.keyboard('{ArrowRight}');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(feb28)).toHaveFocus();
+      });
+    });
+
+    describe('ArrowLeft', () => {
+      it('should not wrap to the previous month when the first day is at minDate', async () => {
+        const onVisibleDateChange = spy();
+        const feb1 = adapter.date('2025-02-01', 'default');
+        const minDate = adapter.date('2025-02-01', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(feb1),
+          onVisibleDateChange,
+          {
+            minDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(feb1).focus();
+        });
+        await user.keyboard('{ArrowLeft}');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(feb1)).toHaveFocus();
+      });
+    });
+
+    describe('ArrowDown', () => {
+      it('should not wrap to the next month when the day in the same weekday column would be after maxDate', async () => {
+        const onVisibleDateChange = spy();
+        const feb28 = adapter.date('2025-02-28', 'default');
+        const maxDate = adapter.date('2025-02-28', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(feb28),
+          onVisibleDateChange,
+          {
+            maxDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(feb28).focus();
+        });
+        await user.keyboard('{ArrowDown}');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(feb28)).toHaveFocus();
+      });
+    });
+
+    describe('ArrowUp', () => {
+      it('should not wrap to the previous month when the day in the same weekday column would be before minDate', async () => {
+        const onVisibleDateChange = spy();
+        const feb1 = adapter.date('2025-02-01', 'default');
+        const minDate = adapter.date('2025-02-01', 'default');
+
+        const { user } = renderUncontrolledCalendar(
+          adapter.startOfMonth(feb1),
+          onVisibleDateChange,
+          {
+            minDate,
+          },
+        );
+
+        await act(async () => {
+          getDayButton(feb1).focus();
+        });
+        await user.keyboard('{ArrowUp}');
+
+        expect(onVisibleDateChange.callCount).to.equal(0);
+        expect(getDayButton(feb1)).toHaveFocus();
+      });
     });
   });
 });
