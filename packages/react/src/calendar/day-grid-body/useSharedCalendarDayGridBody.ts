@@ -17,7 +17,6 @@ import {
   ARROW_RIGHT,
   ARROW_UP,
   HORIZONTAL_KEYS,
-  VERTICAL_KEYS,
   HOME,
   END,
   PAGE_UP,
@@ -114,8 +113,40 @@ export function useSharedCalendarDayGridBody(
     }
   };
 
+  // Focuses the correct item after a cross-month navigation (PageUp/PageDown or arrow-key
+  // loop). Uses the new month's item map directly because the `disabledIndices` state
+  // variable still reflects the old month at this point.
+  const focusItemFromMap = (
+    newMap: typeof itemMap,
+    guessedIndex: number,
+    decrement: boolean,
+    amount: number,
+  ) => {
+    const newItems = Array.from(newMap.keys()) as HTMLElement[];
+    const newDisabledIndices: number[] = [];
+    for (const meta of newMap.values()) {
+      if (meta?.index != null && !meta.focusableWhenDisabled) {
+        newDisabledIndices.push(meta.index);
+      }
+    }
+    let idx = guessedIndex;
+    if (isListIndexDisabled(newItems, idx, newDisabledIndices)) {
+      idx = findNonDisabledListIndex(newItems, {
+        startingIndex: idx,
+        decrement,
+        disabledIndices: newDisabledIndices,
+        amount,
+      });
+    }
+    if (idx >= 0 && idx < newItems.length) {
+      setHighlightedIndex(idx);
+      newItems[idx]?.focus();
+    }
+  };
+
   const handleKeyboardNavigation = (event: BaseUIEvent<React.KeyboardEvent>) => {
     const eventKey = event.key;
+
     if (!CUSTOM_NAVIGATION_KEYS.has(eventKey)) {
       return;
     }
@@ -179,13 +210,7 @@ export function useSharedCalendarDayGridBody(
               adapter.getDate(day) === dayOfMonth &&
               (adapter.getMonth(day) !== currentMonth || adapter.getYear(day) !== currentYear),
           );
-          const newItems = Array.from(newMap.keys()) as HTMLElement[];
-          focusNextNonDisabledElement({
-            elements: newItems,
-            newHighlightedIndex: sameDayInNewMonthIndex,
-            decrement: eventKey === PAGE_UP,
-            amount: 1,
-          });
+          focusItemFromMap(newMap, sameDayInNewMonthIndex, eventKey === PAGE_UP, 1);
         };
 
         break;
@@ -194,35 +219,6 @@ export function useSharedCalendarDayGridBody(
         break;
       }
     }
-  };
-
-  const handleItemLooping = (
-    eventKey: React.KeyboardEvent['key'],
-    startingIndex: number,
-    elementsRef: React.RefObject<(HTMLDivElement | null)[]>,
-    decrement: boolean,
-  ) => {
-    const isHorizontal = eventKey === ARROW_LEFT || eventKey === ARROW_RIGHT;
-    let newHighlightedIndex = startingIndex;
-    if (eventKey === ARROW_LEFT) {
-      // Guess the last cell in the last week
-      newHighlightedIndex = weeks.length * 7 - 1;
-    } else if (eventKey === ARROW_RIGHT) {
-      newHighlightedIndex = 0;
-    } else if (eventKey === ARROW_DOWN) {
-      // Guess the same weekday in the first week of next month
-      newHighlightedIndex %= 7;
-    } else if (eventKey === ARROW_UP) {
-      // Guess the same weekday in the last week of the previous month
-      newHighlightedIndex = weeks.length * 7 - (7 - (startingIndex % 7));
-    }
-
-    focusNextNonDisabledElement({
-      elements: elementsRef.current,
-      newHighlightedIndex,
-      decrement,
-      amount: isHorizontal ? 1 : 7,
-    });
   };
 
   const compositeRootProps: CompositeRoot.Props<UseSharedCalendarDayGridBodyItemMetadata, any> = {
@@ -234,32 +230,41 @@ export function useSharedCalendarDayGridBody(
     highlightedIndex,
     onKeyDown: handleKeyboardNavigation,
     onHighlightedIndexChange: setHighlightedIndex,
-    onLoop: (event, prevIndex, nextIndex, elementsRef) => {
+    onLoop: (event, prevIndex) => {
       event.preventDefault();
       const eventKey = event.key;
-      if (VERTICAL_KEYS.has(eventKey)) {
-        const newWeekDay = elementsRef.current[prevIndex - (eventKey === ARROW_UP ? 7 : -7)];
-        if (newWeekDay && newWeekDay.dataset.disabled !== undefined) {
-          return prevIndex;
-        }
-      } else if (HORIZONTAL_KEYS.has(eventKey)) {
-        const newDay = elementsRef.current[prevIndex + (eventKey === ARROW_LEFT ? -1 : 1)];
-        if (newDay && newDay.dataset.disabled !== undefined) {
-          return prevIndex;
-        }
-      }
       const decrement = BACKWARD_KEYS.has(eventKey);
+
+      // Change the visible month and focus the equivalent day once the new month's
+      // DOM has been committed. This covers every arrow-key loop scenario, including
+      // cases where an outside-month day is visible as the first/last row of the
+      // current grid — the visible date must always update when crossing a month boundary.
       store.setVisibleDate(
         adapter.addMonths(visibleMonth, decrement ? -1 : 1),
         event.nativeEvent,
         event.currentTarget as HTMLElement,
         'keyboard',
       );
-      // Ensure the `handleItemLooping` uses the latest state/render after the visible date update
-      queueMicrotask(() => {
-        handleItemLooping(eventKey, prevIndex, elementsRef, decrement);
-      });
-      // Return existing index to avoid `composite` handling this highlight update
+
+      executeAfterItemMapUpdate.current = (newMap: typeof itemMap) => {
+        const newItems = Array.from(newMap.keys()) as HTMLElement[];
+
+        let guessedIndex: number;
+        if (eventKey === ARROW_LEFT) {
+          guessedIndex = newItems.length - 1;
+        } else if (eventKey === ARROW_RIGHT) {
+          guessedIndex = 0;
+        } else if (eventKey === ARROW_DOWN) {
+          guessedIndex = prevIndex % 7;
+        } else {
+          // ARROW_UP: same weekday in the last row of the previous month
+          guessedIndex = newItems.length - 7 + (prevIndex % 7);
+        }
+
+        focusItemFromMap(newMap, guessedIndex, decrement, HORIZONTAL_KEYS.has(eventKey) ? 1 : 7);
+      };
+
+      // Return the current index so the composite does not move focus before the new month renders.
       return prevIndex;
     },
   };
