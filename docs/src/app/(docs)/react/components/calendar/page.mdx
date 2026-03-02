@@ -48,6 +48,15 @@ import { DemoCalendarValidation } from './demos/validation';
 
 <DemoCalendarValidation />
 
+### Lazy loading
+
+You can render custom content inside `<Calendar.DayButton>` and use `Calendar.useContext()` to
+react to month changes — for example, to lazily load per-day data.
+
+import { DemoCalendarLazyLoading } from './demos/lazy-loading';
+
+<DemoCalendarLazyLoading />
+
 ### Display week numbers
 
 You can use `useWeekList()` and `useDayList()` hooks to build a calendar with additional DOM elements, like week numbers.
