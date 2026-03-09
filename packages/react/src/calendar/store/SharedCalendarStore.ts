@@ -11,7 +11,7 @@ import {
 import { mergeDateAndTime } from '../../utils/temporal/date-helpers';
 import { CalendarNavigationDirection, SharedCalendarState as State } from './SharedCalendarState';
 import { selectors } from './selectors';
-import { REASONS } from '../../utils/reasons';
+import { BaseUIEventReasons, REASONS } from '../../utils/reasons';
 
 export interface SharedCalendarStoreContext<TValue extends TemporalSupportedValue, TError> {
   onValueChange?:
@@ -33,8 +33,6 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
   SharedCalendarStoreContext<TValue, TError>
 > {
   private valueManager: ValueManager<TValue>;
-
-  private dayGrids: Record<number, TemporalSupportedObject> = {};
 
   private currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
 
@@ -103,9 +101,13 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
           oldValueProp !== undefined &&
           !this.state.adapter.isEqual(newValueProp, oldValueProp)
         ) {
+          this.set('value', newValueProp);
           const visibleDate = this.valueManager.getActiveDateFromValue(newValueProp);
-          if (this.state.adapter.isValid(visibleDate)) {
-            this.setVisibleDate(visibleDate, undefined, undefined, REASONS.monthChange, true);
+          if (
+            this.state.adapter.isValid(visibleDate) &&
+            !this.state.adapter.isSameMonth(visibleDate, this.state.visibleDate)
+          ) {
+            this.setVisibleDate(visibleDate, undefined, undefined, REASONS.valuePropChange);
           }
         }
       },
@@ -140,13 +142,8 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
     nativeEvent?: Event,
     trigger?: HTMLElement,
     reason?: CalendarChangeEventReason,
-    skipIfAlreadyVisible?: boolean,
   ) => {
-    if (skipIfAlreadyVisible && this.isDateCellVisible(visibleDate)) {
-      return;
-    }
-
-    const eventDetails = createChangeEventDetails(reason ?? 'day-press', nativeEvent, trigger);
+    const eventDetails = createChangeEventDetails(reason ?? REASONS.dayPress, nativeEvent, trigger);
 
     this.context.onVisibleDateChange?.(visibleDate, eventDetails);
     if (!eventDetails.isCanceled && this.state.visibleDateProp === undefined) {
@@ -183,19 +180,6 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
     });
   };
 
-  /**
-   * Registers a day grid.
-   */
-  public registerDayGrid = (month: TemporalSupportedObject) => {
-    this.nextGridId += 1;
-    const id = this.nextGridId;
-    this.dayGrids[id] = month;
-
-    return () => {
-      delete this.dayGrids[id];
-    };
-  };
-
   public getCurrentMonthDayGrid = () => {
     return this.currentMonthDayGrid;
   };
@@ -226,7 +210,7 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
       inputTimezone == null ? newValue : this.state.manager.setTimezone(newValue, inputTimezone);
 
     const eventDetails = createChangeEventDetails(
-      'day-press',
+      REASONS.dayPress,
       event.nativeEvent,
       event.currentTarget,
       {
@@ -242,19 +226,6 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
     if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
       this.set('value', newValueWithInputTimezone);
     }
-  }
-
-  /**
-   * Checks whether the given date is visible in any of the registered day grids.
-   */
-  private isDateCellVisible(date: TemporalSupportedObject) {
-    if (Object.values(this.dayGrids).length > 0) {
-      return Object.values(this.dayGrids).every(
-        (month) => !this.state.adapter.isSameMonth(date, month),
-      );
-    }
-
-    return false;
   }
 
   /**
@@ -394,7 +365,11 @@ export interface CalendarValueChangeHandlerContext<TError> {
   getValidationError: () => TError;
 }
 
-export type CalendarChangeEventReason = 'day-press' | 'month-change' | 'keyboard';
+export type CalendarChangeEventReason =
+  | BaseUIEventReasons['monthChange']
+  | BaseUIEventReasons['valuePropChange']
+  | BaseUIEventReasons['dayPress']
+  | BaseUIEventReasons['keyboard'];
 
 export type CalendarValueChangeEventDetails<TError> = BaseUIChangeEventDetails<
   CalendarChangeEventReason,
