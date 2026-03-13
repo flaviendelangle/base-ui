@@ -1,6 +1,9 @@
 import { ReactStore } from '@base-ui/utils/store';
-import { TemporalSupportedObject, TemporalSupportedValue } from '../../types/temporal';
-import { TemporalAdapter } from '../../types/temporal-adapter';
+import {
+  TemporalSupportedObject,
+  TemporalSupportedValue,
+  TemporalAdapter,
+} from '../../types/temporal';
 import { ValidateDateValidationProps } from '../../utils/temporal/validateDate';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { TemporalManager, TemporalTimezoneProps } from '../../utils/temporal/types';
@@ -33,10 +36,6 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
   SharedCalendarStoreContext<TValue, TError>
 > {
   private valueManager: ValueManager<TValue>;
-
-  private currentMonthDayGrid: Record<number, TemporalSupportedObject[]> = {};
-
-  private nextGridId = 0;
 
   constructor(
     parameters: SharedCalendarStoreParameters<TValue, TError>,
@@ -180,26 +179,6 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
     });
   };
 
-  public getCurrentMonthDayGrid = () => {
-    return this.currentMonthDayGrid;
-  };
-
-  /**
-   * Registers the current month's day grid row/week.
-   */
-  public registerCurrentMonthDayGrid = (
-    week: TemporalSupportedObject,
-    days: TemporalSupportedObject[],
-  ) => {
-    const weekTime = this.state.adapter.getTime(week);
-    if (this.currentMonthDayGrid[weekTime] == null) {
-      this.currentMonthDayGrid[weekTime] = days;
-    }
-    return () => {
-      delete this.currentMonthDayGrid[weekTime];
-    };
-  };
-
   /**
    * Sets the value.
    * Should only be used internally through `selectDate` method.
@@ -280,6 +259,7 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
   readOnly?: boolean | undefined;
   /**
    * Whether the calendar is forcefully marked as invalid.
+   * A calendar can be invalid when the selected date fails validation (i.e., is outside of the allowed `minDate` and `maxDate` range).
    * @default false
    */
   invalid?: boolean | undefined;

@@ -26,7 +26,6 @@ export const CalendarDecrementMonth = React.forwardRef(function CalendarDecremen
     render,
     nativeButton,
     disabled: disabledProp,
-    focusableWhenDisabled = true,
     ...elementProps
   } = componentProps;
 
@@ -40,21 +39,15 @@ export const CalendarDecrementMonth = React.forwardRef(function CalendarDecremen
     [visibleDate, monthPageSize, adapter],
   );
 
-  const isDisabled = useStore(
-    store,
-    selectors.isSetMonthButtonDisabled,
-    disabledProp,
-    targetDate,
-    disabledProp,
-  );
+  const isDisabled = useStore(store, selectors.isSetMonthButtonDisabled, targetDate, disabledProp);
 
   const { getButtonProps, buttonRef } = useButton({
     disabled: isDisabled,
     native: nativeButton,
-    focusableWhenDisabled,
+    focusableWhenDisabled: true,
   });
 
-  const { pointerHandlers, autoChangeButtonRef } = useCalendarMonthButton({
+  const { pointerHandlers, autoChangeButtonRef, shouldSkipClick } = useCalendarMonthButton({
     direction: -1,
     disabled: isDisabled,
     disabledProp,
@@ -76,9 +69,7 @@ export const CalendarDecrementMonth = React.forwardRef(function CalendarDecremen
         tabIndex: 0,
         'aria-label': monthPageSize > 1 ? 'Previous months' : 'Previous month',
         onClick(event) {
-          // Skip for pointer clicks — onPointerDown already handled the first navigation.
-          // Keep for keyboard activation (Enter/Space) where detail === 0.
-          if (isDisabled || event.detail !== 0) {
+          if (isDisabled || shouldSkipClick(event)) {
             return;
           }
           store.setVisibleDate(
@@ -106,13 +97,7 @@ export interface CalendarDecrementMonthState {
 }
 
 export interface CalendarDecrementMonthProps
-  extends BaseUIComponentProps<'button', CalendarDecrementMonthState>, NativeButtonProps {
-  /**
-   * When `true` the button remains focusable when disabled.
-   * @default true
-   */
-  focusableWhenDisabled?: boolean | undefined;
-}
+  extends BaseUIComponentProps<'button', CalendarDecrementMonthState>, NativeButtonProps {}
 
 export namespace CalendarDecrementMonth {
   export type State = CalendarDecrementMonthState;

@@ -1,9 +1,12 @@
 import { createSelector, createSelectorMemoized } from '@base-ui/utils/store';
-import { TemporalSupportedObject, TemporalSupportedValue } from '../../types/temporal';
+import {
+  TemporalSupportedObject,
+  TemporalSupportedValue,
+  TemporalAdapter,
+} from '../../types/temporal';
 import { validateDate } from '../../utils/temporal/validateDate';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { CalendarNavigationDirection, SharedCalendarState as State } from './SharedCalendarState';
-import { TemporalAdapter } from '../../types';
 
 const timezoneToRenderSelector = createSelectorMemoized(
   (state: State) => state.adapter,
@@ -105,7 +108,6 @@ const isSetMonthButtonDisabledSelector = createSelector(
     adapter,
     validationProps,
     isCalendarDisabled,
-    disabled: boolean | undefined,
     targetDate: TemporalSupportedObject,
     disabledProp?: boolean | undefined,
   ) => {
@@ -114,7 +116,7 @@ const isSetMonthButtonDisabledSelector = createSelector(
       return disabledProp;
     }
 
-    if (isCalendarDisabled || disabled) {
+    if (isCalendarDisabled) {
       return true;
     }
 
@@ -188,14 +190,14 @@ const getMonthKey = (adapter: TemporalAdapter, date: TemporalSupportedObject) =>
   `${adapter.getYear(date)}-${adapter.getMonth(date)}`;
 
 const getDateKey = (adapter: TemporalAdapter, date: TemporalSupportedObject) =>
-  adapter.format(date, 'localizedNumericDate');
+  adapter.getTime(date);
 
 const tabbableCellsPerMonthSelector = createSelectorMemoized(
   (state: State) => state.adapter,
   selectedDatesSelector,
   referenceDateSelector,
   (adapter, selectedDates, referenceDate) => {
-    const months = new Map<string, Set<string>>();
+    const months = new Map<string, Set<number>>();
 
     // Each month that contains selected dates has these selected dates as tabbable cells.
     for (const date of selectedDates) {

@@ -5,17 +5,9 @@ import { Calendar } from '@base-ui/react/calendar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../../calendar.module.css';
 
-function isDateUnavailable(date: Date) {
-  return date.getDay() === 6 || date.getDay() === 0; // Unavailable on weekends
-}
-
 export default function ExampleCalendar() {
   return (
-    <Calendar.Root
-      className={styles.Root}
-      isDateUnavailable={isDateUnavailable}
-      aria-label="Departure date"
-    >
+    <Calendar.Root className={styles.Root}>
       {({ visibleDate }) => (
         <React.Fragment>
           <header className={styles.Header}>
@@ -33,7 +25,7 @@ export default function ExampleCalendar() {
                 {(day) => (
                   <Calendar.DayGridHeaderCell
                     value={day}
-                    key={day.toString()}
+                    key={day.getTime()}
                     className={styles.DayGridHeaderCell}
                   />
                 )}
@@ -43,13 +35,13 @@ export default function ExampleCalendar() {
               {(week) => (
                 <Calendar.DayGridRow
                   value={week}
-                  key={week.toString()}
+                  key={week.getTime()}
                   className={styles.DayGridRow}
                 >
                   {(day) => (
                     <Calendar.DayGridCell
                       value={day}
-                      key={day.toString()}
+                      key={day.getTime()}
                       className={styles.DayGridCell}
                     >
                       <Calendar.DayButton className={styles.DayButton} />

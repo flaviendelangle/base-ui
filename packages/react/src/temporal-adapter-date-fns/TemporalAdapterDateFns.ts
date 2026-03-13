@@ -64,7 +64,7 @@ import {
   TemporalTimezone,
   TemporalAdapter,
   TemporalFormatTokenConfigMap,
-} from '../types';
+} from '../types/temporal';
 
 // TODO: Try to import from date-fns
 const dateLongFormatter = (pattern: string, formatLong: FormatLong) => {
@@ -228,7 +228,8 @@ const FORMATS: TemporalAdapterFormats = {
   localizedNumericDate: 'P', // Note: Day and month are padded on enUS unlike Luxon
 };
 
-declare module '@base-ui/react/types' {
+// TODO Temporal: Replace with `@base-ui/react/types` path when Temporal components will become public.
+declare module '@base-ui/react/types/temporal' {
   interface TemporalSupportedObjectLookup {
     'date-fns': Date;
   }

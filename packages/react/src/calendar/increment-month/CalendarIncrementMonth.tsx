@@ -25,7 +25,6 @@ export const CalendarIncrementMonth = React.forwardRef(function CalendarIncremen
     render,
     nativeButton,
     disabled: disabledProp,
-    focusableWhenDisabled = true,
     ...elementProps
   } = componentProps;
 
@@ -39,21 +38,15 @@ export const CalendarIncrementMonth = React.forwardRef(function CalendarIncremen
     [visibleDate, monthPageSize, adapter],
   );
 
-  const isDisabled = useStore(
-    store,
-    selectors.isSetMonthButtonDisabled,
-    disabledProp,
-    targetDate,
-    disabledProp,
-  );
+  const isDisabled = useStore(store, selectors.isSetMonthButtonDisabled, targetDate, disabledProp);
 
   const { getButtonProps, buttonRef } = useButton({
     disabled: isDisabled,
     native: nativeButton,
-    focusableWhenDisabled,
+    focusableWhenDisabled: true,
   });
 
-  const { pointerHandlers, autoChangeButtonRef } = useCalendarMonthButton({
+  const { pointerHandlers, autoChangeButtonRef, shouldSkipClick } = useCalendarMonthButton({
     direction: 1,
     disabled: isDisabled,
     disabledProp,
@@ -75,9 +68,7 @@ export const CalendarIncrementMonth = React.forwardRef(function CalendarIncremen
         tabIndex: 0,
         'aria-label': monthPageSize > 1 ? 'Next months' : 'Next month',
         onClick(event) {
-          // Skip for pointer clicks — onPointerDown already handled the first navigation.
-          // Keep for keyboard activation (Enter/Space) where detail === 0.
-          if (isDisabled || event.detail !== 0) {
+          if (isDisabled || shouldSkipClick(event)) {
             return;
           }
           store.setVisibleDate(
@@ -105,13 +96,7 @@ export interface CalendarIncrementMonthState {
 }
 
 export interface CalendarIncrementMonthProps
-  extends BaseUIComponentProps<'button', CalendarIncrementMonthState>, NativeButtonProps {
-  /**
-   * When `true` the button remains focusable when disabled.
-   * @default true
-   */
-  focusableWhenDisabled?: boolean | undefined;
-}
+  extends BaseUIComponentProps<'button', CalendarIncrementMonthState>, NativeButtonProps {}
 
 export namespace CalendarIncrementMonth {
   export type State = CalendarIncrementMonthState;

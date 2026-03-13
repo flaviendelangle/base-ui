@@ -3,7 +3,7 @@ import {
   TemporalTimezone,
   TemporalSupportedObject,
   TemporalFieldDatePartType,
-} from '../../types';
+} from '../../types/temporal';
 import {
   isAfterDay,
   isBeforeDay,

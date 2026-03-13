@@ -3,7 +3,7 @@ export * from './alert-dialog';
 export * from './autocomplete';
 export * from './avatar';
 export * from './button';
-// TODO: enable before public release
+// TODO Temporal: enable before public release
 // export * from './calendar';
 export * from './checkbox';
 export * from './checkbox-group';
@@ -11,7 +11,7 @@ export * from './collapsible';
 export * from './combobox';
 export * from './context-menu';
 export * from './csp-provider';
-// TODO: enable before public release
+// TODO Temporal: enable before public release
 // export * from './date-field';
 // export * from './date-time-field';
 export * from './dialog';
@@ -21,7 +21,7 @@ export * from './field';
 export * from './fieldset';
 export * from './form';
 export * from './input';
-// TODO: enable before public release
+// TODO Temporal: enable before public release
 // export * from './localization-provider';
 export * from './menu';
 export * from './menubar';
@@ -40,7 +40,7 @@ export * from './separator';
 export * from './slider';
 export * from './switch';
 export * from './tabs';
-// TODO: enable before public release
+// TODO Temporal: enable before public release
 // export * from './time-field';
 export * from './toast';
 export * from './toggle';

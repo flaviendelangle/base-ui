@@ -4,7 +4,7 @@ import { inertValue } from '@base-ui/utils/inertValue';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useStore } from '@base-ui/utils/store';
-import { TemporalSupportedObject } from '@base-ui/react/types';
+import { TemporalSupportedObject } from '../../types/temporal';
 import { useAnimationsFinished } from '../../utils/useAnimationsFinished';
 import { CalendarViewportDataAttributes } from './CalendarViewportDataAttributes';
 import { useSharedCalendarRootContext } from '../root/SharedCalendarRootContext';
@@ -21,6 +21,12 @@ const getNavigationDirectionAttribute = (navigationDirection: CalendarNavigation
       };
   }
 };
+
+const ALLOWED_TAGS = new Set(['div', 'section', 'span', 'tbody']);
+
+function getSafeTag(localName: string): string {
+  return ALLOWED_TAGS.has(localName) ? localName : 'div';
+}
 
 const DATA_ATTRIBUTES = [
   CalendarViewportDataAttributes.current,
@@ -69,7 +75,7 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
       capturedNodeRef.current
     ) {
       // Cancel the previous transition's pending animation-finished callback
-      // abortControllerRef.current?.abort();
+      abortControllerRef.current?.abort();
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
@@ -104,7 +110,7 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
 
     // Create the wrapper element of the same type as the source element.
     // It has to be an element of the same tag, especially if it's the calendar body (`tbody`).
-    const wrapper = document.createElement(source.localName);
+    const wrapper = document.createElement(getSafeTag(source.localName));
     for (const child of Array.from(source.childNodes)) {
       wrapper.appendChild(child.cloneNode(true));
     }
@@ -125,7 +131,7 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
     childrenToRender = (
       <React.Fragment>
         {navigationDirection === 'previous' && currentChildren}
-        {React.createElement(previousContentNode.localName, {
+        {React.createElement(getSafeTag(previousContentNode.localName), {
           className: currentContainerRef?.current?.className,
           key: 'previous',
           ref: previousContainerRef,
@@ -141,7 +147,10 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
   }
 
   // Avoids remounting the current month after transition ends.
-  if (currentContainerRef.current) {
+  useIsoLayoutEffect(() => {
+    if (!currentContainerRef.current) {
+      return;
+    }
     if (isTransitioning) {
       currentContainerRef.current.setAttribute('data-current', '');
       if (showStartingStyleAttribute) {
@@ -161,7 +170,7 @@ export function CalendarViewport({ children }: CalendarViewport.Props): React.JS
         currentContainerRef.current.removeAttribute(attribute);
       }
     }
-  }
+  }, [isTransitioning, showStartingStyleAttribute, navigationDirection]);
 
   // When previousContentNode is present, imperatively populate the previous container with the cloned children.
   useIsoLayoutEffect(() => {
