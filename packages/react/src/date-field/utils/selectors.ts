@@ -165,8 +165,12 @@ export const selectors = {
         format.granularity,
       );
       // Return '' for empty, 'invalid' for partial fill (triggers badInput constraint), or the formatted value.
-      const hiddenValue =
-        formattedValue !== '' ? formattedValue : areAllSectionsEmpty ? '' : 'invalid';
+      let hiddenValue: string;
+      if (formattedValue !== '') {
+        hiddenValue = formattedValue;
+      } else {
+        hiddenValue = areAllSectionsEmpty ? '' : 'invalid';
+      }
       return {
         ...config.stringifyValidationPropsForHiddenInput(adapter, validationProps, format, step),
         type: config.hiddenInputType,
