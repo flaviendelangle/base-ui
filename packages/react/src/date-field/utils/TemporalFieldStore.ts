@@ -902,6 +902,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           event.nativeEvent,
         );
       }
+      // Deselect and blur the field
+      else if (event.key === 'Escape') {
+        event.preventDefault();
+        this.removeSelectedSection();
+        this.state.inputRef.current?.blur();
+      }
     },
 
     onMouseUp: (event: React.MouseEvent) => {
@@ -1148,9 +1154,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     sectionIndex: number,
     newDatePartValue: string,
   ) {
+    const currentSection = sectionsList[sectionIndex] as TemporalFieldDatePart;
+    // Return the same reference when the value hasn't changed to preserve selector memoization.
+    if (currentSection.value === newDatePartValue) {
+      return sectionsList;
+    }
     const newSections = [...sectionsList];
     newSections[sectionIndex] = {
-      ...(newSections[sectionIndex] as TemporalFieldDatePart),
+      ...currentSection,
       value: newDatePartValue,
       modified: true,
     };

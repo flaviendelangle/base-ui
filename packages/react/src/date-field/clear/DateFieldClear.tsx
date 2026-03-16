@@ -50,6 +50,10 @@ export interface DateFieldClearState {
    * Whether the field value is empty (all sections are empty).
    */
   empty: boolean;
+  /**
+   * Whether the field is read-only.
+   */
+  readOnly: boolean;
 }
 
 export interface DateFieldClearProps

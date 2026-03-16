@@ -7,4 +7,8 @@ export enum DateFieldClearDataAttributes {
    * Present when the field value is empty (all sections are empty).
    */
   empty = 'data-empty',
+  /**
+   * Present when the field is read-only.
+   */
+  readOnly = 'data-readonly',
 }

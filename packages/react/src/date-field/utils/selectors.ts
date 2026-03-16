@@ -144,6 +144,7 @@ export const selectors = {
     idSelector,
     validationPropsSelector,
     stepSelector,
+    areAllSectionsEmptySelector,
     (
       value,
       format,
@@ -156,19 +157,25 @@ export const selectors = {
       id,
       validationProps,
       step,
-    ) => ({
-      ...config.stringifyValidationPropsForHiddenInput(adapter, validationProps, format, step),
-      type: config.hiddenInputType,
-      value: config.stringifyValueForHiddenInput(adapter, value, format.granularity),
-      name,
-      id,
-      disabled,
-      readOnly,
-      required,
-      'aria-hidden': true,
-      tabIndex: -1,
-      style: visuallyHiddenInput,
-    }),
+      areAllSectionsEmpty,
+    ) => {
+      const formattedValue = config.stringifyValueForHiddenInput(adapter, value, format.granularity);
+      // Return '' for empty, 'invalid' for partial fill (triggers badInput constraint), or the formatted value.
+      const hiddenValue = formattedValue !== '' ? formattedValue : (areAllSectionsEmpty ? '' : 'invalid');
+      return {
+        ...config.stringifyValidationPropsForHiddenInput(adapter, validationProps, format, step),
+        type: config.hiddenInputType,
+        value: hiddenValue,
+        name,
+        id,
+        disabled,
+        readOnly,
+        required,
+        'aria-hidden': true,
+        tabIndex: -1,
+        style: visuallyHiddenInput,
+      };
+    },
   ),
   /**
    * Returns the params to pass to `useField` hook for form integration.
@@ -268,11 +275,12 @@ export const selectors = {
         tabIndex: -1,
         children: 'x',
         'aria-label': translations.temporalFieldClearLabel,
-        'aria-readonly': readOnly || undefined,
+        'aria-disabled': readOnly || undefined,
       },
       state: {
         disabled: disabledFromState || disabledProp,
         empty: areAllSectionsEmpty,
+        readOnly,
       },
     }),
   ),

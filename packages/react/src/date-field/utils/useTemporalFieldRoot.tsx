@@ -135,7 +135,6 @@ export function useTemporalFieldRoot(
     adapter,
     translations,
     direction,
-    config,
     min,
     max,
     referenceDateProp: referenceDate ?? null,
@@ -146,7 +145,7 @@ export function useTemporalFieldRoot(
     id,
     timezoneProp: timezone,
     step,
-    fieldContext: fieldContext ?? null,
+    fieldContext,
     clearErrors,
   });
 
@@ -182,8 +181,8 @@ export function useTemporalFieldRoot(
 
   return (
     <DateFieldRootContext.Provider value={store}>
-      <input {...hiddenInputProps} {...store.hiddenInputEventHandlers} ref={hiddenInputRef} />
       {element}
+      <input {...hiddenInputProps} {...store.hiddenInputEventHandlers} ref={hiddenInputRef} />
     </DateFieldRootContext.Provider>
   );
 }
