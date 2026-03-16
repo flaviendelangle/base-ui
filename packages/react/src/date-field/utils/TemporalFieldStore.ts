@@ -347,34 +347,36 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const manager = this.state.manager;
 
     this.context.onValueChange?.(newValueWithInputTimezone, eventDetails);
-    if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
-      this.update({
-        value: newValueWithInputTimezone,
-        ...this.deriveStateFromNewValue(newValueWithInputTimezone),
-      });
-    }
+    if (!eventDetails.isCanceled) {
+      if (this.state.valueProp === undefined) {
+        this.update({
+          value: newValueWithInputTimezone,
+          ...this.deriveStateFromNewValue(newValueWithInputTimezone),
+        });
+      }
 
-    // Clear form-level errors for this field on every value change
-    const name = selectors.name(this.state);
-    this.state.clearErrors(name);
+      // Clear form-level errors for this field on every value change
+      const name = selectors.name(this.state);
+      this.state.clearErrors(name);
 
-    // Update Field context state (filled, dirty, validation)
-    if (fieldContext) {
-      fieldContext.setFilled(
-        !manager.areValuesEqual(newValueWithInputTimezone, manager.emptyValue),
-      );
+      // Update Field context state (filled, dirty, validation)
+      if (fieldContext) {
+        fieldContext.setFilled(
+          !manager.areValuesEqual(newValueWithInputTimezone, manager.emptyValue),
+        );
 
-      // Set dirty state by comparing with initial value
-      fieldContext.setDirty(
-        !manager.areValuesEqual(
-          newValueWithInputTimezone,
-          fieldContext.validityData.initialValue as TValue,
-        ),
-      );
+        // Set dirty state by comparing with initial value
+        fieldContext.setDirty(
+          !manager.areValuesEqual(
+            newValueWithInputTimezone,
+            fieldContext.validityData.initialValue as TValue,
+          ),
+        );
 
-      // Validate if needed (call without await - async validation doesn't block)
-      if (fieldContext.shouldValidateOnChange()) {
-        fieldContext.validation.commit(newValueWithInputTimezone);
+        // Validate if needed (call without await - async validation doesn't block)
+        if (fieldContext.shouldValidateOnChange()) {
+          fieldContext.validation.commit(newValueWithInputTimezone);
+        }
       }
     }
   }
@@ -569,10 +571,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       );
 
       if (activeDate == null) {
+        const dpIndex = dp.index;
         this.timeoutManager.startTimeout('cleanActiveDateSectionsIfValueNull', 0, () => {
           if (this.state.value === currentValue) {
             const freshSections = selectors.sections(this.state);
-            this.set('sections', fieldConfig.clearDateSections(freshSections, dp));
+            const freshDp = freshSections[dpIndex];
+            this.set('sections', fieldConfig.clearDateSections(freshSections, freshDp));
           }
         });
       }
@@ -937,10 +941,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       // Defer to next tick to check if focus moved to another section
       this.timeoutManager.startTimeout('blur-detection', 0, () => {
         const activeEl = this.getActiveElement();
-        const newSectionIndex = this.getSectionIndexFromDOMElement(activeEl);
+        const isInsideField = !!this.state.inputRef.current?.contains(activeEl);
 
-        // If focus didn't move to another section in this field, clear selection
-        if (newSectionIndex == null || !this.state.inputRef.current?.contains(activeEl)) {
+        // If focus left the field entirely, clear selection and update field state
+        if (!isInsideField) {
           this.removeSelectedSection();
 
           const fieldContext = this.state.fieldContext;
@@ -1120,7 +1124,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return null;
     }
 
-    const indexStr = (element as HTMLElement).dataset?.sectionIndex;
+    const sectionEl = (element as HTMLElement).closest('[data-section-index]') as HTMLElement | null;
+    const indexStr = sectionEl?.dataset?.sectionIndex;
     if (indexStr == null) {
       return null;
     }

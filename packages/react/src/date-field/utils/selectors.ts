@@ -275,19 +275,22 @@ export const selectors = {
     readOnlySelector,
     areAllSectionsEmptySelector,
     translationsSelector,
-    (disabledFromState, readOnly, areAllSectionsEmpty, translations, disabledProp: boolean) => ({
-      props: {
-        tabIndex: -1,
-        children: 'x',
-        'aria-label': translations.temporalFieldClearLabel,
-        'aria-disabled': readOnly || undefined,
-      },
-      state: {
-        disabled: disabledFromState || disabledProp,
-        empty: areAllSectionsEmpty,
-        readOnly,
-      },
-    }),
+    (disabledFromState, readOnly, areAllSectionsEmpty, translations, disabledProp: boolean) => {
+      const disabled = disabledFromState || disabledProp;
+      return {
+        props: {
+          tabIndex: -1,
+          children: 'x',
+          'aria-label': translations.temporalFieldClearLabel,
+          'aria-disabled': (disabled || readOnly) || undefined,
+        },
+        state: {
+          disabled,
+          empty: areAllSectionsEmpty,
+          readOnly,
+        },
+      };
+    },
   ),
 };
 
