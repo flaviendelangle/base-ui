@@ -282,7 +282,7 @@ export const selectors = {
           tabIndex: -1,
           children: 'x',
           'aria-label': translations.temporalFieldClearLabel,
-          'aria-disabled': (disabled || readOnly) || undefined,
+          'aria-disabled': disabled || readOnly || undefined,
         },
         state: {
           disabled,

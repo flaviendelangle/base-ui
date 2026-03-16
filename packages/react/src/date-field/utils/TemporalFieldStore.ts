@@ -1124,7 +1124,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return null;
     }
 
-    const sectionEl = (element as HTMLElement).closest('[data-section-index]') as HTMLElement | null;
+    const sectionEl = (element as HTMLElement).closest(
+      '[data-section-index]',
+    ) as HTMLElement | null;
     const indexStr = sectionEl?.dataset?.sectionIndex;
     if (indexStr == null) {
       return null;
