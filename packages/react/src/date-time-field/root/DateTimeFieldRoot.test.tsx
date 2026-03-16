@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { DateTimeField as DateTimeFieldBase } from '@base-ui/react/date-time-field';
 import { Field } from '@base-ui/react/field';
@@ -28,7 +26,7 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
     });
 
     it('propagates name from Field context', async () => {
@@ -45,8 +43,8 @@ describe('<DateTimeField /> - Field Integration', () => {
         'input[name="appointmentDateTime"]',
       ) as HTMLInputElement;
 
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.name).to.equal('appointmentDateTime');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.name).toBe('appointmentDateTime');
     });
 
     it('Field context name takes precedence over local name prop', async () => {
@@ -61,9 +59,9 @@ describe('<DateTimeField /> - Field Integration', () => {
       const form = screen.getByTestId<HTMLFormElement>('form');
       const hiddenInput = form.querySelector('input[tabindex="-1"]') as HTMLInputElement;
 
-      expect(hiddenInput).not.to.equal(null);
+      expect(hiddenInput).not.toBe(null);
       // Field context name takes precedence (like NumberField and Checkbox)
-      expect(hiddenInput.name).to.equal('fieldname');
+      expect(hiddenInput.name).toBe('fieldname');
     });
 
     it('works without Field context (standalone mode)', async () => {
@@ -76,20 +74,20 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections display the correct values
       const sections = screen.getAllByRole('spinbutton');
       // Should have date sections (month, day, year) + time sections (hours, minutes)
-      expect(sections.length).to.be.at.least(5);
+      expect(sections.length).toBeGreaterThanOrEqual(5);
 
       // Assert the hidden input has the correct name and value
       const hiddenInput = document.querySelector(
         'input[name="standaloneField"]',
       ) as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.name).to.equal('standaloneField');
-      expect(hiddenInput.value).to.equal('2024-03-20T09:45');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.name).toBe('standaloneField');
+      expect(hiddenInput.value).toBe('2024-03-20T09:45');
     });
   });
 
@@ -103,46 +101,46 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections display values
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections.length).to.be.at.least(5); // date + time sections
+      expect(sections.length).toBeGreaterThanOrEqual(5); // date + time sections
 
       // Assert the hidden input has the correct datetime-local format
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.value).to.equal('2024-01-15T14:30');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.value).toBe('2024-01-15T14:30');
     });
 
     it('renders with null value', async () => {
       await render(<DateTimeField format={dateTimeFormat} value={null} />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections are empty (no aria-valuenow when empty)
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).not.to.have.attribute('aria-valuenow');
+        expect(section).not.toHaveAttribute('aria-valuenow');
       });
 
       // Assert the hidden input is empty
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.value).to.equal('');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.value).toBe('');
     });
 
     it('renders disabled', async () => {
       await render(<DateTimeField format={dateTimeFormat} disabled />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert all sections are disabled
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-disabled', 'true');
+        expect(section).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -150,12 +148,12 @@ describe('<DateTimeField /> - Field Integration', () => {
       await render(<DateTimeField format={dateTimeFormat} readOnly />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert all sections are readonly
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-readonly', 'true');
+        expect(section).toHaveAttribute('aria-readonly', 'true');
       });
     });
 
@@ -163,8 +161,8 @@ describe('<DateTimeField /> - Field Integration', () => {
       await render(<DateTimeField format={dateTimeFormat} id="custom-id" />);
 
       const hiddenInput = document.querySelector('input[id="custom-id"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.id).to.equal('custom-id');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.id).toBe('custom-id');
     });
 
     it('forwards inputRef to hidden input', async () => {
@@ -172,8 +170,8 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       await render(<DateTimeField format={dateTimeFormat} inputRef={inputRef} />);
 
-      expect(inputRef.current).not.to.equal(null);
-      expect(inputRef.current).to.be.instanceOf(HTMLInputElement);
+      expect(inputRef.current).not.toBe(null);
+      expect(inputRef.current).toBeInstanceOf(HTMLInputElement);
     });
   });
 
@@ -183,12 +181,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       // Should have date sections (month, day, year) + time sections (hours, minutes)
-      expect(sections.length).to.be.at.least(5);
+      expect(sections.length).toBeGreaterThanOrEqual(5);
 
       // Verify sections are editable (not disabled/readonly)
       sections.forEach((section) => {
-        expect(section).not.to.have.attribute('aria-disabled', 'true');
-        expect(section).not.to.have.attribute('aria-readonly', 'true');
+        expect(section).not.toHaveAttribute('aria-disabled', 'true');
+        expect(section).not.toHaveAttribute('aria-readonly', 'true');
       });
     });
 
@@ -199,13 +197,13 @@ describe('<DateTimeField /> - Field Integration', () => {
       const sections = screen.getAllByRole('spinbutton');
       // Should include meridiem section
       const meridiemSection = sections.find((s) => s.getAttribute('aria-label') === 'Meridiem');
-      expect(meridiemSection).not.to.equal(undefined);
+      expect(meridiemSection).not.toBe(undefined);
     });
   });
 
   describe('Form submission', () => {
     it('submits the value in datetime-local format via onFormSubmit', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="appointmentDateTime">
@@ -220,12 +218,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(handleSubmit.firstCall.args[0].appointmentDateTime).to.equal('2024-03-20T09:30');
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(handleSubmit.mock.calls[0][0].appointmentDateTime).toBe('2024-03-20T09:30');
     });
 
     it('submits empty string when value is null', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="appointmentDateTime">
@@ -237,12 +235,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(handleSubmit.firstCall.args[0].appointmentDateTime).to.equal('');
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(handleSubmit.mock.calls[0][0].appointmentDateTime).toBe('');
     });
 
     it('validates with rangeUnderflow when date is before minDate', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const minDate = adapter.date('2024-03-20', 'default');
 
       await render(
@@ -263,12 +261,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Date is too early');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Date is too early');
     });
 
     it('validates with rangeOverflow when date is after maxDate', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const maxDate = adapter.date('2024-03-20', 'default');
 
       await render(
@@ -289,12 +287,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Date is too late');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Date is too late');
     });
 
     it('validates with rangeUnderflow when datetime is before minDate (same date, earlier time)', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const minDate = adapter.date('2024-03-20T09:00', 'default');
 
       await render(
@@ -315,12 +313,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('DateTime is too early');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too early');
     });
 
     it('validates with rangeOverflow when datetime is after maxDate (same date, later time)', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const maxDate = adapter.date('2024-03-20T17:00', 'default');
 
       await render(
@@ -341,8 +339,8 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('DateTime is too late');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too late');
     });
   });
 
@@ -358,16 +356,16 @@ describe('<DateTimeField /> - Field Integration', () => {
       let sections = screen.getAllByRole('spinbutton');
       const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
       const minutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
-      expect(hoursSection).to.have.attribute('aria-valuenow', '9');
-      expect(minutesSection).to.have.attribute('aria-valuenow', '30');
+      expect(hoursSection).toHaveAttribute('aria-valuenow', '9');
+      expect(minutesSection).toHaveAttribute('aria-valuenow', '30');
 
       await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
 
       sections = screen.getAllByRole('spinbutton');
       const newHoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
       const newMinutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
-      expect(newHoursSection).to.have.attribute('aria-valuenow', '14');
-      expect(newMinutesSection).to.have.attribute('aria-valuenow', '45');
+      expect(newHoursSection).toHaveAttribute('aria-valuenow', '14');
+      expect(newMinutesSection).toHaveAttribute('aria-valuenow', '45');
     });
 
     it('should update hidden input when value prop changes', async () => {
@@ -379,18 +377,18 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       let hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).to.equal('2024-01-15T09:30');
+      expect(hiddenInput.value).toBe('2024-01-15T09:30');
 
       await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
 
       hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).to.equal('2024-01-15T14:45');
+      expect(hiddenInput.value).toBe('2024-01-15T14:45');
     });
   });
 
   describe('Form validation - required', () => {
     it('should show valueMissing error when required and empty', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="datetime">
@@ -405,12 +403,12 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Date and time is required');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Date and time is required');
     });
 
     it('should not show valueMissing error when required and filled', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="datetime">
@@ -429,8 +427,8 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(screen.queryByTestId('error')).to.equal(null);
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(screen.queryByTestId('error')).toBe(null);
     });
   });
 
@@ -439,7 +437,7 @@ describe('<DateTimeField /> - Field Integration', () => {
       await render(<DateTimeField format={dateTimeFormat} />);
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.type).to.equal('datetime-local');
+      expect(hiddenInput.type).toBe('datetime-local');
     });
 
     it('should set min attribute when minDate is provided', async () => {
@@ -451,7 +449,7 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.min).to.equal('2024-01-01T09:00:00');
+      expect(hiddenInput.min).toBe('2024-01-01T09:00:00');
     });
 
     it('should set max attribute when maxDate is provided', async () => {
@@ -463,7 +461,7 @@ describe('<DateTimeField /> - Field Integration', () => {
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.max).to.equal('2024-12-31T17:00:00');
+      expect(hiddenInput.max).toBe('2024-12-31T17:00:00');
     });
   });
 
@@ -480,7 +478,7 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const meridiemSection = sections.find((s) => s.getAttribute('aria-label') === 'Meridiem');
-      expect(meridiemSection).not.to.equal(undefined);
+      expect(meridiemSection).not.toBe(undefined);
     });
 
     it('should display PM for afternoon times', async () => {
@@ -493,7 +491,7 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-      expect(hoursSection).to.have.attribute('aria-valuenow', '2'); // 2 PM
+      expect(hoursSection).toHaveAttribute('aria-valuenow', '2'); // 2 PM
     });
 
     it('should display AM for morning times', async () => {
@@ -506,7 +504,7 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-      expect(hoursSection).to.have.attribute('aria-valuenow', '9');
+      expect(hoursSection).toHaveAttribute('aria-valuenow', '9');
     });
   });
 
@@ -522,7 +520,7 @@ describe('<DateTimeField /> - Field Integration', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const secondsSection = sections.find((s) => s.getAttribute('aria-label') === 'Seconds');
-      expect(secondsSection).not.to.equal(undefined);
+      expect(secondsSection).not.toBe(undefined);
     });
   });
 });

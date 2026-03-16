@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 // TODO Temporal: Replace with `@base-ui/react/types` import when Temporal components will become public.
 import { TemporalAdapter } from '../../types/temporal';
 import { TemporalAdapterDateFns } from '../../temporal-adapter-date-fns';
@@ -17,7 +16,7 @@ adapters.forEach((adapter) => {
           value: null,
           validationProps: {},
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should return null when no minDate and no maxDate are provided', () => {
@@ -27,7 +26,7 @@ adapters.forEach((adapter) => {
           value: adapter.date('2025-06-03T10:30', 'default'),
           validationProps: {},
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should return null when the provided value is between the minDate and the maxDate', () => {
@@ -40,7 +39,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('2025-06-03T12:00', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should return null when the provided value equals the minDate time', () => {
@@ -52,7 +51,7 @@ adapters.forEach((adapter) => {
             minDate: adapter.date('2025-06-03T10:30', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should return null when the provided value equals the maxDate time', () => {
@@ -64,7 +63,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('2025-06-03T10:30', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it("should return 'before-min-time' when value time is before minDate time", () => {
@@ -76,7 +75,7 @@ adapters.forEach((adapter) => {
             minDate: adapter.date('2025-06-03T10:30', 'default'),
           },
         }),
-      ).to.equal('before-min-time');
+      ).toBe('before-min-time');
     });
 
     it("should return 'after-max-time' when value time is after maxDate time", () => {
@@ -88,7 +87,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('2025-06-03T10:30', 'default'),
           },
         }),
-      ).to.equal('after-max-time');
+      ).toBe('after-max-time');
     });
 
     it("should return 'invalid' when receiving an invalid date", () => {
@@ -98,7 +97,7 @@ adapters.forEach((adapter) => {
           value: adapter.date('Invalid date', 'default'),
           validationProps: {},
         }),
-      ).to.equal('invalid');
+      ).toBe('invalid');
     });
 
     it('should return null when minDate is provided but invalid', () => {
@@ -110,7 +109,7 @@ adapters.forEach((adapter) => {
             minDate: adapter.date('Invalid date', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should return null when maxDate is provided but invalid', () => {
@@ -122,7 +121,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('Invalid date', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
     });
 
     it('should only compare time portion (ignore date part)', () => {
@@ -136,7 +135,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('2025-12-31T12:00', 'default'),
           },
         }),
-      ).to.equal(null);
+      ).toBe(null);
 
       // Value time is before minDate time (regardless of date)
       expect(
@@ -147,7 +146,7 @@ adapters.forEach((adapter) => {
             minDate: adapter.date('2025-01-01T08:00', 'default'),
           },
         }),
-      ).to.equal('before-min-time');
+      ).toBe('before-min-time');
 
       // Value time is after maxDate time (regardless of date)
       expect(
@@ -158,7 +157,7 @@ adapters.forEach((adapter) => {
             maxDate: adapter.date('2025-12-31T12:00', 'default'),
           },
         }),
-      ).to.equal('after-max-time');
+      ).toBe('after-max-time');
     });
   });
 });

@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
@@ -22,9 +20,9 @@ describe('TemporalFieldStore - Value', () => {
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
 
-        expect(adapter.isValid(store.state.value)).to.equal(true);
-        expect(adapter.getMonth(store.state.value!)).to.equal(5); // June (0-indexed)
-        expect(adapter.getDate(store.state.value!)).to.equal(15);
+        expect(adapter.isValid(store.state.value)).toBe(true);
+        expect(adapter.getMonth(store.state.value!)).toBe(5); // June (0-indexed)
+        expect(adapter.getDate(store.state.value!)).toBe(15);
       });
 
       it('should update sections to match new value', () => {
@@ -35,15 +33,15 @@ describe('TemporalFieldStore - Value', () => {
 
         const sections = selectors.sections(store.state);
         const dateParts = sections.filter((s) => s.type === 'datePart');
-        expect(dateParts[0].value).to.equal('06'); // month
-        expect(dateParts[1].value).to.equal('15'); // day
-        expect(dateParts[2].value).to.equal('2024'); // year
+        expect(dateParts[0].value).toBe('06'); // month
+        expect(dateParts[1].value).toBe('15'); // day
+        expect(dateParts[2].value).toBe('2024'); // year
       });
     });
 
     describe('controlled mode', () => {
       it('should call onValueChange but not update store value when value prop is set', () => {
-        const onValueChangeSpy = spy();
+        const onValueChangeSpy = vi.fn();
         const controlledValue = adapter.date('2024-01-01', 'default');
         const store = new TemporalFieldStore(
           {
@@ -58,15 +56,15 @@ describe('TemporalFieldStore - Value', () => {
         store.publish(newDate);
 
         // onValueChange should be called
-        expect(onValueChangeSpy.callCount).to.equal(1);
+        expect(onValueChangeSpy.mock.calls.length).toBe(1);
         // Store value should NOT be updated (controlled)
-        expect(adapter.getMonth(store.state.value!)).to.equal(0); // January, unchanged
+        expect(adapter.getMonth(store.state.value!)).toBe(0); // January, unchanged
       });
     });
 
     describe('onValueChange callback', () => {
       it('should call onValueChange with the new value', () => {
-        const onValueChangeSpy = spy();
+        const onValueChangeSpy = vi.fn();
         const store = new TemporalFieldStore(
           {
             ...DEFAULT_PARAMETERS,
@@ -78,12 +76,12 @@ describe('TemporalFieldStore - Value', () => {
         const newDate = adapter.date('2024-06-15', 'default');
         store.publish(newDate);
 
-        expect(onValueChangeSpy.callCount).to.equal(1);
-        expect(adapter.isValid(onValueChangeSpy.firstCall.args[0])).to.equal(true);
+        expect(onValueChangeSpy.mock.calls.length).toBe(1);
+        expect(adapter.isValid(onValueChangeSpy.mock.calls[0][0])).toBe(true);
       });
 
       it('should pass event details as second argument', () => {
-        const onValueChangeSpy = spy();
+        const onValueChangeSpy = vi.fn();
         const store = new TemporalFieldStore(
           {
             ...DEFAULT_PARAMETERS,
@@ -94,7 +92,7 @@ describe('TemporalFieldStore - Value', () => {
 
         store.publish(adapter.date('2024-06-15', 'default'));
 
-        expect(onValueChangeSpy.firstCall.args[1]).to.not.equal(undefined);
+        expect(onValueChangeSpy.mock.calls[0][1]).not.toBe(undefined);
       });
     });
   });
@@ -105,10 +103,10 @@ describe('TemporalFieldStore - Value', () => {
 
       store.updateFromString('06/15/2024');
 
-      expect(adapter.isValid(store.state.value)).to.equal(true);
-      expect(adapter.getMonth(store.state.value!)).to.equal(5);
-      expect(adapter.getDate(store.state.value!)).to.equal(15);
-      expect(adapter.getYear(store.state.value!)).to.equal(2024);
+      expect(adapter.isValid(store.state.value)).toBe(true);
+      expect(adapter.getMonth(store.state.value!)).toBe(5);
+      expect(adapter.getDate(store.state.value!)).toBe(15);
+      expect(adapter.getYear(store.state.value!)).toBe(2024);
     });
 
     it('should parse a time string and update the value', () => {
@@ -119,13 +117,13 @@ describe('TemporalFieldStore - Value', () => {
 
       store.updateFromString('14:30');
 
-      expect(adapter.isValid(store.state.value)).to.equal(true);
-      expect(adapter.getHours(store.state.value!)).to.equal(14);
-      expect(adapter.getMinutes(store.state.value!)).to.equal(30);
+      expect(adapter.isValid(store.state.value)).toBe(true);
+      expect(adapter.getHours(store.state.value!)).toBe(14);
+      expect(adapter.getMinutes(store.state.value!)).toBe(30);
     });
 
     it('should call onValueChange when parsing a valid string', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -136,7 +134,7 @@ describe('TemporalFieldStore - Value', () => {
 
       store.updateFromString('06/15/2024');
 
-      expect(onValueChangeSpy.callCount).to.equal(1);
+      expect(onValueChangeSpy.mock.calls.length).toBe(1);
     });
   });
 
@@ -150,13 +148,13 @@ describe('TemporalFieldStore - Value', () => {
         dateFieldConfig,
       );
 
-      expect(store.state.value).to.not.equal(null);
+      expect(store.state.value).not.toBe(null);
       store.clear();
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
     });
 
     it('should call onValueChange with null when clearing', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -167,8 +165,8 @@ describe('TemporalFieldStore - Value', () => {
       );
 
       store.clear();
-      expect(onValueChangeSpy.callCount).to.equal(1);
-      expect(onValueChangeSpy.firstCall.args[0]).to.equal(null);
+      expect(onValueChangeSpy.mock.calls.length).toBe(1);
+      expect(onValueChangeSpy.mock.calls[0][0]).toBe(null);
     });
 
     it('should clear section values when value is already null (double-clear)', () => {
@@ -189,7 +187,7 @@ describe('TemporalFieldStore - Value', () => {
       const sections = selectors.sections(store.state);
       const dateParts = sections.filter((s) => s.type === 'datePart');
       dateParts.forEach((section) => {
-        expect(section.value).to.equal('');
+        expect(section.value).toBe('');
       });
     });
 
@@ -203,9 +201,9 @@ describe('TemporalFieldStore - Value', () => {
         timeFieldConfig,
       );
 
-      expect(store.state.value).to.not.equal(null);
+      expect(store.state.value).not.toBe(null);
       store.clear();
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
     });
   });
 
@@ -224,9 +222,9 @@ describe('TemporalFieldStore - Value', () => {
 
       // Should have sections matching the new date
       const dateParts = derived.sections.filter((s) => s.type === 'datePart');
-      expect(dateParts[0].value).to.equal('06'); // month
-      expect(dateParts[1].value).to.equal('15'); // day
-      expect(dateParts[2].value).to.equal('2024'); // year
+      expect(dateParts[0].value).toBe('06'); // month
+      expect(dateParts[1].value).toBe('15'); // day
+      expect(dateParts[2].value).toBe('2024'); // year
     });
 
     it('should update reference value for a valid date', () => {
@@ -241,7 +239,7 @@ describe('TemporalFieldStore - Value', () => {
       const newDate = adapter.date('2024-06-15', 'default');
       const derived = store.deriveStateFromNewValue(newDate);
 
-      expect(adapter.isValid(derived.referenceValue)).to.equal(true);
+      expect(adapter.isValid(derived.referenceValue)).toBe(true);
     });
 
     it('should return sections with empty values for null value', () => {
@@ -257,7 +255,7 @@ describe('TemporalFieldStore - Value', () => {
 
       const dateParts = derived.sections.filter((s) => s.type === 'datePart');
       dateParts.forEach((section) => {
-        expect(section.value).to.equal('');
+        expect(section.value).toBe('');
       });
     });
   });

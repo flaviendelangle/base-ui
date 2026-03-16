@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { TimeField as TimeFieldBase } from '@base-ui/react/time-field';
 import { createRenderer, createTemporalRenderer } from '#test-utils';
@@ -32,7 +30,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]); // hours section
         fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '15'); // 14 -> 15
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '15'); // 14 -> 15
       });
 
       it('should decrement hours section value on ArrowDown', async () => {
@@ -47,7 +45,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'ArrowDown' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '13'); // 14 -> 13
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '13'); // 14 -> 13
       });
 
       it('should wrap hours from 23 to 0 on ArrowUp', async () => {
@@ -62,7 +60,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '0'); // 23 -> 0
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '0'); // 23 -> 0
       });
 
       it('should increment minutes section value on ArrowUp', async () => {
@@ -77,7 +75,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[1]); // minutes section
         fireEvent.keyDown(sections[1], { key: 'ArrowUp' });
 
-        expect(sections[1]).to.have.attribute('aria-valuenow', '31'); // 30 -> 31
+        expect(sections[1]).toHaveAttribute('aria-valuenow', '31'); // 30 -> 31
       });
     });
 
@@ -95,7 +93,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
 
         // Minutes section should now be selected
-        expect(sections[1]).to.have.attribute('aria-valuenow', '30');
+        expect(sections[1]).toHaveAttribute('aria-valuenow', '30');
       });
 
       it('should move focus to the previous section on ArrowLeft', async () => {
@@ -111,7 +109,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
 
         // Hours section should now be selected
-        expect(sections[0]).to.have.attribute('aria-valuenow', '14');
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '14');
       });
     });
 
@@ -128,7 +126,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'Delete' });
 
-        expect(sections[0]).not.to.have.attribute('aria-valuenow');
+        expect(sections[0]).not.toHaveAttribute('aria-valuenow');
       });
 
       it('should not clear when field is readOnly', async () => {
@@ -145,7 +143,7 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.keyDown(sections[0], { key: 'Delete' });
 
         // Value should remain unchanged
-        expect(sections[0]).to.have.attribute('aria-valuenow', '14');
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '14');
       });
     });
   });
@@ -161,7 +159,7 @@ describe('<TimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       // 12-hour format should have 3 spinbuttons: hours, minutes, meridiem
-      expect(sections.length).to.equal(3);
+      expect(sections.length).toBe(3);
     });
 
     it('should toggle meridiem with ArrowUp', async () => {
@@ -181,7 +179,7 @@ describe('<TimeField /> - DOM Interactions', () => {
       const newValue = meridiemSection.textContent;
 
       // Should have toggled
-      expect(newValue).to.not.equal(initialValue);
+      expect(newValue).not.toBe(initialValue);
     });
   });
 
@@ -191,7 +189,7 @@ describe('<TimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section.textContent).to.not.equal('');
+        expect(section.textContent).not.toBe('');
       });
     });
 
@@ -204,8 +202,8 @@ describe('<TimeField /> - DOM Interactions', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0].textContent).to.equal('14'); // hours
-      expect(sections[1].textContent).to.equal('30'); // minutes
+      expect(sections[0].textContent).toBe('14'); // hours
+      expect(sections[1].textContent).toBe('30'); // minutes
     });
   });
 
@@ -221,7 +219,7 @@ describe('<TimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-disabled', 'true');
+        expect(section).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -236,14 +234,14 @@ describe('<TimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section.tabIndex).to.equal(-1);
+        expect(section.tabIndex).toBe(-1);
       });
     });
   });
 
   describe('Value change callback', () => {
     it('should call onValueChange when section value changes via ArrowUp', async () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       await render(
         <TimeField
           format={time24Format}
@@ -256,7 +254,7 @@ describe('<TimeField /> - DOM Interactions', () => {
       fireEvent.focus(sections[0]);
       fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
   });
 });

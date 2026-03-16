@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { DateTimeField as DateTimeFieldBase } from '@base-ui/react/date-time-field';
 import { createRenderer, createTemporalRenderer } from '#test-utils';
@@ -29,12 +27,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-        expect(monthSection).not.to.equal(undefined);
+        expect(monthSection).not.toBe(undefined);
 
         fireEvent.focus(monthSection!);
         fireEvent.keyDown(monthSection!, { key: 'ArrowUp' });
 
-        expect(monthSection).to.have.attribute('aria-valuenow', '4'); // March -> April
+        expect(monthSection).toHaveAttribute('aria-valuenow', '4'); // March -> April
       });
 
       it('should decrement month section value on ArrowDown', async () => {
@@ -47,12 +45,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-        expect(monthSection).not.to.equal(undefined);
+        expect(monthSection).not.toBe(undefined);
 
         fireEvent.focus(monthSection!);
         fireEvent.keyDown(monthSection!, { key: 'ArrowDown' });
 
-        expect(monthSection).to.have.attribute('aria-valuenow', '2'); // March -> February
+        expect(monthSection).toHaveAttribute('aria-valuenow', '2'); // March -> February
       });
 
       it('should wrap month from December to January on ArrowUp', async () => {
@@ -65,12 +63,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-        expect(monthSection).not.to.equal(undefined);
+        expect(monthSection).not.toBe(undefined);
 
         fireEvent.focus(monthSection!);
         fireEvent.keyDown(monthSection!, { key: 'ArrowUp' });
 
-        expect(monthSection).to.have.attribute('aria-valuenow', '1'); // December -> January
+        expect(monthSection).toHaveAttribute('aria-valuenow', '1'); // December -> January
       });
 
       it('should increment hours section value on ArrowUp', async () => {
@@ -83,12 +81,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-        expect(hoursSection).not.to.equal(undefined);
+        expect(hoursSection).not.toBe(undefined);
 
         fireEvent.focus(hoursSection!);
         fireEvent.keyDown(hoursSection!, { key: 'ArrowUp' });
 
-        expect(hoursSection).to.have.attribute('aria-valuenow', '15'); // 14 -> 15
+        expect(hoursSection).toHaveAttribute('aria-valuenow', '15'); // 14 -> 15
       });
 
       it('should decrement minutes section value on ArrowDown', async () => {
@@ -101,12 +99,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const minutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
-        expect(minutesSection).not.to.equal(undefined);
+        expect(minutesSection).not.toBe(undefined);
 
         fireEvent.focus(minutesSection!);
         fireEvent.keyDown(minutesSection!, { key: 'ArrowDown' });
 
-        expect(minutesSection).to.have.attribute('aria-valuenow', '29'); // 30 -> 29
+        expect(minutesSection).toHaveAttribute('aria-valuenow', '29'); // 30 -> 29
       });
     });
 
@@ -121,12 +119,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-        expect(monthSection).not.to.equal(undefined);
+        expect(monthSection).not.toBe(undefined);
 
         fireEvent.focus(monthSection!);
         fireEvent.keyDown(monthSection!, { key: 'Delete' });
 
-        expect(monthSection).not.to.have.attribute('aria-valuenow');
+        expect(monthSection).not.toHaveAttribute('aria-valuenow');
       });
 
       it('should clear the active time section value on Delete', async () => {
@@ -139,12 +137,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-        expect(hoursSection).not.to.equal(undefined);
+        expect(hoursSection).not.toBe(undefined);
 
         fireEvent.focus(hoursSection!);
         fireEvent.keyDown(hoursSection!, { key: 'Delete' });
 
-        expect(hoursSection).not.to.have.attribute('aria-valuenow');
+        expect(hoursSection).not.toHaveAttribute('aria-valuenow');
       });
 
       it('should not clear when field is readOnly', async () => {
@@ -158,13 +156,13 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
         const sections = screen.getAllByRole('spinbutton');
         const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-        expect(monthSection).not.to.equal(undefined);
+        expect(monthSection).not.toBe(undefined);
 
         fireEvent.focus(monthSection!);
         fireEvent.keyDown(monthSection!, { key: 'Delete' });
 
         // Value should remain unchanged
-        expect(monthSection).to.have.attribute('aria-valuenow', '3');
+        expect(monthSection).toHaveAttribute('aria-valuenow', '3');
       });
     });
   });
@@ -176,7 +174,7 @@ describe('<DateTimeField /> - DOM Interactions', () => {
       const sections = screen.getAllByRole('spinbutton');
       // Empty sections should show placeholder, not empty string
       sections.forEach((section) => {
-        expect(section.textContent).to.not.equal('');
+        expect(section.textContent).not.toBe('');
       });
     });
 
@@ -195,11 +193,11 @@ describe('<DateTimeField /> - DOM Interactions', () => {
       const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
       const minutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
 
-      expect(monthSection?.textContent).to.equal('03');
-      expect(daySection?.textContent).to.equal('15');
-      expect(yearSection?.textContent).to.equal('2024');
-      expect(hoursSection?.textContent).to.equal('14');
-      expect(minutesSection?.textContent).to.equal('30');
+      expect(monthSection?.textContent).toBe('03');
+      expect(daySection?.textContent).toBe('15');
+      expect(yearSection?.textContent).toBe('2024');
+      expect(hoursSection?.textContent).toBe('14');
+      expect(minutesSection?.textContent).toBe('30');
     });
   });
 
@@ -215,7 +213,7 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-disabled', 'true');
+        expect(section).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -230,14 +228,14 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section.tabIndex).to.equal(-1);
+        expect(section.tabIndex).toBe(-1);
       });
     });
   });
 
   describe('Value change callback', () => {
     it('should call onValueChange when date section value changes via ArrowUp', async () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       await render(
         <DateTimeField
           format={dateTimeFormat}
@@ -248,16 +246,16 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const monthSection = sections.find((s) => s.getAttribute('aria-label') === 'Month');
-      expect(monthSection).not.to.equal(undefined);
+      expect(monthSection).not.toBe(undefined);
 
       fireEvent.focus(monthSection!);
       fireEvent.keyDown(monthSection!, { key: 'ArrowUp' });
 
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should call onValueChange when time section value changes via ArrowUp', async () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       await render(
         <DateTimeField
           format={dateTimeFormat}
@@ -268,12 +266,12 @@ describe('<DateTimeField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-      expect(hoursSection).not.to.equal(undefined);
+      expect(hoursSection).not.toBe(undefined);
 
       fireEvent.focus(hoursSection!);
       fireEvent.keyDown(hoursSection!, { key: 'ArrowUp' });
 
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
   });
 });

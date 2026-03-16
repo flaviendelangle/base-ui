@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalAdapter, TemporalValue } from '../../types/temporal';
 import { TemporalFieldStore } from './TemporalFieldStore';
@@ -59,7 +58,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0); // month section
-        expect(props.role).to.equal('spinbutton');
+        expect(props.role).toBe('spinbutton');
       });
 
       it('should set aria-label to Month for month sections', () => {
@@ -72,7 +71,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props['aria-label']).to.equal('Month');
+        expect(props['aria-label']).toBe('Month');
       });
 
       it('should set aria-label to Day for day sections', () => {
@@ -85,7 +84,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 2); // day section (index 2, after separator)
-        expect(props['aria-label']).to.equal('Day');
+        expect(props['aria-label']).toBe('Day');
       });
 
       it('should set aria-label to Year for year sections', () => {
@@ -98,7 +97,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 4); // year section
-        expect(props['aria-label']).to.equal('Year');
+        expect(props['aria-label']).toBe('Year');
       });
 
       it('should set aria-label to Hours for hours sections', () => {
@@ -112,7 +111,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props['aria-label']).to.equal('Hours');
+        expect(props['aria-label']).toBe('Hours');
       });
 
       it('should set aria-label to Minutes for minutes sections', () => {
@@ -126,7 +125,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 2);
-        expect(props['aria-label']).to.equal('Minutes');
+        expect(props['aria-label']).toBe('Minutes');
       });
 
       it('should set aria-valuenow to numeric month value', () => {
@@ -139,14 +138,14 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props['aria-valuenow']).to.equal(3);
+        expect(props['aria-valuenow']).toBe(3);
       });
 
       it('should set aria-valuenow to undefined when section is empty', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
-        expect(props['aria-valuenow']).to.equal(undefined);
+        expect(props['aria-valuenow']).toBe(undefined);
       });
 
       describe('with localized digits (Arabic-Indic)', () => {
@@ -163,7 +162,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           );
 
           const props = getProps(store, 0); // month
-          expect(props['aria-valuenow']).to.equal(3);
+          expect(props['aria-valuenow']).toBe(3);
         });
 
         it('should set aria-valuenow to numeric day value', () => {
@@ -177,7 +176,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           );
 
           const props = getProps(store, 2); // day
-          expect(props['aria-valuenow']).to.equal(15);
+          expect(props['aria-valuenow']).toBe(15);
         });
 
         it('should set aria-valuenow to numeric year value', () => {
@@ -191,7 +190,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           );
 
           const props = getProps(store, 4); // year
-          expect(props['aria-valuenow']).to.equal(2024);
+          expect(props['aria-valuenow']).toBe(2024);
         });
 
         it('should set aria-valuenow to numeric hours value', () => {
@@ -206,7 +205,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           );
 
           const props = getProps(store, 0); // hours
-          expect(props['aria-valuenow']).to.equal(14);
+          expect(props['aria-valuenow']).toBe(14);
         });
 
         it('should set aria-valuenow to numeric minutes value', () => {
@@ -221,7 +220,7 @@ describe('TemporalFieldStore - Elements Props', () => {
           );
 
           const props = getProps(store, 2); // minutes
-          expect(props['aria-valuenow']).to.equal(30);
+          expect(props['aria-valuenow']).toBe(30);
         });
       });
 
@@ -229,7 +228,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
-        expect(props['aria-valuetext']).to.equal('Empty');
+        expect(props['aria-valuetext']).toBe('Empty');
       });
 
       it('should set aria-valuemin and aria-valuemax from token boundaries', () => {
@@ -242,8 +241,8 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0); // month
-        expect(props['aria-valuemin']).to.equal(1);
-        expect(props['aria-valuemax']).to.equal(12);
+        expect(props['aria-valuemin']).toBe(1);
+        expect(props['aria-valuemax']).toBe(12);
       });
     });
 
@@ -252,14 +251,14 @@ describe('TemporalFieldStore - Elements Props', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
-        expect(props.contentEditable).to.equal(true);
+        expect(props.contentEditable).toBe(true);
       });
 
       it('should set tabIndex to 0 when editable', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
-        expect(props.tabIndex).to.equal(0);
+        expect(props.tabIndex).toBe(0);
       });
 
       it('should set tabIndex to -1 when disabled', () => {
@@ -272,7 +271,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props.tabIndex).to.equal(-1);
+        expect(props.tabIndex).toBe(-1);
       });
 
       it('should set aria-disabled to true when disabled', () => {
@@ -285,7 +284,7 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props['aria-disabled']).to.equal(true);
+        expect(props['aria-disabled']).toBe(true);
       });
 
       it('should set aria-readonly to true when readOnly', () => {
@@ -298,14 +297,14 @@ describe('TemporalFieldStore - Elements Props', () => {
         );
 
         const props = getProps(store, 0);
-        expect(props['aria-readonly']).to.equal(true);
+        expect(props['aria-readonly']).toBe(true);
       });
 
       it('should set inputMode to numeric for digit sections', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
         const props = getProps(store, 0);
-        expect(props.inputMode).to.equal('numeric');
+        expect(props.inputMode).toBe('numeric');
       });
     });
   });
@@ -321,7 +320,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 1); // first separator "/"
-      expect(props['aria-hidden']).to.equal(true);
+      expect(props['aria-hidden']).toBe(true);
     });
 
     it('should set children to separator value', () => {
@@ -334,7 +333,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 1);
-      expect(props.children).to.equal('/');
+      expect(props.children).toBe('/');
     });
 
     it('should not set role on separator sections', () => {
@@ -347,7 +346,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 1);
-      expect(props.role).to.equal(undefined);
+      expect(props.role).toBe(undefined);
     });
 
     it('should not set tabIndex on separator sections', () => {
@@ -360,7 +359,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 1);
-      expect(props.tabIndex).to.equal(undefined);
+      expect(props.tabIndex).toBe(undefined);
     });
   });
 
@@ -376,7 +375,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 4); // meridiem section
-      expect(props['aria-label']).to.equal('Meridiem');
+      expect(props['aria-label']).toBe('Meridiem');
     });
 
     it('should set inputMode to text for letter content type', () => {
@@ -390,7 +389,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 4);
-      expect(props.inputMode).to.equal('text');
+      expect(props.inputMode).toBe('text');
     });
   });
 
@@ -405,7 +404,7 @@ describe('TemporalFieldStore - Elements Props', () => {
       );
 
       const props = getProps(store, 0); // month
-      expect(props.children).to.equal('03');
+      expect(props.children).toBe('03');
     });
 
     it('should set children to placeholder when section is empty', () => {
@@ -413,8 +412,8 @@ describe('TemporalFieldStore - Elements Props', () => {
 
       const props = getProps(store, 0); // month (empty)
       // The placeholder is defined by the token
-      expect(props.children).to.not.equal('');
-      expect(props.children).to.not.equal(undefined);
+      expect(props.children).not.toBe('');
+      expect(props.children).not.toBe(undefined);
     });
   });
 });

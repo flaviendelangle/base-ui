@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { screen } from '@mui/internal-test-utils';
 import { DateField as DateFieldBase } from '@base-ui/react/date-field';
 import { TimeField as TimeFieldBase } from '@base-ui/react/time-field';
@@ -44,35 +43,35 @@ describe('Temporal field translations', () => {
       await render(<DateField format={numericDateFormat} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Month');
-      expect(sections[1]).to.have.attribute('aria-label', 'Day');
-      expect(sections[2]).to.have.attribute('aria-label', 'Year');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Month');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Day');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Year');
     });
 
     it('should render TimeField sections with English aria-labels', async () => {
       await render(<TimeField format={time24Format} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
     });
 
     it('should render DateTimeField sections with English aria-labels', async () => {
       await render(<DateTimeField format={dateTimeFormat} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Month');
-      expect(sections[1]).to.have.attribute('aria-label', 'Day');
-      expect(sections[2]).to.have.attribute('aria-label', 'Year');
-      expect(sections[3]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[4]).to.have.attribute('aria-label', 'Minutes');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Month');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Day');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Year');
+      expect(sections[3]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[4]).toHaveAttribute('aria-label', 'Minutes');
     });
 
     it('should render empty sections with English aria-valuetext', async () => {
       await render(<DateField format={numericDateFormat} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuetext', 'Empty');
+      expect(sections[0]).toHaveAttribute('aria-valuetext', 'Empty');
     });
   });
 
@@ -85,9 +84,9 @@ describe('Temporal field translations', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Mois');
-      expect(sections[1]).to.have.attribute('aria-label', 'Jour');
-      expect(sections[2]).to.have.attribute('aria-label', 'Année');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Mois');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Jour');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Année');
     });
 
     it('should render TimeField sections with French aria-labels', async () => {
@@ -98,8 +97,8 @@ describe('Temporal field translations', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Heures');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Heures');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
     });
 
     it('should render DateTimeField sections with French aria-labels', async () => {
@@ -110,11 +109,11 @@ describe('Temporal field translations', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-label', 'Mois');
-      expect(sections[1]).to.have.attribute('aria-label', 'Jour');
-      expect(sections[2]).to.have.attribute('aria-label', 'Année');
-      expect(sections[3]).to.have.attribute('aria-label', 'Heures');
-      expect(sections[4]).to.have.attribute('aria-label', 'Minutes');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Mois');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Jour');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Année');
+      expect(sections[3]).toHaveAttribute('aria-label', 'Heures');
+      expect(sections[4]).toHaveAttribute('aria-label', 'Minutes');
     });
 
     it('should render empty sections with French aria-valuetext', async () => {
@@ -125,7 +124,7 @@ describe('Temporal field translations', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuetext', 'Vide');
+      expect(sections[0]).toHaveAttribute('aria-valuetext', 'Vide');
     });
   });
 });

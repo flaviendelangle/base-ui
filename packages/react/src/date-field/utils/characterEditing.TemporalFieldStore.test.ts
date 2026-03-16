@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
@@ -31,7 +30,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('05');
+        expect(datePart!.value).toBe('05');
       });
 
       it('should update day section with single digit', () => {
@@ -44,7 +43,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 2);
-        expect(datePart!.value).to.equal('07');
+        expect(datePart!.value).toBe('07');
       });
 
       it('should update year section with single digit', () => {
@@ -57,7 +56,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart!.value).to.equal('0002');
+        expect(datePart!.value).toBe('0002');
       });
     });
 
@@ -74,7 +73,7 @@ describe('TemporalFieldStore - Character Editing', () => {
 
         // Value should not be set yet (0 is below minimum)
         let datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('');
+        expect(datePart!.value).toBe('');
 
         // Type '9'
         store.editSection({
@@ -83,7 +82,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('09');
+        expect(datePart!.value).toBe('09');
       });
 
       it('should concatenate digits for day (1 then 5)', () => {
@@ -97,7 +96,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         let datePart = selectors.datePart(store.state, 2);
-        expect(datePart!.value).to.equal('01');
+        expect(datePart!.value).toBe('01');
 
         // Type '5'
         store.editSection({
@@ -106,7 +105,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         datePart = selectors.datePart(store.state, 2);
-        expect(datePart!.value).to.equal('15');
+        expect(datePart!.value).toBe('15');
       });
 
       it('should concatenate digits for year (2, 0, 2, 4)', () => {
@@ -122,7 +121,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart!.value).to.equal('2024');
+        expect(datePart!.value).toBe('2024');
       });
     });
 
@@ -137,7 +136,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           sectionIndex: 0,
         });
         let datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('01');
+        expect(datePart!.value).toBe('01');
 
         // Type '5' - should be rejected (15 > 12)
         store.editSection({
@@ -146,7 +145,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('01'); // Value should not change
+        expect(datePart!.value).toBe('01'); // Value should not change
       });
 
       it('should reject day value above 31', () => {
@@ -159,7 +158,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           sectionIndex: 2, // Day section index
         });
         let datePart = selectors.datePart(store.state, 2);
-        expect(datePart!.value).to.equal('03');
+        expect(datePart!.value).toBe('03');
 
         // Type '5' - should be rejected (35 > 31)
         store.editSection({
@@ -168,7 +167,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         datePart = selectors.datePart(store.state, 2);
-        expect(datePart!.value).to.equal('03'); // Value should not change
+        expect(datePart!.value).toBe('03'); // Value should not change
       });
     });
 
@@ -183,7 +182,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           sectionIndex: 0,
         });
 
-        expect(store.state.selectedSection).to.equal(2); // Should move to day section (index 2)
+        expect(store.state.selectedSection).toBe(2); // Should move to day section (index 2)
       });
 
       it('should complete year section after typing max length', () => {
@@ -201,11 +200,11 @@ describe('TemporalFieldStore - Character Editing', () => {
 
         // Year should be fully entered
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart).to.not.equal(null);
-        expect(datePart!.value).to.equal('2024');
+        expect(datePart).not.toBe(null);
+        expect(datePart!.value).toBe('2024');
         // Note: Navigation from last section is not implemented
         // selectedSection remains at 4 since there's no section after it
-        expect(store.state.selectedSection).to.equal(4);
+        expect(store.state.selectedSection).toBe(4);
       });
     });
   });
@@ -225,7 +224,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('Jan');
+        expect(datePart!.value).toBe('Jan');
       });
 
       it('should concatenate letters for month (J then u -> Jun)', () => {
@@ -241,7 +240,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           sectionIndex: 0,
         });
         let datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('Jan'); // First match
+        expect(datePart!.value).toBe('Jan'); // First match
 
         // Type 'u' - should narrow down to Jun or Jul
         store.editSection({
@@ -249,7 +248,7 @@ describe('TemporalFieldStore - Character Editing', () => {
           sectionIndex: 0,
         });
         datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('Jun'); // First match for 'ju'
+        expect(datePart!.value).toBe('Jun'); // First match for 'ju'
       });
 
       it('should complete and move to next section when only one match (Ju then l -> Jul)', () => {
@@ -274,8 +273,8 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('Jul');
-        expect(store.state.selectedSection).to.equal(2); // Should move to next section (day at index 2)
+        expect(datePart!.value).toBe('Jul');
+        expect(store.state.selectedSection).toBe(2); // Should move to next section (day at index 2)
       });
 
       it('should handle case-insensitive input', () => {
@@ -292,7 +291,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 0);
-        expect(datePart!.value).to.equal('Jan');
+        expect(datePart!.value).toBe('Jan');
       });
     });
 
@@ -310,7 +309,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart!.value).to.equal('AM');
+        expect(datePart!.value).toBe('AM');
       });
 
       it('should update meridiem with P -> PM', () => {
@@ -326,7 +325,7 @@ describe('TemporalFieldStore - Character Editing', () => {
         });
 
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart!.value).to.equal('PM');
+        expect(datePart!.value).toBe('PM');
       });
 
       it('should complete meridiem after typing unique letter', () => {
@@ -343,11 +342,11 @@ describe('TemporalFieldStore - Character Editing', () => {
 
         // 'A' uniquely identifies AM
         const datePart = selectors.datePart(store.state, 4);
-        expect(datePart).to.not.equal(null);
-        expect(datePart!.value).to.equal('AM');
+        expect(datePart).not.toBe(null);
+        expect(datePart!.value).toBe('AM');
         // Note: Navigation from last section is not implemented
         // selectedSection remains at 4 since there's no section after it
-        expect(store.state.selectedSection).to.equal(4);
+        expect(store.state.selectedSection).toBe(4);
       });
     });
   });
@@ -367,7 +366,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('May');
+      expect(datePart!.value).toBe('May');
     });
 
     it('should support typing 0 then 7 on letter-format month (07 -> Jul)', () => {
@@ -385,7 +384,7 @@ describe('TemporalFieldStore - Character Editing', () => {
 
       // Value should not be set yet
       let datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('');
+      expect(datePart!.value).toBe('');
 
       // Type '7' -> July
       store.editSection({
@@ -394,7 +393,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('Jul');
+      expect(datePart!.value).toBe('Jul');
     });
 
     it('should support typing digit 1 then 2 on letter-format month (12 -> Dec)', () => {
@@ -411,7 +410,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       let datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('Jan');
+      expect(datePart!.value).toBe('Jan');
 
       // Type '2' -> December
       store.editSection({
@@ -420,7 +419,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('Dec');
+      expect(datePart!.value).toBe('Dec');
     });
   });
 
@@ -439,7 +438,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       let datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('Dec');
+      expect(datePart!.value).toBe('Dec');
 
       // Type 'a' - 'Da' doesn't match any month, should reset query
       store.editSection({
@@ -449,7 +448,7 @@ describe('TemporalFieldStore - Character Editing', () => {
 
       datePart = selectors.datePart(store.state, 0);
       // Value should still be 'Dec' (query reset, 'a' not valid)
-      expect(datePart!.value).to.equal('Dec');
+      expect(datePart!.value).toBe('Dec');
     });
 
     it('should reset query when switching sections', () => {
@@ -472,7 +471,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 2);
-      expect(datePart!.value).to.equal('09'); // Should be '09', not affected by previous '0'
+      expect(datePart!.value).toBe('09'); // Should be '09', not affected by previous '0'
     });
 
     it('should maintain query when continuing to type in same section', () => {
@@ -495,7 +494,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('Jan');
+      expect(datePart!.value).toBe('Jan');
     });
   });
 
@@ -513,7 +512,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('January');
+      expect(datePart!.value).toBe('January');
     });
 
     it('should narrow down with more letters (Ja -> January)', () => {
@@ -533,7 +532,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('January');
+      expect(datePart!.value).toBe('January');
     });
   });
 
@@ -559,7 +558,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('05');
+      expect(datePart!.value).toBe('05');
 
       vi.useRealTimers();
     });
@@ -575,7 +574,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('03');
+      expect(datePart!.value).toBe('03');
     });
 
     it('should support letter input on digit month sections (a -> April -> 04)', () => {
@@ -589,7 +588,7 @@ describe('TemporalFieldStore - Character Editing', () => {
       });
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('04'); // April = month 4
+      expect(datePart!.value).toBe('04'); // April = month 4
     });
 
     it('should reject numeric input for meridiem section', () => {
@@ -607,7 +606,7 @@ describe('TemporalFieldStore - Character Editing', () => {
 
       const datePart = selectors.datePart(store.state, 4);
       // Meridiem sections should reject numeric input
-      expect(datePart!.value).to.equal('');
+      expect(datePart!.value).toBe('');
     });
   });
 });

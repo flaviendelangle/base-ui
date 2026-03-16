@@ -11,12 +11,12 @@ describe('FormatParser', () => {
       const format = `${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(2);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(2);
+      expect(result.elements[0]).toMatchObject({
         type: 'separator',
         value: 'Escaped ',
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.yearPadded,
         placeholder: 'YYYY',
       });
@@ -27,14 +27,14 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.monthFullLetter} ${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: ' Escaped ',
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
     });
@@ -46,14 +46,14 @@ describe('FormatParser', () => {
         const format = `${adapter.formats.monthFullLetter} ${startChar}Escaped ${startChar}${endChar} ${adapter.formats.yearPadded}`;
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-        expect(result.elements).to.have.lengthOf(3);
-        expect(result.elements[0]).to.deep.include({
+        expect(result.elements).toHaveLength(3);
+        expect(result.elements[0]).toMatchObject({
           value: adapter.formats.monthFullLetter,
         });
-        expect(result.elements[1]).to.deep.include({
+        expect(result.elements[1]).toMatchObject({
           value: ' Escaped [ ',
         });
-        expect(result.elements[2]).to.deep.include({
+        expect(result.elements[2]).toMatchObject({
           value: adapter.formats.yearPadded,
         });
       },
@@ -64,18 +64,18 @@ describe('FormatParser', () => {
       const format = `${startChar}Escaped${endChar} ${adapter.formats.monthFullLetter} ${startChar}Escaped${endChar} ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(4);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(4);
+      expect(result.elements[0]).toMatchObject({
         type: 'separator',
         value: 'Escaped ',
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: ' Escaped ',
       });
-      expect(result.elements[3]).to.deep.include({
+      expect(result.elements[3]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
     });
@@ -86,7 +86,7 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // When there are no tokens, escaped parts are absorbed and result in empty format
-      expect(result.elements).to.deep.equal([]);
+      expect(result.elements).toEqual([]);
     });
   });
 
@@ -95,11 +95,11 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.dayOfMonth}${adapter.formats.month3Letters}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(2);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(2);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.dayOfMonth,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.month3Letters,
       });
     });
@@ -109,41 +109,41 @@ describe('FormatParser', () => {
     it('should build a year token', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.yearPadded, {});
 
-      expect(token).to.deep.include({
+      expect(token).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(token.config).to.deep.include({
+      expect(token.config).toMatchObject({
         part: 'year',
       });
       // buildSingleToken generates placeholder, just verify it's not empty
-      expect(token.placeholder).to.be.a('string');
-      expect(token.placeholder.length).to.be.greaterThan(0);
+      expect(token.placeholder).toBeTypeOf('string');
+      expect(token.placeholder.length).toBeGreaterThan(0);
     });
 
     it('should build a month token', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.monthFullLetter, {});
 
-      expect(token).to.deep.include({
+      expect(token).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
-      expect(token.config).to.deep.include({
+      expect(token.config).toMatchObject({
         part: 'month',
       });
-      expect(token.placeholder).to.be.a('string');
-      expect(token.placeholder.length).to.be.greaterThan(0);
+      expect(token.placeholder).toBeTypeOf('string');
+      expect(token.placeholder.length).toBeGreaterThan(0);
     });
 
     it('should build a day token', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.dayOfMonth, {});
 
-      expect(token).to.deep.include({
+      expect(token).toMatchObject({
         value: adapter.formats.dayOfMonth,
       });
-      expect(token.config).to.deep.include({
+      expect(token.config).toMatchObject({
         part: 'day',
       });
-      expect(token.placeholder).to.be.a('string');
-      expect(token.placeholder.length).to.be.greaterThan(0);
+      expect(token.placeholder).toBeTypeOf('string');
+      expect(token.placeholder.length).toBeGreaterThan(0);
     });
   });
 
@@ -151,7 +151,7 @@ describe('FormatParser', () => {
     it('should return config for a valid token', () => {
       const config = FormatParser.getTokenConfig(adapter, adapter.formats.yearPadded);
 
-      expect(config).to.deep.include({
+      expect(config).toMatchObject({
         part: 'year',
         contentType: 'digit',
       });
@@ -160,7 +160,7 @@ describe('FormatParser', () => {
     it('should throw error for an invalid token', () => {
       expect(() => {
         FormatParser.getTokenConfig(adapter, 'INVALID');
-      }).to.throw(/Some token in the format is not supported/);
+      }).toThrow(/Some token in the format is not supported/);
     });
   });
 
@@ -171,8 +171,8 @@ describe('FormatParser', () => {
 
       result.elements.forEach((element) => {
         if ('placeholder' in element) {
-          expect(element.placeholder).to.be.a('string');
-          expect(element.placeholder.length).to.be.greaterThan(0);
+          expect(element.placeholder).toBeTypeOf('string');
+          expect(element.placeholder.length).toBeGreaterThan(0);
         }
       });
     });
@@ -187,9 +187,9 @@ describe('FormatParser', () => {
         {},
       );
 
-      expect('placeholder' in result.elements[0]).to.equal(true);
+      expect('placeholder' in result.elements[0]).toBe(true);
       if ('placeholder' in result.elements[0]) {
-        expect(result.elements[0].placeholder).to.equal('CustomYear');
+        expect(result.elements[0].placeholder).toBe('CustomYear');
       }
     });
 
@@ -203,9 +203,9 @@ describe('FormatParser', () => {
         {},
       );
 
-      expect('placeholder' in result.elements[0]).to.equal(true);
+      expect('placeholder' in result.elements[0]).toBe(true);
       if ('placeholder' in result.elements[0]) {
-        expect(result.elements[0].placeholder).to.equal('CustomMonth');
+        expect(result.elements[0].placeholder).toBe('CustomMonth');
       }
     });
 
@@ -219,9 +219,9 @@ describe('FormatParser', () => {
         {},
       );
 
-      expect('placeholder' in result.elements[0]).to.equal(true);
+      expect('placeholder' in result.elements[0]).toBe(true);
       if ('placeholder' in result.elements[0]) {
-        expect(result.elements[0].placeholder).to.equal('CustomDay');
+        expect(result.elements[0].placeholder).toBe('CustomDay');
       }
     });
   });
@@ -232,12 +232,12 @@ describe('FormatParser', () => {
       const format = `${startChar}Prefix${endChar} ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(2);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(2);
+      expect(result.elements[0]).toMatchObject({
         type: 'separator',
         value: 'Prefix ',
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
     });
@@ -247,11 +247,11 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.yearPadded} ${startChar}Suffix${endChar}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(2);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(2);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         type: 'separator',
         value: ' Suffix',
       });
@@ -262,15 +262,15 @@ describe('FormatParser', () => {
       const format = `${startChar}Before${endChar} ${adapter.formats.yearPadded} ${startChar}After${endChar}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[0]).toMatchObject({
         type: 'separator',
         value: 'Before ',
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         type: 'separator',
         value: ' After',
       });
@@ -285,7 +285,7 @@ describe('FormatParser', () => {
       // Find separators between tokens - they are now inlined as separate elements
       const separators = result.elements.filter((element) => !('placeholder' in element));
       separators.forEach((separator) => {
-        expect(separator.value).to.be.a('string');
+        expect(separator.value).toBeTypeOf('string');
       });
     });
 
@@ -295,7 +295,7 @@ describe('FormatParser', () => {
 
       const separators = result.elements.filter((element) => !('placeholder' in element));
       separators.forEach((separator) => {
-        expect(separator.value).to.include('.');
+        expect(separator.value).toContain('.');
       });
     });
 
@@ -305,7 +305,7 @@ describe('FormatParser', () => {
 
       const separators = result.elements.filter((element) => !('placeholder' in element));
       separators.forEach((separator) => {
-        expect(separator.value).to.include('-');
+        expect(separator.value).toContain('-');
       });
     });
 
@@ -313,16 +313,16 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.monthFullLetter} ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[1]).to.deep.include({ value: ' ' });
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[1]).toMatchObject({ value: ' ' });
     });
 
     it('should handle multiple character separators', () => {
       const format = `${adapter.formats.monthFullLetter} / ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[1]).to.deep.include({ value: ' / ' });
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[1]).toMatchObject({ value: ' / ' });
     });
   });
 
@@ -332,12 +332,12 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'rtl', enUS, {});
 
       // RTL should add unicode control characters around space separators
-      expect(result.elements).to.have.lengthOf(3);
+      expect(result.elements).toHaveLength(3);
       const separator = result.elements[1];
-      expect('value' in separator && !('placeholder' in separator)).to.equal(true);
+      expect('value' in separator && !('placeholder' in separator)).toBe(true);
       if ('value' in separator && !('placeholder' in separator)) {
-        expect(separator.value).to.include('\u2069');
-        expect(separator.value).to.include('\u2066');
+        expect(separator.value).toContain('\u2069');
+        expect(separator.value).toContain('\u2066');
       }
     });
 
@@ -347,14 +347,14 @@ describe('FormatParser', () => {
       const resultRtl = FormatParser.parse(adapter, format, 'rtl', enUS, {});
 
       // In RTL, the format string itself is reversed
-      expect(resultRtl.elements).to.have.lengthOf(3);
+      expect(resultRtl.elements).toHaveLength(3);
       const firstTokenRtl = resultRtl.elements[0];
       const lastTokenLtr = resultLtr.elements[resultLtr.elements.length - 1];
 
-      expect('config' in firstTokenRtl).to.equal(true);
-      expect('config' in lastTokenLtr).to.equal(true);
+      expect('config' in firstTokenRtl).toBe(true);
+      expect('config' in lastTokenLtr).toBe(true);
       if ('config' in firstTokenRtl && 'config' in lastTokenLtr) {
-        expect(firstTokenRtl.config.part).to.equal(lastTokenLtr.config.part);
+        expect(firstTokenRtl.config.part).toBe(lastTokenLtr.config.part);
       }
     });
   });
@@ -365,14 +365,14 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Should have multiple elements after expansion
-      expect(result.elements.length).to.be.greaterThan(0);
+      expect(result.elements.length).toBeGreaterThan(0);
     });
 
     it('should handle already expanded formats', () => {
       const format = adapter.expandFormat(adapter.formats.localizedNumericDate);
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements.length).to.be.greaterThan(0);
+      expect(result.elements.length).toBeGreaterThan(0);
     });
   });
 
@@ -381,24 +381,24 @@ describe('FormatParser', () => {
       const format = 'yyyy';
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect('isPadded' in result.elements[0]).to.equal(true);
-      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
+      expect('isPadded' in result.elements[0]).toBe(true);
+      expect((result.elements[0] as any).isPadded).toBeTypeOf('boolean');
     });
 
     it('should detect padded month tokens', () => {
       const format = 'MM';
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect('isPadded' in result.elements[0]).to.equal(true);
-      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
+      expect('isPadded' in result.elements[0]).toBe(true);
+      expect((result.elements[0] as any).isPadded).toBeTypeOf('boolean');
     });
 
     it('should detect padded day tokens', () => {
       const format = 'dd';
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect('isPadded' in result.elements[0]).to.equal(true);
-      expect((result.elements[0] as any).isPadded).to.be.a('boolean');
+      expect('isPadded' in result.elements[0]).toBe(true);
+      expect((result.elements[0] as any).isPadded).toBeTypeOf('boolean');
     });
 
     it('should not pad letter-based tokens', () => {
@@ -406,9 +406,9 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const firstToken = result.elements[0];
-      expect('config' in firstToken).to.equal(true);
-      expect((firstToken as any).config.contentType).to.equal('letter');
-      expect((firstToken as any).isPadded).to.equal(false);
+      expect('config' in firstToken).toBe(true);
+      expect((firstToken as any).config.contentType).toBe('letter');
+      expect((firstToken as any).isPadded).toBe(false);
     });
 
     it('should handle digit-with-letter format (ordinal)', () => {
@@ -416,13 +416,13 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const firstToken = result.elements[0];
-      expect('config' in firstToken).to.equal(true);
-      expect((firstToken as any).config.contentType).to.equal('digit-with-letter');
+      expect('config' in firstToken).toBe(true);
+      expect((firstToken as any).config.contentType).toBe('digit-with-letter');
       // isPadded is true because "1st".length > 1, but this is not zero-padding
-      expect((firstToken as any).isPadded).to.equal(true);
+      expect((firstToken as any).isPadded).toBe(true);
       // maxLength is the digit count only (strips non-digits like "th", "st", etc.)
       // For days, max is 31, so maxLength is 2
-      expect((firstToken as any).maxLength).to.equal(2);
+      expect((firstToken as any).maxLength).toBe(2);
     });
   });
 
@@ -433,7 +433,7 @@ describe('FormatParser', () => {
 
       // Count tokens (elements with placeholder property)
       const tokens = result.elements.filter((el) => 'placeholder' in el);
-      expect(tokens).to.have.lengthOf.at.least(2);
+      expect(tokens.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should parse date with weekday', () => {
@@ -441,7 +441,7 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       const tokens = result.elements.filter((el) => 'placeholder' in el);
-      expect(tokens.length).to.be.greaterThan(2);
+      expect(tokens.length).toBeGreaterThan(2);
     });
 
     it('should parse time format', () => {
@@ -450,9 +450,9 @@ describe('FormatParser', () => {
 
       // Should contain hours and minutes
       const tokens = result.elements.filter((el) => 'config' in el);
-      expect(tokens.length).to.be.greaterThan(0);
+      expect(tokens.length).toBeGreaterThan(0);
       const parts = tokens.map((t) => ('config' in t ? t.config.part : null)).filter(Boolean);
-      expect(parts).to.satisfy((types: string[]) =>
+      expect(parts).toSatisfy((types: string[]) =>
         types.some((t) => t === 'hours' || t === 'minutes'),
       );
     });
@@ -464,7 +464,7 @@ describe('FormatParser', () => {
       // Should have both date and time tokens
       const tokens = result.elements.filter((el) => 'config' in el);
       const parts = tokens.map((t) => ('config' in t ? t.config.part : null)).filter(Boolean);
-      expect(parts).to.include.members(['year', 'month', 'day']);
+      expect(parts).toEqual(expect.arrayContaining(['year', 'month', 'day']));
     });
   });
 
@@ -473,14 +473,14 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.yearPadded}${adapter.formats.monthPadded}${adapter.formats.dayOfMonth}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.monthPadded,
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: adapter.formats.dayOfMonth,
       });
     });
@@ -489,14 +489,14 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.monthFullLetter}   ${adapter.formats.yearPadded}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: '   ',
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
     });
@@ -506,11 +506,11 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.yearPadded}${startChar}${endChar}${adapter.formats.monthFullLetter}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(2);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(2);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
     });
@@ -520,14 +520,14 @@ describe('FormatParser', () => {
       const format = `${adapter.formats.yearPadded}${startChar}@#$${endChar}${adapter.formats.monthFullLetter}`;
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
-      expect(result.elements).to.have.lengthOf(3);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(3);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: '@#$',
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: adapter.formats.monthFullLetter,
       });
     });
@@ -539,8 +539,8 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       result.elements.forEach((element) => {
-        expect(element.value).to.be.a('string');
-        expect(element.value.length).to.be.greaterThan(0);
+        expect(element.value).toBeTypeOf('string');
+        expect(element.value.length).toBeGreaterThan(0);
       });
     });
 
@@ -550,9 +550,9 @@ describe('FormatParser', () => {
 
       result.elements.forEach((element) => {
         if ('config' in element) {
-          expect(element.config).to.be.an('object');
-          expect(element.config.part).to.be.a('string');
-          expect(element.config.contentType).to.be.oneOf(['digit', 'letter', 'digit-with-letter']);
+          expect(element.config).toBeTypeOf('object');
+          expect(element.config.part).toBeTypeOf('string');
+          expect(['digit', 'letter', 'digit-with-letter']).toContain(element.config.contentType);
         }
       });
     });
@@ -562,20 +562,20 @@ describe('FormatParser', () => {
       const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
       // Format: token, separator, token, separator, token = 5 elements
-      expect(result.elements).to.have.lengthOf(5);
-      expect(result.elements[0]).to.deep.include({
+      expect(result.elements).toHaveLength(5);
+      expect(result.elements[0]).toMatchObject({
         value: adapter.formats.monthPadded,
       });
-      expect(result.elements[1]).to.deep.include({
+      expect(result.elements[1]).toMatchObject({
         value: '/',
       });
-      expect(result.elements[2]).to.deep.include({
+      expect(result.elements[2]).toMatchObject({
         value: adapter.formats.dayOfMonth,
       });
-      expect(result.elements[3]).to.deep.include({
+      expect(result.elements[3]).toMatchObject({
         value: '/',
       });
-      expect(result.elements[4]).to.deep.include({
+      expect(result.elements[4]).toMatchObject({
         value: adapter.formats.yearPadded,
       });
     });
@@ -588,10 +588,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 9999 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 9999 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 9999 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 9999 });
         }
       });
 
@@ -600,10 +600,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 12 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 12 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 12 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 12 });
         }
       });
 
@@ -612,10 +612,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 31 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 31 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 31 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 31 });
         }
       });
 
@@ -624,10 +624,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 23 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 23 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 23 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 23 });
         }
       });
 
@@ -636,10 +636,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 59 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 59 });
         }
       });
 
@@ -648,10 +648,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 59 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 59 });
         }
       });
 
@@ -660,10 +660,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 7 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 7 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 7 });
         }
       });
 
@@ -672,10 +672,10 @@ describe('FormatParser', () => {
         const result = FormatParser.parse(adapter, format, 'ltr', enUS, {});
 
         const token = result.elements[0];
-        expect('boundaries' in token).to.equal(true);
+        expect('boundaries' in token).toBe(true);
         if ('boundaries' in token) {
-          expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 1 });
-          expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 1 });
+          expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 1 });
+          expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 1 });
         }
       });
     });
@@ -690,12 +690,12 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
             // characterEditing should remain unchanged
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 9999 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 9999 });
             // adjustment should be restricted
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 2020, maximum: 2025 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 2020, maximum: 2025 });
           }
         });
 
@@ -706,11 +706,11 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 9999 });
-            expect(token.boundaries.adjustment.minimum).to.equal(2020);
-            expect(token.boundaries.adjustment.maximum).to.equal(9999);
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 9999 });
+            expect(token.boundaries.adjustment.minimum).toBe(2020);
+            expect(token.boundaries.adjustment.maximum).toBe(9999);
           }
         });
 
@@ -721,11 +721,11 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 9999 });
-            expect(token.boundaries.adjustment.minimum).to.equal(0);
-            expect(token.boundaries.adjustment.maximum).to.equal(2025);
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 9999 });
+            expect(token.boundaries.adjustment.minimum).toBe(0);
+            expect(token.boundaries.adjustment.maximum).toBe(2025);
           }
         });
       });
@@ -739,10 +739,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 12 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 3, maximum: 10 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 12 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 3, maximum: 10 });
           }
         });
 
@@ -754,10 +754,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 12 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 12 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 12 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 12 });
           }
         });
       });
@@ -771,10 +771,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 31 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 5, maximum: 25 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 31 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 5, maximum: 25 });
           }
         });
 
@@ -786,10 +786,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 31 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 31 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 31 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 31 });
           }
         });
       });
@@ -804,18 +804,18 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
-            expect(token.boundaries.adjustment.minimum).to.be.greaterThanOrEqual(1);
-            expect(token.boundaries.adjustment.maximum).to.be.lessThanOrEqual(7);
-            expect(token.boundaries.adjustment.maximum).to.be.greaterThanOrEqual(
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 7 });
+            expect(token.boundaries.adjustment.minimum).toBeGreaterThanOrEqual(1);
+            expect(token.boundaries.adjustment.maximum).toBeLessThanOrEqual(7);
+            expect(token.boundaries.adjustment.maximum).toBeGreaterThanOrEqual(
               token.boundaries.adjustment.minimum,
             );
             // Verify the boundaries are actually restricted (not the full 1-7 range)
             expect(
               token.boundaries.adjustment.maximum - token.boundaries.adjustment.minimum,
-            ).to.equal(2); // Wed-Thu-Fri = 3 days = range of 2
+            ).toBe(2); // Wed-Thu-Fri = 3 days = range of 2
           }
         });
 
@@ -828,10 +828,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 1, maximum: 7 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 1, maximum: 7 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 1, maximum: 7 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 1, maximum: 7 });
           }
         });
       });
@@ -845,10 +845,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 23 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 8, maximum: 18 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 23 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 8, maximum: 18 });
           }
         });
 
@@ -860,10 +860,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 23 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 23 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 23 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 23 });
           }
         });
       });
@@ -877,10 +877,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 10, maximum: 50 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 10, maximum: 50 });
           }
         });
 
@@ -892,10 +892,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 59 });
           }
         });
       });
@@ -909,10 +909,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 5, maximum: 45 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 5, maximum: 45 });
           }
         });
 
@@ -924,10 +924,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 59 });
           }
         });
 
@@ -939,10 +939,10 @@ describe('FormatParser', () => {
           });
 
           const token = result.elements[0];
-          expect('boundaries' in token).to.equal(true);
+          expect('boundaries' in token).toBe(true);
           if ('boundaries' in token) {
-            expect(token.boundaries.characterEditing).to.deep.equal({ minimum: 0, maximum: 59 });
-            expect(token.boundaries.adjustment).to.deep.equal({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.characterEditing).toEqual({ minimum: 0, maximum: 59 });
+            expect(token.boundaries.adjustment).toEqual({ minimum: 0, maximum: 59 });
           }
         });
       });
@@ -957,7 +957,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -972,7 +972,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -987,7 +987,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -1002,7 +1002,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -1017,7 +1017,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -1032,7 +1032,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }
@@ -1047,7 +1047,7 @@ describe('FormatParser', () => {
           });
 
           if ('boundaries' in resultWithout.elements[0] && 'boundaries' in resultWith.elements[0]) {
-            expect(resultWith.elements[0].boundaries.characterEditing).to.deep.equal(
+            expect(resultWith.elements[0].boundaries.characterEditing).toEqual(
               resultWithout.elements[0].boundaries.characterEditing,
             );
           }

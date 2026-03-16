@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalValue } from '../../types/temporal';
 import { TemporalFieldStore } from './TemporalFieldStore';
@@ -39,7 +38,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('16');
+        expect(getDatePartValue(store, 2)).toBe('16');
       });
 
       it('should set minimum value when section is empty', () => {
@@ -47,7 +46,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('01');
+        expect(getDatePartValue(store, 2)).toBe('01');
       });
 
       it('should wrap around to minimum when exceeding maximum', () => {
@@ -60,7 +59,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('01');
+        expect(getDatePartValue(store, 2)).toBe('01');
       });
     });
 
@@ -75,7 +74,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('14');
+        expect(getDatePartValue(store, 2)).toBe('14');
       });
 
       it('should set maximum value when section is empty', () => {
@@ -83,7 +82,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.selectClosestDatePart(2); // day section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('31');
+        expect(getDatePartValue(store, 2)).toBe('31');
       });
 
       it('should wrap around to maximum when going below minimum', () => {
@@ -96,7 +95,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('31');
+        expect(getDatePartValue(store, 2)).toBe('31');
       });
     });
 
@@ -111,7 +110,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('PageUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('15');
+        expect(getDatePartValue(store, 2)).toBe('15');
       });
 
       it('should wrap around when exceeding maximum', () => {
@@ -124,7 +123,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('PageUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('04'); // 30 + 5 = 35, wraps to 04
+        expect(getDatePartValue(store, 2)).toBe('04'); // 30 + 5 = 35, wraps to 04
       });
     });
 
@@ -139,7 +138,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('PageDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('15');
+        expect(getDatePartValue(store, 2)).toBe('15');
       });
 
       it('should wrap around when going below minimum', () => {
@@ -152,7 +151,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('PageDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('29'); // 03 - 5 = -2, wraps to 29
+        expect(getDatePartValue(store, 2)).toBe('29'); // 03 - 5 = -2, wraps to 29
       });
     });
 
@@ -167,7 +166,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('Home', 2);
-        expect(getDatePartValue(store, 2)).to.equal('01');
+        expect(getDatePartValue(store, 2)).toBe('01');
       });
     });
 
@@ -182,7 +181,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('End', 2);
-        expect(getDatePartValue(store, 2)).to.equal('31');
+        expect(getDatePartValue(store, 2)).toBe('31');
       });
     });
 
@@ -197,7 +196,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('07');
+        expect(getDatePartValue(store, 0)).toBe('07');
       });
 
       it('should wrap around from December to January', () => {
@@ -210,7 +209,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('01');
+        expect(getDatePartValue(store, 0)).toBe('01');
       });
 
       it('should set minimum month value with Home', () => {
@@ -223,7 +222,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('Home', 0);
-        expect(getDatePartValue(store, 0)).to.equal('01');
+        expect(getDatePartValue(store, 0)).toBe('01');
       });
 
       it('should set maximum month value with End', () => {
@@ -236,7 +235,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('End', 0);
-        expect(getDatePartValue(store, 0)).to.equal('12');
+        expect(getDatePartValue(store, 0)).toBe('12');
       });
 
       it('should keep day value when incrementing month to a month with fewer days', () => {
@@ -247,23 +246,23 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
         // Verify initial state
         let value = selectors.value(store.state);
-        expect(adapter.getMonth(value!)).to.equal(0); // January (0-indexed)
-        expect(adapter.getDate(value!)).to.equal(31); // 31st
+        expect(adapter.getMonth(value!)).toBe(0); // January (0-indexed)
+        expect(adapter.getDate(value!)).toBe(31); // 31st
 
         store.selectClosestDatePart(0); // month section
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('02'); // February
+        expect(getDatePartValue(store, 0)).toBe('02'); // February
 
         // The field should show "February 31" even though it's invalid
         const monthPart = selectors.datePart(store.state, 0);
         const dayPart = selectors.datePart(store.state, 2);
-        expect(monthPart!.value).to.equal('02'); // February
-        expect(dayPart!.value).to.equal('31'); // Day preserved
+        expect(monthPart!.value).toBe('02'); // February
+        expect(dayPart!.value).toBe('31'); // Day preserved
 
         // The actual date value becomes invalid (February 31 doesn't exist)
         value = selectors.value(store.state);
-        expect(adapter.isValid(value)).to.equal(false); // Invalid date
+        expect(adapter.isValid(value)).toBe(false); // Invalid date
       });
 
       it('should keep day value when decrementing month to a month with fewer days', () => {
@@ -274,23 +273,23 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
         // Verify initial state
         let value = selectors.value(store.state);
-        expect(adapter.getMonth(value!)).to.equal(2); // March (0-indexed)
-        expect(adapter.getDate(value!)).to.equal(31); // 31st
+        expect(adapter.getMonth(value!)).toBe(2); // March (0-indexed)
+        expect(adapter.getDate(value!)).toBe(31); // 31st
 
         store.selectClosestDatePart(0); // month section
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
-        expect(getDatePartValue(store, 0)).to.equal('02'); // February
+        expect(getDatePartValue(store, 0)).toBe('02'); // February
 
         // The field should show "February 31" even though it's invalid
         const monthPart = selectors.datePart(store.state, 0);
         const dayPart = selectors.datePart(store.state, 2);
-        expect(monthPart!.value).to.equal('02'); // February
-        expect(dayPart!.value).to.equal('31'); // Day preserved
+        expect(monthPart!.value).toBe('02'); // February
+        expect(dayPart!.value).toBe('31'); // Day preserved
 
         // The actual date value becomes invalid (February 31 doesn't exist)
         value = selectors.value(store.state);
-        expect(adapter.isValid(value)).to.equal(false); // Invalid date
+        expect(adapter.isValid(value)).toBe(false); // Invalid date
       });
     });
 
@@ -305,7 +304,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 4);
-        expect(getDatePartValue(store, 4)).to.equal('2025');
+        expect(getDatePartValue(store, 4)).toBe('2025');
       });
 
       it('should decrement year by 1', () => {
@@ -318,7 +317,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 4);
-        expect(getDatePartValue(store, 4)).to.equal('2023');
+        expect(getDatePartValue(store, 4)).toBe('2023');
       });
 
       describe('initialization (empty year section)', () => {
@@ -328,7 +327,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
         it('should set current year when pressing PageUp and no minDate', () => {
@@ -337,7 +336,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('PageUp', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
         it('should set current year when pressing ArrowDown and no maxDate', () => {
@@ -346,7 +345,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
         it('should set current year when pressing PageDown and no maxDate', () => {
@@ -355,7 +354,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('PageDown', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
         it('should set minDate year when pressing ArrowUp and minDate is set', () => {
@@ -366,7 +365,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2020');
+          expect(getDatePartValue(store, 4)).toBe('2020');
         });
 
         it('should set minDate year when pressing PageUp and minDate is set', () => {
@@ -377,7 +376,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageUp', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2020');
+          expect(getDatePartValue(store, 4)).toBe('2020');
         });
 
         it('should set maxDate year when pressing ArrowDown and maxDate is set', () => {
@@ -388,7 +387,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2030');
+          expect(getDatePartValue(store, 4)).toBe('2030');
         });
 
         it('should set maxDate year when pressing PageDown and maxDate is set', () => {
@@ -399,7 +398,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           store.selectClosestDatePart(4); // year section (empty)
 
           store.adjustActiveDatePartValue('PageDown', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2030');
+          expect(getDatePartValue(store, 4)).toBe('2030');
         });
 
         it('should set current year when pressing ArrowDown with minDate but no maxDate', () => {
@@ -411,7 +410,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('ArrowDown', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
         it('should set current year when pressing ArrowUp with maxDate but no minDate', () => {
@@ -423,7 +422,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           store.adjustActiveDatePartValue('ArrowUp', 4);
           const currentYear = new Date().getFullYear().toString();
-          expect(getDatePartValue(store, 4)).to.equal(currentYear);
+          expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
       });
     });
@@ -442,7 +441,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('16th');
+        expect(getDatePartValue(store, 2)).toBe('16th');
       });
 
       it('should decrement day with ordinal suffix', () => {
@@ -458,7 +457,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('9th');
+        expect(getDatePartValue(store, 2)).toBe('9th');
       });
 
       it('should handle special ordinal suffixes (1st, 2nd, 3rd)', () => {
@@ -475,7 +474,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('2nd');
+        expect(getDatePartValue(store, 2)).toBe('2nd');
 
         // Test 2nd
         store.updateDatePart({
@@ -484,7 +483,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('3rd');
+        expect(getDatePartValue(store, 2)).toBe('3rd');
 
         // Test 3rd
         store.updateDatePart({
@@ -493,7 +492,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('4th');
+        expect(getDatePartValue(store, 2)).toBe('4th');
       });
 
       it('should wrap around at month boundary', () => {
@@ -509,7 +508,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('1st');
+        expect(getDatePartValue(store, 2)).toBe('1st');
       });
 
       it('should set minimum value with Home', () => {
@@ -525,7 +524,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('Home', 2);
-        expect(getDatePartValue(store, 2)).to.equal('1st');
+        expect(getDatePartValue(store, 2)).toBe('1st');
       });
 
       it('should set maximum value with End', () => {
@@ -541,7 +540,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('End', 2);
-        expect(getDatePartValue(store, 2)).to.equal('31st');
+        expect(getDatePartValue(store, 2)).toBe('31st');
       });
 
       it('should handle 21st, 22nd, 23rd correctly', () => {
@@ -558,7 +557,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('22nd');
+        expect(getDatePartValue(store, 2)).toBe('22nd');
 
         // Test 22nd
         store.updateDatePart({
@@ -567,7 +566,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('23rd');
+        expect(getDatePartValue(store, 2)).toBe('23rd');
 
         // Test 23rd
         store.updateDatePart({
@@ -576,7 +575,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           shouldGoToNextSection: false,
         });
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('24th');
+        expect(getDatePartValue(store, 2)).toBe('24th');
       });
     });
 
@@ -594,7 +593,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('20');
+        expect(getDatePartValue(store, 2)).toBe('20');
       });
 
       it('should decrement minutes by 5 (step)', () => {
@@ -610,7 +609,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 2);
-        expect(getDatePartValue(store, 2)).to.equal('25');
+        expect(getDatePartValue(store, 2)).toBe('25');
       });
 
       it('should snap to nearest step when not aligned', () => {
@@ -626,7 +625,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('20'); // snaps up to 20
+        expect(getDatePartValue(store, 2)).toBe('20'); // snaps up to 20
       });
 
       it('should wrap around at 60 minutes', () => {
@@ -642,7 +641,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('00');
+        expect(getDatePartValue(store, 2)).toBe('00');
       });
 
       it('should not apply step to non-most-granular sections', () => {
@@ -658,7 +657,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('11'); // hours increment by 1, not 5
+        expect(getDatePartValue(store, 0)).toBe('11'); // hours increment by 1, not 5
       });
 
       it('should default step to 1 when not specified', () => {
@@ -674,7 +673,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('16'); // increments by 1 (default step)
+        expect(getDatePartValue(store, 2)).toBe('16'); // increments by 1 (default step)
       });
     });
   });
@@ -694,7 +693,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Feb');
+        expect(getDatePartValue(store, 0)).toBe('Feb');
       });
 
       it('should cycle through month names with ArrowDown', () => {
@@ -710,7 +709,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Jan');
+        expect(getDatePartValue(store, 0)).toBe('Jan');
       });
 
       it('should wrap around from December to January', () => {
@@ -726,7 +725,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Jan');
+        expect(getDatePartValue(store, 0)).toBe('Jan');
       });
 
       it('should wrap around from January to December', () => {
@@ -742,7 +741,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Dec');
+        expect(getDatePartValue(store, 0)).toBe('Dec');
       });
 
       it('should set first month with Home', () => {
@@ -758,7 +757,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('Home', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Jan');
+        expect(getDatePartValue(store, 0)).toBe('Jan');
       });
 
       it('should set last month with End', () => {
@@ -774,7 +773,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('End', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Dec');
+        expect(getDatePartValue(store, 0)).toBe('Dec');
       });
 
       it('should set first month when empty and pressing ArrowUp', () => {
@@ -785,7 +784,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Jan');
+        expect(getDatePartValue(store, 0)).toBe('Jan');
       });
 
       it('should set last month when empty and pressing ArrowDown', () => {
@@ -796,7 +795,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.selectClosestDatePart(0); // month section (empty)
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Dec');
+        expect(getDatePartValue(store, 0)).toBe('Dec');
       });
     });
 
@@ -814,7 +813,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 4);
-        expect(getDatePartValue(store, 4)).to.equal('PM');
+        expect(getDatePartValue(store, 4)).toBe('PM');
       });
 
       it('should toggle between PM and AM with ArrowDown', () => {
@@ -830,7 +829,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 4);
-        expect(getDatePartValue(store, 4)).to.equal('AM');
+        expect(getDatePartValue(store, 4)).toBe('AM');
       });
 
       it('should wrap around from PM to AM', () => {
@@ -846,7 +845,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 4);
-        expect(getDatePartValue(store, 4)).to.equal('AM');
+        expect(getDatePartValue(store, 4)).toBe('AM');
       });
     });
 
@@ -864,7 +863,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('01');
+        expect(getDatePartValue(store, 0)).toBe('01');
       });
 
       it('should wrap hours from 1 to 12 when decrementing', () => {
@@ -880,7 +879,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowDown', 0);
-        expect(getDatePartValue(store, 0)).to.equal('12');
+        expect(getDatePartValue(store, 0)).toBe('12');
       });
 
       it('should increment hours correctly in 12-hour format', () => {
@@ -896,7 +895,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('06');
+        expect(getDatePartValue(store, 0)).toBe('06');
       });
     });
 
@@ -917,7 +916,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 0);
-        expect(getDatePartValue(store, 0)).to.equal('Mar'); // skips by 2
+        expect(getDatePartValue(store, 0)).toBe('Mar'); // skips by 2
       });
 
       it('should not apply step to year when month is the most granular', () => {
@@ -933,7 +932,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
 
         store.adjustActiveDatePartValue('ArrowUp', 2);
-        expect(getDatePartValue(store, 2)).to.equal('2025'); // year increments by 1, not 2
+        expect(getDatePartValue(store, 2)).toBe('2025'); // year increments by 1, not 2
       });
     });
   });
@@ -952,7 +951,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       store.adjustActiveDatePartValue('ArrowUp', 2);
-      expect(getDatePartValue(store, 2)).to.equal('15');
+      expect(getDatePartValue(store, 2)).toBe('15');
     });
 
     it('should preserve padding for single-digit values', () => {
@@ -965,7 +964,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       store.adjustActiveDatePartValue('ArrowUp', 0);
-      expect(getDatePartValue(store, 0)).to.equal('10');
+      expect(getDatePartValue(store, 0)).toBe('10');
     });
 
     it('should handle hours section correctly', () => {
@@ -981,7 +980,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       store.adjustActiveDatePartValue('ArrowUp', 0);
-      expect(getDatePartValue(store, 0)).to.equal('15');
+      expect(getDatePartValue(store, 0)).toBe('15');
     });
 
     it('should wrap hours at 24', () => {
@@ -997,7 +996,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       store.adjustActiveDatePartValue('ArrowUp', 0);
-      expect(getDatePartValue(store, 0)).to.equal('00');
+      expect(getDatePartValue(store, 0)).toBe('00');
     });
   });
 
@@ -1026,7 +1025,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // ArrowUp from 2024 should wrap to 2024 (same min and max)
           store.adjustActiveDatePartValue('ArrowUp', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2024');
+          expect(getDatePartValue(store, 4)).toBe('2024');
         });
 
         it('should restrict month range when years are the same', () => {
@@ -1048,11 +1047,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             shouldGoToNextSection: false,
           });
           store.adjustActiveDatePartValue('Home', 0);
-          expect(getDatePartValue(store, 0)).to.equal('04');
+          expect(getDatePartValue(store, 0)).toBe('04');
 
           // End should go to max month (07)
           store.adjustActiveDatePartValue('End', 0);
-          expect(getDatePartValue(store, 0)).to.equal('07');
+          expect(getDatePartValue(store, 0)).toBe('07');
         });
 
         it('should wrap month within restricted range', () => {
@@ -1074,7 +1073,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // ArrowUp from 07 (max) should wrap to 04 (min)
           store.adjustActiveDatePartValue('ArrowUp', 0);
-          expect(getDatePartValue(store, 0)).to.equal('04');
+          expect(getDatePartValue(store, 0)).toBe('04');
         });
 
         it('should not restrict day section when years are same but months differ', () => {
@@ -1096,11 +1095,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to structural min (01), not minDate day (02)
           store.adjustActiveDatePartValue('Home', 2);
-          expect(getDatePartValue(store, 2)).to.equal('01');
+          expect(getDatePartValue(store, 2)).toBe('01');
 
           // End should go to structural max (31), not maxDate day (03)
           store.adjustActiveDatePartValue('End', 2);
-          expect(getDatePartValue(store, 2)).to.equal('31');
+          expect(getDatePartValue(store, 2)).toBe('31');
         });
       });
 
@@ -1127,11 +1126,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to min year (2024)
           store.adjustActiveDatePartValue('Home', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2024');
+          expect(getDatePartValue(store, 4)).toBe('2024');
 
           // End should go to max year (2025)
           store.adjustActiveDatePartValue('End', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2025');
+          expect(getDatePartValue(store, 4)).toBe('2025');
         });
 
         it('should not restrict month when years differ', () => {
@@ -1153,11 +1152,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to structural min (01), not minDate month (04)
           store.adjustActiveDatePartValue('Home', 0);
-          expect(getDatePartValue(store, 0)).to.equal('01');
+          expect(getDatePartValue(store, 0)).toBe('01');
 
           // End should go to structural max (12), not maxDate month (01)
           store.adjustActiveDatePartValue('End', 0);
-          expect(getDatePartValue(store, 0)).to.equal('12');
+          expect(getDatePartValue(store, 0)).toBe('12');
         });
 
         it('should not restrict day when years differ', () => {
@@ -1178,10 +1177,10 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           });
 
           store.adjustActiveDatePartValue('Home', 2);
-          expect(getDatePartValue(store, 2)).to.equal('01');
+          expect(getDatePartValue(store, 2)).toBe('01');
 
           store.adjustActiveDatePartValue('End', 2);
-          expect(getDatePartValue(store, 2)).to.equal('31');
+          expect(getDatePartValue(store, 2)).toBe('31');
         });
       });
 
@@ -1208,11 +1207,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to restricted min (05)
           store.adjustActiveDatePartValue('Home', 2);
-          expect(getDatePartValue(store, 2)).to.equal('05');
+          expect(getDatePartValue(store, 2)).toBe('05');
 
           // End should go to restricted max (20)
           store.adjustActiveDatePartValue('End', 2);
-          expect(getDatePartValue(store, 2)).to.equal('20');
+          expect(getDatePartValue(store, 2)).toBe('20');
         });
       });
 
@@ -1232,11 +1231,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to restricted min year (2024)
           store.adjustActiveDatePartValue('Home', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2024');
+          expect(getDatePartValue(store, 4)).toBe('2024');
 
           // End should go to structural max year (9999)
           store.adjustActiveDatePartValue('End', 4);
-          expect(getDatePartValue(store, 4)).to.equal('9999');
+          expect(getDatePartValue(store, 4)).toBe('9999');
         });
       });
 
@@ -1256,11 +1255,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to structural min year (0)
           store.adjustActiveDatePartValue('Home', 4);
-          expect(getDatePartValue(store, 4)).to.equal('0000');
+          expect(getDatePartValue(store, 4)).toBe('0000');
 
           // End should go to restricted max year (2025)
           store.adjustActiveDatePartValue('End', 4);
-          expect(getDatePartValue(store, 4)).to.equal('2025');
+          expect(getDatePartValue(store, 4)).toBe('2025');
         });
       });
     });
@@ -1287,11 +1286,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to min hour (10)
           store.adjustActiveDatePartValue('Home', 0);
-          expect(getDatePartValue(store, 0)).to.equal('10');
+          expect(getDatePartValue(store, 0)).toBe('10');
 
           // End should go to max hour (14)
           store.adjustActiveDatePartValue('End', 0);
-          expect(getDatePartValue(store, 0)).to.equal('14');
+          expect(getDatePartValue(store, 0)).toBe('14');
         });
 
         it('should not restrict minutes when hours differ', () => {
@@ -1314,11 +1313,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to structural min (00)
           store.adjustActiveDatePartValue('Home', 2);
-          expect(getDatePartValue(store, 2)).to.equal('00');
+          expect(getDatePartValue(store, 2)).toBe('00');
 
           // End should go to structural max (59)
           store.adjustActiveDatePartValue('End', 2);
-          expect(getDatePartValue(store, 2)).to.equal('59');
+          expect(getDatePartValue(store, 2)).toBe('59');
         });
       });
 
@@ -1343,11 +1342,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Home should go to restricted min minutes (15)
           store.adjustActiveDatePartValue('Home', 2);
-          expect(getDatePartValue(store, 2)).to.equal('15');
+          expect(getDatePartValue(store, 2)).toBe('15');
 
           // End should go to restricted max minutes (45)
           store.adjustActiveDatePartValue('End', 2);
-          expect(getDatePartValue(store, 2)).to.equal('45');
+          expect(getDatePartValue(store, 2)).toBe('45');
         });
       });
 
@@ -1372,11 +1371,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // ArrowUp from PM should stay PM (restricted to PM only)
           store.adjustActiveDatePartValue('ArrowUp', 4);
-          expect(getDatePartValue(store, 4)).to.equal('PM');
+          expect(getDatePartValue(store, 4)).toBe('PM');
 
           // ArrowDown from PM should also stay PM
           store.adjustActiveDatePartValue('ArrowDown', 4);
-          expect(getDatePartValue(store, 4)).to.equal('PM');
+          expect(getDatePartValue(store, 4)).toBe('PM');
         });
 
         it('should not restrict meridiem when minDate is AM and maxDate is PM', () => {
@@ -1399,7 +1398,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
 
           // Should be able to toggle between AM and PM
           store.adjustActiveDatePartValue('ArrowUp', 4);
-          expect(getDatePartValue(store, 4)).to.equal('PM');
+          expect(getDatePartValue(store, 4)).toBe('PM');
         });
       });
     });
@@ -1426,11 +1425,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('ArrowDown', 0);
 
         // Should now show Thursday
-        expect(getDatePartValue(store, 0)).to.equal('Thursday');
+        expect(getDatePartValue(store, 0)).toBe('Thursday');
 
         // The actual date should be January 29, 2026 (Thursday)
         const value = selectors.value(store.state);
-        expect(adapter.getDate(value!)).to.equal(29);
+        expect(adapter.getDate(value!)).toBe(29);
       });
     });
 
@@ -1449,11 +1448,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('ArrowUp', 0);
 
         // Should now show Saturday
-        expect(getDatePartValue(store, 0)).to.equal('Saturday');
+        expect(getDatePartValue(store, 0)).toBe('Saturday');
 
         // The actual date should be January 31, 2026 (Saturday)
         const value = selectors.value(store.state);
-        expect(adapter.getDate(value!)).to.equal(31);
+        expect(adapter.getDate(value!)).toBe(31);
       });
     });
 
@@ -1472,11 +1471,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('PageDown', 0);
 
         // Friday - 5 = Sunday (wraps around)
-        expect(getDatePartValue(store, 0)).to.equal('Sunday');
+        expect(getDatePartValue(store, 0)).toBe('Sunday');
 
         // The actual date should be January 25, 2026 (Sunday)
         const value = selectors.value(store.state);
-        expect(adapter.getDate(value!)).to.equal(25);
+        expect(adapter.getDate(value!)).toBe(25);
       });
     });
 
@@ -1495,13 +1494,13 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('PageUp', 0);
 
         // Friday + 5 in options = Wednesday (wraps around in the cycle)
-        expect(getDatePartValue(store, 0)).to.equal('Wednesday');
+        expect(getDatePartValue(store, 0)).toBe('Wednesday');
 
         // The actual date should be January 28, 2026 (Wednesday)
         // Wednesday is 2 days before Friday, so Jan 30 - 2 = Jan 28
         const value = selectors.value(store.state);
-        expect(adapter.getDate(value!)).to.equal(28);
-        expect(adapter.getMonth(value!)).to.equal(0); // January (0-indexed)
+        expect(adapter.getDate(value!)).toBe(28);
+        expect(adapter.getMonth(value!)).toBe(0); // January (0-indexed)
       });
     });
 
@@ -1521,7 +1520,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('ArrowUp', 2);
 
         // Should now show February
-        expect(getDatePartValue(store, 2)).to.equal('February');
+        expect(getDatePartValue(store, 2)).toBe('February');
       });
 
       it('should increment day correctly with weekDay in format', () => {
@@ -1539,10 +1538,10 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('ArrowUp', 4);
 
         // Day should be 31
-        expect(getDatePartValue(store, 4)).to.equal('31');
+        expect(getDatePartValue(store, 4)).toBe('31');
 
         // WeekDay should update to Saturday
-        expect(getDatePartValue(store, 0)).to.equal('Saturday');
+        expect(getDatePartValue(store, 0)).toBe('Saturday');
       });
 
       it('should increment year correctly with weekDay in format', () => {
@@ -1560,10 +1559,10 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         store.adjustActiveDatePartValue('ArrowUp', 6);
 
         // Year should be 2027
-        expect(getDatePartValue(store, 6)).to.equal('2027');
+        expect(getDatePartValue(store, 6)).toBe('2027');
 
         // WeekDay should update to Saturday (Jan 30, 2027 is Saturday)
-        expect(getDatePartValue(store, 0)).to.equal('Saturday');
+        expect(getDatePartValue(store, 0)).toBe('Saturday');
       });
     });
   });

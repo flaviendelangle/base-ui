@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { DateField as DateFieldBase } from '@base-ui/react/date-field';
 import { createRenderer, createTemporalRenderer } from '#test-utils';
@@ -31,7 +29,7 @@ describe('<DateField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]); // month section
         fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '4'); // March -> April
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '4'); // March -> April
       });
 
       it('should decrement month section value on ArrowDown', async () => {
@@ -46,7 +44,7 @@ describe('<DateField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'ArrowDown' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '2'); // March -> February
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '2'); // March -> February
       });
 
       it('should wrap month from December to January on ArrowUp', async () => {
@@ -61,7 +59,7 @@ describe('<DateField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-        expect(sections[0]).to.have.attribute('aria-valuenow', '1'); // December -> January
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '1'); // December -> January
       });
     });
 
@@ -78,7 +76,7 @@ describe('<DateField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]);
         fireEvent.keyDown(sections[0], { key: 'Delete' });
 
-        expect(sections[0]).not.to.have.attribute('aria-valuenow');
+        expect(sections[0]).not.toHaveAttribute('aria-valuenow');
       });
 
       it('should not clear when field is readOnly', async () => {
@@ -95,7 +93,7 @@ describe('<DateField /> - DOM Interactions', () => {
         fireEvent.keyDown(sections[0], { key: 'Delete' });
 
         // Value should remain unchanged
-        expect(sections[0]).to.have.attribute('aria-valuenow', '3');
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '3');
       });
     });
   });
@@ -107,7 +105,7 @@ describe('<DateField /> - DOM Interactions', () => {
       const sections = screen.getAllByRole('spinbutton');
       // Empty sections should show placeholder, not empty string
       sections.forEach((section) => {
-        expect(section.textContent).to.not.equal('');
+        expect(section.textContent).not.toBe('');
       });
     });
 
@@ -120,9 +118,9 @@ describe('<DateField /> - DOM Interactions', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0].textContent).to.equal('03'); // month
-      expect(sections[1].textContent).to.equal('15'); // day
-      expect(sections[2].textContent).to.equal('2024'); // year
+      expect(sections[0].textContent).toBe('03'); // month
+      expect(sections[1].textContent).toBe('15'); // day
+      expect(sections[2].textContent).toBe('2024'); // year
     });
   });
 
@@ -138,7 +136,7 @@ describe('<DateField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-disabled', 'true');
+        expect(section).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -153,7 +151,7 @@ describe('<DateField /> - DOM Interactions', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section.tabIndex).to.equal(-1);
+        expect(section.tabIndex).toBe(-1);
       });
     });
   });
@@ -172,7 +170,7 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
 
       // Day section (index 1) should now be selected
-      expect(sections[1]).to.have.attribute('aria-valuenow', '15');
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '15');
     });
 
     it('should move focus to the previous section on ArrowLeft', async () => {
@@ -189,7 +187,7 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
 
       // Month section (index 0) should now be selected
-      expect(sections[0]).to.have.attribute('aria-valuenow', '3');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '3');
     });
 
     it('should not move past the first section on ArrowLeft', async () => {
@@ -205,7 +203,7 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.keyDown(sections[0], { key: 'ArrowLeft' });
 
       // Should stay on month section
-      expect(sections[0]).to.have.attribute('aria-valuenow', '3');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '3');
     });
 
     it('should not move past the last section on ArrowRight', async () => {
@@ -222,13 +220,13 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.keyDown(lastSection, { key: 'ArrowRight' });
 
       // Should stay on year section
-      expect(lastSection).to.have.attribute('aria-valuenow', '2024');
+      expect(lastSection).toHaveAttribute('aria-valuenow', '2024');
     });
   });
 
   describe('Value change callback', () => {
     it('should call onValueChange when section value changes via ArrowUp', async () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       await render(
         <DateField
           format={numericDateFormat}
@@ -241,7 +239,7 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.focus(sections[0]);
       fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
   });
 });

@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
 import {
   getLetterEditingOptions,
@@ -55,7 +54,7 @@ describe('getLetterEditingOptions', () => {
     it('should return abbreviated month names', () => {
       const result = getLetterEditingOptions(adapter, 'month', adapter.formats.month3Letters);
 
-      expect(result).to.deep.equal([
+      expect(result).toEqual([
         'Jan',
         'Feb',
         'Mar',
@@ -74,7 +73,7 @@ describe('getLetterEditingOptions', () => {
     it('should return full month names', () => {
       const result = getLetterEditingOptions(adapter, 'month', adapter.formats.monthFullLetter);
 
-      expect(result).to.deep.equal([
+      expect(result).toEqual([
         'January',
         'February',
         'March',
@@ -95,13 +94,13 @@ describe('getLetterEditingOptions', () => {
     it('should return abbreviated weekday names', () => {
       const result = getLetterEditingOptions(adapter, 'weekDay', adapter.formats.weekday3Letters);
 
-      expect(result).to.deep.equal(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+      expect(result).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
     });
 
     it('should return full weekday names', () => {
       const result = getLetterEditingOptions(adapter, 'weekDay', adapter.formats.weekday);
 
-      expect(result).to.deep.equal([
+      expect(result).toEqual([
         'Sunday',
         'Monday',
         'Tuesday',
@@ -117,7 +116,7 @@ describe('getLetterEditingOptions', () => {
     it('should return AM and PM', () => {
       const result = getLetterEditingOptions(adapter, 'meridiem', adapter.formats.meridiem);
 
-      expect(result).to.deep.equal(['AM', 'PM']);
+      expect(result).toEqual(['AM', 'PM']);
     });
   });
 
@@ -125,31 +124,31 @@ describe('getLetterEditingOptions', () => {
     it('should return empty array for year section', () => {
       const result = getLetterEditingOptions(adapter, 'year', adapter.formats.yearPadded);
 
-      expect(result).to.deep.equal([]);
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for day section', () => {
       const result = getLetterEditingOptions(adapter, 'day', adapter.formats.dayOfMonthPadded);
 
-      expect(result).to.deep.equal([]);
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for hours section', () => {
       const result = getLetterEditingOptions(adapter, 'hours', adapter.formats.hours24hPadded);
 
-      expect(result).to.deep.equal([]);
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for minutes section', () => {
       const result = getLetterEditingOptions(adapter, 'minutes', adapter.formats.minutesPadded);
 
-      expect(result).to.deep.equal([]);
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for seconds section', () => {
       const result = getLetterEditingOptions(adapter, 'seconds', adapter.formats.secondsPadded);
 
-      expect(result).to.deep.equal([]);
+      expect(result).toEqual([]);
     });
   });
 });
@@ -163,28 +162,28 @@ describe('cleanDigitSectionValue', () => {
       const token = FormatParser.buildSingleToken(adapter, 'M', {});
 
       const result = cleanDigitDatePartValue(adapter, 5, null, token);
-      expect(result).to.equal('5');
+      expect(result).toBe('5');
     });
 
     it('should format a padded value with leading zeros', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.monthPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 5, null, token);
-      expect(result).to.equal('05');
+      expect(result).toBe('05');
     });
 
     it('should handle single-digit values without padding', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.dayOfMonth, {});
 
       const result = cleanDigitDatePartValue(adapter, 3, null, token);
-      expect(result).to.equal('3');
+      expect(result).toBe('3');
     });
 
     it('should handle double-digit values with padding', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.dayOfMonthPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 15, null, token);
-      expect(result).to.equal('15');
+      expect(result).toBe('15');
     });
   });
 
@@ -193,28 +192,28 @@ describe('cleanDigitSectionValue', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.yearPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 2023, null, token);
-      expect(result).to.equal('2023');
+      expect(result).toBe('2023');
     });
 
     it('should pad hours correctly', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.hours24hPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 9, null, token);
-      expect(result).to.equal('09');
+      expect(result).toBe('09');
     });
 
     it('should pad minutes correctly', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.minutesPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 5, null, token);
-      expect(result).to.equal('05');
+      expect(result).toBe('05');
     });
 
     it('should pad seconds correctly', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.secondsPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 7, null, token);
-      expect(result).to.equal('07');
+      expect(result).toBe('07');
     });
   });
 
@@ -224,28 +223,28 @@ describe('cleanDigitSectionValue', () => {
       const token = FormatParser.buildSingleToken(adapter, 'M', {});
 
       const result = cleanDigitDatePartValue(adapter, 5, ARABIC_INDIC_DIGITS, token);
-      expect(result).to.equal('٥');
+      expect(result).toBe('٥');
     });
 
     it('should convert padded values to localized digits', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.monthPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 5, ARABIC_INDIC_DIGITS, token);
-      expect(result).to.equal('٠٥');
+      expect(result).toBe('٠٥');
     });
 
     it('should handle Eastern Arabic-Indic digits', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.dayOfMonthPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 15, EASTERN_ARABIC_INDIC_DIGITS, token);
-      expect(result).to.equal('۱۵');
+      expect(result).toBe('۱۵');
     });
 
     it('should skip localization when localizedDigits is null (standard ASCII)', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.monthPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 5, null, token);
-      expect(result).to.equal('05');
+      expect(result).toBe('05');
     });
   });
 
@@ -257,10 +256,10 @@ describe('cleanDigitSectionValue', () => {
         {},
       );
 
-      expect(cleanDigitDatePartValue(adapter, 1, null, token)).to.equal('1st');
-      expect(cleanDigitDatePartValue(adapter, 2, null, token)).to.equal('2nd');
-      expect(cleanDigitDatePartValue(adapter, 3, null, token)).to.equal('3rd');
-      expect(cleanDigitDatePartValue(adapter, 15, null, token)).to.equal('15th');
+      expect(cleanDigitDatePartValue(adapter, 1, null, token)).toBe('1st');
+      expect(cleanDigitDatePartValue(adapter, 2, null, token)).toBe('2nd');
+      expect(cleanDigitDatePartValue(adapter, 3, null, token)).toBe('3rd');
+      expect(cleanDigitDatePartValue(adapter, 15, null, token)).toBe('15th');
     });
 
     it('should format days 4-9 with "th" suffix', () => {
@@ -270,12 +269,12 @@ describe('cleanDigitSectionValue', () => {
         {},
       );
 
-      expect(cleanDigitDatePartValue(adapter, 4, null, token)).to.equal('4th');
-      expect(cleanDigitDatePartValue(adapter, 5, null, token)).to.equal('5th');
-      expect(cleanDigitDatePartValue(adapter, 6, null, token)).to.equal('6th');
-      expect(cleanDigitDatePartValue(adapter, 7, null, token)).to.equal('7th');
-      expect(cleanDigitDatePartValue(adapter, 8, null, token)).to.equal('8th');
-      expect(cleanDigitDatePartValue(adapter, 9, null, token)).to.equal('9th');
+      expect(cleanDigitDatePartValue(adapter, 4, null, token)).toBe('4th');
+      expect(cleanDigitDatePartValue(adapter, 5, null, token)).toBe('5th');
+      expect(cleanDigitDatePartValue(adapter, 6, null, token)).toBe('6th');
+      expect(cleanDigitDatePartValue(adapter, 7, null, token)).toBe('7th');
+      expect(cleanDigitDatePartValue(adapter, 8, null, token)).toBe('8th');
+      expect(cleanDigitDatePartValue(adapter, 9, null, token)).toBe('9th');
     });
 
     it('should format 11th, 12th, 13th with "th" suffix (not st/nd/rd)', () => {
@@ -286,9 +285,9 @@ describe('cleanDigitSectionValue', () => {
       );
 
       // These are exceptions - even though they end in 1, 2, 3
-      expect(cleanDigitDatePartValue(adapter, 11, null, token)).to.equal('11th');
-      expect(cleanDigitDatePartValue(adapter, 12, null, token)).to.equal('12th');
-      expect(cleanDigitDatePartValue(adapter, 13, null, token)).to.equal('13th');
+      expect(cleanDigitDatePartValue(adapter, 11, null, token)).toBe('11th');
+      expect(cleanDigitDatePartValue(adapter, 12, null, token)).toBe('12th');
+      expect(cleanDigitDatePartValue(adapter, 13, null, token)).toBe('13th');
     });
 
     it('should format 21st, 22nd, 23rd, 31st with special suffixes', () => {
@@ -298,10 +297,10 @@ describe('cleanDigitSectionValue', () => {
         {},
       );
 
-      expect(cleanDigitDatePartValue(adapter, 21, null, token)).to.equal('21st');
-      expect(cleanDigitDatePartValue(adapter, 22, null, token)).to.equal('22nd');
-      expect(cleanDigitDatePartValue(adapter, 23, null, token)).to.equal('23rd');
-      expect(cleanDigitDatePartValue(adapter, 31, null, token)).to.equal('31st');
+      expect(cleanDigitDatePartValue(adapter, 21, null, token)).toBe('21st');
+      expect(cleanDigitDatePartValue(adapter, 22, null, token)).toBe('22nd');
+      expect(cleanDigitDatePartValue(adapter, 23, null, token)).toBe('23rd');
+      expect(cleanDigitDatePartValue(adapter, 31, null, token)).toBe('31st');
     });
   });
 
@@ -310,21 +309,21 @@ describe('cleanDigitSectionValue', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.hours24hPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 0, null, token);
-      expect(result).to.equal('00');
+      expect(result).toBe('00');
     });
 
     it('should handle maximum boundary value', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.hours24hPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 23, null, token);
-      expect(result).to.equal('23');
+      expect(result).toBe('23');
     });
 
     it('should handle 4-digit year with full padding', () => {
       const token = FormatParser.buildSingleToken(adapter, adapter.formats.yearPadded, {});
 
       const result = cleanDigitDatePartValue(adapter, 50, null, token);
-      expect(result).to.equal('0050');
+      expect(result).toBe('0050');
     });
 
     it('should handle 2-digit year', () => {
@@ -332,7 +331,7 @@ describe('cleanDigitSectionValue', () => {
       const token = FormatParser.buildSingleToken(adapter, 'yy', {});
 
       const result = cleanDigitDatePartValue(adapter, 5, null, token);
-      expect(result).to.equal('05');
+      expect(result).toBe('05');
     });
   });
 });
@@ -365,9 +364,9 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getYear(result)).to.equal(2030);
-      expect(adapter.getMonth(result)).to.equal(5); // June = 5 (0-indexed)
-      expect(adapter.getDate(result)).to.equal(20);
+      expect(adapter.getYear(result)).toBe(2030);
+      expect(adapter.getMonth(result)).toBe(5); // June = 5 (0-indexed)
+      expect(adapter.getDate(result)).toBe(20);
     });
 
     it('should transfer month from source to reference date', () => {
@@ -385,7 +384,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getMonth(result)).to.equal(8); // September = 8 (0-indexed)
+      expect(adapter.getMonth(result)).toBe(8); // September = 8 (0-indexed)
     });
 
     it('should transfer day from source to reference date', () => {
@@ -403,7 +402,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getDate(result)).to.equal(25);
+      expect(adapter.getDate(result)).toBe(25);
     });
 
     it('should transfer hours from source to reference date', () => {
@@ -422,7 +421,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getHours(result)).to.equal(9);
+      expect(adapter.getHours(result)).toBe(9);
     });
 
     it('should transfer minutes from source to reference date', () => {
@@ -441,7 +440,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getMinutes(result)).to.equal(55);
+      expect(adapter.getMinutes(result)).toBe(55);
     });
 
     it('should transfer seconds from source to reference date', () => {
@@ -460,7 +459,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getSeconds(result)).to.equal(10);
+      expect(adapter.getSeconds(result)).toBe(10);
     });
   });
 
@@ -480,9 +479,9 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getYear(result)).to.equal(2030);
-      expect(adapter.getMonth(result)).to.equal(8); // September = 8 (0-indexed)
-      expect(adapter.getDate(result)).to.equal(25);
+      expect(adapter.getYear(result)).toBe(2030);
+      expect(adapter.getMonth(result)).toBe(8); // September = 8 (0-indexed)
+      expect(adapter.getDate(result)).toBe(25);
     });
 
     it('should only transfer modified sections when shouldLimitToEditedSections is true', () => {
@@ -507,9 +506,9 @@ describe('mergeDateIntoReferenceDate', () => {
       const result = mergeDateIntoReferenceDate(source, sections, reference, true);
 
       // Only month should be transferred from source
-      expect(adapter.getYear(result)).to.equal(2024); // unchanged from reference
-      expect(adapter.getMonth(result)).to.equal(8); // September = 8, transferred from source
-      expect(adapter.getDate(result)).to.equal(15); // unchanged from reference
+      expect(adapter.getYear(result)).toBe(2024); // unchanged from reference
+      expect(adapter.getMonth(result)).toBe(8); // September = 8, transferred from source
+      expect(adapter.getDate(result)).toBe(15); // unchanged from reference
     });
 
     it('should not transfer any sections when none are modified and shouldLimitToEditedSections is true', () => {
@@ -531,9 +530,9 @@ describe('mergeDateIntoReferenceDate', () => {
       const result = mergeDateIntoReferenceDate(source, sections, reference, true);
 
       // Nothing should be transferred; result should match reference
-      expect(adapter.getYear(result)).to.equal(2024);
-      expect(adapter.getMonth(result)).to.equal(2); // March = 2 (0-indexed)
-      expect(adapter.getDate(result)).to.equal(15);
+      expect(adapter.getYear(result)).toBe(2024);
+      expect(adapter.getMonth(result)).toBe(2); // March = 2 (0-indexed)
+      expect(adapter.getDate(result)).toBe(15);
     });
   });
 
@@ -554,7 +553,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getHours(result)).to.equal(8); // converted from PM to AM
+      expect(adapter.getHours(result)).toBe(8); // converted from PM to AM
     });
 
     it('should convert AM reference to PM when source is PM', () => {
@@ -573,7 +572,7 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getHours(result)).to.equal(20); // converted from AM to PM
+      expect(adapter.getHours(result)).toBe(20); // converted from AM to PM
     });
 
     it('should leave hours unchanged when meridiem matches', () => {
@@ -593,7 +592,7 @@ describe('mergeDateIntoReferenceDate', () => {
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
       // Hours are transferred from source (14), and meridiem matches (both PM), so no adjustment
-      expect(adapter.getHours(result)).to.equal(14);
+      expect(adapter.getHours(result)).toBe(14);
     });
   });
 
@@ -613,7 +612,7 @@ describe('mergeDateIntoReferenceDate', () => {
       const separatorCount = sections.filter(
         (s) => !('token' in s) || s.token.config.part === undefined,
       ).length;
-      expect(separatorCount).to.be.greaterThan(0);
+      expect(separatorCount).toBeGreaterThan(0);
 
       // Despite separators, the function should work correctly
       const source = adapter.date('2030-09-25', 'default');
@@ -621,9 +620,9 @@ describe('mergeDateIntoReferenceDate', () => {
 
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
-      expect(adapter.getYear(result)).to.equal(2030);
-      expect(adapter.getMonth(result)).to.equal(8); // September = 8 (0-indexed)
-      expect(adapter.getDate(result)).to.equal(25);
+      expect(adapter.getYear(result)).toBe(2030);
+      expect(adapter.getMonth(result)).toBe(8); // September = 8 (0-indexed)
+      expect(adapter.getDate(result)).toBe(25);
     });
 
     it('should process sections in granularity order regardless of input order', () => {
@@ -644,9 +643,9 @@ describe('mergeDateIntoReferenceDate', () => {
       const result = mergeDateIntoReferenceDate(source, sections, reference, false);
 
       // All parts should be correctly transferred despite the section order (month first, then day, then year)
-      expect(adapter.getYear(result)).to.equal(2030);
-      expect(adapter.getMonth(result)).to.equal(8); // September = 8 (0-indexed)
-      expect(adapter.getDate(result)).to.equal(25);
+      expect(adapter.getYear(result)).toBe(2030);
+      expect(adapter.getMonth(result)).toBe(8); // September = 8 (0-indexed)
+      expect(adapter.getDate(result)).toBe(25);
     });
   });
 });

@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
@@ -35,13 +33,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(store.state.fieldContext).to.equal(mockFieldContext);
+      expect(store.state.fieldContext).toBe(mockFieldContext);
     });
 
     it('should store null when fieldContext is not provided', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
-      expect(store.state.fieldContext).to.equal(null);
+      expect(store.state.fieldContext).toBe(null);
     });
 
     it('should update fieldContext when parameters change', () => {
@@ -59,7 +57,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(store.state.fieldContext).to.equal(initialFieldContext);
+      expect(store.state.fieldContext).toBe(initialFieldContext);
 
       const newFieldContext = {
         name: 'field2',
@@ -68,7 +66,7 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       store.set('fieldContext', newFieldContext);
 
-      expect(store.state.fieldContext).to.equal(newFieldContext);
+      expect(store.state.fieldContext).toBe(newFieldContext);
     });
   });
 
@@ -82,7 +80,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.disabled(store.state)).to.equal(true);
+      expect(selectors.disabled(store.state)).toBe(true);
     });
 
     it('should return true when fieldContext.state.disabled is true and disabledProp is false', () => {
@@ -100,7 +98,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.disabled(store.state)).to.equal(true);
+      expect(selectors.disabled(store.state)).toBe(true);
     });
 
     it('should return true when disabledProp is true and fieldContext.state.disabled is false', () => {
@@ -118,7 +116,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.disabled(store.state)).to.equal(true);
+      expect(selectors.disabled(store.state)).toBe(true);
     });
 
     it('should return false when both disabledProp and fieldContext.state.disabled are false', () => {
@@ -136,7 +134,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.disabled(store.state)).to.equal(false);
+      expect(selectors.disabled(store.state)).toBe(false);
     });
   });
 
@@ -150,7 +148,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.name(store.state)).to.equal('localName');
+      expect(selectors.name(store.state)).toBe('localName');
     });
 
     it('should prefer fieldContext.name over nameProp', () => {
@@ -168,7 +166,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.name(store.state)).to.equal('fieldName');
+      expect(selectors.name(store.state)).toBe('fieldName');
     });
 
     it('should fall back to nameProp when fieldContext.name is undefined', () => {
@@ -186,13 +184,13 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      expect(selectors.name(store.state)).to.equal('localName');
+      expect(selectors.name(store.state)).toBe('localName');
     });
   });
 
   describe('setFilled integration via observe', () => {
     it('should call setFilled(true) when value changes from null to non-null', () => {
-      const setFilledSpy = spy();
+      const setFilledSpy = vi.fn();
       const mockFieldContext = {
         setFilled: setFilledSpy,
         setDirty: () => {},
@@ -215,12 +213,12 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // setFilled should be called with true
-      expect(setFilledSpy.callCount).to.be.greaterThan(0);
-      expect(setFilledSpy.lastCall.args[0]).to.equal(true);
+      expect(setFilledSpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setFilledSpy.mock.calls.at(-1)![0]).toBe(true);
     });
 
     it('should call setFilled(false) when value changes from non-null to null', () => {
-      const setFilledSpy = spy();
+      const setFilledSpy = vi.fn();
       const mockFieldContext = {
         setFilled: setFilledSpy,
         setDirty: () => {},
@@ -239,14 +237,14 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Value is initially non-null, effect is registered so setFilled should be called on mount
       // The effect triggers when value changes
-      setFilledSpy.resetHistory();
+      setFilledSpy.mockClear();
 
       // Change value to null
       store.clear();
 
       // setFilled should be called with false
-      expect(setFilledSpy.callCount).to.be.greaterThan(0);
-      expect(setFilledSpy.lastCall.args[0]).to.equal(false);
+      expect(setFilledSpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setFilledSpy.mock.calls.at(-1)![0]).toBe(false);
     });
 
     it('should not call setFilled when fieldContext is null', () => {
@@ -256,14 +254,14 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // No error should occur - value is stored as a Date object
-      expect(store.state.value).to.not.equal(null);
-      expect(adapter.isValid(store.state.value)).to.equal(true);
+      expect(store.state.value).not.toBe(null);
+      expect(adapter.isValid(store.state.value)).toBe(true);
     });
   });
 
   describe('setDirty integration in publish()', () => {
     it('should call setDirty(false) when value equals initial value', () => {
-      const setDirtySpy = spy();
+      const setDirtySpy = vi.fn();
       const initialValue = adapter.date('2024-01-15', 'default');
       const mockFieldContext = {
         setDirty: setDirtySpy,
@@ -281,18 +279,18 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      setDirtySpy.resetHistory();
+      setDirtySpy.mockClear();
 
       // Set value to same as initial
       store.updateFromString('01/15/2024');
 
       // setDirty should be called with false
-      expect(setDirtySpy.callCount).to.be.greaterThan(0);
-      expect(setDirtySpy.lastCall.args[0]).to.equal(false);
+      expect(setDirtySpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setDirtySpy.mock.calls.at(-1)![0]).toBe(false);
     });
 
     it('should call setDirty(true) when value differs from initial value', () => {
-      const setDirtySpy = spy();
+      const setDirtySpy = vi.fn();
       const initialValue = adapter.date('2024-01-15', 'default');
       const mockFieldContext = {
         setDirty: setDirtySpy,
@@ -310,14 +308,14 @@ describe('TemporalFieldStore - Field Integration', () => {
         dateFieldConfig,
       );
 
-      setDirtySpy.resetHistory();
+      setDirtySpy.mockClear();
 
       // Set value to different from initial
       store.updateFromString('01/16/2024');
 
       // setDirty should be called with true
-      expect(setDirtySpy.callCount).to.be.greaterThan(0);
-      expect(setDirtySpy.lastCall.args[0]).to.equal(true);
+      expect(setDirtySpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setDirtySpy.mock.calls.at(-1)![0]).toBe(true);
     });
 
     it('should not call setDirty when fieldContext is null', () => {
@@ -333,15 +331,15 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/16/2024');
 
       // No error should occur - value is stored as a Date object
-      expect(store.state.value).to.not.equal(null);
-      expect(adapter.isValid(store.state.value)).to.equal(true);
+      expect(store.state.value).not.toBe(null);
+      expect(adapter.isValid(store.state.value)).toBe(true);
     });
   });
 
   describe('validation integration in publish()', () => {
     it('should call validation.commit() when shouldValidateOnChange returns true', () => {
-      const validationCommitSpy = spy();
-      const shouldValidateOnChangeSpy = spy(() => true);
+      const validationCommitSpy = vi.fn();
+      const shouldValidateOnChangeSpy = vi.fn(() => true);
       const mockFieldContext = {
         setDirty: () => {},
         setFilled: () => {},
@@ -362,16 +360,16 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // shouldValidateOnChange should be called
-      expect(shouldValidateOnChangeSpy.callCount).to.be.greaterThan(0);
+      expect(shouldValidateOnChangeSpy.mock.calls.length).toBeGreaterThan(0);
 
       // validation.commit should be called with the new value (Date object)
-      expect(validationCommitSpy.callCount).to.be.greaterThan(0);
-      expect(adapter.isValid(validationCommitSpy.lastCall.args[0])).to.equal(true);
+      expect(validationCommitSpy.mock.calls.length).toBeGreaterThan(0);
+      expect(adapter.isValid(validationCommitSpy.mock.calls.at(-1)![0])).toBe(true);
     });
 
     it('should not call validation.commit() when shouldValidateOnChange returns false', () => {
-      const validationCommitSpy = spy();
-      const shouldValidateOnChangeSpy = spy(() => false);
+      const validationCommitSpy = vi.fn();
+      const shouldValidateOnChangeSpy = vi.fn(() => false);
       const mockFieldContext = {
         setDirty: () => {},
         setFilled: () => {},
@@ -392,10 +390,10 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // shouldValidateOnChange should be called
-      expect(shouldValidateOnChangeSpy.callCount).to.be.greaterThan(0);
+      expect(shouldValidateOnChangeSpy.mock.calls.length).toBeGreaterThan(0);
 
       // validation.commit should NOT be called
-      expect(validationCommitSpy.callCount).to.equal(0);
+      expect(validationCommitSpy.mock.calls.length).toBe(0);
     });
 
     it('should not call validation when fieldContext is null', () => {
@@ -405,8 +403,8 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // No error should occur - value is stored as a Date object
-      expect(store.state.value).to.not.equal(null);
-      expect(adapter.isValid(store.state.value)).to.equal(true);
+      expect(store.state.value).not.toBe(null);
+      expect(adapter.isValid(store.state.value)).toBe(true);
     });
   });
 
@@ -427,11 +425,11 @@ describe('TemporalFieldStore - Field Integration', () => {
         timeFieldConfig,
       );
 
-      expect(store.state.fieldContext).to.equal(mockFieldContext);
+      expect(store.state.fieldContext).toBe(mockFieldContext);
     });
 
     it('should call setDirty when time value changes', () => {
-      const setDirtySpy = spy();
+      const setDirtySpy = vi.fn();
       const mockFieldContext = {
         setDirty: setDirtySpy,
         setFilled: () => {},
@@ -448,18 +446,18 @@ describe('TemporalFieldStore - Field Integration', () => {
         timeFieldConfig,
       );
 
-      setDirtySpy.resetHistory();
+      setDirtySpy.mockClear();
 
       // Change time value
       store.updateFromString('14:30');
 
       // setDirty should be called with true (differs from initial null)
-      expect(setDirtySpy.callCount).to.be.greaterThan(0);
-      expect(setDirtySpy.lastCall.args[0]).to.equal(true);
+      expect(setDirtySpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setDirtySpy.mock.calls.at(-1)![0]).toBe(true);
     });
 
     it('should call validation.commit() for time values', () => {
-      const validationCommitSpy = spy();
+      const validationCommitSpy = vi.fn();
       const mockFieldContext = {
         setDirty: () => {},
         setFilled: () => {},
@@ -481,12 +479,12 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('14:30');
 
       // validation.commit should be called with the new value (PlainTime object)
-      expect(validationCommitSpy.callCount).to.be.greaterThan(0);
-      expect(adapter.isValid(validationCommitSpy.lastCall.args[0])).to.equal(true);
+      expect(validationCommitSpy.mock.calls.length).toBeGreaterThan(0);
+      expect(adapter.isValid(validationCommitSpy.mock.calls.at(-1)![0])).toBe(true);
     });
 
     it('should call setFilled when time value changes', () => {
-      const setFilledSpy = spy();
+      const setFilledSpy = vi.fn();
       const mockFieldContext = {
         setFilled: setFilledSpy,
         setDirty: () => {},
@@ -503,22 +501,22 @@ describe('TemporalFieldStore - Field Integration', () => {
         timeFieldConfig,
       );
 
-      setFilledSpy.resetHistory();
+      setFilledSpy.mockClear();
 
       // Change time value to non-null
       store.updateFromString('14:30');
 
       // setFilled should be called with true
-      expect(setFilledSpy.callCount).to.be.greaterThan(0);
-      expect(setFilledSpy.lastCall.args[0]).to.equal(true);
+      expect(setFilledSpy.mock.calls.length).toBeGreaterThan(0);
+      expect(setFilledSpy.mock.calls.at(-1)![0]).toBe(true);
     });
   });
 
   describe('onValueChange integration', () => {
     it('should call onValueChange before Field callbacks', () => {
       const callOrder: string[] = [];
-      const onValueChangeSpy = spy(() => callOrder.push('onValueChange'));
-      const setDirtySpy = spy(() => callOrder.push('setDirty'));
+      const onValueChangeSpy = vi.fn(() => callOrder.push('onValueChange'));
+      const setDirtySpy = vi.fn(() => callOrder.push('setDirty'));
 
       const mockFieldContext = {
         setDirty: setDirtySpy,
@@ -540,24 +538,24 @@ describe('TemporalFieldStore - Field Integration', () => {
       store.updateFromString('01/15/2024');
 
       // onValueChange should be called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
       // Value is passed as Date object
-      if (onValueChangeSpy.lastCall && onValueChangeSpy.lastCall.args.length > 0) {
-        expect(adapter.isValid(onValueChangeSpy.lastCall.args[0 as any]!)).to.equal(true);
+      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+        expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0 as any]!)).toBe(true);
       }
 
       // setDirty should also be called
-      expect(setDirtySpy.callCount).to.be.greaterThan(0);
+      expect(setDirtySpy.mock.calls.length).toBeGreaterThan(0);
 
       // onValueChange should be called before setDirty
-      expect(callOrder[0]).to.equal('onValueChange');
-      expect(callOrder[1]).to.equal('setDirty');
+      expect(callOrder[0]).toBe('onValueChange');
+      expect(callOrder[1]).toBe('setDirty');
     });
   });
 
   describe('usage without Field', () => {
     it('should work without Field context (standalone mode)', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
 
       const store = new TemporalFieldStore(
         {
@@ -570,25 +568,25 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Should work normally without Field context
-      expect(store.state.disabledProp).to.equal(true);
-      expect(store.state.nameProp).to.equal('standaloneField');
-      expect(store.state.fieldContext).to.equal(null);
+      expect(store.state.disabledProp).toBe(true);
+      expect(store.state.nameProp).toBe('standaloneField');
+      expect(store.state.fieldContext).toBe(null);
 
       // Value changes should work
       store.updateFromString('01/15/2024');
 
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
       // Value is passed as Date object
-      if (onValueChangeSpy.lastCall && onValueChangeSpy.lastCall.args.length > 0) {
-        expect(adapter.isValid(onValueChangeSpy.lastCall.args[0])).to.equal(true);
+      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+        expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0])).toBe(true);
       }
-      expect(adapter.isValid(store.state.value)).to.equal(true);
+      expect(adapter.isValid(store.state.value)).toBe(true);
     });
   });
 
   describe('E2E editing scenarios', () => {
     it('should handle complete date entry in MM/DD/YYYY format', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -598,7 +596,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Fill month
       store.selectClosestDatePart(0);
@@ -626,18 +624,18 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Verify final value
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(2); // March (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2); // March (0-indexed)
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should handle complete date entry with letter month (MMM DD, YYYY)', () => {
       const monthNameFormat = `${adapter.formats.month3Letters} ${adapter.formats.dayOfMonthPadded}, ${adapter.formats.yearPadded}`;
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -648,7 +646,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Fill month with letter
       store.selectClosestDatePart(0);
@@ -676,17 +674,17 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Verify final value
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(1); // February (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(14);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(1); // February (0-indexed)
+      expect(adapter.getDate(value!)).toBe(14);
+      expect(adapter.getYear(value!)).toBe(2024);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should handle complete time entry in 24-hour format (HH:mm)', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -697,7 +695,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Fill hour
       store.selectClosestDatePart(0);
@@ -717,17 +715,17 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Verify final value
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should handle complete time entry in 12-hour format with meridiem (hh:mm aa)', () => {
       const time12Format = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -738,7 +736,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Fill hour
       store.selectClosestDatePart(0);
@@ -766,17 +764,17 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Verify final value (2:30 PM = 14:30)
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should handle complete date entry in DD/MM/YYYY format', () => {
       const europeanDateFormat = `${adapter.formats.dayOfMonthPadded}/${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -787,7 +785,7 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Fill day
       store.selectClosestDatePart(0);
@@ -815,17 +813,17 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Verify final value
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getDate(value!)).to.equal(25);
-      expect(adapter.getMonth(value!)).to.equal(11); // December (0-indexed)
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getDate(value!)).toBe(25);
+      expect(adapter.getMonth(value!)).toBe(11); // December (0-indexed)
+      expect(adapter.getYear(value!)).toBe(2024);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('should handle pasting complete date string', () => {
-      const onValueChangeSpy = spy();
+      const onValueChangeSpy = vi.fn();
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -835,22 +833,22 @@ describe('TemporalFieldStore - Field Integration', () => {
       );
 
       // Start with empty field
-      expect(store.state.value).to.equal(null);
+      expect(store.state.value).toBe(null);
 
       // Paste complete date
       store.updateFromString('03/15/2024');
 
       // Verify final value
       const value = store.state.value;
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(2); // March (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2); // March (0-indexed)
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
 
       // onValueChange should have been called
-      expect(onValueChangeSpy.callCount).to.be.greaterThan(0);
-      if (onValueChangeSpy.lastCall && onValueChangeSpy.lastCall.args.length > 0) {
-        expect(adapter.isValid(onValueChangeSpy.lastCall.args[0])).to.equal(true);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
+      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+        expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0])).toBe(true);
       }
     });
   });
@@ -876,14 +874,14 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldGoToNextSection: false,
       });
 
-      expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
 
       // Change format (simulates parent re-render with new format prop)
       // The format store effect will detect the rawFormat change and rebuild sections.
       store.update({ rawFormat: europeanDateFormat });
 
       // The stale pending patch should have been cleared
-      expect((store as any).sectionToUpdateOnNextInvalidDate).to.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).toBe(null);
     });
 
     it('should not corrupt sections when format and value change simultaneously with a pending invalid date', () => {
@@ -903,7 +901,7 @@ describe('TemporalFieldStore - Field Integration', () => {
         shouldGoToNextSection: false,
       });
 
-      expect((store as any).sectionToUpdateOnNextInvalidDate).to.not.equal(null);
+      expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
 
       // Simulate parent re-render that changes BOTH format and value.
       // In the real component, useSyncedValues fires first (updating rawFormat),
@@ -914,9 +912,9 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // Sections should reflect the NEW format (dd/MM/yyyy) with the NEW value
       const sections = store.state.sections.filter((s) => s.type === 'datePart');
-      expect(sections[0].value).to.equal('15'); // day first in european format
-      expect(sections[1].value).to.equal('06'); // month second
-      expect(sections[2].value).to.equal('2024'); // year
+      expect(sections[0].value).toBe('15'); // day first in european format
+      expect(sections[1].value).toBe('06'); // month second
+      expect(sections[2].value).toBe('2024'); // year
     });
   });
 });

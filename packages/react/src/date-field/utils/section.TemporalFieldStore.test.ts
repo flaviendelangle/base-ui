@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { createTemporalRenderer } from '#test-utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
@@ -33,12 +32,12 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(0); // month section
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal('03'); // Month is set
+      expect(datePart!.value).toBe('03'); // Month is set
 
       store.clearActive();
 
       const updatedDatePart = selectors.datePart(store.state, 0);
-      expect(updatedDatePart!.value).to.equal(''); // Month is cleared
+      expect(updatedDatePart!.value).toBe(''); // Month is cleared
     });
 
     it('should not do anything when active section is already empty', () => {
@@ -47,12 +46,12 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(0); // month section (empty)
 
       const datePart = selectors.datePart(store.state, 0);
-      expect(datePart!.value).to.equal(''); // Already empty
+      expect(datePart!.value).toBe(''); // Already empty
 
       store.clearActive(); // Should not error
 
       const updatedDatePart = selectors.datePart(store.state, 0);
-      expect(updatedDatePart!.value).to.equal(''); // Still empty
+      expect(updatedDatePart!.value).toBe(''); // Still empty
     });
 
     it('should clear day section and preserve month/year', () => {
@@ -70,14 +69,14 @@ describe('TemporalFieldStore - Section', () => {
 
       // Day should be cleared
       const dayPart = selectors.datePart(store.state, 2);
-      expect(dayPart!.value).to.equal('');
+      expect(dayPart!.value).toBe('');
 
       // Month and year should remain
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('03');
+      expect(monthPart!.value).toBe('03');
 
       const yearPart = selectors.datePart(store.state, 4);
-      expect(yearPart!.value).to.equal('2024');
+      expect(yearPart!.value).toBe('2024');
     });
 
     it('should clear all sections sequentially', () => {
@@ -93,23 +92,23 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(0);
       store.clearActive();
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('');
+      expect(monthPart!.value).toBe('');
 
       // Clear day
       store.selectClosestDatePart(2);
       store.clearActive();
       const dayPart = selectors.datePart(store.state, 2);
-      expect(dayPart!.value).to.equal('');
+      expect(dayPart!.value).toBe('');
 
       // Clear year
       store.selectClosestDatePart(4);
       store.clearActive();
       const yearPart = selectors.datePart(store.state, 4);
-      expect(yearPart!.value).to.equal('');
+      expect(yearPart!.value).toBe('');
 
       // All sections should be empty
       const value = selectors.value(store.state);
-      expect(value).to.equal(null);
+      expect(value).toBe(null);
     });
 
     it('should reset character query when clearing section', () => {
@@ -139,7 +138,7 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('05'); // Should be 05, not trying to concatenate with cleared '0'
+      expect(monthPart!.value).toBe('05'); // Should be 05, not trying to concatenate with cleared '0'
     });
   });
 
@@ -150,10 +149,10 @@ describe('TemporalFieldStore - Section', () => {
       store.updateFromString('03/15/2024');
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(2); // March = month 2 (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2); // March = month 2 (0-indexed)
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
 
     it('should parse and update value from valid string when value already exists', () => {
@@ -168,10 +167,10 @@ describe('TemporalFieldStore - Section', () => {
       store.updateFromString('12/31/2024');
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(11); // December = month 11 (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(31);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(11); // December = month 11 (0-indexed)
+      expect(adapter.getDate(value!)).toBe(31);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
 
     it('should not update the value when the string is invalid', () => {
@@ -186,10 +185,10 @@ describe('TemporalFieldStore - Section', () => {
       store.updateFromString('invalid date string');
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(2); // March (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2); // March (0-indexed)
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
 
     it('should not update the value when the string is empty', () => {
@@ -204,10 +203,10 @@ describe('TemporalFieldStore - Section', () => {
       store.updateFromString('');
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(2); // March (0-indexed)
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2); // March (0-indexed)
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
 
     it('should parse time string correctly', () => {
@@ -219,9 +218,9 @@ describe('TemporalFieldStore - Section', () => {
       store.updateFromString('14:30');
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
     });
 
     it('should reset character query after pasting', () => {
@@ -244,7 +243,7 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('07'); // Should be 07, not trying to use old query
+      expect(monthPart!.value).toBe('07'); // Should be 07, not trying to use old query
     });
   });
 
@@ -267,14 +266,14 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Date should be updated
-      expect(adapter.getDate(value!)).to.equal(20);
+      expect(adapter.getDate(value!)).toBe(20);
 
       // Time should be preserved
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
     });
 
     it('should preserve time information when clearing date then refilling', () => {
@@ -298,11 +297,11 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Time should still be preserved
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
     });
 
     it('should preserve date information when using year-only format', () => {
@@ -324,16 +323,16 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Year should be updated
-      expect(adapter.getYear(value!)).to.equal(2025);
+      expect(adapter.getYear(value!)).toBe(2025);
 
       // Month, day, and time should be preserved
-      expect(adapter.getMonth(value!)).to.equal(2); // March
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.getMonth(value!)).toBe(2); // March
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
     });
 
     it('should preserve date information when using month-only format', () => {
@@ -355,16 +354,16 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Month should be updated
-      expect(adapter.getMonth(value!)).to.equal(11); // December
+      expect(adapter.getMonth(value!)).toBe(11); // December
 
       // Year, day, and time should be preserved
-      expect(adapter.getYear(value!)).to.equal(2024);
-      expect(adapter.getDate(value!)).to.equal(15);
-      expect(adapter.getHours(value!)).to.equal(14);
-      expect(adapter.getMinutes(value!)).to.equal(30);
+      expect(adapter.getYear(value!)).toBe(2024);
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
     });
 
     it('should preserve date information when editing time with partial format', () => {
@@ -386,15 +385,15 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Hour should be updated
-      expect(adapter.getHours(value!)).to.equal(18);
+      expect(adapter.getHours(value!)).toBe(18);
 
       // Date should be preserved
-      expect(adapter.getYear(value!)).to.equal(2024);
-      expect(adapter.getMonth(value!)).to.equal(2); // March
-      expect(adapter.getDate(value!)).to.equal(15);
+      expect(adapter.getYear(value!)).toBe(2024);
+      expect(adapter.getMonth(value!)).toBe(2); // March
+      expect(adapter.getDate(value!)).toBe(15);
     });
 
     it('should preserve date information when clearing time then refilling', () => {
@@ -419,12 +418,12 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Date should still be preserved
-      expect(adapter.getYear(value!)).to.equal(2024);
-      expect(adapter.getMonth(value!)).to.equal(2); // March
-      expect(adapter.getDate(value!)).to.equal(15);
+      expect(adapter.getYear(value!)).toBe(2024);
+      expect(adapter.getMonth(value!)).toBe(2); // March
+      expect(adapter.getDate(value!)).toBe(15);
     });
 
     it('should preserve time sections when using hour-only format', () => {
@@ -446,14 +445,14 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
+      expect(adapter.isValid(value)).toBe(true);
 
       // Hour should be updated
-      expect(adapter.getHours(value!)).to.equal(18);
+      expect(adapter.getHours(value!)).toBe(18);
 
       // Minutes and seconds should be preserved
-      expect(adapter.getMinutes(value!)).to.equal(30);
-      expect(adapter.getSeconds(value!)).to.equal(45);
+      expect(adapter.getMinutes(value!)).toBe(30);
+      expect(adapter.getSeconds(value!)).toBe(45);
     });
   });
 
@@ -484,10 +483,10 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getMonth(value!)).to.equal(1); // February = month 1
-      expect(adapter.getDate(value!)).to.equal(29);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(1); // February = month 1
+      expect(adapter.getDate(value!)).toBe(29);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
 
     it('should allow updating from non-leap year to leap year February 29th', () => {
@@ -516,9 +515,9 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getDate(value!)).to.equal(29);
-      expect(adapter.getYear(value!)).to.equal(2024);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getDate(value!)).toBe(29);
+      expect(adapter.getYear(value!)).toBe(2024);
     });
   });
 
@@ -535,7 +534,7 @@ describe('TemporalFieldStore - Section', () => {
 
       // Value might be null if other sections are empty, but year section should be filled
       const yearPart = selectors.datePart(store.state, 4);
-      expect(yearPart!.value).to.equal('2024');
+      expect(yearPart!.value).toBe('2024');
     });
 
     it('should support 4-digit year format when updating existing value', () => {
@@ -555,8 +554,8 @@ describe('TemporalFieldStore - Section', () => {
       });
 
       const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).to.equal(true);
-      expect(adapter.getYear(value!)).to.equal(2025);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getYear(value!)).toBe(2025);
     });
   });
 
@@ -565,59 +564,59 @@ describe('TemporalFieldStore - Section', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month
-      expect(store.state.selectedSection).to.equal(0);
+      expect(store.state.selectedSection).toBe(0);
 
       store.selectClosestDatePart(2); // day
-      expect(store.state.selectedSection).to.equal(2);
+      expect(store.state.selectedSection).toBe(2);
 
       store.selectClosestDatePart(4); // year
-      expect(store.state.selectedSection).to.equal(4);
+      expect(store.state.selectedSection).toBe(4);
     });
 
     it('should navigate to the section on the right', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month
-      expect(store.state.selectedSection).to.equal(0);
+      expect(store.state.selectedSection).toBe(0);
 
       store.selectRightDatePart();
-      expect(store.state.selectedSection).to.equal(2); // day (skips separator at index 1)
+      expect(store.state.selectedSection).toBe(2); // day (skips separator at index 1)
 
       store.selectRightDatePart();
-      expect(store.state.selectedSection).to.equal(4); // year (skips separator at index 3)
+      expect(store.state.selectedSection).toBe(4); // year (skips separator at index 3)
     });
 
     it('should navigate to the section on the left', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year
-      expect(store.state.selectedSection).to.equal(4);
+      expect(store.state.selectedSection).toBe(4);
 
       store.selectLeftDatePart();
-      expect(store.state.selectedSection).to.equal(2); // day (skips separator at index 3)
+      expect(store.state.selectedSection).toBe(2); // day (skips separator at index 3)
 
       store.selectLeftDatePart();
-      expect(store.state.selectedSection).to.equal(0); // month (skips separator at index 1)
+      expect(store.state.selectedSection).toBe(0); // month (skips separator at index 1)
     });
 
     it('should not navigate past last section', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(4); // year (last section)
-      expect(store.state.selectedSection).to.equal(4);
+      expect(store.state.selectedSection).toBe(4);
 
       store.selectRightDatePart();
-      expect(store.state.selectedSection).to.equal(4); // Should stay at year
+      expect(store.state.selectedSection).toBe(4); // Should stay at year
     });
 
     it('should not navigate before first section', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(0); // month (first section)
-      expect(store.state.selectedSection).to.equal(0);
+      expect(store.state.selectedSection).toBe(0);
 
       store.selectLeftDatePart();
-      expect(store.state.selectedSection).to.equal(0); // Should stay at month
+      expect(store.state.selectedSection).toBe(0); // Should stay at month
     });
 
     it('should not crash when navigating forward with a trailing separator', () => {
@@ -630,11 +629,11 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(4); // year (last datePart)
-      expect(store.state.selectedSection).to.equal(4);
+      expect(store.state.selectedSection).toBe(4);
 
       // Should not throw and should stay on the current section
       store.selectRightDatePart();
-      expect(store.state.selectedSection).to.equal(4);
+      expect(store.state.selectedSection).toBe(4);
     });
 
     it('should not crash when navigating backward with a leading separator', () => {
@@ -648,11 +647,11 @@ describe('TemporalFieldStore - Section', () => {
 
       // The first datePart is at index 1 (index 0 is the leading separator)
       store.selectClosestDatePart(1); // month
-      expect(store.state.selectedSection).to.equal(1);
+      expect(store.state.selectedSection).toBe(1);
 
       // Should not throw and should stay on the current section
       store.selectLeftDatePart();
-      expect(store.state.selectedSection).to.equal(1);
+      expect(store.state.selectedSection).toBe(1);
     });
 
     it('should select the first date part when clicking on a leading separator', () => {
@@ -666,17 +665,17 @@ describe('TemporalFieldStore - Section', () => {
 
       // Clicking on the leading separator (index 0) should select the first date part (index 1)
       store.selectClosestDatePart(0);
-      expect(store.state.selectedSection).to.equal(1); // Should select month (first date part)
+      expect(store.state.selectedSection).toBe(1); // Should select month (first date part)
     });
 
     it('should remove selected section', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
       store.selectClosestDatePart(0);
-      expect(store.state.selectedSection).to.equal(0);
+      expect(store.state.selectedSection).toBe(0);
 
       store.removeSelectedSection();
-      expect(store.state.selectedSection).to.equal(null);
+      expect(store.state.selectedSection).toBe(null);
     });
   });
 
@@ -692,20 +691,20 @@ describe('TemporalFieldStore - Section', () => {
 
       // Verify initial value
       const initialMonthPart = selectors.datePart(store.state, 0);
-      expect(initialMonthPart!.value).to.equal('03');
+      expect(initialMonthPart!.value).toBe('03');
 
       // Update value externally
       store.updateFromString('12/25/2025');
 
       // Verify sections are updated
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('12');
+      expect(monthPart!.value).toBe('12');
 
       const dayPart = selectors.datePart(store.state, 2);
-      expect(dayPart!.value).to.equal('25');
+      expect(dayPart!.value).toBe('25');
 
       const yearPart = selectors.datePart(store.state, 4);
-      expect(yearPart!.value).to.equal('2025');
+      expect(yearPart!.value).toBe('2025');
     });
 
     it('should clear sections when value is reset to null', () => {
@@ -722,13 +721,13 @@ describe('TemporalFieldStore - Section', () => {
 
       // All sections should be empty
       const monthPart = selectors.datePart(store.state, 0);
-      expect(monthPart!.value).to.equal('');
+      expect(monthPart!.value).toBe('');
 
       const dayPart = selectors.datePart(store.state, 2);
-      expect(dayPart!.value).to.equal('');
+      expect(dayPart!.value).toBe('');
 
       const yearPart = selectors.datePart(store.state, 4);
-      expect(yearPart!.value).to.equal('');
+      expect(yearPart!.value).toBe('');
     });
   });
 });

@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { TimeField as TimeFieldBase } from '@base-ui/react/time-field';
 import { Field } from '@base-ui/react/field';
@@ -28,7 +26,7 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
     });
 
     it('propagates name from Field context', async () => {
@@ -43,8 +41,8 @@ describe('<TimeField /> - Field Integration', () => {
       const form = screen.getByTestId<HTMLFormElement>('form');
       const hiddenInput = form.querySelector('input[name="appointmentTime"]') as HTMLInputElement;
 
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.name).to.equal('appointmentTime');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.name).toBe('appointmentTime');
     });
 
     it('Field context name takes precedence over local name prop', async () => {
@@ -59,9 +57,9 @@ describe('<TimeField /> - Field Integration', () => {
       const form = screen.getByTestId<HTMLFormElement>('form');
       const hiddenInput = form.querySelector('input[tabindex="-1"]') as HTMLInputElement;
 
-      expect(hiddenInput).not.to.equal(null);
+      expect(hiddenInput).not.toBe(null);
       // Field context name takes precedence (like NumberField and Checkbox)
-      expect(hiddenInput.name).to.equal('fieldname');
+      expect(hiddenInput.name).toBe('fieldname');
     });
 
     it('works without Field context (standalone mode)', async () => {
@@ -74,21 +72,21 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections display the correct values
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(2); // hours, minutes
-      expect(sections[0]).to.have.attribute('aria-valuenow', '9'); // hours = 09
-      expect(sections[1]).to.have.attribute('aria-valuenow', '45'); // minutes = 45
+      expect(sections).toHaveLength(2); // hours, minutes
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '9'); // hours = 09
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '45'); // minutes = 45
 
       // Assert the hidden input has the correct name and value
       const hiddenInput = document.querySelector(
         'input[name="standaloneField"]',
       ) as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.name).to.equal('standaloneField');
-      expect(hiddenInput.value).to.equal('09:45');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.name).toBe('standaloneField');
+      expect(hiddenInput.value).toBe('09:45');
     });
   });
 
@@ -102,48 +100,48 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections display the correct values
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(2); // hours, minutes
-      expect(sections[0]).to.have.attribute('aria-valuenow', '14'); // hours = 14
-      expect(sections[1]).to.have.attribute('aria-valuenow', '30'); // minutes = 30
+      expect(sections).toHaveLength(2); // hours, minutes
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '14'); // hours = 14
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '30'); // minutes = 30
 
       // Assert the hidden input has the correct ISO string value
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.value).to.equal('14:30');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.value).toBe('14:30');
     });
 
     it('renders with null value', async () => {
       await render(<TimeField format={time24Format} value={null} />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert the sections are empty (no aria-valuenow when empty)
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(2); // hours, minutes
-      expect(sections[0]).not.to.have.attribute('aria-valuenow');
-      expect(sections[1]).not.to.have.attribute('aria-valuenow');
+      expect(sections).toHaveLength(2); // hours, minutes
+      expect(sections[0]).not.toHaveAttribute('aria-valuenow');
+      expect(sections[1]).not.toHaveAttribute('aria-valuenow');
 
       // Assert the hidden input is empty
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.value).to.equal('');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.value).toBe('');
     });
 
     it('renders disabled', async () => {
       await render(<TimeField format={time24Format} disabled />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert all sections are disabled
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-disabled', 'true');
+        expect(section).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -151,12 +149,12 @@ describe('<TimeField /> - Field Integration', () => {
       await render(<TimeField format={time24Format} readOnly />);
 
       const input = screen.getByTestId('input');
-      expect(input).not.to.equal(null);
+      expect(input).not.toBe(null);
 
       // Assert all sections are readonly
       const sections = screen.getAllByRole('spinbutton');
       sections.forEach((section) => {
-        expect(section).to.have.attribute('aria-readonly', 'true');
+        expect(section).toHaveAttribute('aria-readonly', 'true');
       });
     });
 
@@ -164,8 +162,8 @@ describe('<TimeField /> - Field Integration', () => {
       await render(<TimeField format={time24Format} id="custom-id" />);
 
       const hiddenInput = document.querySelector('input[id="custom-id"]') as HTMLInputElement;
-      expect(hiddenInput).not.to.equal(null);
-      expect(hiddenInput.id).to.equal('custom-id');
+      expect(hiddenInput).not.toBe(null);
+      expect(hiddenInput.id).toBe('custom-id');
     });
 
     it('forwards inputRef to hidden input', async () => {
@@ -173,8 +171,8 @@ describe('<TimeField /> - Field Integration', () => {
 
       await render(<TimeField format={time24Format} inputRef={inputRef} />);
 
-      expect(inputRef.current).not.to.equal(null);
-      expect(inputRef.current).to.be.instanceOf(HTMLInputElement);
+      expect(inputRef.current).not.toBe(null);
+      expect(inputRef.current).toBeInstanceOf(HTMLInputElement);
     });
   });
 
@@ -183,17 +181,17 @@ describe('<TimeField /> - Field Integration', () => {
       await render(<TimeField format={time24Format} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(2);
+      expect(sections).toHaveLength(2);
 
       // Verify sections are editable (not disabled/readonly)
       sections.forEach((section) => {
-        expect(section).not.to.have.attribute('aria-disabled', 'true');
-        expect(section).not.to.have.attribute('aria-readonly', 'true');
+        expect(section).not.toHaveAttribute('aria-disabled', 'true');
+        expect(section).not.toHaveAttribute('aria-readonly', 'true');
       });
 
       // Verify format matches HH:mm pattern
-      expect(sections[0]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
     });
 
     it('should render with 12-hour format with meridiem (hh:mm aa)', async () => {
@@ -201,18 +199,18 @@ describe('<TimeField /> - Field Integration', () => {
       await render(<TimeField format={time12Format} />);
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(3);
+      expect(sections).toHaveLength(3);
 
       // Verify format matches hh:mm aa pattern
-      expect(sections[0]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
-      expect(sections[2]).to.have.attribute('aria-label', 'Meridiem');
+      expect(sections[0]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Meridiem');
     });
   });
 
   describe('Form submission', () => {
     it('submits the value in native time format (HH:MM) via onFormSubmit', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="appointmentTime">
@@ -227,12 +225,12 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(handleSubmit.firstCall.args[0].appointmentTime).to.equal('09:30');
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(handleSubmit.mock.calls[0][0].appointmentTime).toBe('09:30');
     });
 
     it('submits empty string when value is null', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="appointmentTime">
@@ -244,12 +242,12 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(handleSubmit.firstCall.args[0].appointmentTime).to.equal('');
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(handleSubmit.mock.calls[0][0].appointmentTime).toBe('');
     });
 
     it('validates with rangeUnderflow when time is before minDate', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const minDate = adapter.date('2024-03-20T09:00', 'default');
 
       await render(
@@ -270,12 +268,12 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Time is too early');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Time is too early');
     });
 
     it('validates with rangeOverflow when time is after maxDate', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       const maxDate = adapter.date('2024-03-20T17:00', 'default');
 
       await render(
@@ -296,8 +294,8 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Time is too late');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Time is too late');
     });
   });
 
@@ -308,14 +306,14 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       let sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuenow', '9');
-      expect(sections[1]).to.have.attribute('aria-valuenow', '30');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '9');
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '30');
 
       await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
 
       sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuenow', '14');
-      expect(sections[1]).to.have.attribute('aria-valuenow', '45');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '14');
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '45');
     });
 
     it('should update hidden input when value prop changes', async () => {
@@ -324,18 +322,18 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       let hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).to.equal('09:30');
+      expect(hiddenInput.value).toBe('09:30');
 
       await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
 
       hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).to.equal('14:45');
+      expect(hiddenInput.value).toBe('14:45');
     });
   });
 
   describe('Form validation - required', () => {
     it('should show valueMissing error when required and empty', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="time">
@@ -350,12 +348,12 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(0);
-      expect(screen.getByTestId('error')).to.have.text('Time is required');
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('Time is required');
     });
 
     it('should not show valueMissing error when required and filled', async () => {
-      const handleSubmit = spy();
+      const handleSubmit = vi.fn();
       await render(
         <Form onFormSubmit={handleSubmit}>
           <Field.Root name="time">
@@ -374,8 +372,8 @@ describe('<TimeField /> - Field Integration', () => {
 
       fireEvent.click(screen.getByText('Submit'));
 
-      expect(handleSubmit.callCount).to.equal(1);
-      expect(screen.queryByTestId('error')).to.equal(null);
+      expect(handleSubmit.mock.calls.length).toBe(1);
+      expect(screen.queryByTestId('error')).toBe(null);
     });
   });
 
@@ -384,7 +382,7 @@ describe('<TimeField /> - Field Integration', () => {
       await render(<TimeField format={time24Format} />);
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.type).to.equal('time');
+      expect(hiddenInput.type).toBe('time');
     });
 
     it('should set min attribute when minDate is provided', async () => {
@@ -393,7 +391,7 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.min).to.equal('09:00:00');
+      expect(hiddenInput.min).toBe('09:00:00');
     });
 
     it('should set max attribute when maxDate is provided', async () => {
@@ -402,7 +400,7 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.max).to.equal('17:00:00');
+      expect(hiddenInput.max).toBe('17:00:00');
     });
   });
 
@@ -418,10 +416,10 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(3);
-      expect(sections[0]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
-      expect(sections[2]).to.have.attribute('aria-label', 'Meridiem');
+      expect(sections).toHaveLength(3);
+      expect(sections[0]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Meridiem');
     });
 
     it('should display PM for afternoon times', async () => {
@@ -433,8 +431,8 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuenow', '2'); // 2 PM
-      expect(sections[1]).to.have.attribute('aria-valuenow', '30');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '2'); // 2 PM
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '30');
     });
 
     it('should display AM for morning times', async () => {
@@ -446,8 +444,8 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections[0]).to.have.attribute('aria-valuenow', '9');
-      expect(sections[1]).to.have.attribute('aria-valuenow', '30');
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '9');
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '30');
     });
   });
 
@@ -462,10 +460,10 @@ describe('<TimeField /> - Field Integration', () => {
       );
 
       const sections = screen.getAllByRole('spinbutton');
-      expect(sections).to.have.length(3);
-      expect(sections[0]).to.have.attribute('aria-label', 'Hours');
-      expect(sections[1]).to.have.attribute('aria-label', 'Minutes');
-      expect(sections[2]).to.have.attribute('aria-label', 'Seconds');
+      expect(sections).toHaveLength(3);
+      expect(sections[0]).toHaveAttribute('aria-label', 'Hours');
+      expect(sections[1]).toHaveAttribute('aria-label', 'Minutes');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Seconds');
     });
   });
 });
