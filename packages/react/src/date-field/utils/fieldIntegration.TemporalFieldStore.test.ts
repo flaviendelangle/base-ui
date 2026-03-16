@@ -862,6 +862,145 @@ describe('TemporalFieldStore - Field Integration', () => {
     });
   });
 
+  describe('edge dates', () => {
+    it('should accept Feb 29 on a leap year (2024)', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS },
+        dateFieldConfig,
+      );
+
+      // Fill month: 02
+      store.selectClosestDatePart(0);
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: true,
+      });
+
+      // Fill day: 29
+      store.selectClosestDatePart(2);
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '29',
+        shouldGoToNextSection: true,
+      });
+
+      // Fill year: 2024 (leap year)
+      store.selectClosestDatePart(4);
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2024',
+        shouldGoToNextSection: false,
+      });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(1); // February (0-indexed)
+      expect(adapter.getDate(value!)).toBe(29);
+      expect(adapter.getYear(value!)).toBe(2024);
+    });
+
+    it('should handle Feb 29 on a non-leap year (2023)', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS },
+        dateFieldConfig,
+      );
+
+      // Fill month: 02
+      store.selectClosestDatePart(0);
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: true,
+      });
+
+      // Fill day: 29
+      store.selectClosestDatePart(2);
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '29',
+        shouldGoToNextSection: true,
+      });
+
+      // Fill year: 2023 (non-leap year)
+      store.selectClosestDatePart(4);
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2023',
+        shouldGoToNextSection: false,
+      });
+
+      // Feb 29 2023 is invalid — value should not be a valid date
+      const value = store.state.value;
+      if (value != null) {
+        expect(adapter.isValid(value)).toBe(false);
+      }
+    });
+
+    it('should handle month change from Jan 31 to Feb (day exceeds month length)', () => {
+      const store = new TemporalFieldStore(
+        {
+          ...DEFAULT_PARAMETERS,
+          value: adapter.date('2024-01-31', 'default'),
+        },
+        dateFieldConfig,
+      );
+
+      // Change month from 01 (Jan) to 02 (Feb)
+      // Feb 31 is invalid, so the store records the change via sectionToUpdateOnNextInvalidDate
+      // but keeps the original value (Jan 31) since the new date can't be constructed
+      store.selectClosestDatePart(0);
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: false,
+      });
+
+      // The value should still reference January since Feb 31 is invalid
+      const value = store.state.value;
+      expect(value).not.toBe(null);
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(0); // January (0-indexed) — kept original
+    });
+  });
+
+  describe('paste edge cases', () => {
+    it('should handle pasting an invalid string', () => {
+      const onValueChangeSpy = vi.fn();
+      const store = new TemporalFieldStore(
+        {
+          ...DEFAULT_PARAMETERS,
+          onValueChange: onValueChangeSpy,
+        },
+        dateFieldConfig,
+      );
+
+      expect(store.state.value).toBe(null);
+
+      store.updateFromString('invalid');
+
+      // Value should remain null
+      expect(store.state.value).toBe(null);
+    });
+
+    it('should handle pasting a partial date string', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS },
+        dateFieldConfig,
+      );
+
+      expect(store.state.value).toBe(null);
+
+      store.updateFromString('03/15');
+
+      // Partial date should not produce a valid value
+      const value = store.state.value;
+      if (value != null) {
+        expect(adapter.isValid(value)).toBe(false);
+      }
+    });
+  });
+
   describe('simultaneous format and value changes', () => {
     const europeanDateFormat = `${adapter.formats.dayOfMonthPadded}/${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
 

@@ -2,6 +2,7 @@ import { createTemporalRenderer } from '#test-utils';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { dateFieldConfig } from '../root/dateFieldConfig';
 import { timeFieldConfig } from '../../time-field/root/timeFieldConfig';
+import { dateTimeFieldConfig } from '../../date-time-field/root/dateTimeFieldConfig';
 import { selectors } from './selectors';
 import { isToken } from './utils';
 import { createDefaultStoreParameters } from './TemporalFieldStore.test-utils';
@@ -10,6 +11,10 @@ describe('TemporalFieldStore - Format', () => {
   const { adapter } = createTemporalRenderer();
   const numericDateFormat = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded}`;
   const time24Format = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
+  const timeWithSecondsFormat = `${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}:${adapter.formats.secondsPadded}`;
+  const dateTimeFormat = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded} ${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
+  const dateWithWeekdayFormat = `${adapter.formats.weekday3Letters} ${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded}`;
+  const yearMonthFormat = `${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
 
   const DEFAULT_PARAMETERS = createDefaultStoreParameters(adapter, numericDateFormat);
 
@@ -67,6 +72,60 @@ describe('TemporalFieldStore - Format', () => {
         const format = selectors.format(store.state);
         // The most granular part in HH:mm is 'minutes'
         expect(format.granularity).toBe('minutes');
+      });
+
+      it('should return correct granularity for time format with seconds', () => {
+        const store = new TemporalFieldStore(
+          { ...DEFAULT_PARAMETERS, format: timeWithSecondsFormat },
+          timeFieldConfig,
+        );
+
+        const format = selectors.format(store.state);
+        expect(format.granularity).toBe('seconds');
+      });
+
+      it('should return a parsed format with correct number of elements for datetime format', () => {
+        const store = new TemporalFieldStore(
+          { ...DEFAULT_PARAMETERS, format: dateTimeFormat },
+          dateTimeFieldConfig,
+        );
+
+        const format = selectors.format(store.state);
+        // MM/DD/YYYY HH:mm = 9 elements: month, sep, day, sep, year, sep, hours, sep, minutes
+        expect(format.elements).toHaveLength(9);
+      });
+
+      it('should return correct granularity for datetime format', () => {
+        const store = new TemporalFieldStore(
+          { ...DEFAULT_PARAMETERS, format: dateTimeFormat },
+          dateTimeFieldConfig,
+        );
+
+        const format = selectors.format(store.state);
+        expect(format.granularity).toBe('minutes');
+      });
+
+      it('should handle date format with weekday', () => {
+        const store = new TemporalFieldStore(
+          { ...DEFAULT_PARAMETERS, format: dateWithWeekdayFormat },
+          dateFieldConfig,
+        );
+
+        const format = selectors.format(store.state);
+        const tokens = format.elements.filter(isToken);
+        expect(tokens).toHaveLength(4); // weekday, month, day, year
+      });
+
+      it('should handle year-month only format', () => {
+        const store = new TemporalFieldStore(
+          { ...DEFAULT_PARAMETERS, format: yearMonthFormat },
+          dateFieldConfig,
+        );
+
+        const format = selectors.format(store.state);
+        const tokens = format.elements.filter(isToken);
+        expect(tokens).toHaveLength(2); // month, year
+        expect(format.granularity).toBe('month');
       });
 
       it('should identify tokens correctly in parsed format', () => {

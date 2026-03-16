@@ -556,7 +556,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       const mergedDate = mergeDateIntoReferenceDate(
         newActiveDate,
         newActiveDateSections,
-        fieldConfig.getDateFromSection(refValue as any, dp)!,
+        fieldConfig.getDateFromSection(refValue as TValue, dp) ?? (refValue as TemporalSupportedObject),
         true,
       );
 
@@ -1498,6 +1498,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       }
     }
 
-    return adapter.formatByString(adapter.parse(valueStr, currentFormat, timezone)!, newFormat);
+    const parsed = adapter.parse(valueStr, currentFormat, timezone);
+    if (parsed == null) {
+      return valueStr;
+    }
+    return adapter.formatByString(parsed, newFormat);
   }
 }

@@ -97,6 +97,8 @@ function getAdapterFieldCache(adapter: TemporalAdapter): TemporalAdapterFieldCac
 export function getArbitraryDate(adapter: TemporalAdapter): TemporalSupportedObject {
   const cache = getAdapterFieldCache(adapter);
   if (cache.arbitraryDate == null) {
+    // Uses 'default' timezone since the specific date/timezone doesn't matter —
+    // this is only used for format analysis and locale-invariant queries.
     cache.arbitraryDate = adapter.now('default');
   }
   return cache.arbitraryDate;
@@ -289,6 +291,7 @@ const FORMAT_SECONDS_NO_LEADING_ZEROS = 's';
  */
 export function getLocalizedDigits(adapter: TemporalAdapter): LocalizedDigits | null {
   const cache = getAdapterFieldCache(adapter);
+  // `=== undefined` is intentional: `null` means "computed, no localized digits", `undefined` means "not yet computed"
   if (cache.localizedDigits === undefined) {
     const arbitraryDate = getArbitraryDate(adapter);
     const formattedZero = adapter.formatByString(
@@ -337,6 +340,7 @@ export function getAriaValueText(
 
   const key = `${section.token.value}\0${section.value}\0${timezone}`;
   const cached = cache.ariaValueText.get(key);
+  // `!== undefined` is intentional: `undefined` is a valid cached result (see `.has()` check below)
   if (cached !== undefined) {
     return cached;
   }

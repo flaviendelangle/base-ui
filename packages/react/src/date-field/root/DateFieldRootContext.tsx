@@ -13,7 +13,7 @@ export function useDateFieldRootContext() {
   const context = React.useContext(DateFieldRootContext);
   if (context === undefined) {
     throw new Error(
-      'Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />.',
+      'Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />.',
     );
   }
   return context;
