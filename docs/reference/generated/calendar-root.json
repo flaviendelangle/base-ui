@@ -13,9 +13,9 @@
       "detailedType": "Date | null | undefined"
     },
     "onValueChange": {
-      "type": "((value: TemporalValue, eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>) => void)",
+      "type": "((value: TemporalValue, eventDetails: CalendarValueChangeEventDetails) => void)",
       "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.\nHas `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.",
-      "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: CalendarValueChangeEventDetails<ValidateDateReturnValue>,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: CalendarValueChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "defaultVisibleDate": {
       "type": "Date",
@@ -37,16 +37,6 @@
       "description": "Mark specific dates as unavailable.\nThose dates will not be selectable but they will still be focusable with the keyboard.",
       "detailedType": "((day: Date) => boolean) | undefined"
     },
-    "maxDate": {
-      "type": "Date",
-      "description": "Maximal selectable date.",
-      "detailedType": "Date | undefined"
-    },
-    "minDate": {
-      "type": "Date",
-      "description": "Minimal selectable date.",
-      "detailedType": "Date | undefined"
-    },
     "monthPageSize": {
       "type": "number",
       "default": "1",
@@ -65,6 +55,16 @@
       "description": "Choose which timezone to use for the value.\nExample: \"default\", \"system\", \"UTC\", \"America/New_York\".\nIf you pass values from other timezones to some props, they will be converted to this timezone before being used.",
       "detailedType": "string | undefined"
     },
+    "min": {
+      "type": "Date",
+      "description": "Minimal selectable date.",
+      "detailedType": "Date | undefined"
+    },
+    "max": {
+      "type": "Date",
+      "description": "Maximal selectable date.",
+      "detailedType": "Date | undefined"
+    },
     "disabled": {
       "type": "boolean",
       "default": "false",
@@ -80,7 +80,7 @@
     "invalid": {
       "type": "boolean",
       "default": "false",
-      "description": "Whether the calendar is forcefully marked as invalid.\nA calendar can be invalid when the selected date fails validation (i.e., is outside of the allowed `minDate` and `maxDate` range).",
+      "description": "Whether the calendar is forcefully marked as invalid.\nA calendar can be invalid when the selected date fails validation (i.e., is outside of the allowed `min` and `max` range).",
       "detailedType": "boolean | undefined"
     },
     "children": {

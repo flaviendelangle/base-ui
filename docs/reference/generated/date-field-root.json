@@ -27,16 +27,6 @@
       "description": "A ref to imperative actions.\n- `clear`: Clears the field value.",
       "detailedType": "| React.RefObject<TemporalFieldRootActions | null>\n| undefined"
     },
-    "maxDate": {
-      "type": "Date",
-      "description": "Maximal selectable date.",
-      "detailedType": "Date | undefined"
-    },
-    "minDate": {
-      "type": "Date",
-      "description": "Minimal selectable date.",
-      "detailedType": "Date | undefined"
-    },
     "referenceDate": {
       "type": "Date",
       "default": "'The closest valid date using the validation props.'",
@@ -48,6 +38,16 @@
       "default": "'The timezone of the \"value\" or \"defaultValue\" prop if defined, \"default\" otherwise.'",
       "description": "Choose which timezone to use for the value.\nExample: \"default\", \"system\", \"UTC\", \"America/New_York\".\nIf you pass values from other timezones to some props, they will be converted to this timezone before being used.",
       "detailedType": "string | undefined"
+    },
+    "min": {
+      "type": "Date",
+      "description": "Minimal selectable date.",
+      "detailedType": "Date | undefined"
+    },
+    "max": {
+      "type": "Date",
+      "description": "Maximal selectable date.",
+      "detailedType": "Date | undefined"
     },
     "format": {
       "type": "string",

@@ -33,16 +33,6 @@
       "description": "Whether to use 12-hour format with AM/PM or 24-hour format.\nIs ignored if a custom format is provided.",
       "detailedType": "boolean | undefined"
     },
-    "maxDate": {
-      "type": "Date",
-      "description": "Maximal selectable date.",
-      "detailedType": "Date | undefined"
-    },
-    "minDate": {
-      "type": "Date",
-      "description": "Minimal selectable date.",
-      "detailedType": "Date | undefined"
-    },
     "referenceDate": {
       "type": "Date",
       "default": "'The closest valid date using the validation props.'",
@@ -60,6 +50,16 @@
       "default": "1",
       "description": "The step increment for the most granular section of the field.\nFor example, with format 'HH:mm' and step=5, pressing ArrowUp on the minutes section\nwill increment by 5 (e.g., 10 -> 15 -> 20).",
       "detailedType": "number | undefined"
+    },
+    "min": {
+      "type": "Date",
+      "description": "Minimal selectable date.",
+      "detailedType": "Date | undefined"
+    },
+    "max": {
+      "type": "Date",
+      "description": "Maximal selectable date.",
+      "detailedType": "Date | undefined"
     },
     "format": {
       "type": "string",
