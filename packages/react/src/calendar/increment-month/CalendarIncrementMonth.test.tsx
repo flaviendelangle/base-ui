@@ -83,10 +83,10 @@ describe('<Calendar.IncrementMonth />', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should be disabled when the target month is after the maxDate month', () => {
+    it('should be disabled when the target month is after the max month', () => {
       render(
         <Calendar.Root
-          maxDate={adapter.date('2025-01-10', 'default')}
+          max={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
         >
           <Calendar.IncrementMonth />
@@ -99,10 +99,10 @@ describe('<Calendar.IncrementMonth />', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should not be disabled when the target month is equal to the maxDate month', () => {
+    it('should not be disabled when the target month is equal to the max month', () => {
       render(
         <Calendar.Root
-          maxDate={adapter.date('2025-01-10', 'default')}
+          max={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2024-12-01', 'default')}
         >
           <Calendar.IncrementMonth />
@@ -114,10 +114,10 @@ describe('<Calendar.IncrementMonth />', () => {
       expect(button).not.toHaveAttribute('data-disabled');
     });
 
-    it('should not be disabled when disabled is false and the target month is after the maxDate month', () => {
+    it('should not be disabled when disabled is false and the target month is after the max month', () => {
       render(
         <Calendar.Root
-          maxDate={adapter.date('2025-01-10', 'default')}
+          max={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
         >
           <Calendar.IncrementMonth disabled={false} />
@@ -129,12 +129,12 @@ describe('<Calendar.IncrementMonth />', () => {
       expect(button).not.toHaveAttribute('data-disabled');
     });
 
-    it('should navigate to the next month when disabled is false even if the target month is after the maxDate month', async () => {
+    it('should navigate to the next month when disabled is false even if the target month is after the max month', async () => {
       const onVisibleDateChange = vi.fn();
 
       const { user } = render(
         <Calendar.Root
-          maxDate={adapter.date('2025-01-10', 'default')}
+          max={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
           onVisibleDateChange={onVisibleDateChange}
         >
@@ -206,11 +206,11 @@ describe('<Calendar.IncrementMonth />', () => {
       fireEvent.pointerUp(button);
     });
 
-    it('should stop at maxDate boundary', async () => {
+    it('should stop at max boundary', async () => {
       const onVisibleDateChange = vi.fn();
       await renderCalendar({
         defaultVisibleDate: adapter.date('2025-01-15', 'default'),
-        maxDate: adapter.date('2025-03-31', 'default'),
+        max: adapter.date('2025-03-31', 'default'),
         onVisibleDateChange,
       });
 
@@ -227,20 +227,20 @@ describe('<Calendar.IncrementMonth />', () => {
       clock.tick(100);
       expect(onVisibleDateChange.mock.calls.length).toBe(2);
 
-      // Third tick would go to Apr which is after maxDate, should stop
+      // Third tick would go to Apr which is after max, should stop
       clock.tick(100);
       expect(onVisibleDateChange.mock.calls.length).toBe(2);
 
       fireEvent.pointerUp(button);
     });
 
-    it('should continue navigating past the maxDate boundary when disabled is false', async () => {
+    it('should continue navigating past the max boundary when disabled is false', async () => {
       const onVisibleDateChange = vi.fn();
       await renderWithClock(
         <LocalizationProvider>
           <Calendar.Root
             defaultVisibleDate={adapter.date('2025-01-15', 'default')}
-            maxDate={adapter.date('2025-03-31', 'default')}
+            max={adapter.date('2025-03-31', 'default')}
             onVisibleDateChange={onVisibleDateChange}
           >
             <Calendar.IncrementMonth data-testid="increment" disabled={false} />

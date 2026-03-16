@@ -117,7 +117,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const { adapter, direction } = parameters;
     const manager = config.getManager(adapter);
     const value = parameters.value ?? parameters.defaultValue ?? manager.emptyValue;
-    const validationProps = { minDate: parameters.minDate, maxDate: parameters.maxDate };
+    const validationProps = { min: parameters.min, max: parameters.max };
     const translations = parameters.translations ?? enUS;
 
     const parsedFormat = FormatParser.parse(
@@ -153,8 +153,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     super(
       {
         rawFormat: parameters.format,
-        minDate: parameters.minDate,
-        maxDate: parameters.maxDate,
+        min: parameters.min,
+        max: parameters.max,
         direction,
         config,
         adapter,
@@ -216,15 +216,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         (state: TemporalFieldState<TValue>) => state.adapter,
         (state: TemporalFieldState<TValue>) => state.direction,
         (state: TemporalFieldState<TValue>) => state.translations,
-        (state: TemporalFieldState<TValue>) => state.minDate,
-        (state: TemporalFieldState<TValue>) => state.maxDate,
-        (rawFormat, adapterVal, directionVal, translationsVal, minDateVal, maxDateVal) => ({
+        (state: TemporalFieldState<TValue>) => state.min,
+        (state: TemporalFieldState<TValue>) => state.max,
+        (rawFormat, adapterVal, directionVal, translationsVal, minVal, maxVal) => ({
           rawFormat,
           adapter: adapterVal,
           direction: directionVal,
           translations: translationsVal,
-          minDate: minDateVal,
-          maxDate: maxDateVal,
+          min: minVal,
+          max: maxVal,
         }),
       ),
       (next, previous) => {
@@ -236,8 +236,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           previous.adapter === next.adapter &&
           previous.direction === next.direction &&
           previous.translations === next.translations &&
-          previous.minDate === next.minDate &&
-          previous.maxDate === next.maxDate
+          previous.min === next.min &&
+          previous.max === next.max
         ) {
           return;
         }
@@ -249,7 +249,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           next.rawFormat,
           next.direction,
           next.translations,
-          { minDate: next.minDate, maxDate: next.maxDate },
+          { min: next.min, max: next.max },
         );
         validateParsedFormat(this.state.manager.dateType, nextParsedFormat);
 
@@ -1004,8 +1004,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     // we set the section to the current year instead of the structural boundary.
     const isYearInitialization = datePart.value === '' && datePart.token.config.part === 'year';
     const hasNoBoundaryInDirection =
-      (isDecrementDirection(keyCode) && validationProps.maxDate == null) ||
-      (isIncrementDirection(keyCode) && validationProps.minDate == null);
+      (isDecrementDirection(keyCode) && validationProps.max == null) ||
+      (isIncrementDirection(keyCode) && validationProps.min == null);
     if (isYearInitialization && hasNoBoundaryInDirection) {
       const timezone = selectors.timezoneToRender(this.state);
       return adapter.formatByString(adapter.now(timezone), datePart.token.value);

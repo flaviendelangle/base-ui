@@ -32,9 +32,9 @@ const timezoneToRenderSelector = createSelectorMemoized(
 );
 
 const validationPropsSelector = createSelectorMemoized(
-  (state: State) => state.minDate,
-  (state: State) => state.maxDate,
-  (minDate, maxDate) => ({ minDate, maxDate }),
+  (state: State) => state.min,
+  (state: State) => state.max,
+  (min, max) => ({ min, max }),
 );
 
 const referenceDateSelector = createSelectorMemoized(
@@ -122,16 +122,16 @@ const isSetMonthButtonDisabledSelector = createSelector(
 
     // The month targeted and all the months before are fully disabled, we disable the button.
     if (
-      validationProps.minDate != null &&
-      adapter.isBefore(adapter.endOfMonth(targetDate), validationProps.minDate)
+      validationProps.min != null &&
+      adapter.isBefore(adapter.endOfMonth(targetDate), validationProps.min)
     ) {
       return true;
     }
 
     // The month targeted and all the months after are fully disabled, we disable the button.
     return (
-      validationProps.maxDate != null &&
-      adapter.isAfter(adapter.startOfMonth(targetDate), validationProps.maxDate)
+      validationProps.max != null &&
+      adapter.isAfter(adapter.startOfMonth(targetDate), validationProps.max)
     );
   },
 );
@@ -152,17 +152,18 @@ const visibleMonthSelector = createSelectorMemoized(
 );
 
 const isValueInvalidSelector = createSelectorMemoized(
+  (state: State) => state.adapter,
   (state: State) => state.manager,
   (state: State) => state.invalidProp,
   valueWithTimezoneToRenderSelector,
   validationPropsSelector,
-  (manager, invalidProp, value, validationProps) => {
+  (adapter, manager, invalidProp, value, validationProps) => {
     if (invalidProp != null) {
       return invalidProp;
     }
 
-    const error = manager.getValidationError(value, validationProps);
-    return !manager.isValidationErrorEmpty(error);
+    const dates = manager.getDatesFromValue(value);
+    return dates.some((date) => validateDate({ adapter, value: date, validationProps }) != null);
   },
 );
 

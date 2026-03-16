@@ -287,13 +287,13 @@ describe('<Calendar.DayButton />', () => {
       expect(button).toHaveAttribute('data-disabled');
     });
 
-    it('should have aria-disabled="true" and data-disabled when the date is before the minDate', () => {
+    it('should have aria-disabled="true" and data-disabled when the date is before the min', () => {
       const date = adapter.date('2025-02-04', 'default');
 
       render(
         <Calendar.Root
           visibleDate={adapter.startOfMonth(date)}
-          minDate={adapter.date('2025-02-10', 'default')}
+          min={adapter.date('2025-02-10', 'default')}
         >
           <Calendar.DayGrid>
             <Calendar.DayGridBody>
@@ -312,13 +312,13 @@ describe('<Calendar.DayButton />', () => {
       expect(button).toHaveAttribute('data-disabled');
     });
 
-    it('should have aria-disabled="true" and data-disabled when the date is after the maxDate', () => {
+    it('should have aria-disabled="true" and data-disabled when the date is after the max', () => {
       const date = adapter.date('2025-02-04', 'default');
 
       render(
         <Calendar.Root
           visibleDate={adapter.startOfMonth(date)}
-          maxDate={adapter.date('2025-02-02', 'default')}
+          max={adapter.date('2025-02-02', 'default')}
         >
           <Calendar.DayGrid>
             <Calendar.DayGridBody>

@@ -239,9 +239,9 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(handleSubmit.mock.calls[0][0].appointmentDateTime).toBe('');
     });
 
-    it('validates with rangeUnderflow when date is before minDate', async () => {
+    it('validates with rangeUnderflow when date is before min', async () => {
       const handleSubmit = vi.fn();
-      const minDate = adapter.date('2024-03-20', 'default');
+      const min = adapter.date('2024-03-20', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -249,7 +249,7 @@ describe('<DateTimeField /> - Field Integration', () => {
             <DateTimeField
               format={dateTimeFormat}
               defaultValue={adapter.date('2024-03-15T10:00', 'default')}
-              minDate={minDate}
+              min={min}
             />
             <Field.Error match="rangeUnderflow" data-testid="error">
               Date is too early
@@ -265,9 +265,9 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('Date is too early');
     });
 
-    it('validates with rangeOverflow when date is after maxDate', async () => {
+    it('validates with rangeOverflow when date is after max', async () => {
       const handleSubmit = vi.fn();
-      const maxDate = adapter.date('2024-03-20', 'default');
+      const max = adapter.date('2024-03-20', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -275,7 +275,7 @@ describe('<DateTimeField /> - Field Integration', () => {
             <DateTimeField
               format={dateTimeFormat}
               defaultValue={adapter.date('2024-03-25T10:00', 'default')}
-              maxDate={maxDate}
+              max={max}
             />
             <Field.Error match="rangeOverflow" data-testid="error">
               Date is too late
@@ -291,9 +291,9 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('Date is too late');
     });
 
-    it('validates with rangeUnderflow when datetime is before minDate (same date, earlier time)', async () => {
+    it('validates with rangeUnderflow when datetime is before min (same date, earlier time)', async () => {
       const handleSubmit = vi.fn();
-      const minDate = adapter.date('2024-03-20T09:00', 'default');
+      const min = adapter.date('2024-03-20T09:00', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -301,7 +301,7 @@ describe('<DateTimeField /> - Field Integration', () => {
             <DateTimeField
               format={dateTimeFormat}
               defaultValue={adapter.date('2024-03-20T08:30', 'default')}
-              minDate={minDate}
+              min={min}
             />
             <Field.Error match="rangeUnderflow" data-testid="error">
               DateTime is too early
@@ -317,9 +317,9 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too early');
     });
 
-    it('validates with rangeOverflow when datetime is after maxDate (same date, later time)', async () => {
+    it('validates with rangeOverflow when datetime is after max (same date, later time)', async () => {
       const handleSubmit = vi.fn();
-      const maxDate = adapter.date('2024-03-20T17:00', 'default');
+      const max = adapter.date('2024-03-20T17:00', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -327,7 +327,7 @@ describe('<DateTimeField /> - Field Integration', () => {
             <DateTimeField
               format={dateTimeFormat}
               defaultValue={adapter.date('2024-03-20T18:30', 'default')}
-              maxDate={maxDate}
+              max={max}
             />
             <Field.Error match="rangeOverflow" data-testid="error">
               DateTime is too late
@@ -440,11 +440,11 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(hiddenInput.type).toBe('datetime-local');
     });
 
-    it('should set min attribute when minDate is provided', async () => {
+    it('should set min attribute when min is provided', async () => {
       await render(
         <DateTimeField
           format={dateTimeFormat}
-          minDate={adapter.date('2024-01-01T09:00', 'default')}
+          min={adapter.date('2024-01-01T09:00', 'default')}
         />,
       );
 
@@ -452,11 +452,11 @@ describe('<DateTimeField /> - Field Integration', () => {
       expect(hiddenInput.min).toBe('2024-01-01T09:00:00');
     });
 
-    it('should set max attribute when maxDate is provided', async () => {
+    it('should set max attribute when max is provided', async () => {
       await render(
         <DateTimeField
           format={dateTimeFormat}
-          maxDate={adapter.date('2024-12-31T17:00', 'default')}
+          max={adapter.date('2024-12-31T17:00', 'default')}
         />,
       );
 

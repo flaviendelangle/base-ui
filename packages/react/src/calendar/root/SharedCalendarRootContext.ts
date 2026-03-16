@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { SharedCalendarStore } from '../store';
 
-export type SharedCalendarRootContext = SharedCalendarStore<any, any>;
+export type SharedCalendarRootContext = SharedCalendarStore<any>;
 
 export const SharedCalendarRootContext = React.createContext<SharedCalendarRootContext | undefined>(
   undefined,

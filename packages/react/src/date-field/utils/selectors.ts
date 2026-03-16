@@ -39,9 +39,9 @@ const idSelector = createSelector((state: State) => state.id);
 const managerSelector = createSelector((state: State) => state.manager);
 const configSelector = createSelector((state: State) => state.config);
 const validationPropsSelector = createSelectorMemoized(
-  (state: State) => state.minDate,
-  (state: State) => state.maxDate,
-  (minDate, maxDate) => ({ minDate, maxDate }),
+  (state: State) => state.min,
+  (state: State) => state.max,
+  (min, max) => ({ min, max }),
 );
 const fieldContextSelector = createSelector((state: State) => state.fieldContext);
 const stepSelector = createSelector((state: State) => state.step);

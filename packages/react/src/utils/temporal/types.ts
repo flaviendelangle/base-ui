@@ -30,20 +30,11 @@ export interface TemporalOnErrorProps<TValue extends TemporalSupportedValue, TEr
 /**
  * Object that contains all the necessary methods and properties to adapt a temporal component or utilities for a given value type.
  */
-export interface TemporalManager<
-  TValue extends TemporalSupportedValue,
-  TError,
-  TValidationProps extends {},
-> {
+export interface TemporalManager<TValue extends TemporalSupportedValue> {
   /**
    * Value to set when emptying the component.
    */
   emptyValue: TValue;
-  /**
-   * Error when the value is valid.
-   * It is used to initialize the error state.
-   */
-  emptyValidationError: TError;
   /**
    * The type of dates handled by the manager (e.g. 'date', 'date-time', 'time').
    */
@@ -52,18 +43,6 @@ export interface TemporalManager<
    * Checks whether two values are equal.
    */
   areValuesEqual: (valueA: TValue, valueB: TValue) => boolean;
-  /**
-   * Returns the error associated with a value for the current set of validation props.
-   */
-  getValidationError: (value: TValue, validationProps: TValidationProps) => TError;
-  /**
-   * Checks whether two validation errors are equal.
-   */
-  areValidationErrorEquals: (errorA: TError, errorB: TError | null) => boolean;
-  /**
-   * Checks whether the current validation error is empty.
-   */
-  isValidationErrorEmpty: (error: TError) => boolean;
   /**
    * Returns the timezone of the date inside a value.
    * When used on a range component, throw an error if both values don't have the same timezone.

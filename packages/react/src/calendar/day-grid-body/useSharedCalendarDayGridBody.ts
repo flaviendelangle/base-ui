@@ -210,21 +210,21 @@ export function useSharedCalendarDayGridBody(
         const targetDate = adapter.addMonths(currentDay, decrement ? -amount : amount);
         const targetMonth = adapter.addMonths(visibleMonth, decrement ? -amount : amount);
 
-        const { minDate, maxDate } = store.state;
+        const { min, max } = store.state;
         // Check if the target date would be within min/max bounds
         let dateValidationError: ReturnType<typeof validateDate> = null;
-        if (minDate != null || maxDate != null) {
+        if (min != null || max != null) {
           dateValidationError = validateDate({
             adapter,
             value: targetDate,
-            validationProps: { minDate, maxDate },
+            validationProps: { min, max },
           });
           if (dateValidationError != null) {
             // Block navigation only if the entire target month is outside the valid range.
             // If the month has some valid days, navigate and let focusItemFromMap find the nearest one.
             if (
-              (maxDate != null && adapter.isAfter(adapter.startOfMonth(targetMonth), maxDate)) ||
-              (minDate != null && adapter.isBefore(adapter.endOfMonth(targetMonth), minDate))
+              (max != null && adapter.isAfter(adapter.startOfMonth(targetMonth), max)) ||
+              (min != null && adapter.isBefore(adapter.endOfMonth(targetMonth), min))
             ) {
               return;
             }
@@ -252,12 +252,12 @@ export function useSharedCalendarDayGridBody(
               adapter.getYear(day) === targetYearValue,
           );
           // When the target day is disabled, find the nearest valid day in the right direction:
-          // beyond maxDate → search backward for the last valid day;
-          // before minDate → search forward for the first valid day.
+          // beyond max → search backward for the last valid day;
+          // before min → search forward for the first valid day.
           let searchDecrement = eventKey === PAGE_UP;
-          if (dateValidationError === 'after-max-date') {
+          if (dateValidationError === 'rangeOverflow') {
             searchDecrement = true;
-          } else if (dateValidationError === 'before-min-date') {
+          } else if (dateValidationError === 'rangeUnderflow') {
             searchDecrement = false;
           }
           focusItemFromMap(newMap, sameDayInNewMonthIndex, searchDecrement, 1);
@@ -281,12 +281,12 @@ export function useSharedCalendarDayGridBody(
 
     const targetMonth = adapter.addMonths(visibleMonth, decrement ? -1 : 1);
 
-    const { minDate, maxDate } = store.state;
-    if (minDate != null || maxDate != null) {
+    const { min, max } = store.state;
+    if (min != null || max != null) {
       // Check if the target month has any valid (non-disabled) days within min/max bounds.
       if (
-        (minDate != null && adapter.isBefore(adapter.endOfMonth(targetMonth), minDate)) ||
-        (maxDate != null && adapter.isAfter(adapter.startOfMonth(targetMonth), maxDate))
+        (min != null && adapter.isBefore(adapter.endOfMonth(targetMonth), min)) ||
+        (max != null && adapter.isAfter(adapter.startOfMonth(targetMonth), max))
       ) {
         // The entire target month is outside the valid range; stay put.
         return prevIndex;

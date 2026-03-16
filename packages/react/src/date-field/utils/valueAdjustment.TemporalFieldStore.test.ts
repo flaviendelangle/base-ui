@@ -321,7 +321,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       describe('initialization (empty year section)', () => {
-        it('should set current year when pressing ArrowUp and no minDate', () => {
+        it('should set current year when pressing ArrowUp and no min', () => {
           const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
@@ -330,7 +330,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
-        it('should set current year when pressing PageUp and no minDate', () => {
+        it('should set current year when pressing PageUp and no min', () => {
           const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
@@ -339,7 +339,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
-        it('should set current year when pressing ArrowDown and no maxDate', () => {
+        it('should set current year when pressing ArrowDown and no max', () => {
           const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
@@ -348,7 +348,7 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
-        it('should set current year when pressing PageDown and no maxDate', () => {
+        it('should set current year when pressing PageDown and no max', () => {
           const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
           store.selectClosestDatePart(4); // year section (empty)
 
@@ -357,9 +357,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
-        it('should set minDate year when pressing ArrowUp and minDate is set', () => {
+        it('should set min year when pressing ArrowUp and min is set', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, minDate: adapter.date('2020-01-01', 'default') },
+            { ...DEFAULT_PARAMETERS, min: adapter.date('2020-01-01', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -368,9 +368,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe('2020');
         });
 
-        it('should set minDate year when pressing PageUp and minDate is set', () => {
+        it('should set min year when pressing PageUp and min is set', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, minDate: adapter.date('2020-01-01', 'default') },
+            { ...DEFAULT_PARAMETERS, min: adapter.date('2020-01-01', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -379,9 +379,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe('2020');
         });
 
-        it('should set maxDate year when pressing ArrowDown and maxDate is set', () => {
+        it('should set max year when pressing ArrowDown and max is set', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, maxDate: adapter.date('2030-12-31', 'default') },
+            { ...DEFAULT_PARAMETERS, max: adapter.date('2030-12-31', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -390,9 +390,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe('2030');
         });
 
-        it('should set maxDate year when pressing PageDown and maxDate is set', () => {
+        it('should set max year when pressing PageDown and max is set', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, maxDate: adapter.date('2030-12-31', 'default') },
+            { ...DEFAULT_PARAMETERS, max: adapter.date('2030-12-31', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -401,9 +401,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe('2030');
         });
 
-        it('should set current year when pressing ArrowDown with minDate but no maxDate', () => {
+        it('should set current year when pressing ArrowDown with min but no max', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, minDate: adapter.date('2020-01-01', 'default') },
+            { ...DEFAULT_PARAMETERS, min: adapter.date('2020-01-01', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -413,9 +413,9 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe(currentYear);
         });
 
-        it('should set current year when pressing ArrowUp with maxDate but no minDate', () => {
+        it('should set current year when pressing ArrowUp with max but no min', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, maxDate: adapter.date('2030-12-31', 'default') },
+            { ...DEFAULT_PARAMETERS, max: adapter.date('2030-12-31', 'default') },
             dateFieldConfig,
           );
           store.selectClosestDatePart(4); // year section (empty)
@@ -1001,17 +1001,17 @@ describe('TemporalFieldStore - Value Adjustment', () => {
   });
 
   describe('adjustment boundaries with validation props', () => {
-    describe('DateField - minDate and maxDate', () => {
+    describe('DateField - min and max', () => {
       describe('same year', () => {
-        // minDate=2024-04-02, maxDate=2024-07-03
+        // min=2024-04-02, max=2024-07-03
         // year: [2024, 2024], month: [4, 7], day: unchanged
 
         it('should restrict year section to the single valid year', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2024-07-03', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2024-07-03', 'default'),
             },
             dateFieldConfig,
           );
@@ -1032,8 +1032,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2024-07-03', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2024-07-03', 'default'),
             },
             dateFieldConfig,
           );
@@ -1058,8 +1058,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2024-07-03', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2024-07-03', 'default'),
             },
             dateFieldConfig,
           );
@@ -1080,8 +1080,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2024-07-03', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2024-07-03', 'default'),
             },
             dateFieldConfig,
           );
@@ -1093,26 +1093,26 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             shouldGoToNextSection: false,
           });
 
-          // Home should go to structural min (01), not minDate day (02)
+          // Home should go to structural min (01), not min day (02)
           store.adjustActiveDatePartValue('Home', 2);
           expect(getDatePartValue(store, 2)).toBe('01');
 
-          // End should go to structural max (31), not maxDate day (03)
+          // End should go to structural max (31), not max day (03)
           store.adjustActiveDatePartValue('End', 2);
           expect(getDatePartValue(store, 2)).toBe('31');
         });
       });
 
       describe('different years', () => {
-        // minDate=2024-04-02, maxDate=2025-01-01
+        // min=2024-04-02, max=2025-01-01
         // year: [2024, 2025], month: unchanged, day: unchanged
 
         it('should restrict year range', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2025-01-01', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2025-01-01', 'default'),
             },
             dateFieldConfig,
           );
@@ -1137,8 +1137,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2025-01-01', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2025-01-01', 'default'),
             },
             dateFieldConfig,
           );
@@ -1150,11 +1150,11 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             shouldGoToNextSection: false,
           });
 
-          // Home should go to structural min (01), not minDate month (04)
+          // Home should go to structural min (01), not min month (04)
           store.adjustActiveDatePartValue('Home', 0);
           expect(getDatePartValue(store, 0)).toBe('01');
 
-          // End should go to structural max (12), not maxDate month (01)
+          // End should go to structural max (12), not max month (01)
           store.adjustActiveDatePartValue('End', 0);
           expect(getDatePartValue(store, 0)).toBe('12');
         });
@@ -1163,8 +1163,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-02', 'default'),
-              maxDate: adapter.date('2025-01-01', 'default'),
+              min: adapter.date('2024-04-02', 'default'),
+              max: adapter.date('2025-01-01', 'default'),
             },
             dateFieldConfig,
           );
@@ -1185,15 +1185,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       describe('same year and month', () => {
-        // minDate=2024-04-05, maxDate=2024-04-20
+        // min=2024-04-05, max=2024-04-20
         // year: [2024, 2024], month: [4, 4], day: [5, 20]
 
         it('should restrict day range when year and month are the same', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
-              minDate: adapter.date('2024-04-05', 'default'),
-              maxDate: adapter.date('2024-04-20', 'default'),
+              min: adapter.date('2024-04-05', 'default'),
+              max: adapter.date('2024-04-20', 'default'),
             },
             dateFieldConfig,
           );
@@ -1215,10 +1215,10 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
       });
 
-      describe('only minDate provided', () => {
+      describe('only min provided', () => {
         it('should restrict min side only, max stays structural', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, minDate: adapter.date('2024-04-02', 'default') },
+            { ...DEFAULT_PARAMETERS, min: adapter.date('2024-04-02', 'default') },
             dateFieldConfig,
           );
 
@@ -1239,10 +1239,10 @@ describe('TemporalFieldStore - Value Adjustment', () => {
         });
       });
 
-      describe('only maxDate provided', () => {
+      describe('only max provided', () => {
         it('should restrict max side only, min stays structural', () => {
           const store = new TemporalFieldStore(
-            { ...DEFAULT_PARAMETERS, maxDate: adapter.date('2025-07-15', 'default') },
+            { ...DEFAULT_PARAMETERS, max: adapter.date('2025-07-15', 'default') },
             dateFieldConfig,
           );
 
@@ -1264,15 +1264,15 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
     });
 
-    describe('TimeField - minDate and maxDate', () => {
+    describe('TimeField - min and max', () => {
       describe('different hours', () => {
         it('should restrict hours range', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
               format: time24Format,
-              minDate: adapter.date('2024-01-01T10:30', 'default'),
-              maxDate: adapter.date('2024-01-01T14:45', 'default'),
+              min: adapter.date('2024-01-01T10:30', 'default'),
+              max: adapter.date('2024-01-01T14:45', 'default'),
             },
             timeFieldConfig,
           );
@@ -1298,8 +1298,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             {
               ...DEFAULT_PARAMETERS,
               format: time24Format,
-              minDate: adapter.date('2024-01-01T10:30', 'default'),
-              maxDate: adapter.date('2024-01-01T14:45', 'default'),
+              min: adapter.date('2024-01-01T10:30', 'default'),
+              max: adapter.date('2024-01-01T14:45', 'default'),
             },
             timeFieldConfig,
           );
@@ -1327,8 +1327,8 @@ describe('TemporalFieldStore - Value Adjustment', () => {
             {
               ...DEFAULT_PARAMETERS,
               format: time24Format,
-              minDate: adapter.date('2024-01-01T10:15', 'default'),
-              maxDate: adapter.date('2024-01-01T10:45', 'default'),
+              min: adapter.date('2024-01-01T10:15', 'default'),
+              max: adapter.date('2024-01-01T10:45', 'default'),
             },
             timeFieldConfig,
           );
@@ -1351,13 +1351,13 @@ describe('TemporalFieldStore - Value Adjustment', () => {
       });
 
       describe('meridiem restriction', () => {
-        it('should restrict meridiem to PM when both minDate and maxDate are PM', () => {
+        it('should restrict meridiem to PM when both min and max are PM', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
               format: time12Format,
-              minDate: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
-              maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
+              min: adapter.date('2024-01-01T13:00', 'default'), // 1 PM
+              max: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
             },
             timeFieldConfig,
           );
@@ -1378,13 +1378,13 @@ describe('TemporalFieldStore - Value Adjustment', () => {
           expect(getDatePartValue(store, 4)).toBe('PM');
         });
 
-        it('should not restrict meridiem when minDate is AM and maxDate is PM', () => {
+        it('should not restrict meridiem when min is AM and max is PM', () => {
           const store = new TemporalFieldStore(
             {
               ...DEFAULT_PARAMETERS,
               format: time12Format,
-              minDate: adapter.date('2024-01-01T08:00', 'default'), // 8 AM
-              maxDate: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
+              min: adapter.date('2024-01-01T08:00', 'default'), // 8 AM
+              max: adapter.date('2024-01-01T16:00', 'default'), // 4 PM
             },
             timeFieldConfig,
           );

@@ -9,8 +9,8 @@ import fieldStyles from '../../time-field.module.css';
 import styles from './index.module.css';
 
 const today = new Date();
-const minDate = set(today, { hours: 9, minutes: 0, seconds: 0 });
-const maxDate = set(today, { hours: 17, minutes: 30, seconds: 0 });
+const min = set(today, { hours: 9, minutes: 0, seconds: 0 });
+const max = set(today, { hours: 17, minutes: 30, seconds: 0 });
 
 export default function ExampleTimeFieldValidation() {
   return (
@@ -23,9 +23,9 @@ export default function ExampleTimeFieldValidation() {
     >
       <Field.Root name="time" className={fieldStyles.Field}>
         <Field.Label className={fieldStyles.Label}>
-          Time (between {format(minDate, 'h:mm a')} and {format(maxDate, 'h:mm a')})
+          Time (between {format(min, 'h:mm a')} and {format(max, 'h:mm a')})
         </Field.Label>
-        <TimeField.Root className={fieldStyles.Root} minDate={minDate} maxDate={maxDate}>
+        <TimeField.Root className={fieldStyles.Root} min={min} max={max}>
           {(section) => (
             <TimeField.Section
               key={section.index}
@@ -35,10 +35,10 @@ export default function ExampleTimeFieldValidation() {
           )}
         </TimeField.Root>
         <Field.Error match="rangeUnderflow" className={styles.Error}>
-          Time must be on or after {format(minDate, 'h:mm a')}
+          Time must be on or after {format(min, 'h:mm a')}
         </Field.Error>
         <Field.Error match="rangeOverflow" className={styles.Error}>
-          Time must be on or before {format(maxDate, 'h:mm a')}
+          Time must be on or before {format(max, 'h:mm a')}
         </Field.Error>
       </Field.Root>
       <button type="submit" className={styles.Button}>

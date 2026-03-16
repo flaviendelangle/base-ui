@@ -58,11 +58,11 @@ export interface SharedCalendarState<TValue extends TemporalSupportedValue = any
   /**
    * Minimal selectable date.
    */
-  minDate: TemporalSupportedObject | undefined;
+  min: TemporalSupportedObject | undefined;
   /**
    * Maximal selectable date.
    */
-  maxDate: TemporalSupportedObject | undefined;
+  max: TemporalSupportedObject | undefined;
   /**
    * Mark specific dates as unavailable.
    * Those dates will not be selectable but they will still be focusable with the keyboard.
@@ -76,7 +76,7 @@ export interface SharedCalendarState<TValue extends TemporalSupportedValue = any
    * The manager of the calendar (uses `getDateManager` for Calendar and `getDateRangeManager` for RangeCalendar).
    * Not publicly exposed, is only set in state to avoid passing it to the selectors.
    */
-  manager: TemporalManager<TValue, any, any>;
+  manager: TemporalManager<TValue>;
   /**
    * The adapter of the date library.
    * Not publicly exposed, is only set in state to avoid passing it to the selectors.

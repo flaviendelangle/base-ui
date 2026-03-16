@@ -45,7 +45,7 @@ export function getInitialReferenceDate(
     granularity,
     externalDate,
     externalReferenceDate,
-    validationProps: { minDate, maxDate },
+    validationProps: { min, max },
   } = parameters;
   let referenceDate: TemporalSupportedObject | null = null;
 
@@ -55,44 +55,28 @@ export function getInitialReferenceDate(
     referenceDate = adapter.setTimezone(externalReferenceDate, timezone);
   } else {
     referenceDate = roundDate(adapter, granularity, adapter.now(timezone));
-    if (
-      minDate != null &&
-      adapter.isValid(minDate) &&
-      isBeforeDay(adapter, referenceDate, minDate)
-    ) {
-      referenceDate = roundDate(adapter, granularity, minDate);
+    if (min != null && adapter.isValid(min) && isBeforeDay(adapter, referenceDate, min)) {
+      referenceDate = roundDate(adapter, granularity, min);
     }
 
-    if (
-      maxDate != null &&
-      adapter.isValid(maxDate) &&
-      isAfterDay(adapter, referenceDate, maxDate)
-    ) {
-      referenceDate = roundDate(adapter, granularity, maxDate);
+    if (max != null && adapter.isValid(max) && isAfterDay(adapter, referenceDate, max)) {
+      referenceDate = roundDate(adapter, granularity, max);
     }
 
     // Also adjust time portion if needed (for time-only or datetime fields)
-    if (
-      minDate != null &&
-      adapter.isValid(minDate) &&
-      isTimePartBefore(adapter, referenceDate, minDate)
-    ) {
+    if (min != null && adapter.isValid(min) && isTimePartBefore(adapter, referenceDate, min)) {
       referenceDate = roundDate(
         adapter,
         granularity,
-        mergeDateAndTime(adapter, referenceDate, minDate),
+        mergeDateAndTime(adapter, referenceDate, min),
       );
     }
 
-    if (
-      maxDate != null &&
-      adapter.isValid(maxDate) &&
-      isTimePartAfter(adapter, referenceDate, maxDate)
-    ) {
+    if (max != null && adapter.isValid(max) && isTimePartAfter(adapter, referenceDate, max)) {
       referenceDate = roundDate(
         adapter,
         granularity,
-        mergeDateAndTime(adapter, referenceDate, maxDate),
+        mergeDateAndTime(adapter, referenceDate, max),
       );
     }
   }

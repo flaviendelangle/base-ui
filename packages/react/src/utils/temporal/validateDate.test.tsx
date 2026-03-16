@@ -26,8 +26,8 @@ adapters.forEach((adapter) => {
           adapter,
           value: adapter.date('2025-06-03', 'default'),
           validationProps: {
-            minDate: adapter.date('2025-06-01', 'default'),
-            maxDate: adapter.date('2025-06-05', 'default'),
+            min: adapter.date('2025-06-01', 'default'),
+            max: adapter.date('2025-06-05', 'default'),
           },
         }),
       ).toBe(null);
@@ -39,7 +39,7 @@ adapters.forEach((adapter) => {
           adapter,
           value: adapter.date('2025-06-03T15:30', 'default'),
           validationProps: {
-            minDate: adapter.date('2025-06-03T20:30', 'default'),
+            min: adapter.date('2025-06-03T20:30', 'default'),
           },
         }),
       ).toBe(null);
@@ -51,7 +51,7 @@ adapters.forEach((adapter) => {
           adapter,
           value: adapter.date('2025-06-03T20:30', 'default'),
           validationProps: {
-            maxDate: adapter.date('2025-06-03T15:30', 'default'),
+            max: adapter.date('2025-06-03T15:30', 'default'),
           },
         }),
       ).toBe(null);

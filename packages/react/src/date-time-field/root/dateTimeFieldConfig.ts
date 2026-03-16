@@ -74,14 +74,14 @@ export const dateTimeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
     };
 
     // Always include seconds in min/max for rounding purposes
-    if (validationProps.minDate) {
-      const formatted = formatDateTimeForMinMax(adapter, validationProps.minDate);
+    if (validationProps.min) {
+      const formatted = formatDateTimeForMinMax(adapter, validationProps.min);
       if (formatted) {
         result.min = formatted;
       }
     }
-    if (validationProps.maxDate) {
-      const formatted = formatDateTimeForMinMax(adapter, validationProps.maxDate);
+    if (validationProps.max) {
+      const formatted = formatDateTimeForMinMax(adapter, validationProps.max);
       if (formatted) {
         result.max = formatted;
       }

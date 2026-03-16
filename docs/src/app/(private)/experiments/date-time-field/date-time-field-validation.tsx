@@ -9,8 +9,8 @@ import { DateTimeField } from '@base-ui/react/date-time-field';
 import styles from './date-time-field-validation.module.css';
 
 const today = new Date();
-const minDate = subDays(today, 7);
-const maxDate = addDays(today, 7);
+const min = subDays(today, 7);
+const max = addDays(today, 7);
 
 export default function DateTimeFieldValidation() {
   return (
@@ -85,9 +85,9 @@ export default function DateTimeFieldValidation() {
           </div>
         </section>
 
-        {/* minDate validation */}
+        {/* min validation */}
         <section>
-          <h2>Min Date ({format(minDate, 'MMM d, yyyy')})</h2>
+          <h2>Min Date ({format(min, 'MMM d, yyyy')})</h2>
           <div className={styles.DemoList}>
             {/* Native form + label */}
             <form
@@ -101,13 +101,13 @@ export default function DateTimeFieldValidation() {
               <div className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Native</div>
                 <label className={styles.Label} htmlFor="datetime-min-date-native">
-                  Date and Time (min: {format(minDate, 'MMM d')})
+                  Date and Time (min: {format(min, 'MMM d')})
                 </label>
                 <DateTimeField.Root
                   id="datetime-min-date-native"
                   name="datetime-min-date-native"
                   className={styles.Root}
-                  minDate={minDate}
+                  min={min}
                 >
                   {(section) => (
                     <DateTimeField.Section
@@ -133,9 +133,9 @@ export default function DateTimeFieldValidation() {
               <Field.Root name="datetime-min-date-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Date and Time (min: {format(minDate, 'MMM d')})
+                  Date and Time (min: {format(min, 'MMM d')})
                 </Field.Label>
-                <DateTimeField.Root className={styles.Root} minDate={minDate}>
+                <DateTimeField.Root className={styles.Root} min={min}>
                   {(section) => (
                     <DateTimeField.Section
                       key={section.index}
@@ -145,7 +145,7 @@ export default function DateTimeFieldValidation() {
                   )}
                 </DateTimeField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Date must be on or after {format(minDate, 'MMM d, yyyy')}
+                  Date must be on or after {format(min, 'MMM d, yyyy')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -155,9 +155,9 @@ export default function DateTimeFieldValidation() {
           </div>
         </section>
 
-        {/* maxDate validation */}
+        {/* max validation */}
         <section>
-          <h2>Max Date ({format(maxDate, 'MMM d, yyyy')})</h2>
+          <h2>Max Date ({format(max, 'MMM d, yyyy')})</h2>
           <div className={styles.DemoList}>
             {/* Native form + label */}
             <form
@@ -171,13 +171,13 @@ export default function DateTimeFieldValidation() {
               <div className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Native</div>
                 <label className={styles.Label} htmlFor="datetime-max-date-native">
-                  Date and Time (max: {format(maxDate, 'MMM d')})
+                  Date and Time (max: {format(max, 'MMM d')})
                 </label>
                 <DateTimeField.Root
                   id="datetime-max-date-native"
                   name="datetime-max-date-native"
                   className={styles.Root}
-                  maxDate={maxDate}
+                  max={max}
                 >
                   {(section) => (
                     <DateTimeField.Section
@@ -203,9 +203,9 @@ export default function DateTimeFieldValidation() {
               <Field.Root name="datetime-max-date-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Date and Time (max: {format(maxDate, 'MMM d')})
+                  Date and Time (max: {format(max, 'MMM d')})
                 </Field.Label>
-                <DateTimeField.Root className={styles.Root} maxDate={maxDate}>
+                <DateTimeField.Root className={styles.Root} max={max}>
                   {(section) => (
                     <DateTimeField.Section
                       key={section.index}
@@ -215,7 +215,7 @@ export default function DateTimeFieldValidation() {
                   )}
                 </DateTimeField.Root>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Date must be on or before {format(maxDate, 'MMM d, yyyy')}
+                  Date must be on or before {format(max, 'MMM d, yyyy')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -225,9 +225,9 @@ export default function DateTimeFieldValidation() {
           </div>
         </section>
 
-        {/* minDate validation */}
+        {/* min validation */}
         <section>
-          <h2>Min Time ({format(minDate, 'h:mm a')})</h2>
+          <h2>Min Time ({format(min, 'h:mm a')})</h2>
           <div className={styles.DemoList}>
             {/* Base UI Form + Field */}
             <Form
@@ -239,9 +239,9 @@ export default function DateTimeFieldValidation() {
               <Field.Root name="datetime-min-time-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Date and Time (min time: {format(minDate, 'h:mm a')})
+                  Date and Time (min time: {format(min, 'h:mm a')})
                 </Field.Label>
-                <DateTimeField.Root className={styles.Root} minDate={minDate}>
+                <DateTimeField.Root className={styles.Root} min={min}>
                   {(section) => (
                     <DateTimeField.Section
                       key={section.index}
@@ -251,7 +251,7 @@ export default function DateTimeFieldValidation() {
                   )}
                 </DateTimeField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Time must be on or after {format(minDate, 'h:mm a')}
+                  Time must be on or after {format(min, 'h:mm a')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -261,9 +261,9 @@ export default function DateTimeFieldValidation() {
           </div>
         </section>
 
-        {/* maxDate validation */}
+        {/* max validation */}
         <section>
-          <h2>Max Time ({format(maxDate, 'h:mm a')})</h2>
+          <h2>Max Time ({format(max, 'h:mm a')})</h2>
           <div className={styles.DemoList}>
             {/* Base UI Form + Field */}
             <Form
@@ -275,9 +275,9 @@ export default function DateTimeFieldValidation() {
               <Field.Root name="datetime-max-time-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Date and Time (max time: {format(maxDate, 'h:mm a')})
+                  Date and Time (max time: {format(max, 'h:mm a')})
                 </Field.Label>
-                <DateTimeField.Root className={styles.Root} maxDate={maxDate}>
+                <DateTimeField.Root className={styles.Root} max={max}>
                   {(section) => (
                     <DateTimeField.Section
                       key={section.index}
@@ -287,7 +287,7 @@ export default function DateTimeFieldValidation() {
                   )}
                 </DateTimeField.Root>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Time must be on or before {format(maxDate, 'h:mm a')}
+                  Time must be on or before {format(max, 'h:mm a')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>

@@ -12,8 +12,8 @@ export default function CalendarValidation() {
   return (
     <Calendar.Root
       className={styles.Root}
-      minDate={addDays(today, -3)}
-      maxDate={addDays(today, 15)}
+      min={addDays(today, -3)}
+      max={addDays(today, 15)}
     >
       {({ visibleDate }) => (
         <React.Fragment>

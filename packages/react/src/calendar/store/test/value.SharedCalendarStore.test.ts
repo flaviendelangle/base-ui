@@ -1,7 +1,6 @@
 import { expect, vi } from 'vitest';
 import { TemporalAdapterDateFns } from '../../../temporal-adapter-date-fns/TemporalAdapterDateFns';
 import { TemporalValue } from '../../../types/temporal';
-import { ValidateDateReturnValue } from '../../../utils/temporal/validateDate';
 import { getDateManager } from '../../../utils/temporal/getDateManager';
 import {
   SharedCalendarStore,
@@ -31,11 +30,11 @@ function createMockMouseEvent(): React.MouseEvent<HTMLButtonElement> {
  */
 function createStore(
   adapter: TemporalAdapterDateFns,
-  parameters: Partial<SharedCalendarStoreParameters<TemporalValue, ValidateDateReturnValue>> = {},
+  parameters: Partial<SharedCalendarStoreParameters<TemporalValue>> = {},
 ) {
   const manager = getDateManager(adapter);
 
-  const fullParameters: SharedCalendarStoreParameters<TemporalValue, ValidateDateReturnValue> = {
+  const fullParameters: SharedCalendarStoreParameters<TemporalValue> = {
     visibleDate: parameters.visibleDate ?? adapter.date('2025-02-01', 'default'),
     ...parameters,
   };
@@ -151,34 +150,34 @@ describe('SharedCalendarStore - value', () => {
   describe('onValueChange callback', () => {
     it('should return the validation error for invalid dates', () => {
       const onValueChange = vi.fn();
-      const minDate = adapter.date('2025-02-25', 'default');
-      const store = createStore(adapter, { onValueChange, minDate });
+      const min = adapter.date('2025-02-25', 'default');
+      const store = createStore(adapter, { onValueChange, min });
 
-      // Select a date before minDate
+      // Select a date before min
       const selectedDate = adapter.date('2025-02-20', 'default');
       store.selectDate(selectedDate, createMockMouseEvent());
 
       expect(onValueChange.mock.calls.length).toBe(1);
 
       const eventDetails = onValueChange.mock
-        .calls[0][1] as CalendarValueChangeEventDetails<ValidateDateReturnValue>;
+        .calls[0][1] as CalendarValueChangeEventDetails;
       const validationError = eventDetails.getValidationError();
-      expect(validationError).toBe('before-min-date');
+      expect(validationError).toBe('rangeUnderflow');
     });
 
     it('should return null validation error for valid dates', () => {
       const onValueChange = vi.fn();
-      const minDate = adapter.date('2025-02-10', 'default');
-      const store = createStore(adapter, { onValueChange, minDate });
+      const min = adapter.date('2025-02-10', 'default');
+      const store = createStore(adapter, { onValueChange, min });
 
-      // Select a date after minDate
+      // Select a date after min
       const selectedDate = adapter.date('2025-02-20', 'default');
       store.selectDate(selectedDate, createMockMouseEvent());
 
       expect(onValueChange.mock.calls.length).toBe(1);
 
       const eventDetails = onValueChange.mock
-        .calls[0][1] as CalendarValueChangeEventDetails<ValidateDateReturnValue>;
+        .calls[0][1] as CalendarValueChangeEventDetails;
       const validationError = eventDetails.getValidationError();
       expect(validationError).toBe(null);
     });
@@ -208,10 +207,10 @@ describe('SharedCalendarStore - value', () => {
             eventDetails.cancel();
           }
         },
-        minDate: adapter.date('2025-02-18', 'default'),
+        min: adapter.date('2025-02-18', 'default'),
       });
 
-      // Try to select a date before minDate - should be canceled
+      // Try to select a date before min - should be canceled
       const invalidDate = adapter.date('2025-02-16', 'default');
       store.selectDate(invalidDate, createMockMouseEvent());
 

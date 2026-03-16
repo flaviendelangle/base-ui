@@ -78,11 +78,11 @@ export interface TemporalFieldStoreParameters<TValue extends TemporalSupportedVa
   /**
    * Minimal selectable date.
    */
-  minDate: TemporalSupportedObject | undefined;
+  min: TemporalSupportedObject | undefined;
   /**
    * Maximal selectable date.
    */
-  maxDate: TemporalSupportedObject | undefined;
+  max: TemporalSupportedObject | undefined;
   /**
    * Choose which timezone to use for the value.
    * Example: "default", "system", "UTC", "America/New_York".
@@ -128,7 +128,7 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    * The manager of the field (uses `getDateManager` for DateField and `getTimeManager` for TimeField).
    * Not publicly exposed, is only set in state to avoid passing it to the selectors.
    */
-  manager: TemporalManager<TValue, any, any>;
+  manager: TemporalManager<TValue>;
   /**
    * The config of the field.
    * Not publicly exposed, is only set in state to avoid passing it to the selectors.
@@ -192,11 +192,11 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
   /**
    * The minimum selectable date.
    */
-  minDate: TemporalSupportedObject | undefined;
+  min: TemporalSupportedObject | undefined;
   /**
    * The maximum selectable date.
    */
-  maxDate: TemporalSupportedObject | undefined;
+  max: TemporalSupportedObject | undefined;
   /**
    * The field context from Field.Root.
    * Contains state (disabled, touched, dirty, valid, filled, focused), callbacks (setDirty, setTouched, etc.), and validation.
@@ -344,7 +344,7 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
    */
   getManager: (
     adapter: TemporalAdapter,
-  ) => TemporalManager<TValue, any, TemporalFieldValidationProps>;
+  ) => TemporalManager<TValue>;
   /**
    * Creates the section list from the current value.
    * The `prevSections` are used on the range fields to avoid losing the sections of a partially filled date when editing the other date.
@@ -471,8 +471,8 @@ export interface TemporalFieldDatePartValueBoundaries {
 }
 
 export interface TemporalFieldValidationProps {
-  minDate?: TemporalSupportedObject | undefined;
-  maxDate?: TemporalSupportedObject | undefined;
+  min?: TemporalSupportedObject | undefined;
+  max?: TemporalSupportedObject | undefined;
 }
 
 /**

@@ -11,8 +11,8 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
   function renderCalendar(
     defaultDate: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>,
     options?: {
-      minDate?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
-      maxDate?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
+      min?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
+      max?: ReturnType<ReturnType<typeof createTemporalRenderer>['adapter']['date']>;
       onVisibleDateChange?: CalendarRoot.Props['onVisibleDateChange'];
       onValueChange?: CalendarRoot.Props['onValueChange'];
       focusableWhenDisabled?: boolean;
@@ -23,8 +23,8 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
         defaultVisibleDate={defaultDate}
         onVisibleDateChange={options?.onVisibleDateChange}
         onValueChange={options?.onValueChange}
-        minDate={options?.minDate}
-        maxDate={options?.maxDate}
+        min={options?.min}
+        max={options?.max}
       >
         <Calendar.DayGrid>
           <Calendar.DayGridBody>
@@ -438,26 +438,26 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
 
   // ---------------------------------------------------------------------------
   // Keyboard navigation should NOT trigger when the target day is disabled
-  // (outside minDate/maxDate bounds).
+  // (outside min/max bounds).
   // ---------------------------------------------------------------------------
 
   // ---------------------------------------------------------------------------
   // focusableWhenDisabled
   //
-  // February 2025 grid (en-US locale, weeks start Sunday), maxDate = Feb 14:
+  // February 2025 grid (en-US locale, weeks start Sunday), max = Feb 14:
   //   Feb 1–14  → enabled  (index 6–19)
   //   Feb 15–28 → disabled but focusable (index 20–33)
   //   Mar 1     → outside-month → always skipped (index 34)
   // ---------------------------------------------------------------------------
 
   describe('focusableWhenDisabled', () => {
-    const maxDate = feb14;
+    const max = feb14;
 
     describe('ArrowRight', () => {
       it('should land on a disabled day when focusableWhenDisabled is true', async () => {
         const { user } = renderCalendar(adapter.startOfMonth(feb14), {
           focusableWhenDisabled: true,
-          maxDate,
+          max,
         });
 
         await act(async () => {
@@ -471,7 +471,7 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
       it('should continue navigating from a focused disabled day', async () => {
         const { user } = renderCalendar(adapter.startOfMonth(feb14), {
           focusableWhenDisabled: true,
-          maxDate,
+          max,
         });
 
         await act(async () => {
@@ -491,7 +491,7 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
       it('should land on a disabled day when navigating left', async () => {
         const { user } = renderCalendar(adapter.startOfMonth(feb16), {
           focusableWhenDisabled: true,
-          maxDate,
+          max,
         });
 
         await act(async () => {
@@ -509,7 +509,7 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
 
         const { user } = renderCalendar(adapter.startOfMonth(feb14), {
           focusableWhenDisabled: true,
-          maxDate,
+          max,
         });
 
         await act(async () => {
@@ -526,7 +526,7 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
 
       const { user } = renderCalendar(adapter.startOfMonth(feb14), {
         focusableWhenDisabled: true,
-        maxDate,
+        max,
         onValueChange,
       });
 
@@ -544,11 +544,11 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
 
     it('should skip disabled days when focusableWhenDisabled is false (default)', async () => {
       // Default renderCalendar does not set focusableWhenDisabled on DayButton.
-      // With maxDate = Feb 14, ArrowRight from Feb 14 should not move focus since there
+      // With max = Feb 14, ArrowRight from Feb 14 should not move focus since there
       // are no more enabled in-month days ahead and the outside-month trailing day is
       // also skipped.
       const { user } = renderCalendar(adapter.startOfMonth(feb14), {
-        maxDate,
+        max,
       });
 
       await act(async () => {
@@ -560,14 +560,14 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
   });
 
-  describe('disabled day boundary (minDate / maxDate)', () => {
+  describe('disabled day boundary (min / max)', () => {
     describe('PageDown', () => {
-      it('should not navigate to the next month if the same day would be after maxDate', async () => {
+      it('should not navigate to the next month if the same day would be after max', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb15), {
           onVisibleDateChange,
-          maxDate: feb28,
+          max: feb28,
         });
 
         await act(async () => {
@@ -580,12 +580,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
       });
     });
 
-    it('should find the closest day to navigate to the next month if the same day would be after maxDate', async () => {
+    it('should find the closest day to navigate to the next month if the same day would be after max', async () => {
       const onVisibleDateChange = vi.fn();
 
       const { user } = renderCalendar(adapter.startOfMonth(mar31), {
         onVisibleDateChange,
-        maxDate: apr7,
+        max: apr7,
       });
 
       await act(async () => {
@@ -600,12 +600,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('PageUp', () => {
-      it('should not navigate to the previous month if the same day would be before minDate', async () => {
+      it('should not navigate to the previous month if the same day would be before min', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb15), {
           onVisibleDateChange,
-          minDate: feb1,
+          min: feb1,
         });
 
         await act(async () => {
@@ -617,12 +617,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
         expect(getDayButton(feb15)).toHaveFocus();
       });
 
-      it('should find the closest day to navigate to the previous month if the same day would be before minDate', async () => {
+      it('should find the closest day to navigate to the previous month if the same day would be before min', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(aug7), {
           onVisibleDateChange,
-          minDate: jul25,
+          min: jul25,
         });
 
         await act(async () => {
@@ -638,13 +638,13 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('Shift+PageDown', () => {
-      it('should not navigate 12 months forward if the same day would be after maxDate', async () => {
-        const maxDate = adapter.date('2025-12-31', 'default');
+      it('should not navigate 12 months forward if the same day would be after max', async () => {
+        const max = adapter.date('2025-12-31', 'default');
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb15), {
           onVisibleDateChange,
-          maxDate,
+          max,
         });
 
         await act(async () => {
@@ -658,13 +658,13 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('Shift+PageUp', () => {
-      it('should not navigate 12 months backward if the same day would be before minDate', async () => {
+      it('should not navigate 12 months backward if the same day would be before min', async () => {
         const onVisibleDateChange = vi.fn();
-        const minDate = adapter.date('2025-01-01', 'default');
+        const min = adapter.date('2025-01-01', 'default');
 
         const { user } = renderCalendar(adapter.startOfMonth(feb15), {
           onVisibleDateChange,
-          minDate,
+          min,
         });
 
         await act(async () => {
@@ -678,12 +678,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('ArrowRight', () => {
-      it('should not wrap to the next month when the last day is at maxDate', async () => {
+      it('should not wrap to the next month when the last day is at max', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb28), {
           onVisibleDateChange,
-          maxDate: feb28,
+          max: feb28,
         });
 
         await act(async () => {
@@ -697,12 +697,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('ArrowLeft', () => {
-      it('should not wrap to the previous month when the first day is at minDate', async () => {
+      it('should not wrap to the previous month when the first day is at min', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb1), {
           onVisibleDateChange,
-          minDate: feb1,
+          min: feb1,
         });
 
         await act(async () => {
@@ -716,12 +716,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('ArrowDown', () => {
-      it('should not wrap to the next month when the day in the same weekday column would be after maxDate', async () => {
+      it('should not wrap to the next month when the day in the same weekday column would be after max', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb28), {
           onVisibleDateChange,
-          maxDate: feb28,
+          max: feb28,
         });
 
         await act(async () => {
@@ -735,12 +735,12 @@ describe('<Calendar.DayGridBody /> - keyboard navigation', () => {
     });
 
     describe('ArrowUp', () => {
-      it('should not wrap to the previous month when the day in the same weekday column would be before minDate', async () => {
+      it('should not wrap to the previous month when the day in the same weekday column would be before min', async () => {
         const onVisibleDateChange = vi.fn();
 
         const { user } = renderCalendar(adapter.startOfMonth(feb1), {
           onVisibleDateChange,
-          minDate: feb1,
+          min: feb1,
         });
 
         await act(async () => {

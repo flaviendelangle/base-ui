@@ -12,7 +12,7 @@ interface UseCalendarMonthButtonParameters {
   direction: 1 | -1;
   disabled: boolean;
   disabledProp?: boolean | undefined;
-  store: SharedCalendarStore<TemporalSupportedValue, unknown>;
+  store: SharedCalendarStore<TemporalSupportedValue>;
   adapter: TemporalAdapter;
   monthPageSize: number;
 }

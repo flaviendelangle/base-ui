@@ -83,8 +83,8 @@ export function useTemporalFieldRoot(
     value,
     timezone,
     referenceDate,
-    minDate,
-    maxDate,
+    min,
+    max,
   } = props;
 
   const fieldContext = useFieldRootContext();
@@ -115,8 +115,8 @@ export function useTemporalFieldRoot(
           adapter,
           translations,
           direction,
-          minDate,
-          maxDate,
+          min,
+          max,
         },
         config,
       ),
@@ -130,8 +130,8 @@ export function useTemporalFieldRoot(
     translations,
     direction,
     config,
-    minDate,
-    maxDate,
+    min,
+    max,
     referenceDateProp: referenceDate ?? null,
     required: required ?? false,
     disabledProp: disabled ?? false,

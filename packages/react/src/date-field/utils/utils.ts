@@ -89,7 +89,7 @@ export function removeLocalizedDigits(valueStr: string, localizedDigits: Localiz
 
 export function getTimezoneToRender<TValue extends TemporalSupportedValue>(
   adapter: TemporalAdapter,
-  manager: TemporalManager<TValue, any, any>,
+  manager: TemporalManager<TValue>,
   value: TValue,
   referenceDateProp: TemporalSupportedObject | null | undefined,
   timezoneProp: TemporalTimezone | null | undefined,

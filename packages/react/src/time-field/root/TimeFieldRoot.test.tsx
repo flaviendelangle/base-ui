@@ -246,9 +246,9 @@ describe('<TimeField /> - Field Integration', () => {
       expect(handleSubmit.mock.calls[0][0].appointmentTime).toBe('');
     });
 
-    it('validates with rangeUnderflow when time is before minDate', async () => {
+    it('validates with rangeUnderflow when time is before min', async () => {
       const handleSubmit = vi.fn();
-      const minDate = adapter.date('2024-03-20T09:00', 'default');
+      const min = adapter.date('2024-03-20T09:00', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -256,7 +256,7 @@ describe('<TimeField /> - Field Integration', () => {
             <TimeField
               format={time24Format}
               defaultValue={adapter.date('2024-03-20T08:30', 'default')}
-              minDate={minDate}
+              min={min}
             />
             <Field.Error match="rangeUnderflow" data-testid="error">
               Time is too early
@@ -272,9 +272,9 @@ describe('<TimeField /> - Field Integration', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('Time is too early');
     });
 
-    it('validates with rangeOverflow when time is after maxDate', async () => {
+    it('validates with rangeOverflow when time is after max', async () => {
       const handleSubmit = vi.fn();
-      const maxDate = adapter.date('2024-03-20T17:00', 'default');
+      const max = adapter.date('2024-03-20T17:00', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -282,7 +282,7 @@ describe('<TimeField /> - Field Integration', () => {
             <TimeField
               format={time24Format}
               defaultValue={adapter.date('2024-03-20T18:30', 'default')}
-              maxDate={maxDate}
+              max={max}
             />
             <Field.Error match="rangeOverflow" data-testid="error">
               Time is too late
@@ -385,18 +385,18 @@ describe('<TimeField /> - Field Integration', () => {
       expect(hiddenInput.type).toBe('time');
     });
 
-    it('should set min attribute when minDate is provided', async () => {
+    it('should set min attribute when min is provided', async () => {
       await render(
-        <TimeField format={time24Format} minDate={adapter.date('2024-01-01T09:00', 'default')} />,
+        <TimeField format={time24Format} min={adapter.date('2024-01-01T09:00', 'default')} />,
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
       expect(hiddenInput.min).toBe('09:00:00');
     });
 
-    it('should set max attribute when maxDate is provided', async () => {
+    it('should set max attribute when max is provided', async () => {
       await render(
-        <TimeField format={time24Format} maxDate={adapter.date('2024-01-01T17:00', 'default')} />,
+        <TimeField format={time24Format} max={adapter.date('2024-01-01T17:00', 'default')} />,
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;

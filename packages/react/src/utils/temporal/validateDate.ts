@@ -7,16 +7,16 @@ export function validateDate(parameters: ValidateDateParameters): ValidateDateRe
     return null;
   }
 
-  const { minDate, maxDate } = validationProps;
+  const { min, max } = validationProps;
 
   if (!adapter.isValid(value)) {
     return 'invalid';
   }
-  if (minDate != null && adapter.isValid(minDate) && isBeforeDay(adapter, value, minDate)) {
-    return 'before-min-date';
+  if (min != null && adapter.isValid(min) && isBeforeDay(adapter, value, min)) {
+    return 'rangeUnderflow';
   }
-  if (maxDate != null && adapter.isValid(maxDate) && isAfterDay(adapter, value, maxDate)) {
-    return 'after-max-date';
+  if (max != null && adapter.isValid(max) && isAfterDay(adapter, value, max)) {
+    return 'rangeOverflow';
   }
   return null;
 }
@@ -40,11 +40,11 @@ export interface ValidateDateValidationProps {
   /**
    * Minimal selectable date.
    */
-  minDate?: TemporalSupportedObject | undefined;
+  min?: TemporalSupportedObject | undefined;
   /**
    * Maximal selectable date.
    */
-  maxDate?: TemporalSupportedObject | undefined;
+  max?: TemporalSupportedObject | undefined;
 }
 
-export type ValidateDateReturnValue = 'invalid' | 'before-min-date' | 'after-max-date' | null;
+export type ValidateDateReturnValue = 'invalid' | 'rangeUnderflow' | 'rangeOverflow' | null;

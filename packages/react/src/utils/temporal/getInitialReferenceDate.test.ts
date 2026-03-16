@@ -32,7 +32,7 @@ describe('getInitialReferenceDate', () => {
       expect(result).toEqualDateTime('2025-03-15');
     });
 
-    it('should return externalDate even if it is outside minDate/maxDate bounds', () => {
+    it('should return externalDate even if it is outside min/max bounds', () => {
       const result = getInitialReferenceDate({
         adapter,
         timezone: 'default',
@@ -40,8 +40,8 @@ describe('getInitialReferenceDate', () => {
         externalDate: adapter.date('2025-01-15', 'default'),
         externalReferenceDate: null,
         validationProps: {
-          minDate: adapter.date('2025-02-01', 'default'),
-          maxDate: adapter.date('2025-12-31', 'default'),
+          min: adapter.date('2025-02-01', 'default'),
+          max: adapter.date('2025-12-31', 'default'),
         },
       });
 
@@ -64,7 +64,7 @@ describe('getInitialReferenceDate', () => {
       expect(result).toEqualDateTime('2025-04-20');
     });
 
-    it('should return externalReferenceDate even if it is outside minDate/maxDate bounds', () => {
+    it('should return externalReferenceDate even if it is outside min/max bounds', () => {
       const result = getInitialReferenceDate({
         adapter,
         timezone: 'default',
@@ -72,8 +72,8 @@ describe('getInitialReferenceDate', () => {
         externalDate: null,
         externalReferenceDate: adapter.date('2025-01-15', 'default'),
         validationProps: {
-          minDate: adapter.date('2025-02-01', 'default'),
-          maxDate: adapter.date('2025-12-31', 'default'),
+          min: adapter.date('2025-02-01', 'default'),
+          max: adapter.date('2025-12-31', 'default'),
         },
       });
 
@@ -99,7 +99,7 @@ describe('getInitialReferenceDate', () => {
       vi.useRealTimers();
     });
 
-    it('should clamp to minDate if current date is before minDate', () => {
+    it('should clamp to min if current date is before min', () => {
       vi.setSystemTime(new Date('2025-01-15T14:30:00.000Z'));
 
       const result = getInitialReferenceDate({
@@ -108,14 +108,14 @@ describe('getInitialReferenceDate', () => {
         granularity: 'day',
         externalDate: null,
         externalReferenceDate: null,
-        validationProps: { minDate: adapter.date('2025-02-01', 'default') },
+        validationProps: { min: adapter.date('2025-02-01', 'default') },
       });
 
       expect(result).toEqualDateTime('2025-02-01');
       vi.useRealTimers();
     });
 
-    it('should clamp to maxDate if current date is after maxDate', () => {
+    it('should clamp to max if current date is after max', () => {
       vi.setSystemTime(new Date('2025-12-15T14:30:00.000Z'));
 
       const result = getInitialReferenceDate({
@@ -124,14 +124,14 @@ describe('getInitialReferenceDate', () => {
         granularity: 'day',
         externalDate: null,
         externalReferenceDate: null,
-        validationProps: { maxDate: adapter.date('2025-06-30', 'default') },
+        validationProps: { max: adapter.date('2025-06-30', 'default') },
       });
 
       expect(result).toEqualDateTime('2025-06-30');
       vi.useRealTimers();
     });
 
-    it('should return current date if it is within minDate/maxDate bounds', () => {
+    it('should return current date if it is within min/max bounds', () => {
       vi.setSystemTime(new Date('2025-06-15T14:30:00.000Z'));
 
       const result = getInitialReferenceDate({
@@ -141,8 +141,8 @@ describe('getInitialReferenceDate', () => {
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {
-          minDate: adapter.date('2025-01-01', 'default'),
-          maxDate: adapter.date('2025-12-31', 'default'),
+          min: adapter.date('2025-01-01', 'default'),
+          max: adapter.date('2025-12-31', 'default'),
         },
       });
 
@@ -307,7 +307,7 @@ describe('getInitialReferenceDate', () => {
       vi.useRealTimers();
     });
 
-    it('should also round minDate when clamping', () => {
+    it('should also round min when clamping', () => {
       vi.setSystemTime(new Date('2025-01-15T14:30:00.000Z'));
 
       const result = getInitialReferenceDate({
@@ -316,14 +316,14 @@ describe('getInitialReferenceDate', () => {
         granularity: 'hours',
         externalDate: null,
         externalReferenceDate: null,
-        validationProps: { minDate: adapter.date('2025-02-01T10:45:00.000', 'default') },
+        validationProps: { min: adapter.date('2025-02-01T10:45:00.000', 'default') },
       });
 
       expect(result).toEqualDateTime('2025-02-01T10:00:00.000');
       vi.useRealTimers();
     });
 
-    it('should also round maxDate when clamping', () => {
+    it('should also round max when clamping', () => {
       vi.setSystemTime(new Date('2025-12-15T14:30:00.000Z'));
 
       const result = getInitialReferenceDate({
@@ -332,7 +332,7 @@ describe('getInitialReferenceDate', () => {
         granularity: 'hours',
         externalDate: null,
         externalReferenceDate: null,
-        validationProps: { maxDate: adapter.date('2025-06-30T16:45:00.000', 'default') },
+        validationProps: { max: adapter.date('2025-06-30T16:45:00.000', 'default') },
       });
 
       expect(result).toEqualDateTime('2025-06-30T16:00:00.000');

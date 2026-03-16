@@ -24,7 +24,7 @@ import {
   CalendarVisibleDateChangeEventDetails,
 } from '../store';
 import { CalendarRootDataAttributes } from './CalendarRootDataAttributes';
-import { ValidateDateReturnValue } from '../../utils/temporal/validateDate';
+import { validateDate } from '../../utils/temporal/validateDate';
 
 const stateAttributesMapping: StateAttributesMapping<CalendarRoot.State> = {
   navigationDirection: (direction) => {
@@ -41,6 +41,8 @@ export const calendarValueManager: ValueManager<TemporalValue> = {
   getDateToUseForReferenceDate: (value) => value,
   onSelectDate: ({ setValue, selectedDate }) => setValue(selectedDate),
   getActiveDateFromValue: (value) => value,
+  getValidationError: (value, adapter, validationProps) =>
+    validateDate({ adapter, value, validationProps }),
 };
 
 /**
@@ -76,8 +78,8 @@ export const CalendarRoot = React.forwardRef(function CalendarRoot(
     // Children
     children,
     // Validation props
-    minDate,
-    maxDate,
+    min,
+    max,
     isDateUnavailable,
     // Accessibility props
     'aria-label': ariaLabelProp,
@@ -105,8 +107,8 @@ export const CalendarRoot = React.forwardRef(function CalendarRoot(
           visibleDate,
           defaultVisibleDate,
           isDateUnavailable,
-          minDate,
-          maxDate,
+          min,
+          max,
         },
         adapter,
         manager,
@@ -123,8 +125,8 @@ export const CalendarRoot = React.forwardRef(function CalendarRoot(
     manager,
     timezoneProp: timezone,
     referenceDateProp: referenceDate ?? null,
-    minDate,
-    maxDate,
+    min,
+    max,
     isDateUnavailable,
     disabled: disabled ?? false,
     readOnly: readOnly ?? false,
@@ -171,7 +173,7 @@ export interface CalendarRootState extends CalendarRootElementState {}
 export interface CalendarRootProps
   extends
     Omit<BaseUIComponentProps<'div', CalendarRootState>, 'children'>,
-    SharedCalendarStoreParameters<TemporalValue, ValidateDateReturnValue> {
+    SharedCalendarStoreParameters<TemporalValue> {
   /**
    * The children of the component.
    * If a function is provided, it will be called with the public context as its parameter.
@@ -179,12 +181,11 @@ export interface CalendarRootProps
   children?: React.ReactNode | ((parameters: CalendarContext) => React.ReactNode);
 }
 
-export interface CalendarRootValueChangeHandlerContext extends CalendarValueChangeHandlerContext<ValidateDateReturnValue> {}
+export interface CalendarRootValueChangeHandlerContext extends CalendarValueChangeHandlerContext {}
 
 export type CalendarRootChangeEventReason = CalendarChangeEventReason;
 
-export type CalendarRootValueChangeEventDetails =
-  CalendarValueChangeEventDetails<ValidateDateReturnValue>;
+export type CalendarRootValueChangeEventDetails = CalendarValueChangeEventDetails;
 
 export type CalendarRootVisibleDateChangeEventDetails = CalendarVisibleDateChangeEventDetails;
 

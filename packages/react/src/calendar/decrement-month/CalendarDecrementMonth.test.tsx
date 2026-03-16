@@ -83,10 +83,10 @@ describe('<Calendar.DecrementMonth />', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should be disabled when the target month is before the minDate month', () => {
+    it('should be disabled when the target month is before the min month', () => {
       render(
         <Calendar.Root
-          minDate={adapter.date('2025-01-10', 'default')}
+          min={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
         >
           <Calendar.DecrementMonth />
@@ -99,10 +99,10 @@ describe('<Calendar.DecrementMonth />', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should not be disabled when the target month is equal to the minDate month', () => {
+    it('should not be disabled when the target month is equal to the min month', () => {
       render(
         <Calendar.Root
-          minDate={adapter.date('2025-01-10', 'default')}
+          min={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-02-01', 'default')}
         >
           <Calendar.DecrementMonth />
@@ -114,10 +114,10 @@ describe('<Calendar.DecrementMonth />', () => {
       expect(button).not.toHaveAttribute('data-disabled');
     });
 
-    it('should not be disabled when disabled is false and the target month is before the minDate month', () => {
+    it('should not be disabled when disabled is false and the target month is before the min month', () => {
       render(
         <Calendar.Root
-          minDate={adapter.date('2025-01-10', 'default')}
+          min={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
         >
           <Calendar.DecrementMonth disabled={false} />
@@ -129,12 +129,12 @@ describe('<Calendar.DecrementMonth />', () => {
       expect(button).toHaveAttribute('aria-disabled', 'false');
     });
 
-    it('should navigate to the previous month when disabled is false even if the target month is before the minDate month', async () => {
+    it('should navigate to the previous month when disabled is false even if the target month is before the min month', async () => {
       const onVisibleDateChange = vi.fn();
 
       const { user } = render(
         <Calendar.Root
-          minDate={adapter.date('2025-01-10', 'default')}
+          min={adapter.date('2025-01-10', 'default')}
           visibleDate={adapter.date('2025-01-01', 'default')}
           onVisibleDateChange={onVisibleDateChange}
         >
@@ -209,11 +209,11 @@ describe('<Calendar.DecrementMonth />', () => {
       fireEvent.pointerUp(button);
     });
 
-    it('should stop at minDate boundary', async () => {
+    it('should stop at min boundary', async () => {
       const onVisibleDateChange = vi.fn();
       await renderCalendar({
         defaultVisibleDate: adapter.date('2025-03-15', 'default'),
-        minDate: adapter.date('2025-01-01', 'default'),
+        min: adapter.date('2025-01-01', 'default'),
         onVisibleDateChange,
       });
 
@@ -230,19 +230,19 @@ describe('<Calendar.DecrementMonth />', () => {
       clock.tick(100);
       expect(onVisibleDateChange.mock.calls.length).toBe(2);
 
-      // Third tick would go to Dec 2024 which is before minDate, should stop
+      // Third tick would go to Dec 2024 which is before min, should stop
       clock.tick(100);
       expect(onVisibleDateChange.mock.calls.length).toBe(2);
 
       fireEvent.pointerUp(button);
     });
 
-    it('should continue navigating past the minDate boundary when disabled is false', async () => {
+    it('should continue navigating past the min boundary when disabled is false', async () => {
       const onVisibleDateChange = vi.fn();
       await renderCalendar(
         {
           defaultVisibleDate: adapter.date('2025-03-15', 'default'),
-          minDate: adapter.date('2025-01-01', 'default'),
+          min: adapter.date('2025-01-01', 'default'),
           onVisibleDateChange,
         },
         { disabled: false },

@@ -281,9 +281,9 @@ describe('<DateField /> - Field Integration', () => {
       expect(handleSubmit.mock.calls[0][0].birthdate).toBe('');
     });
 
-    it('validates with rangeUnderflow when date is before minDate', async () => {
+    it('validates with rangeUnderflow when date is before min', async () => {
       const handleSubmit = vi.fn();
-      const minDate = adapter.date('2024-03-15', 'default');
+      const min = adapter.date('2024-03-15', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -291,7 +291,7 @@ describe('<DateField /> - Field Integration', () => {
             <DateField
               format={numericDateFormat}
               defaultValue={adapter.date('2024-03-10', 'default')}
-              minDate={minDate}
+              min={min}
             />
             <Field.Error match="rangeUnderflow" data-testid="error">
               Date is too early
@@ -307,9 +307,9 @@ describe('<DateField /> - Field Integration', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('Date is too early');
     });
 
-    it('validates with rangeOverflow when date is after maxDate', async () => {
+    it('validates with rangeOverflow when date is after max', async () => {
       const handleSubmit = vi.fn();
-      const maxDate = adapter.date('2024-03-15', 'default');
+      const max = adapter.date('2024-03-15', 'default');
 
       await render(
         <Form onFormSubmit={handleSubmit}>
@@ -317,7 +317,7 @@ describe('<DateField /> - Field Integration', () => {
             <DateField
               format={numericDateFormat}
               defaultValue={adapter.date('2024-03-20', 'default')}
-              maxDate={maxDate}
+              max={max}
             />
             <Field.Error match="rangeOverflow" data-testid="error">
               Date is too late
@@ -420,18 +420,18 @@ describe('<DateField /> - Field Integration', () => {
       expect(hiddenInput.type).toBe('date');
     });
 
-    it('should set min attribute when minDate is provided', async () => {
+    it('should set min attribute when min is provided', async () => {
       await render(
-        <DateField format={numericDateFormat} minDate={adapter.date('2024-01-01', 'default')} />,
+        <DateField format={numericDateFormat} min={adapter.date('2024-01-01', 'default')} />,
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
       expect(hiddenInput.min).toBe('2024-01-01');
     });
 
-    it('should set max attribute when maxDate is provided', async () => {
+    it('should set max attribute when max is provided', async () => {
       await render(
-        <DateField format={numericDateFormat} maxDate={adapter.date('2024-12-31', 'default')} />,
+        <DateField format={numericDateFormat} max={adapter.date('2024-12-31', 'default')} />,
       );
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;

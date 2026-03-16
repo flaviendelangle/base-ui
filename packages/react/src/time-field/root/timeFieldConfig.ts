@@ -72,15 +72,15 @@ export const timeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
       step: String(nativeStep),
     };
     // Always include seconds in min/max for rounding purposes
-    // Extract time portion from minDate/maxDate for the hidden input
-    if (validationProps.minDate) {
-      const formatted = formatTimeForMinMax(adapter, validationProps.minDate);
+    // Extract time portion from min/max for the hidden input
+    if (validationProps.min) {
+      const formatted = formatTimeForMinMax(adapter, validationProps.min);
       if (formatted) {
         result.min = formatted;
       }
     }
-    if (validationProps.maxDate) {
-      const formatted = formatTimeForMinMax(adapter, validationProps.maxDate);
+    if (validationProps.max) {
+      const formatted = formatTimeForMinMax(adapter, validationProps.max);
       if (formatted) {
         result.max = formatted;
       }

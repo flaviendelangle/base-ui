@@ -1,7 +1,6 @@
 import { expect, vi } from 'vitest';
 import { TemporalAdapterDateFns } from '../../../temporal-adapter-date-fns/TemporalAdapterDateFns';
 import { TemporalValue } from '../../../types/temporal';
-import { ValidateDateReturnValue } from '../../../utils/temporal/validateDate';
 import { getDateManager } from '../../../utils/temporal/getDateManager';
 import {
   SharedCalendarStore,
@@ -15,11 +14,11 @@ import { calendarValueManager } from '../../root/CalendarRoot';
  */
 function createStore(
   adapter: TemporalAdapterDateFns,
-  parameters: Partial<SharedCalendarStoreParameters<TemporalValue, ValidateDateReturnValue>> = {},
+  parameters: Partial<SharedCalendarStoreParameters<TemporalValue>> = {},
 ) {
   const manager = getDateManager(adapter);
 
-  const fullParameters: SharedCalendarStoreParameters<TemporalValue, ValidateDateReturnValue> = {
+  const fullParameters: SharedCalendarStoreParameters<TemporalValue> = {
     ...parameters,
   };
 

@@ -11,8 +11,8 @@ import fieldStyles from '../../date-field.module.css';
 import styles from './index.module.css';
 
 const today = startOfDay(new Date());
-const minDate = subDays(today, 7);
-const maxDate = addDays(today, 30);
+const min = subDays(today, 7);
+const max = addDays(today, 30);
 
 export default function ExampleDateFieldValidation() {
   return (
@@ -25,9 +25,9 @@ export default function ExampleDateFieldValidation() {
     >
       <Field.Root name="date" className={fieldStyles.Field}>
         <Field.Label className={fieldStyles.Label}>
-          Date (between {format(minDate, 'MMM d')} and {format(maxDate, 'MMM d, yyyy')})
+          Date (between {format(min, 'MMM d')} and {format(max, 'MMM d, yyyy')})
         </Field.Label>
-        <DateField.Root className={fieldStyles.Root} minDate={minDate} maxDate={maxDate}>
+        <DateField.Root className={fieldStyles.Root} min={min} max={max}>
           {(section) => (
             <DateField.Section
               key={section.index}
@@ -37,10 +37,10 @@ export default function ExampleDateFieldValidation() {
           )}
         </DateField.Root>
         <Field.Error match="rangeUnderflow" className={styles.Error}>
-          Date must be on or after {format(minDate, 'MMM d, yyyy')}
+          Date must be on or after {format(min, 'MMM d, yyyy')}
         </Field.Error>
         <Field.Error match="rangeOverflow" className={styles.Error}>
-          Date must be on or before {format(maxDate, 'MMM d, yyyy')}
+          Date must be on or before {format(max, 'MMM d, yyyy')}
         </Field.Error>
       </Field.Root>
       <button type="submit" className={styles.Button}>

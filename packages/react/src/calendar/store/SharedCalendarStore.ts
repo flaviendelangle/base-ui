@@ -4,7 +4,10 @@ import {
   TemporalSupportedValue,
   TemporalAdapter,
 } from '../../types/temporal';
-import { ValidateDateValidationProps } from '../../utils/temporal/validateDate';
+import {
+  ValidateDateValidationProps,
+  ValidateDateReturnValue,
+} from '../../utils/temporal/validateDate';
 import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
 import { TemporalManager, TemporalTimezoneProps } from '../../utils/temporal/types';
 import {
@@ -16,9 +19,9 @@ import { CalendarNavigationDirection, SharedCalendarState as State } from './Sha
 import { selectors } from './selectors';
 import { BaseUIEventReasons, REASONS } from '../../utils/reasons';
 
-export interface SharedCalendarStoreContext<TValue extends TemporalSupportedValue, TError> {
+export interface SharedCalendarStoreContext<TValue extends TemporalSupportedValue> {
   onValueChange?:
-    | ((value: TValue, eventDetails: CalendarValueChangeEventDetails<TError>) => void)
+    | ((value: TValue, eventDetails: CalendarValueChangeEventDetails) => void)
     | undefined;
   onVisibleDateChange?:
     | ((
@@ -31,16 +34,16 @@ export interface SharedCalendarStoreContext<TValue extends TemporalSupportedValu
 /**
  * Store managing the state of the Calendar and the Range Calendar components.
  */
-export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> extends ReactStore<
+export class SharedCalendarStore<TValue extends TemporalSupportedValue> extends ReactStore<
   State<TValue>,
-  SharedCalendarStoreContext<TValue, TError>
+  SharedCalendarStoreContext<TValue>
 > {
   private valueManager: ValueManager<TValue>;
 
   constructor(
-    parameters: SharedCalendarStoreParameters<TValue, TError>,
+    parameters: SharedCalendarStoreParameters<TValue>,
     adapter: TemporalAdapter,
-    manager: TemporalManager<TValue, TError, any>,
+    manager: TemporalManager<TValue>,
     valueManager: ValueManager<TValue>,
   ) {
     const value = parameters.value ?? parameters.defaultValue ?? manager.emptyValue;
@@ -56,7 +59,7 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
         adapter,
         granularity: 'day',
         timezone: parameters.timezone ?? 'default',
-        validationProps: { minDate: parameters.minDate, maxDate: parameters.maxDate },
+        validationProps: { min: parameters.min, max: parameters.max },
         externalReferenceDate: parameters.referenceDate ?? null,
         externalDate: initialReferenceDateFromValue,
       });
@@ -68,8 +71,8 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
         manager,
         timezoneProp: parameters.timezone,
         referenceDateProp: parameters.referenceDate ?? null,
-        minDate: parameters.minDate,
-        maxDate: parameters.maxDate,
+        min: parameters.min,
+        max: parameters.max,
         isDateUnavailable: parameters.isDateUnavailable,
         disabled: parameters.disabled ?? false,
         readOnly: parameters.readOnly ?? false,
@@ -194,8 +197,9 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
       event.currentTarget,
       {
         getValidationError: () =>
-          this.state.manager.getValidationError(
+          this.valueManager.getValidationError(
             newValueWithInputTimezone,
+            this.state.adapter,
             selectors.validationProps(this.state),
           ),
       },
@@ -227,7 +231,7 @@ export class SharedCalendarStore<TValue extends TemporalSupportedValue, TError> 
   }
 }
 
-export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedValue, TError>
+export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedValue>
   extends TemporalTimezoneProps, ValidateDateValidationProps {
   /**
    * The controlled value that should be selected.
@@ -245,7 +249,7 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
    * Has `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.
    */
   onValueChange?:
-    | ((value: TValue, eventDetails: CalendarValueChangeEventDetails<TError>) => void)
+    | ((value: TValue, eventDetails: CalendarValueChangeEventDetails) => void)
     | undefined;
   /**
    * Whether the component should ignore user interaction.
@@ -259,7 +263,7 @@ export interface SharedCalendarStoreParameters<TValue extends TemporalSupportedV
   readOnly?: boolean | undefined;
   /**
    * Whether the calendar is forcefully marked as invalid.
-   * A calendar can be invalid when the selected date fails validation (i.e., is outside of the allowed `minDate` and `maxDate` range).
+   * A calendar can be invalid when the selected date fails validation (i.e., is outside of the allowed `min` and `max` range).
    * @default false
    */
   invalid?: boolean | undefined;
@@ -320,6 +324,14 @@ export interface ValueManager<TValue extends TemporalSupportedValue> {
    * This is used to determine which date is being edited in the Range Calendar (start of end date).
    */
   getActiveDateFromValue: (value: TValue) => TemporalSupportedObject | null;
+  /**
+   * Returns the validation error associated to the given value.
+   */
+  getValidationError: (
+    value: TValue,
+    adapter: TemporalAdapter,
+    validationProps: ValidateDateValidationProps,
+  ) => ValidateDateReturnValue;
 }
 
 export interface OnSelectDateParameters<TValue extends TemporalSupportedValue> {
@@ -338,11 +350,11 @@ export interface OnSelectDateParameters<TValue extends TemporalSupportedValue> {
   referenceDate: TemporalSupportedObject;
 }
 
-export interface CalendarValueChangeHandlerContext<TError> {
+export interface CalendarValueChangeHandlerContext {
   /**
    * The validation error associated to the new value.
    */
-  getValidationError: () => TError;
+  getValidationError: () => ValidateDateReturnValue;
 }
 
 export type CalendarChangeEventReason =
@@ -351,9 +363,9 @@ export type CalendarChangeEventReason =
   | BaseUIEventReasons['dayPress']
   | BaseUIEventReasons['keyboard'];
 
-export type CalendarValueChangeEventDetails<TError> = BaseUIChangeEventDetails<
+export type CalendarValueChangeEventDetails = BaseUIChangeEventDetails<
   CalendarChangeEventReason,
-  CalendarValueChangeHandlerContext<TError>
+  CalendarValueChangeHandlerContext
 >;
 
 export type CalendarVisibleDateChangeEventDetails = BaseUIChangeEventDetails<

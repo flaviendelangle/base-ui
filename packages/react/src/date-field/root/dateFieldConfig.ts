@@ -35,14 +35,14 @@ export const dateFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
   stringifyValueForHiddenInput: formatDateForNativeInput,
   stringifyValidationPropsForHiddenInput: (adapter, validationProps) => {
     const result: HiddenInputValidationProps = {};
-    if (validationProps.minDate) {
-      const formatted = formatDateForNativeInput(adapter, validationProps.minDate);
+    if (validationProps.min) {
+      const formatted = formatDateForNativeInput(adapter, validationProps.min);
       if (formatted) {
         result.min = formatted;
       }
     }
-    if (validationProps.maxDate) {
-      const formatted = formatDateForNativeInput(adapter, validationProps.maxDate);
+    if (validationProps.max) {
+      const formatted = formatDateForNativeInput(adapter, validationProps.max);
       if (formatted) {
         result.max = formatted;
       }

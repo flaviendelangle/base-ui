@@ -11,10 +11,10 @@ function isDateUnavailable(date: Date) {
 }
 
 export default function CalendarUnavailableDates() {
-  const minDate = React.useMemo(() => addDays(new Date(), -8), []);
+  const min = React.useMemo(() => addDays(new Date(), -8), []);
 
   return (
-    <Calendar.Root className={styles.Root} minDate={minDate} isDateUnavailable={isDateUnavailable}>
+    <Calendar.Root className={styles.Root} min={min} isDateUnavailable={isDateUnavailable}>
       {({ visibleDate }) => (
         <React.Fragment>
           <header className={styles.Header}>

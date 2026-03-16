@@ -37,8 +37,8 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
     referenceDate,
     format,
     // Validation props
-    minDate,
-    maxDate,
+    min,
+    max,
     // Other props
     actionsRef,
     // Props forwarded to the DOM element
@@ -69,8 +69,8 @@ export const DateFieldRoot = React.forwardRef(function DateFieldRoot(
       value,
       timezone,
       referenceDate,
-      minDate,
-      maxDate,
+      min,
+      max,
     },
   });
 });

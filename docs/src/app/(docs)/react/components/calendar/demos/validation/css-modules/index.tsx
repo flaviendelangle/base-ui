@@ -11,8 +11,8 @@ const today = new Date();
 export default function MinMaxDateCalendars() {
   return (
     <div className={indexStyles.Wrapper}>
-      <ValidationCalendar minDate={today} />
-      <ValidationCalendar maxDate={today} />
+      <ValidationCalendar min={today} />
+      <ValidationCalendar max={today} />
     </div>
   );
 }

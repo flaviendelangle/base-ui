@@ -8,8 +8,8 @@ import { TimeField } from '@base-ui/react/time-field';
 import styles from './time-field-validation.module.css';
 
 const today = new Date();
-const minDate = set(today, { hours: 9, minutes: 0, seconds: 0 });
-const maxDate = set(today, { hours: 17, minutes: 30, seconds: 0 });
+const min = set(today, { hours: 9, minutes: 0, seconds: 0 });
+const max = set(today, { hours: 17, minutes: 30, seconds: 0 });
 
 export default function TimeFieldValidation() {
   return (
@@ -84,9 +84,9 @@ export default function TimeFieldValidation() {
           </div>
         </section>
 
-        {/* minDate validation */}
+        {/* min validation */}
         <section>
-          <h2>Min Time ({format(minDate, 'h:mm a')})</h2>
+          <h2>Min Time ({format(min, 'h:mm a')})</h2>
           <div className={styles.DemoList}>
             {/* Native form + label */}
             <form
@@ -100,13 +100,13 @@ export default function TimeFieldValidation() {
               <div className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Native</div>
                 <label className={styles.Label} htmlFor="time-min-native">
-                  Time (min: {format(minDate, 'h:mm a')})
+                  Time (min: {format(min, 'h:mm a')})
                 </label>
                 <TimeField.Root
                   id="time-min-native"
                   name="time-min-native"
                   className={styles.Root}
-                  minDate={minDate}
+                  min={min}
                 >
                   {(section) => (
                     <TimeField.Section
@@ -132,9 +132,9 @@ export default function TimeFieldValidation() {
               <Field.Root name="time-min-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Time (min: {format(minDate, 'h:mm a')})
+                  Time (min: {format(min, 'h:mm a')})
                 </Field.Label>
-                <TimeField.Root className={styles.Root} minDate={minDate}>
+                <TimeField.Root className={styles.Root} min={min}>
                   {(section) => (
                     <TimeField.Section
                       key={section.index}
@@ -144,7 +144,7 @@ export default function TimeFieldValidation() {
                   )}
                 </TimeField.Root>
                 <Field.Error match="rangeUnderflow" className={styles.Error}>
-                  Time must be on or after {format(minDate, 'h:mm a')}
+                  Time must be on or after {format(min, 'h:mm a')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>
@@ -154,9 +154,9 @@ export default function TimeFieldValidation() {
           </div>
         </section>
 
-        {/* maxDate validation */}
+        {/* max validation */}
         <section>
-          <h2>Max Time ({format(maxDate, 'h:mm a')})</h2>
+          <h2>Max Time ({format(max, 'h:mm a')})</h2>
           <div className={styles.DemoList}>
             {/* Native form + label */}
             <form
@@ -170,13 +170,13 @@ export default function TimeFieldValidation() {
               <div className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Native</div>
                 <label className={styles.Label} htmlFor="time-max-native">
-                  Time (max: {format(maxDate, 'h:mm a')})
+                  Time (max: {format(max, 'h:mm a')})
                 </label>
                 <TimeField.Root
                   id="time-max-native"
                   name="time-max-native"
                   className={styles.Root}
-                  maxDate={maxDate}
+                  max={max}
                 >
                   {(section) => (
                     <TimeField.Section
@@ -202,9 +202,9 @@ export default function TimeFieldValidation() {
               <Field.Root name="time-max-baseui" className={styles.DemoField}>
                 <div className={styles.SectionTitle}>Base UI</div>
                 <Field.Label className={styles.Label}>
-                  Time (max: {format(maxDate, 'h:mm a')})
+                  Time (max: {format(max, 'h:mm a')})
                 </Field.Label>
-                <TimeField.Root className={styles.Root} maxDate={maxDate}>
+                <TimeField.Root className={styles.Root} max={max}>
                   {(section) => (
                     <TimeField.Section
                       key={section.index}
@@ -214,7 +214,7 @@ export default function TimeFieldValidation() {
                   )}
                 </TimeField.Root>
                 <Field.Error match="rangeOverflow" className={styles.Error}>
-                  Time must be on or before {format(maxDate, 'h:mm a')}
+                  Time must be on or before {format(max, 'h:mm a')}
                 </Field.Error>
               </Field.Root>
               <button type="submit" className={styles.Button}>

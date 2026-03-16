@@ -42,8 +42,8 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
     ampm,
     step,
     // Validation props
-    minDate,
-    maxDate,
+    min,
+    max,
     // Other props
     actionsRef,
     // Props forwarded to the DOM element
@@ -74,8 +74,8 @@ export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
       value,
       timezone,
       referenceDate,
-      minDate,
-      maxDate,
+      min,
+      max,
     },
   });
 });
