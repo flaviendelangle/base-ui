@@ -99,5 +99,7 @@
   "99": "Base UI: Should not call `createToken` with an empty token",
   "100": "Base UI: Some token in the format is not supported by the Base UI components.\nPlease try using another token or open an issue on https://github.com/mui/base-ui/issues/new/choose if you think it should be supported.",
   "101": "Base UI: TemporalFieldRootContext is missing. Temporal Field parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />.",
-  "102": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />."
+  "102": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />.",
+  "103": "Base UI: LocalizationContext is missing. Temporal components must be placed within <LocalizationProvider />",
+  "104": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />."
 }
