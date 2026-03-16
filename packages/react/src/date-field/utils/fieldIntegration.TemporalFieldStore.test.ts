@@ -540,7 +540,10 @@ describe('TemporalFieldStore - Field Integration', () => {
       // onValueChange should be called
       expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
       // Value is passed as Date object
-      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+      if (
+        onValueChangeSpy.mock.calls.length > 0 &&
+        onValueChangeSpy.mock.calls.at(-1)!.length > 0
+      ) {
         expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0 as any]!)).toBe(true);
       }
 
@@ -577,7 +580,10 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
       // Value is passed as Date object
-      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+      if (
+        onValueChangeSpy.mock.calls.length > 0 &&
+        onValueChangeSpy.mock.calls.at(-1)!.length > 0
+      ) {
         expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0])).toBe(true);
       }
       expect(adapter.isValid(store.state.value)).toBe(true);
@@ -847,7 +853,10 @@ describe('TemporalFieldStore - Field Integration', () => {
 
       // onValueChange should have been called
       expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
-      if (onValueChangeSpy.mock.calls.length > 0 && onValueChangeSpy.mock.calls.at(-1)!.length > 0) {
+      if (
+        onValueChangeSpy.mock.calls.length > 0 &&
+        onValueChangeSpy.mock.calls.at(-1)!.length > 0
+      ) {
         expect(adapter.isValid(onValueChangeSpy.mock.calls.at(-1)![0])).toBe(true);
       }
     });

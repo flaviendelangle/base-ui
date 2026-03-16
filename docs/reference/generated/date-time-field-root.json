@@ -19,7 +19,7 @@
     },
     "onValueChange": {
       "type": "((value: TemporalValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)",
-      "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.\nHas `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.",
+      "description": "Event handler called when the selected value changes.\nProvides the new value as an argument.",
       "detailedType": "| ((\n    value: TemporalValue,\n    eventDetails: TemporalFieldValueChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "actionsRef": {

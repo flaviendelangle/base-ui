@@ -813,9 +813,9 @@ describe('FormatParser', () => {
               token.boundaries.adjustment.minimum,
             );
             // Verify the boundaries are actually restricted (not the full 1-7 range)
-            expect(
-              token.boundaries.adjustment.maximum - token.boundaries.adjustment.minimum,
-            ).toBe(2); // Wed-Thu-Fri = 3 days = range of 2
+            expect(token.boundaries.adjustment.maximum - token.boundaries.adjustment.minimum).toBe(
+              2,
+            ); // Wed-Thu-Fri = 3 days = range of 2
           }
         });
 

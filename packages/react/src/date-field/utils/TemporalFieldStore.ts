@@ -351,7 +351,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const fieldContext = this.state.fieldContext;
     if (fieldContext) {
       fieldContext.setFilled(
-        !this.state.manager.areValuesEqual(newValueWithInputTimezone, this.state.manager.emptyValue),
+        !this.state.manager.areValuesEqual(
+          newValueWithInputTimezone,
+          this.state.manager.emptyValue,
+        ),
       );
 
       // Set dirty state by comparing with initial value
@@ -407,10 +410,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
    * Clears the field value.
    * If the value is already empty, it clears the sections.
    */
-  public clear(
-    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
-    event?: Event,
-  ) {
+  public clear(reason: TemporalFieldValueChangeEventDetails['reason'] = 'none', event?: Event) {
     const manager = selectors.manager(this.state);
     const currentValue = selectors.value(this.state);
 
@@ -509,11 +509,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
    * If "shouldGoToNextSection" is true, moves the focus to the next section.
    */
   public updateDatePart(
-    {
-      sectionIndex,
-      newDatePartValue,
-      shouldGoToNextSection,
-    }: UpdateDatePartParameters,
+    { sectionIndex, newDatePartValue, shouldGoToNextSection }: UpdateDatePartParameters,
     reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
     event?: Event,
   ) {
@@ -572,7 +568,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         });
       }
 
-      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, mergedDate), reason, event);
+      return this.publish(
+        fieldConfig.updateDateInValue(currentValue, dp, mergedDate),
+        reason,
+        event,
+      );
     }
 
     /**
@@ -584,7 +584,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       (activeDate == null || adapter.isValid(activeDate))
     ) {
       this.setSectionUpdateToApplyOnNextInvalidDate(sectionIndex, newDatePartValue);
-      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, newActiveDate), reason, event);
+      return this.publish(
+        fieldConfig.updateDateInValue(currentValue, dp, newActiveDate),
+        reason,
+        event,
+      );
     }
 
     /**
@@ -659,7 +663,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     this.setCharacterQuery(null);
   }
 
-  public editSection(parameters: EditSectionParameters, reason: TemporalFieldValueChangeEventDetails['reason'] = 'none', event?: Event) {
+  public editSection(
+    parameters: EditSectionParameters,
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const { keyPressed, sectionIndex } = parameters;
     const localizedDigits = getLocalizedDigits(selectors.adapter(this.state));
     const response = isStringNumber(keyPressed, localizedDigits)
@@ -669,27 +677,39 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return;
     }
 
-    this.updateDatePart({
-      sectionIndex,
-      newDatePartValue: response.datePartValue,
-      shouldGoToNextSection: response.shouldGoToNextSection,
-    }, reason, event);
+    this.updateDatePart(
+      {
+        sectionIndex,
+        newDatePartValue: response.datePartValue,
+        shouldGoToNextSection: response.shouldGoToNextSection,
+      },
+      reason,
+      event,
+    );
   }
 
   /**
    * Adjusts the value of the active section based on the provided key code.
    * For example, pressing ArrowUp will increment the section's value.
    */
-  public adjustActiveDatePartValue(keyCode: AdjustDatePartValueKeyCode, sectionIndex: number, event?: Event) {
+  public adjustActiveDatePartValue(
+    keyCode: AdjustDatePartValueKeyCode,
+    sectionIndex: number,
+    event?: Event,
+  ) {
     if (!selectors.editable(this.state)) {
       return;
     }
 
-    this.updateDatePart({
-      sectionIndex,
-      newDatePartValue: this.getAdjustedDatePartValue(keyCode, sectionIndex),
-      shouldGoToNextSection: false,
-    }, 'keyboard', event);
+    this.updateDatePart(
+      {
+        sectionIndex,
+        newDatePartValue: this.getAdjustedDatePartValue(keyCode, sectionIndex),
+        shouldGoToNextSection: false,
+      },
+      'keyboard',
+      event,
+    );
   }
 
   public registerSection = (sectionElement: HTMLDivElement | null) => {
@@ -815,11 +835,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
       if (isValidPastedValue) {
         this.resetCharacterQuery();
-        this.updateDatePart({
-          sectionIndex,
-          newDatePartValue: pastedValue,
-          shouldGoToNextSection: true,
-        }, 'input-paste', event.nativeEvent);
+        this.updateDatePart(
+          {
+            sectionIndex,
+            newDatePartValue: pastedValue,
+            shouldGoToNextSection: true,
+          },
+          'input-paste',
+          event.nativeEvent,
+        );
       } else {
         this.resetCharacterQuery();
         this.updateFromString(pastedValue, 'input-paste', event.nativeEvent);
@@ -850,17 +874,25 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       else if (event.key === 'Delete') {
         event.preventDefault();
         if (selectors.editable(this.state)) {
-          this.updateDatePart({
-            sectionIndex,
-            newDatePartValue: '',
-            shouldGoToNextSection: false,
-          }, 'input-clear', event.nativeEvent);
+          this.updateDatePart(
+            {
+              sectionIndex,
+              newDatePartValue: '',
+              shouldGoToNextSection: false,
+            },
+            'input-clear',
+            event.nativeEvent,
+          );
         }
       }
       // Increment / decrement the current section value
       else if (TemporalFieldStore.adjustKeyCodes.has(event.key as AdjustDatePartValueKeyCode)) {
         event.preventDefault();
-        this.adjustActiveDatePartValue(event.key as AdjustDatePartValueKeyCode, sectionIndex, event.nativeEvent);
+        this.adjustActiveDatePartValue(
+          event.key as AdjustDatePartValueKeyCode,
+          sectionIndex,
+          event.nativeEvent,
+        );
       }
     },
 

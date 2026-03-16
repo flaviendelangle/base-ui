@@ -164,7 +164,12 @@ export function useTemporalFieldRoot(
   const element = useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, useFieldParams.controlRef],
-    props: [store.rootEventHandlers, { role: 'group', children: resolvedChildren }, getDescriptionProps, elementProps],
+    props: [
+      store.rootEventHandlers,
+      { role: 'group', children: resolvedChildren },
+      getDescriptionProps,
+      elementProps,
+    ],
   });
 
   return (

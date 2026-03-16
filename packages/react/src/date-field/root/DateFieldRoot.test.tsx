@@ -490,44 +490,50 @@ describe('<DateField /> - Field Integration', () => {
   });
 
   describe('onValueChange event details', () => {
-    it.skipIf(isJSDOM)('should provide "keyboard" reason when adjusting value with arrow keys', async () => {
-      const onValueChange = vi.fn();
-      await render(
-        <DateField
-          format={numericDateFormat}
-          defaultValue={adapter.date('2024-03-15', 'default')}
-          onValueChange={onValueChange}
-        />,
-      );
+    it.skipIf(isJSDOM)(
+      'should provide "keyboard" reason when adjusting value with arrow keys',
+      async () => {
+        const onValueChange = vi.fn();
+        await render(
+          <DateField
+            format={numericDateFormat}
+            defaultValue={adapter.date('2024-03-15', 'default')}
+            onValueChange={onValueChange}
+          />,
+        );
 
-      const sections = screen.getAllByRole('spinbutton');
-      await act(() => sections[0].focus());
-      fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
+        const sections = screen.getAllByRole('spinbutton');
+        await act(() => sections[0].focus());
+        fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
 
-      expect(onValueChange.mock.calls.length).toBeGreaterThan(0);
-      expect(onValueChange.mock.calls.at(-1)![1].reason).toBe('keyboard');
-    });
+        expect(onValueChange.mock.calls.length).toBeGreaterThan(0);
+        expect(onValueChange.mock.calls.at(-1)![1].reason).toBe('keyboard');
+      },
+    );
 
-    it.skipIf(isJSDOM)('should provide "clear-press" reason when clicking clear button', async () => {
-      const onValueChange = vi.fn();
-      await render(
-        <DateFieldBase.Root
-          format={numericDateFormat}
-          defaultValue={adapter.date('2024-03-15', 'default')}
-          onValueChange={onValueChange}
-          data-testid="input"
-        >
-          <DateFieldBase.SectionList>
-            {(section) => <DateFieldBase.Section key={section.index} section={section} />}
-          </DateFieldBase.SectionList>
-          <DateFieldBase.Clear data-testid="clear" />
-        </DateFieldBase.Root>,
-      );
+    it.skipIf(isJSDOM)(
+      'should provide "clear-press" reason when clicking clear button',
+      async () => {
+        const onValueChange = vi.fn();
+        await render(
+          <DateFieldBase.Root
+            format={numericDateFormat}
+            defaultValue={adapter.date('2024-03-15', 'default')}
+            onValueChange={onValueChange}
+            data-testid="input"
+          >
+            <DateFieldBase.SectionList>
+              {(section) => <DateFieldBase.Section key={section.index} section={section} />}
+            </DateFieldBase.SectionList>
+            <DateFieldBase.Clear data-testid="clear" />
+          </DateFieldBase.Root>,
+        );
 
-      fireEvent.click(screen.getByTestId('clear'));
+        fireEvent.click(screen.getByTestId('clear'));
 
-      expect(onValueChange.mock.calls.length).toBeGreaterThan(0);
-      expect(onValueChange.mock.calls.at(-1)![1].reason).toBe('clear-press');
-    });
+        expect(onValueChange.mock.calls.length).toBeGreaterThan(0);
+        expect(onValueChange.mock.calls.at(-1)![1].reason).toBe('clear-press');
+      },
+    );
   });
 });
