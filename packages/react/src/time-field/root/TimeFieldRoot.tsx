@@ -14,7 +14,7 @@ import {
  * Groups all parts of the time field.
  * Renders a `<div>` element and a hidden `<input>` beside.
  *
- * Documentation: [Base UI Time Field](https://base-ui.com/react/components/unstable-time-field)
+ * Documentation: [Base UI Time Field](https://base-ui.com/react/components/time-field)
  */
 export const TimeFieldRoot = React.forwardRef(function TimeFieldRoot(
   componentProps: TimeFieldRoot.Props,

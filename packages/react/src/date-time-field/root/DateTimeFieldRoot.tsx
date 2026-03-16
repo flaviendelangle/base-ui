@@ -18,7 +18,7 @@ import {
  * Groups all parts of the date-time field.
  * Renders a `<div>` element and a hidden `<input>` beside.
  *
- * Documentation: [Base UI Date Time Field](https://base-ui.com/react/components/unstable-date-time-field)
+ * Documentation: [Base UI Date Time Field](https://base-ui.com/react/components/date-time-field)
  */
 export const DateTimeFieldRoot = React.forwardRef(function DateTimeFieldRoot(
   componentProps: DateTimeFieldRoot.Props,
