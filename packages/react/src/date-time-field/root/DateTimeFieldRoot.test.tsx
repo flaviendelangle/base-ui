@@ -2,12 +2,19 @@ import { screen, fireEvent } from '@mui/internal-test-utils';
 import { DateTimeField as DateTimeFieldBase } from '@base-ui/react/date-time-field';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
-import { createRenderer, createTemporalRenderer } from '#test-utils';
+import { createRenderer } from '#test-utils';
+import {
+  describeTemporalFieldRoot,
+} from '../../date-field/utils/temporalFieldRoot.shared-tests';
+import {
+  dateTimeFieldDescriptor,
+  adapter,
+} from '../../date-field/utils/temporalField.test-descriptors';
 
-describe('<DateTimeField /> - Field Integration', () => {
+describeTemporalFieldRoot(dateTimeFieldDescriptor);
+
+describe('<DateTimeField /> - DateTimeField-specific', () => {
   const { render } = createRenderer();
-  const { adapter } = createTemporalRenderer();
-  const dateTimeFormat = `${adapter.formats.localizedNumericDate} ${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}`;
 
   function DateTimeField(props: DateTimeFieldBase.Root.Props) {
     return (
@@ -17,456 +24,8 @@ describe('<DateTimeField /> - Field Integration', () => {
     );
   }
 
-  describe('Field context integration', () => {
-    it('renders inside Field.Root without errors', async () => {
-      await render(
-        <Field.Root>
-          <DateTimeField format={dateTimeFormat} />
-        </Field.Root>,
-      );
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-    });
-
-    it('propagates name from Field context', async () => {
-      await render(
-        <form data-testid="form">
-          <Field.Root name="appointmentDateTime">
-            <DateTimeField format={dateTimeFormat} />
-          </Field.Root>
-        </form>,
-      );
-
-      const form = screen.getByTestId<HTMLFormElement>('form');
-      const hiddenInput = form.querySelector(
-        'input[name="appointmentDateTime"]',
-      ) as HTMLInputElement;
-
-      expect(hiddenInput).not.toBe(null);
-      expect(hiddenInput.name).toBe('appointmentDateTime');
-    });
-
-    it('Field context name takes precedence over local name prop', async () => {
-      await render(
-        <form data-testid="form">
-          <Field.Root name="fieldname">
-            <DateTimeField format={dateTimeFormat} name="localname" />
-          </Field.Root>
-        </form>,
-      );
-
-      const form = screen.getByTestId<HTMLFormElement>('form');
-      const hiddenInput = form.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-
-      expect(hiddenInput).not.toBe(null);
-      // Field context name takes precedence (like NumberField and Checkbox)
-      expect(hiddenInput.name).toBe('fieldname');
-    });
-
-    it('works without Field context (standalone mode)', async () => {
-      await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          name="standaloneField"
-          defaultValue={adapter.date('2024-03-20T09:45', 'default')}
-        />,
-      );
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-
-      // Assert the sections display the correct values
-      const sections = screen.getAllByRole('spinbutton');
-      // Should have date sections (month, day, year) + time sections (hours, minutes)
-      expect(sections.length).toBeGreaterThanOrEqual(5);
-
-      // Assert the hidden input has the correct name and value
-      const hiddenInput = document.querySelector(
-        'input[name="standaloneField"]',
-      ) as HTMLInputElement;
-      expect(hiddenInput).not.toBe(null);
-      expect(hiddenInput.name).toBe('standaloneField');
-      expect(hiddenInput.value).toBe('2024-03-20T09:45');
-    });
-  });
-
-  describe('Basic functionality', () => {
-    it('renders with defaultValue', async () => {
-      await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          defaultValue={adapter.date('2024-01-15T14:30', 'default')}
-        />,
-      );
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-
-      // Assert the sections display values
-      const sections = screen.getAllByRole('spinbutton');
-      expect(sections.length).toBeGreaterThanOrEqual(5); // date + time sections
-
-      // Assert the hidden input has the correct datetime-local format
-      const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.toBe(null);
-      expect(hiddenInput.value).toBe('2024-01-15T14:30');
-    });
-
-    it('renders with null value', async () => {
-      await render(<DateTimeField format={dateTimeFormat} value={null} />);
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-
-      // Assert the sections are empty (no aria-valuenow when empty)
-      const sections = screen.getAllByRole('spinbutton');
-      sections.forEach((section) => {
-        expect(section).not.toHaveAttribute('aria-valuenow');
-      });
-
-      // Assert the hidden input is empty
-      const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput).not.toBe(null);
-      expect(hiddenInput.value).toBe('');
-    });
-
-    it('renders disabled', async () => {
-      await render(<DateTimeField format={dateTimeFormat} disabled />);
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-
-      // Assert all sections are disabled
-      const sections = screen.getAllByRole('spinbutton');
-      sections.forEach((section) => {
-        expect(section).toHaveAttribute('aria-disabled', 'true');
-      });
-    });
-
-    it('renders readOnly', async () => {
-      await render(<DateTimeField format={dateTimeFormat} readOnly />);
-
-      const input = screen.getByTestId('input');
-      expect(input).not.toBe(null);
-
-      // Assert all sections are readonly
-      const sections = screen.getAllByRole('spinbutton');
-      sections.forEach((section) => {
-        expect(section).toHaveAttribute('aria-readonly', 'true');
-      });
-    });
-
-    it('forwards id prop to hidden input', async () => {
-      await render(<DateTimeField format={dateTimeFormat} id="custom-id" />);
-
-      const hiddenInput = document.querySelector('input[id="custom-id"]') as HTMLInputElement;
-      expect(hiddenInput).not.toBe(null);
-      expect(hiddenInput.id).toBe('custom-id');
-    });
-
-    it('forwards inputRef to hidden input', async () => {
-      const inputRef = { current: null as HTMLInputElement | null };
-
-      await render(<DateTimeField format={dateTimeFormat} inputRef={inputRef} />);
-
-      expect(inputRef.current).not.toBe(null);
-      expect(inputRef.current).toBeInstanceOf(HTMLInputElement);
-    });
-  });
-
-  describe('Component rendering with various formats', () => {
-    it('should render with 24-hour format', async () => {
-      await render(<DateTimeField format={dateTimeFormat} />);
-
-      const sections = screen.getAllByRole('spinbutton');
-      // Should have date sections (month, day, year) + time sections (hours, minutes)
-      expect(sections.length).toBeGreaterThanOrEqual(5);
-
-      // Verify sections are editable (not disabled/readonly)
-      sections.forEach((section) => {
-        expect(section).not.toHaveAttribute('aria-disabled', 'true');
-        expect(section).not.toHaveAttribute('aria-readonly', 'true');
-      });
-    });
-
-    it('should render with 12-hour format with meridiem', async () => {
-      const dateTime12Format = `${adapter.formats.localizedNumericDate} ${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
-      await render(<DateTimeField format={dateTime12Format} />);
-
-      const sections = screen.getAllByRole('spinbutton');
-      // Should include meridiem section
-      const meridiemSection = sections.find((s) => s.getAttribute('aria-label') === 'Meridiem');
-      expect(meridiemSection).not.toBe(undefined);
-    });
-  });
-
-  describe('Form submission', () => {
-    it('submits the value in datetime-local format via onFormSubmit', async () => {
-      const handleSubmit = vi.fn();
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="appointmentDateTime">
-            <DateTimeField
-              format={dateTimeFormat}
-              defaultValue={adapter.date('2024-03-20T09:30', 'default')}
-            />
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(1);
-      expect(handleSubmit.mock.calls[0][0].appointmentDateTime).toBe('2024-03-20T09:30');
-    });
-
-    it('submits empty string when value is null', async () => {
-      const handleSubmit = vi.fn();
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="appointmentDateTime">
-            <DateTimeField format={dateTimeFormat} defaultValue={null} />
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(1);
-      expect(handleSubmit.mock.calls[0][0].appointmentDateTime).toBe('');
-    });
-
-    it('validates with rangeUnderflow when date is before min', async () => {
-      const handleSubmit = vi.fn();
-      const min = adapter.date('2024-03-20', 'default');
-
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField
-              format={dateTimeFormat}
-              defaultValue={adapter.date('2024-03-15T10:00', 'default')}
-              min={min}
-            />
-            <Field.Error match="rangeUnderflow" data-testid="error">
-              Date is too early
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(0);
-      expect(screen.getByTestId('error')).toHaveTextContent('Date is too early');
-    });
-
-    it('validates with rangeOverflow when date is after max', async () => {
-      const handleSubmit = vi.fn();
-      const max = adapter.date('2024-03-20', 'default');
-
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField
-              format={dateTimeFormat}
-              defaultValue={adapter.date('2024-03-25T10:00', 'default')}
-              max={max}
-            />
-            <Field.Error match="rangeOverflow" data-testid="error">
-              Date is too late
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(0);
-      expect(screen.getByTestId('error')).toHaveTextContent('Date is too late');
-    });
-
-    it('validates with rangeUnderflow when datetime is before min (same date, earlier time)', async () => {
-      const handleSubmit = vi.fn();
-      const min = adapter.date('2024-03-20T09:00', 'default');
-
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField
-              format={dateTimeFormat}
-              defaultValue={adapter.date('2024-03-20T08:30', 'default')}
-              min={min}
-            />
-            <Field.Error match="rangeUnderflow" data-testid="error">
-              DateTime is too early
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(0);
-      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too early');
-    });
-
-    it('validates with rangeOverflow when datetime is after max (same date, later time)', async () => {
-      const handleSubmit = vi.fn();
-      const max = adapter.date('2024-03-20T17:00', 'default');
-
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField
-              format={dateTimeFormat}
-              defaultValue={adapter.date('2024-03-20T18:30', 'default')}
-              max={max}
-            />
-            <Field.Error match="rangeOverflow" data-testid="error">
-              DateTime is too late
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(0);
-      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too late');
-    });
-  });
-
-  describe('Controlled value updates', () => {
-    it('should update displayed sections when value prop changes', async () => {
-      const { setProps } = await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          value={adapter.date('2024-01-15T09:30', 'default')}
-        />,
-      );
-
-      let sections = screen.getAllByRole('spinbutton');
-      const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-      const minutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
-      expect(hoursSection).toHaveAttribute('aria-valuenow', '9');
-      expect(minutesSection).toHaveAttribute('aria-valuenow', '30');
-
-      await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
-
-      sections = screen.getAllByRole('spinbutton');
-      const newHoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours');
-      const newMinutesSection = sections.find((s) => s.getAttribute('aria-label') === 'Minutes');
-      expect(newHoursSection).toHaveAttribute('aria-valuenow', '14');
-      expect(newMinutesSection).toHaveAttribute('aria-valuenow', '45');
-    });
-
-    it('should update hidden input when value prop changes', async () => {
-      const { setProps } = await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          value={adapter.date('2024-01-15T09:30', 'default')}
-        />,
-      );
-
-      let hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).toBe('2024-01-15T09:30');
-
-      await setProps({ value: adapter.date('2024-01-15T14:45', 'default') });
-
-      hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.value).toBe('2024-01-15T14:45');
-    });
-  });
-
-  describe('Form validation - required', () => {
-    it('should show valueMissing error when required and empty', async () => {
-      const handleSubmit = vi.fn();
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField format={dateTimeFormat} required />
-            <Field.Error match="valueMissing" data-testid="error">
-              Date and time is required
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(0);
-      expect(screen.getByTestId('error')).toHaveTextContent('Date and time is required');
-    });
-
-    it('should not show valueMissing error when required and filled', async () => {
-      const handleSubmit = vi.fn();
-      await render(
-        <Form onFormSubmit={handleSubmit}>
-          <Field.Root name="datetime">
-            <DateTimeField
-              format={dateTimeFormat}
-              required
-              defaultValue={adapter.date('2024-03-15T14:30', 'default')}
-            />
-            <Field.Error match="valueMissing" data-testid="error">
-              Date and time is required
-            </Field.Error>
-          </Field.Root>
-          <button type="submit">Submit</button>
-        </Form>,
-      );
-
-      fireEvent.click(screen.getByText('Submit'));
-
-      expect(handleSubmit.mock.calls.length).toBe(1);
-      expect(screen.queryByTestId('error')).toBe(null);
-    });
-  });
-
-  describe('Hidden input attributes', () => {
-    it('should set type="datetime-local" on hidden input', async () => {
-      await render(<DateTimeField format={dateTimeFormat} />);
-
-      const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.type).toBe('datetime-local');
-    });
-
-    it('should set min attribute when min is provided', async () => {
-      await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          min={adapter.date('2024-01-01T09:00', 'default')}
-        />,
-      );
-
-      const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.min).toBe('2024-01-01T09:00:00');
-    });
-
-    it('should set max attribute when max is provided', async () => {
-      await render(
-        <DateTimeField
-          format={dateTimeFormat}
-          max={adapter.date('2024-12-31T17:00', 'default')}
-        />,
-      );
-
-      const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
-      expect(hiddenInput.max).toBe('2024-12-31T17:00:00');
-    });
-  });
-
   describe('12-hour format with meridiem', () => {
-    const dateTime12Format = `${adapter.formats.localizedNumericDate} ${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
+    const dateTime12Format = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded} ${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
 
     it('should render with meridiem section', async () => {
       await render(
@@ -510,7 +69,7 @@ describe('<DateTimeField /> - Field Integration', () => {
 
   describe('Seconds format', () => {
     it('should render hours, minutes, and seconds when format includes seconds', async () => {
-      const dateTimeWithSecondsFormat = `${adapter.formats.localizedNumericDate} ${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}:${adapter.formats.secondsPadded}`;
+      const dateTimeWithSecondsFormat = `${adapter.formats.monthPadded}/${adapter.formats.dayOfMonthPadded}/${adapter.formats.yearPadded} ${adapter.formats.hours24hPadded}:${adapter.formats.minutesPadded}:${adapter.formats.secondsPadded}`;
       await render(
         <DateTimeField
           format={dateTimeWithSecondsFormat}
@@ -521,6 +80,60 @@ describe('<DateTimeField /> - Field Integration', () => {
       const sections = screen.getAllByRole('spinbutton');
       const secondsSection = sections.find((s) => s.getAttribute('aria-label') === 'Seconds');
       expect(secondsSection).not.toBe(undefined);
+    });
+  });
+
+  describe('DateTime-specific validation', () => {
+    it('validates with rangeUnderflow when datetime is before min (same date, earlier time)', async () => {
+      const handleSubmit = vi.fn();
+      const min = adapter.date('2024-03-20T09:00', 'default');
+
+      await render(
+        <Form onFormSubmit={handleSubmit}>
+          <Field.Root name="datetime">
+            <DateTimeField
+              format={dateTimeFieldDescriptor.defaultFormat}
+              defaultValue={adapter.date('2024-03-20T08:30', 'default')}
+              min={min}
+            />
+            <Field.Error match="rangeUnderflow" data-testid="error">
+              DateTime is too early
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">Submit</button>
+        </Form>,
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too early');
+    });
+
+    it('validates with rangeOverflow when datetime is after max (same date, later time)', async () => {
+      const handleSubmit = vi.fn();
+      const max = adapter.date('2024-03-20T17:00', 'default');
+
+      await render(
+        <Form onFormSubmit={handleSubmit}>
+          <Field.Root name="datetime">
+            <DateTimeField
+              format={dateTimeFieldDescriptor.defaultFormat}
+              defaultValue={adapter.date('2024-03-20T18:30', 'default')}
+              max={max}
+            />
+            <Field.Error match="rangeOverflow" data-testid="error">
+              DateTime is too late
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">Submit</button>
+        </Form>,
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      expect(handleSubmit.mock.calls.length).toBe(0);
+      expect(screen.getByTestId('error')).toHaveTextContent('DateTime is too late');
     });
   });
 });

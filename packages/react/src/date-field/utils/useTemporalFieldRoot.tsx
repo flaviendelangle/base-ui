@@ -8,6 +8,7 @@ import { useTranslations } from '../../localization-provider/LocalizationContext
 import { useRenderElement } from '../../utils/useRenderElement';
 import { useDirection } from '../../direction-provider';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
+import { useFormContext } from '../../form/FormContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useAriaLabelledBy } from '../../labelable-provider/useAriaLabelledBy';
@@ -90,6 +91,7 @@ export function useTemporalFieldRoot(
   } = props;
 
   const fieldContext = useFieldRootContext();
+  const { clearErrors } = useFormContext();
   const adapter = useTemporalAdapter();
   const translations = useTranslations();
   const direction = useDirection();
@@ -115,6 +117,7 @@ export function useTemporalFieldRoot(
           name,
           id,
           fieldContext,
+          clearErrors,
           adapter,
           translations,
           direction,
@@ -144,6 +147,7 @@ export function useTemporalFieldRoot(
     timezoneProp: timezone,
     step,
     fieldContext: fieldContext ?? null,
+    clearErrors,
   });
 
   store.useControlledProp('valueProp', value);

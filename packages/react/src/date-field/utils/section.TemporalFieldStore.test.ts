@@ -456,71 +456,6 @@ describe('TemporalFieldStore - Section', () => {
     });
   });
 
-  describe('leap year support', () => {
-    it('should allow entering February 29th for leap year', () => {
-      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
-
-      // Enter 02/29/2024 (2024 is a leap year)
-      store.selectClosestDatePart(0); // month
-      store.updateDatePart({
-        sectionIndex: 0,
-        newDatePartValue: '02',
-        shouldGoToNextSection: false,
-      });
-
-      store.selectClosestDatePart(2); // day
-      store.updateDatePart({
-        sectionIndex: 2,
-        newDatePartValue: '29',
-        shouldGoToNextSection: false,
-      });
-
-      store.selectClosestDatePart(4); // year
-      store.updateDatePart({
-        sectionIndex: 4,
-        newDatePartValue: '2024',
-        shouldGoToNextSection: false,
-      });
-
-      const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).toBe(true);
-      expect(adapter.getMonth(value!)).toBe(1); // February = month 1
-      expect(adapter.getDate(value!)).toBe(29);
-      expect(adapter.getYear(value!)).toBe(2024);
-    });
-
-    it('should allow updating from non-leap year to leap year February 29th', () => {
-      const store = new TemporalFieldStore(
-        {
-          ...DEFAULT_PARAMETERS,
-          defaultValue: adapter.date('2023-02-28', 'default'), // 2023 is not a leap year
-        },
-        dateFieldConfig,
-      );
-
-      // Update year to 2024 (leap year)
-      store.selectClosestDatePart(4);
-      store.updateDatePart({
-        sectionIndex: 4,
-        newDatePartValue: '2024',
-        shouldGoToNextSection: false,
-      });
-
-      // Update day to 29
-      store.selectClosestDatePart(2);
-      store.updateDatePart({
-        sectionIndex: 2,
-        newDatePartValue: '29',
-        shouldGoToNextSection: false,
-      });
-
-      const value = selectors.value(store.state);
-      expect(adapter.isValid(value)).toBe(true);
-      expect(adapter.getDate(value!)).toBe(29);
-      expect(adapter.getYear(value!)).toBe(2024);
-    });
-  });
-
   describe('year format support', () => {
     it('should support 4-digit year format', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
@@ -728,6 +663,169 @@ describe('TemporalFieldStore - Section', () => {
 
       const yearPart = selectors.datePart(store.state, 4);
       expect(yearPart!.value).toBe('');
+    });
+  });
+
+  describe('E2E editing scenarios', () => {
+    it('should handle complete date entry in MM/DD/YYYY format', () => {
+      const onValueChangeSpy = vi.fn();
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, onValueChange: onValueChangeSpy },
+        dateFieldConfig,
+      );
+
+      expect(store.state.value).toBe(null);
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '03', shouldGoToNextSection: true });
+      store.selectClosestDatePart(2);
+      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '15', shouldGoToNextSection: true });
+      store.selectClosestDatePart(4);
+      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2);
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
+    });
+
+    it('should handle complete date entry with letter month (MMM DD, YYYY)', () => {
+      const monthNameFormat = `${adapter.formats.month3Letters} ${adapter.formats.dayOfMonthPadded}, ${adapter.formats.yearPadded}`;
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, format: monthNameFormat },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: 'Feb', shouldGoToNextSection: true });
+      store.selectClosestDatePart(2);
+      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '14', shouldGoToNextSection: true });
+      store.selectClosestDatePart(4);
+      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(1);
+      expect(adapter.getDate(value!)).toBe(14);
+      expect(adapter.getYear(value!)).toBe(2024);
+    });
+
+    it('should handle complete time entry in 24-hour format (HH:mm)', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, format: time24Format },
+        timeFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '14', shouldGoToNextSection: true });
+      store.selectClosestDatePart(2);
+      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '30', shouldGoToNextSection: false });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
+    });
+
+    it('should handle complete time entry in 12-hour format with meridiem', () => {
+      const time12Format = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, format: time12Format },
+        timeFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: true });
+      store.selectClosestDatePart(2);
+      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '30', shouldGoToNextSection: true });
+      store.selectClosestDatePart(4);
+      store.updateDatePart({ sectionIndex: 4, newDatePartValue: 'PM', shouldGoToNextSection: false });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getHours(value!)).toBe(14);
+      expect(adapter.getMinutes(value!)).toBe(30);
+    });
+
+    it('should handle complete date entry in DD/MM/YYYY format', () => {
+      const europeanDateFormat = `${adapter.formats.dayOfMonthPadded}/${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, format: europeanDateFormat },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '25', shouldGoToNextSection: true });
+      store.selectClosestDatePart(2);
+      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '12', shouldGoToNextSection: true });
+      store.selectClosestDatePart(4);
+      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getDate(value!)).toBe(25);
+      expect(adapter.getMonth(value!)).toBe(11);
+      expect(adapter.getYear(value!)).toBe(2024);
+    });
+
+    it('should handle pasting complete date string', () => {
+      const onValueChangeSpy = vi.fn();
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, onValueChange: onValueChangeSpy },
+        dateFieldConfig,
+      );
+
+      store.updateFromString('03/15/2024');
+
+      const value = store.state.value;
+      expect(adapter.isValid(value)).toBe(true);
+      expect(adapter.getMonth(value!)).toBe(2);
+      expect(adapter.getDate(value!)).toBe(15);
+      expect(adapter.getYear(value!)).toBe(2024);
+      expect(onValueChangeSpy.mock.calls.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('simultaneous format and value changes', () => {
+    const europeanDateFormat = `${adapter.formats.dayOfMonthPadded}/${adapter.formats.monthPadded}/${adapter.formats.yearPadded}`;
+
+    it('should clear sectionToUpdateOnNextInvalidDate when format changes', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, defaultValue: adapter.date('2024-01-30', 'default') },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: false });
+
+      expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
+
+      store.update({ rawFormat: europeanDateFormat });
+
+      expect((store as any).sectionToUpdateOnNextInvalidDate).toBe(null);
+    });
+
+    it('should not corrupt sections when format and value change simultaneously with a pending invalid date', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, value: adapter.date('2024-01-30', 'default') },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(0);
+      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: false });
+
+      expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
+
+      const newValue = adapter.date('2024-06-15', 'default');
+      store.update({ rawFormat: europeanDateFormat });
+      store.set('valueProp', newValue);
+
+      const sections = store.state.sections.filter((s) => s.type === 'datePart');
+      expect(sections[0].value).toBe('15');
+      expect(sections[1].value).toBe('06');
+      expect(sections[2].value).toBe('2024');
     });
   });
 });

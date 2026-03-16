@@ -109,6 +109,11 @@ export interface TemporalFieldStoreParameters<TValue extends TemporalSupportedVa
    * @default enUS
    */
   translations: BaseUITranslations | undefined;
+  /**
+   * Callback to clear form-level errors for this field.
+   * Provided by Form context.
+   */
+  clearErrors: (name: string | undefined) => void;
 }
 
 export interface TemporalFieldState<TValue extends TemporalSupportedValue = any> {
@@ -224,6 +229,11 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    * Translations for component labels.
    */
   translations: BaseUITranslations;
+  /**
+   * Callback to clear form-level errors for this field.
+   * Provided by Form context when the field is used inside a Form component.
+   */
+  clearErrors: (name: string | undefined) => void;
 }
 
 export interface TemporalFieldCharacterEditingQuery {

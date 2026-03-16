@@ -200,6 +200,8 @@ export const selectors = {
     editableSelector,
     disabledSelector,
     readOnlySelector,
+    invalidSelector,
+    requiredSelector,
     timezoneToRenderSelector,
     translationsSelector,
     (
@@ -207,6 +209,8 @@ export const selectors = {
       editable,
       disabled,
       readOnly,
+      invalid,
+      required,
       timezone,
       translations,
       section: TemporalFieldSection,
@@ -216,6 +220,8 @@ export const selectors = {
         return {
           // Aria attributes
           'aria-readonly': readOnly,
+          'aria-invalid': invalid || undefined,
+          'aria-required': required || undefined,
           'aria-valuenow': getAriaValueNow(adapter, section),
           'aria-valuemin': section.token.boundaries.characterEditing.minimum,
           'aria-valuemax': section.token.boundaries.characterEditing.maximum,

@@ -1,3 +1,4 @@
+import { NOOP } from '../../utils/noop';
 import { TemporalAdapter, TemporalValue } from '../../types/temporal';
 import { TemporalFieldStoreParameters } from './types';
 
@@ -21,6 +22,7 @@ export function createDefaultStoreParameters(
     max: undefined,
     timezone: undefined,
     fieldContext: null,
+    clearErrors: NOOP,
     adapter,
     direction: 'ltr',
     translations: undefined,
