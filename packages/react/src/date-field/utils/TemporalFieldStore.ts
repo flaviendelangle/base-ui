@@ -135,6 +135,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       adapter,
       validationProps,
       granularity: parsedFormat.granularity,
+      dateType: manager.dateType,
       timezone: getTimezoneToRender(
         adapter,
         manager,

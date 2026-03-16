@@ -11,6 +11,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: adapter.date('2025-03-15', 'default'),
         externalReferenceDate: null,
         validationProps: {},
@@ -24,6 +25,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: adapter.date('2025-03-15', 'default'),
         externalReferenceDate: adapter.date('2025-04-20', 'default'),
         validationProps: {},
@@ -37,6 +39,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: adapter.date('2025-01-15', 'default'),
         externalReferenceDate: null,
         validationProps: {
@@ -56,6 +59,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: adapter.date('2025-04-20', 'default'),
         validationProps: {},
@@ -69,6 +73,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: adapter.date('2025-01-15', 'default'),
         validationProps: {
@@ -90,6 +95,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -106,6 +112,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: { min: adapter.date('2025-02-01', 'default') },
@@ -122,6 +129,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: { max: adapter.date('2025-06-30', 'default') },
@@ -138,6 +146,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {
@@ -157,6 +166,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'UTC',
         granularity: 'day',
+        dateType: 'date',
         externalDate: adapter.date('2025-03-15', 'default'),
         externalReferenceDate: null,
         validationProps: {},
@@ -170,6 +180,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'UTC',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: adapter.date('2025-04-20', 'default'),
         validationProps: {},
@@ -185,6 +196,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'UTC',
         granularity: 'day',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -201,6 +213,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: new Date('invalid'),
         externalReferenceDate: adapter.date('2025-04-20', 'default'),
         validationProps: {},
@@ -216,6 +229,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'day',
+        dateType: 'date',
         externalDate: new Date('invalid'),
         externalReferenceDate: new Date('also-invalid'),
         validationProps: {},
@@ -234,6 +248,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'hours',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -250,6 +265,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'minutes',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -266,6 +282,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'seconds',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -282,6 +299,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'month',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -298,6 +316,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'year',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: {},
@@ -314,6 +333,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'hours',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: { min: adapter.date('2025-02-01T10:45:00.000', 'default') },
@@ -330,6 +350,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'hours',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: null,
         validationProps: { max: adapter.date('2025-06-30T16:45:00.000', 'default') },
@@ -344,6 +365,7 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'hours',
+        dateType: 'date',
         externalDate: adapter.date('2025-03-15T14:35:42.000', 'default'),
         externalReferenceDate: null,
         validationProps: {},
@@ -357,12 +379,166 @@ describe('getInitialReferenceDate', () => {
         adapter,
         timezone: 'default',
         granularity: 'hours',
+        dateType: 'date',
         externalDate: null,
         externalReferenceDate: adapter.date('2025-04-20T09:22:33.000', 'default'),
         validationProps: {},
       });
 
       expect(result).toEqualDateTime('2025-04-20T09:22:33.000');
+    });
+  });
+
+  describe('dateType: time (compares time-of-day only)', () => {
+    it('should clamp to min time when current time is before min time', () => {
+      vi.setSystemTime(new Date('2025-06-15T08:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { min: adapter.date('2025-01-01T10:00:00.000', 'UTC') },
+      });
+
+      // Time should be clamped to 10:00, date stays as now
+      expect(adapter.getHours(result)).toBe(10);
+      expect(adapter.getMinutes(result)).toBe(0);
+      vi.useRealTimers();
+    });
+
+    it('should clamp to max time when current time is after max time', () => {
+      vi.setSystemTime(new Date('2025-06-15T18:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { max: adapter.date('2025-01-01T16:00:00.000', 'UTC') },
+      });
+
+      // Time should be clamped to 16:00, date stays as now
+      expect(adapter.getHours(result)).toBe(16);
+      expect(adapter.getMinutes(result)).toBe(0);
+      vi.useRealTimers();
+    });
+
+    it('should not clamp when current time is within bounds (ignoring date)', () => {
+      vi.setSystemTime(new Date('2025-06-15T12:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: {
+          min: adapter.date('2030-01-01T10:00:00.000', 'UTC'),
+          max: adapter.date('2020-01-01T14:00:00.000', 'UTC'),
+        },
+      });
+
+      // 12:00 is between 10:00 and 14:00 — date portions of min/max are irrelevant
+      expect(adapter.getHours(result)).toBe(12);
+      expect(adapter.getMinutes(result)).toBe(0);
+      vi.useRealTimers();
+    });
+  });
+
+  describe('dateType: date-time (compares full timestamp)', () => {
+    it('should not adjust when now is after min on a later day even if time-of-day is earlier', () => {
+      // The bug case: min=Jan5@14:00, now=Jan6@10:00
+      // now is AFTER min (Jan 6 > Jan 5), so no adjustment needed
+      vi.setSystemTime(new Date('2025-01-06T10:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'date-time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { min: adapter.date('2025-01-05T14:00:00.000', 'UTC') },
+      });
+
+      expect(result).toEqualDateTime('2025-01-06T10:00:00.000');
+      vi.useRealTimers();
+    });
+
+    it('should not adjust when now is before max on an earlier day even if time-of-day is later', () => {
+      // Symmetric case: max=Jan5@10:00, now=Jan4@14:00
+      // now is BEFORE max (Jan 4 < Jan 5), so no adjustment needed
+      vi.setSystemTime(new Date('2025-01-04T14:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'date-time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { max: adapter.date('2025-01-05T10:00:00.000', 'UTC') },
+      });
+
+      expect(result).toEqualDateTime('2025-01-04T14:00:00.000');
+      vi.useRealTimers();
+    });
+
+    it('should clamp to min when now is fully before min', () => {
+      vi.setSystemTime(new Date('2025-01-04T08:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'date-time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { min: adapter.date('2025-01-05T14:00:00.000', 'UTC') },
+      });
+
+      expect(result).toEqualDateTime('2025-01-05T14:00:00.000');
+      vi.useRealTimers();
+    });
+
+    it('should clamp to max when now is fully after max', () => {
+      vi.setSystemTime(new Date('2025-01-06T18:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'date-time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { max: adapter.date('2025-01-05T10:00:00.000', 'UTC') },
+      });
+
+      expect(result).toEqualDateTime('2025-01-05T10:00:00.000');
+      vi.useRealTimers();
+    });
+
+    it('should clamp to min when now is on the same day but before min time', () => {
+      vi.setSystemTime(new Date('2025-01-05T08:00:00.000Z'));
+
+      const result = getInitialReferenceDate({
+        adapter,
+        timezone: 'UTC',
+        granularity: 'minutes',
+        dateType: 'date-time',
+        externalDate: null,
+        externalReferenceDate: null,
+        validationProps: { min: adapter.date('2025-01-05T14:00:00.000', 'UTC') },
+      });
+
+      expect(result).toEqualDateTime('2025-01-05T14:00:00.000');
+      vi.useRealTimers();
     });
   });
 });

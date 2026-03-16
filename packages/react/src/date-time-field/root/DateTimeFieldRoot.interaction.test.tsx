@@ -167,6 +167,53 @@ describe('<DateTimeField /> - DOM Interactions', () => {
     });
   });
 
+  describe('ArrowLeft / ArrowRight (section navigation)', () => {
+    it('should navigate across all sections with ArrowRight', async () => {
+      await render(
+        <DateTimeField
+          format={dateTimeFormat}
+          defaultValue={adapter.date('2024-03-15T14:30', 'default')}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      // Focus on first section (month)
+      fireEvent.focus(sections[0]);
+
+      // Navigate right through all sections and verify each is selected
+      // by pressing ArrowUp and checking the value changes
+      for (let i = 0; i < sections.length - 1; i++) {
+        fireEvent.keyDown(sections[i], { key: 'ArrowRight' });
+      }
+
+      // Should be on the last section (minutes) — verify by incrementing
+      const lastSection = sections[sections.length - 1];
+      fireEvent.keyDown(lastSection, { key: 'ArrowUp' });
+      expect(lastSection).toHaveAttribute('aria-valuenow', '31'); // minutes: 30 -> 31
+    });
+
+    it('should navigate from time section back to date section with ArrowLeft', async () => {
+      await render(
+        <DateTimeField
+          format={dateTimeFormat}
+          defaultValue={adapter.date('2024-03-15T14:30', 'default')}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      const hoursSection = sections.find((s) => s.getAttribute('aria-label') === 'Hours')!;
+      const yearSection = sections.find((s) => s.getAttribute('aria-label') === 'Year')!;
+
+      // Focus on hours section and navigate left to year
+      fireEvent.focus(hoursSection);
+      fireEvent.keyDown(hoursSection, { key: 'ArrowLeft' });
+
+      // Verify year section is now active by incrementing
+      fireEvent.keyDown(yearSection, { key: 'ArrowUp' });
+      expect(yearSection).toHaveAttribute('aria-valuenow', '2025'); // year: 2024 -> 2025
+    });
+  });
+
   describe('Section display', () => {
     it('should display placeholder text when section is empty', async () => {
       await render(<DateTimeField format={dateTimeFormat} />);

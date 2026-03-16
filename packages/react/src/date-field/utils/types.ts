@@ -12,7 +12,7 @@ import {
 } from '../../types/temporal';
 import type { BaseUITranslations } from '../../translations/types';
 import { GetInitialReferenceDateValidationProps } from '../../utils/temporal/getInitialReferenceDate';
-import { TemporalManager } from '../../utils/temporal/types';
+import { TemporalManager, TemporalDateType } from '../../utils/temporal/types';
 
 /**
  * Parameters for constructing a TemporalFieldStore.
@@ -397,6 +397,7 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
     adapter: TemporalAdapter;
     granularity: TemporalFieldDatePartType;
     timezone: TemporalTimezone;
+    dateType: TemporalDateType;
   }) => TemporalNonNullableValue<TValue>;
   /**
    * Clears all the sections representing the same date as the given section.

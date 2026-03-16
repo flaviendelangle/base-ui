@@ -73,6 +73,54 @@ describe('Temporal field translations', () => {
       const sections = screen.getAllByRole('spinbutton');
       expect(sections[0]).toHaveAttribute('aria-valuetext', 'Empty');
     });
+
+    it('should render Seconds section with English aria-label', async () => {
+      const formatWithSeconds = `${time24Format}:${adapter.formats.secondsPadded}`;
+      await render(<TimeField format={formatWithSeconds} />);
+
+      const sections = screen.getAllByRole('spinbutton');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Seconds');
+    });
+
+    it('should render Meridiem section with English aria-label', async () => {
+      const ampmFormat = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
+      await render(<TimeField format={ampmFormat} />);
+
+      const sections = screen.getAllByRole('spinbutton');
+      const meridiemSection = sections.find((s) => s.getAttribute('aria-label') === 'Meridiem');
+      expect(meridiemSection).not.toBe(undefined);
+    });
+
+    it('should render placeholder text for empty date sections', async () => {
+      await render(<DateField format={numericDateFormat} />);
+
+      const sections = screen.getAllByRole('spinbutton');
+      expect(sections[0].textContent).toBe('MM'); // month placeholder
+      expect(sections[1].textContent).toBe('DD'); // day placeholder
+      expect(sections[2].textContent).toBe('YYYY'); // year placeholder
+    });
+
+    it('should render placeholder text for empty time sections', async () => {
+      await render(<TimeField format={time24Format} />);
+
+      const sections = screen.getAllByRole('spinbutton');
+      expect(sections[0].textContent).toBe('--'); // hours placeholder
+      expect(sections[1].textContent).toBe('--'); // minutes placeholder
+    });
+
+    it('should render Clear button with English aria-label', async () => {
+      await render(
+        <DateFieldBase.Root format={numericDateFormat} defaultValue={adapter.date('2024-03-15', 'default')}>
+          <DateFieldBase.SectionList>
+            {(section) => <DateFieldBase.Section key={section.index} section={section} />}
+          </DateFieldBase.SectionList>
+          <DateFieldBase.Clear />
+        </DateFieldBase.Root>,
+      );
+
+      const clearButton = screen.getByRole('button');
+      expect(clearButton).toHaveAttribute('aria-label', 'Clear value');
+    });
   });
 
   describe('French translations', () => {
@@ -125,6 +173,60 @@ describe('Temporal field translations', () => {
 
       const sections = screen.getAllByRole('spinbutton');
       expect(sections[0]).toHaveAttribute('aria-valuetext', 'Vide');
+    });
+
+    it('should render Seconds section with French aria-label', async () => {
+      const formatWithSeconds = `${time24Format}:${adapter.formats.secondsPadded}`;
+      await render(
+        <LocalizationProvider translations={frFR}>
+          <TimeField format={formatWithSeconds} />
+        </LocalizationProvider>,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      expect(sections[2]).toHaveAttribute('aria-label', 'Secondes');
+    });
+
+    it('should render Meridiem section with French aria-label', async () => {
+      const ampmFormat = `${adapter.formats.hours12hPadded}:${adapter.formats.minutesPadded} ${adapter.formats.meridiem}`;
+      await render(
+        <LocalizationProvider translations={frFR}>
+          <TimeField format={ampmFormat} />
+        </LocalizationProvider>,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      const meridiemSection = sections.find((s) => s.getAttribute('aria-label') === 'Méridien');
+      expect(meridiemSection).not.toBe(undefined);
+    });
+
+    it('should render French placeholder text for empty date sections', async () => {
+      await render(
+        <LocalizationProvider translations={frFR}>
+          <DateField format={numericDateFormat} />
+        </LocalizationProvider>,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      expect(sections[0].textContent).toBe('MM'); // month placeholder
+      expect(sections[1].textContent).toBe('JJ'); // day placeholder (French)
+      expect(sections[2].textContent).toBe('AAAA'); // year placeholder (French)
+    });
+
+    it('should render Clear button with French aria-label', async () => {
+      await render(
+        <LocalizationProvider translations={frFR}>
+          <DateFieldBase.Root format={numericDateFormat} defaultValue={adapter.date('2024-03-15', 'default')}>
+            <DateFieldBase.SectionList>
+              {(section) => <DateFieldBase.Section key={section.index} section={section} />}
+            </DateFieldBase.SectionList>
+            <DateFieldBase.Clear />
+          </DateFieldBase.Root>
+        </LocalizationProvider>,
+      );
+
+      const clearButton = screen.getByRole('button');
+      expect(clearButton).toHaveAttribute('aria-label', 'Effacer la valeur');
     });
   });
 });

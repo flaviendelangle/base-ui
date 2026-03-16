@@ -28,6 +28,7 @@ export const baseTemporalFieldConfig: Pick<
     parseDate(valueStr.trim(), referenceValue),
   getInitialReferenceValue: ({ value, ...other }) =>
     getInitialReferenceDate({ ...other, externalDate: value }),
+
   clearDateSections: (sections) =>
     sections.map((section) => (isDatePart(section) ? { ...section, value: '' } : section)),
   updateReferenceValue: (adapter, value, prevReferenceValue) =>

@@ -12,6 +12,7 @@ import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useAriaLabelledBy } from '../../labelable-provider/useAriaLabelledBy';
 import { useField } from '../../field/useField';
+import { stateAttributesMapping } from './stateAttributesMapping';
 import { TemporalValue } from '../../types/temporal';
 import { TemporalFieldStore } from './TemporalFieldStore';
 import { DateFieldRootContext } from '../root/DateFieldRootContext';
@@ -172,6 +173,7 @@ export function useTemporalFieldRoot(
       getDescriptionProps,
       elementProps,
     ],
+    stateAttributesMapping,
   });
 
   return (
