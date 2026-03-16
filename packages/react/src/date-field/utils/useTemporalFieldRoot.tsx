@@ -27,7 +27,7 @@ import {
 
 export interface UseTemporalFieldRootProps extends Omit<
   TemporalFieldStoreParameters<TemporalValue>,
-  'adapter' | 'direction' | 'translations' | 'fieldContext'
+  'adapter' | 'direction' | 'translations' | 'fieldContext' | 'clearErrors'
 > {
   /**
    * The children of the component.

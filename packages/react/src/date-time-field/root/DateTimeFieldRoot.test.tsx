@@ -2,14 +2,12 @@ import { screen, fireEvent } from '@mui/internal-test-utils';
 import { DateTimeField as DateTimeFieldBase } from '@base-ui/react/date-time-field';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
-import { createRenderer } from '#test-utils';
 import {
+  createRenderer,
   describeTemporalFieldRoot,
-} from '../../date-field/utils/temporalFieldRoot.shared-tests';
-import {
   dateTimeFieldDescriptor,
   adapter,
-} from '../../date-field/utils/temporalField.test-descriptors';
+} from '#test-utils';
 
 describeTemporalFieldRoot(dateTimeFieldDescriptor);
 

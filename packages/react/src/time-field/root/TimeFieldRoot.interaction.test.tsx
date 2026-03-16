@@ -1,13 +1,11 @@
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { TimeField as TimeFieldBase } from '@base-ui/react/time-field';
-import { createRenderer } from '#test-utils';
 import {
+  createRenderer,
   describeTemporalFieldInteraction,
-} from '../../date-field/utils/temporalFieldRoot.shared-interaction-tests';
-import {
   timeFieldDescriptor,
   adapter,
-} from '../../date-field/utils/temporalField.test-descriptors';
+} from '#test-utils';
 
 describeTemporalFieldInteraction(timeFieldDescriptor);
 

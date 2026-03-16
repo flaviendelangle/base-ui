@@ -1,6 +1,3 @@
-import {
-  describeTemporalFieldInteraction,
-} from '../utils/temporalFieldRoot.shared-interaction-tests';
-import { dateFieldDescriptor } from '../utils/temporalField.test-descriptors';
+import { describeTemporalFieldInteraction, dateFieldDescriptor } from '#test-utils';
 
 describeTemporalFieldInteraction(dateFieldDescriptor);

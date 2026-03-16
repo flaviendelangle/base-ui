@@ -4,6 +4,7 @@ import { NOOP } from '@base-ui/utils/empty';
 import { TemporalAdapter } from '../../types/temporal';
 import { TemporalFieldState as State, TemporalFieldDatePart, TemporalFieldSection } from './types';
 import type { FieldRootContext } from '../../field/root/FieldRootContext';
+import { DEFAULT_FIELD_ROOT_STATE } from '../../field/utils/constants';
 import { getTimezoneToRender, isDatePart, removeLocalizedDigits } from './utils';
 import {
   getAriaValueText,
@@ -126,7 +127,7 @@ export const selectors = {
     invalidSelector,
     fieldContextSelector,
     (required, readOnly, disabled, invalid, fieldContext: FieldRootContext | null) => ({
-      ...(fieldContext?.state || {}),
+      ...(fieldContext?.state ?? DEFAULT_FIELD_ROOT_STATE),
       required,
       readOnly,
       disabled,
