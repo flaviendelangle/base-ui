@@ -10,6 +10,7 @@ export const enUS: BaseUITranslations = {
   temporalFieldSecondsSectionLabel: 'Seconds',
   temporalFieldMeridiemSectionLabel: 'Meridiem',
   temporalFieldEmptySectionText: 'Empty',
+  temporalFieldClearLabel: 'Clear value',
   temporalFieldYearPlaceholder: ({ digitAmount }) => 'Y'.repeat(digitAmount),
   temporalFieldMonthPlaceholder: ({ contentType }) => (contentType === 'letter' ? 'MMMM' : 'MM'),
   temporalFieldWeekDayPlaceholder: ({ contentType }) => (contentType === 'letter' ? 'EEEE' : 'EE'),

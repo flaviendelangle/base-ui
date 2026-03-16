@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { screen, fireEvent } from '@mui/internal-test-utils';
+import { screen, fireEvent, act } from '@mui/internal-test-utils';
 import { DateField as DateFieldBase } from '@base-ui/react/date-field';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
-import { createRenderer, createTemporalRenderer } from '#test-utils';
+import { createRenderer, createTemporalRenderer, isJSDOM } from '#test-utils';
 
 describe('<DateField /> - Field Integration', () => {
   const { render } = createRenderer();
@@ -438,6 +438,98 @@ describe('<DateField /> - Field Integration', () => {
 
       const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
       expect(hiddenInput.max).to.equal('2024-12-31');
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have role="group" on root element', async () => {
+      await render(<DateField format={numericDateFormat} />);
+
+      const input = screen.getByTestId('input');
+      expect(input).to.have.attribute('role', 'group');
+    });
+
+    it('should have aria-describedby linking to Field.Error when error is shown', async () => {
+      await render(
+        <Form>
+          <Field.Root name="date">
+            <DateField format={numericDateFormat} required />
+            <Field.Error match="valueMissing" data-testid="error">
+              Date is required
+            </Field.Error>
+          </Field.Root>
+          <button type="submit">Submit</button>
+        </Form>,
+      );
+
+      fireEvent.click(screen.getByText('Submit'));
+
+      const input = screen.getByTestId('input');
+      const error = screen.getByTestId('error');
+      expect(input).to.have.attribute('aria-describedby');
+      expect(input.getAttribute('aria-describedby')).to.include(error.id);
+    });
+  });
+
+  describe('Clear button', () => {
+    function DateFieldWithClear(props: DateFieldBase.Root.Props) {
+      return (
+        <DateFieldBase.Root {...props} data-testid="input">
+          <DateFieldBase.SectionList>
+            {(section) => <DateFieldBase.Section key={section.index} section={section} />}
+          </DateFieldBase.SectionList>
+          <DateFieldBase.Clear data-testid="clear" />
+        </DateFieldBase.Root>
+      );
+    }
+
+    it('should have aria-label on clear button', async () => {
+      await render(<DateFieldWithClear format={numericDateFormat} />);
+
+      const clearButton = screen.getByTestId('clear');
+      expect(clearButton).to.have.attribute('aria-label', 'Clear value');
+    });
+  });
+
+  describe('onValueChange event details', () => {
+    it.skipIf(isJSDOM)('should provide "keyboard" reason when adjusting value with arrow keys', async () => {
+      const onValueChange = spy();
+      await render(
+        <DateField
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+          onValueChange={onValueChange}
+        />,
+      );
+
+      const sections = screen.getAllByRole('spinbutton');
+      await act(() => sections[0].focus());
+      fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
+
+      expect(onValueChange.callCount).to.be.greaterThan(0);
+      expect(onValueChange.lastCall.args[1].reason).to.equal('keyboard');
+    });
+
+    it.skipIf(isJSDOM)('should provide "clear-press" reason when clicking clear button', async () => {
+      const onValueChange = spy();
+      await render(
+        <DateFieldBase.Root
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+          onValueChange={onValueChange}
+          data-testid="input"
+        >
+          <DateFieldBase.SectionList>
+            {(section) => <DateFieldBase.Section key={section.index} section={section} />}
+          </DateFieldBase.SectionList>
+          <DateFieldBase.Clear data-testid="clear" />
+        </DateFieldBase.Root>,
+      );
+
+      fireEvent.click(screen.getByTestId('clear'));
+
+      expect(onValueChange.callCount).to.be.greaterThan(0);
+      expect(onValueChange.lastCall.args[1].reason).to.equal('clear-press');
     });
   });
 });

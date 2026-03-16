@@ -208,17 +208,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       },
     );
 
-    // Filled state sync when value changes
-    this.observe(
-      (state) => state.value,
-      (nextValue) => {
-        const fieldContext = this.state.fieldContext;
-        if (fieldContext) {
-          fieldContext.setFilled(nextValue !== null);
-        }
-      },
-    );
-
     // Format / sections / manager derivation effect
     // When format-related props change, re-parse the format and rebuild sections.
     this.observe(
@@ -310,13 +299,21 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
    */
   public getActions(): TemporalFieldRootActions {
     return {
-      clear: () => this.clear(),
+      clear: () => this.clear('imperative-action'),
     };
   }
 
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
     const unsubscribe = this.observe(selectors.selectedSection, this.syncSelectionToDOM);
+
+    // Set initial filled state on mount
+    const fieldContext = this.state.fieldContext;
+    if (fieldContext) {
+      const manager = selectors.manager(this.state);
+      const currentValue = selectors.value(this.state);
+      fieldContext.setFilled(!manager.areValuesEqual(currentValue, manager.emptyValue));
+    }
 
     return () => {
       unsubscribe();
@@ -327,14 +324,18 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   /**
    * Publishes the provided field value.
    */
-  public publish(value: TValue) {
+  public publish(
+    value: TValue,
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const inputTimezone = this.state.manager.getTimezone(this.state.value);
     const newValueWithInputTimezone =
       inputTimezone == null ? value : this.state.manager.setTimezone(value, inputTimezone);
 
     const eventDetails: TemporalFieldValueChangeEventDetails = createChangeEventDetails(
-      'none',
-      undefined,
+      reason,
+      event,
       undefined,
     );
 
@@ -346,9 +347,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       });
     }
 
-    // Update Field context state (dirty, validation)
+    // Update Field context state (filled, dirty, validation)
     const fieldContext = this.state.fieldContext;
     if (fieldContext) {
+      fieldContext.setFilled(
+        !this.state.manager.areValuesEqual(newValueWithInputTimezone, this.state.manager.emptyValue),
+      );
+
       // Set dirty state by comparing with initial value
       fieldContext.setDirty(
         !this.state.manager.areValuesEqual(
@@ -367,7 +372,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   /**
    * Updates the value from its string representation.
    */
-  public updateFromString(valueStr: string) {
+  public updateFromString(
+    valueStr: string,
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const adapter = selectors.adapter(this.state);
     const fieldConfig = selectors.config(this.state);
     const format = selectors.format(this.state);
@@ -390,7 +399,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     const newValue = fieldConfig.parseValueStr(valueStr, this.state.referenceValue, parseDateStr);
     if (!invalidValue) {
-      this.publish(newValue);
+      this.publish(newValue, reason, event);
     }
   }
 
@@ -398,7 +407,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
    * Clears the field value.
    * If the value is already empty, it clears the sections.
    */
-  public clear() {
+  public clear(
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const manager = selectors.manager(this.state);
     const currentValue = selectors.value(this.state);
 
@@ -417,7 +429,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         characterQuery: null,
       });
       this.selectClosestDatePart(0);
-      this.publish(manager.emptyValue);
+      this.publish(manager.emptyValue, reason, event);
     }
   }
 
@@ -463,7 +475,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   /**
    * Clears the value of the active section.
    */
-  public clearActive() {
+  public clearActive(
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const currentValue = selectors.value(this.state);
     const config = selectors.config(this.state);
     const activeDatePart = selectors.activeDatePart(this.state);
@@ -485,7 +500,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       });
     } else {
       this.resetCharacterQuery();
-      this.publish(config.updateDateInValue(currentValue, activeDatePart, null));
+      this.publish(config.updateDateInValue(currentValue, activeDatePart, null), reason, event);
     }
   }
 
@@ -493,11 +508,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
    * Sets the value of the provided section.
    * If "shouldGoToNextSection" is true, moves the focus to the next section.
    */
-  public updateDatePart({
-    sectionIndex,
-    newDatePartValue,
-    shouldGoToNextSection,
-  }: UpdateDatePartParameters) {
+  public updateDatePart(
+    {
+      sectionIndex,
+      newDatePartValue,
+      shouldGoToNextSection,
+    }: UpdateDatePartParameters,
+    reason: TemporalFieldValueChangeEventDetails['reason'] = 'none',
+    event?: Event,
+  ) {
     const currentValue = selectors.value(this.state);
     const fieldConfig = selectors.config(this.state);
     const refValue = selectors.referenceValue(this.state);
@@ -553,7 +572,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         });
       }
 
-      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, mergedDate));
+      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, mergedDate), reason, event);
     }
 
     /**
@@ -565,7 +584,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       (activeDate == null || adapter.isValid(activeDate))
     ) {
       this.setSectionUpdateToApplyOnNextInvalidDate(sectionIndex, newDatePartValue);
-      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, newActiveDate));
+      return this.publish(fieldConfig.updateDateInValue(currentValue, dp, newActiveDate), reason, event);
     }
 
     /**
@@ -577,7 +596,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
      */
     if (activeDate != null) {
       this.setSectionUpdateToApplyOnNextInvalidDate(sectionIndex, newDatePartValue);
-      this.publish(fieldConfig.updateDateInValue(currentValue, dp, newActiveDate));
+      this.publish(fieldConfig.updateDateInValue(currentValue, dp, newActiveDate), reason, event);
     }
 
     /**
@@ -640,7 +659,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     this.setCharacterQuery(null);
   }
 
-  public editSection(parameters: EditSectionParameters) {
+  public editSection(parameters: EditSectionParameters, reason: TemporalFieldValueChangeEventDetails['reason'] = 'none', event?: Event) {
     const { keyPressed, sectionIndex } = parameters;
     const localizedDigits = getLocalizedDigits(selectors.adapter(this.state));
     const response = isStringNumber(keyPressed, localizedDigits)
@@ -654,14 +673,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       sectionIndex,
       newDatePartValue: response.datePartValue,
       shouldGoToNextSection: response.shouldGoToNextSection,
-    });
+    }, reason, event);
   }
 
   /**
    * Adjusts the value of the active section based on the provided key code.
    * For example, pressing ArrowUp will increment the section's value.
    */
-  public adjustActiveDatePartValue(keyCode: AdjustDatePartValueKeyCode, sectionIndex: number) {
+  public adjustActiveDatePartValue(keyCode: AdjustDatePartValueKeyCode, sectionIndex: number, event?: Event) {
     if (!selectors.editable(this.state)) {
       return;
     }
@@ -670,7 +689,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       sectionIndex,
       newDatePartValue: this.getAdjustedDatePartValue(keyCode, sectionIndex),
       shouldGoToNextSection: false,
-    });
+    }, 'keyboard', event);
   }
 
   public registerSection = (sectionElement: HTMLDivElement | null) => {
@@ -706,7 +725,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
 
-      this.updateFromString(event.target.value);
+      this.updateFromString(event.target.value, 'input-change', event.nativeEvent);
     },
     onFocus: () => {
       this.selectClosestDatePart(0);
@@ -718,12 +737,12 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       // Prevent focus stealing from the input
       event.preventDefault();
     },
-    onClick: () => {
+    onClick: (event: React.MouseEvent) => {
       if (selectors.disabled(this.state) || selectors.readOnly(this.state)) {
         return;
       }
 
-      this.clear();
+      this.clear('clear-press', event.nativeEvent);
       this.state.inputRef.current?.focus();
     },
   };
@@ -761,10 +780,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
               inputType !== 'insertParagraph' &&
               inputType !== 'insertLineBreak'
             ) {
-              this.clearActive();
+              this.clearActive('input-clear', event.nativeEvent);
             }
           } else {
-            this.editSection({ keyPressed, sectionIndex });
+            this.editSection({ keyPressed, sectionIndex }, 'input-change', event.nativeEvent);
           }
         }
       }
@@ -800,10 +819,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           sectionIndex,
           newDatePartValue: pastedValue,
           shouldGoToNextSection: true,
-        });
+        }, 'input-paste', event.nativeEvent);
       } else {
         this.resetCharacterQuery();
-        this.updateFromString(pastedValue);
+        this.updateFromString(pastedValue, 'input-paste', event.nativeEvent);
       }
     },
 
@@ -835,13 +854,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
             sectionIndex,
             newDatePartValue: '',
             shouldGoToNextSection: false,
-          });
+          }, 'input-clear', event.nativeEvent);
         }
       }
       // Increment / decrement the current section value
       else if (TemporalFieldStore.adjustKeyCodes.has(event.key as AdjustDatePartValueKeyCode)) {
         event.preventDefault();
-        this.adjustActiveDatePartValue(event.key as AdjustDatePartValueKeyCode, sectionIndex);
+        this.adjustActiveDatePartValue(event.key as AdjustDatePartValueKeyCode, sectionIndex, event.nativeEvent);
       }
     },
 

@@ -255,10 +255,12 @@ export const selectors = {
     disabledSelector,
     readOnlySelector,
     areAllSectionsEmptySelector,
-    (disabledFromState, readOnly, areAllSectionsEmpty, disabledProp: boolean) => ({
+    translationsSelector,
+    (disabledFromState, readOnly, areAllSectionsEmpty, translations, disabledProp: boolean) => ({
       props: {
         tabIndex: -1,
         children: 'x',
+        'aria-label': translations.temporalFieldClearLabel,
         'aria-readonly': readOnly || undefined,
       },
       state: {

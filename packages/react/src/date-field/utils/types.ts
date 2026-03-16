@@ -32,7 +32,6 @@ export interface TemporalFieldStoreParameters<TValue extends TemporalSupportedVa
   /**
    * Event handler called when the selected value changes.
    * Provides the new value as an argument.
-   * Has `getValidationError()` in the `eventDetails` to retrieve the validation error associated to the new value.
    */
   onValueChange:
     | ((value: TValue, eventDetails: TemporalFieldValueChangeEventDetails) => void)
@@ -233,7 +232,14 @@ export interface TemporalFieldCharacterEditingQuery {
   part: TemporalFieldDatePartType;
 }
 
-type TemporalFieldChangeReason = 'none';
+type TemporalFieldChangeReason =
+  | 'none'
+  | 'keyboard'
+  | 'input-change'
+  | 'input-paste'
+  | 'input-clear'
+  | 'clear-press'
+  | 'imperative-action';
 
 export interface TemporalFieldParsedFormat {
   elements: (TemporalFieldToken | TemporalFieldSeparator)[];

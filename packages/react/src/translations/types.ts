@@ -19,6 +19,8 @@ export interface BaseUITranslations {
   temporalFieldMeridiemSectionLabel: string;
   /** Text displayed as aria-valuetext when a temporal field section is empty. */
   temporalFieldEmptySectionText: string;
+  /** Label for the clear button of a temporal field. Used as aria-label. */
+  temporalFieldClearLabel: string;
   /** Placeholder for the year section of a temporal field. */
   temporalFieldYearPlaceholder: (params: { digitAmount: number }) => string;
   /** Placeholder for the month section of a temporal field. */

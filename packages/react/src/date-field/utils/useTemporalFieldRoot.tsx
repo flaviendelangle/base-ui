@@ -9,6 +9,7 @@ import { useRenderElement } from '../../utils/useRenderElement';
 import { useDirection } from '../../direction-provider';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
+import { useLabelableContext } from '../../labelable-provider/LabelableContext';
 import { useField } from '../../field/useField';
 import { TemporalValue } from '../../types/temporal';
 import { TemporalFieldStore } from './TemporalFieldStore';
@@ -91,6 +92,7 @@ export function useTemporalFieldRoot(
   const translations = useTranslations();
   const direction = useDirection();
   const id = useLabelableId({ id: idProp });
+  const { getDescriptionProps } = useLabelableContext();
   const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
 
   const store = useRefWithInit(
@@ -162,7 +164,7 @@ export function useTemporalFieldRoot(
   const element = useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, useFieldParams.controlRef],
-    props: [store.rootEventHandlers, { children: resolvedChildren }, elementProps],
+    props: [store.rootEventHandlers, { role: 'group', children: resolvedChildren }, getDescriptionProps, elementProps],
   });
 
   return (
