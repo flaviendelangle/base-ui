@@ -10,6 +10,7 @@ import { useDirection } from '../../direction-provider';
 import { useFieldRootContext } from '../../field/root/FieldRootContext';
 import { useLabelableId } from '../../labelable-provider/useLabelableId';
 import { useLabelableContext } from '../../labelable-provider/LabelableContext';
+import { useAriaLabelledBy } from '../../labelable-provider/useAriaLabelledBy';
 import { useField } from '../../field/useField';
 import { TemporalValue } from '../../types/temporal';
 import { TemporalFieldStore } from './TemporalFieldStore';
@@ -92,8 +93,9 @@ export function useTemporalFieldRoot(
   const translations = useTranslations();
   const direction = useDirection();
   const id = useLabelableId({ id: idProp });
-  const { getDescriptionProps } = useLabelableContext();
+  const { getDescriptionProps, labelId } = useLabelableContext();
   const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
+  const ariaLabelledBy = useAriaLabelledBy(undefined, labelId, fieldContext.validation.inputRef);
 
   const store = useRefWithInit(
     () =>
@@ -166,7 +168,7 @@ export function useTemporalFieldRoot(
     ref: [forwardedRef, useFieldParams.controlRef],
     props: [
       store.rootEventHandlers,
-      { role: 'group', children: resolvedChildren },
+      { role: 'group', 'aria-labelledby': ariaLabelledBy, children: resolvedChildren },
       getDescriptionProps,
       elementProps,
     ],

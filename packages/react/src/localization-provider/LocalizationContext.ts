@@ -18,7 +18,7 @@ export function useTemporalLocale() {
   const context = React.useContext(LocalizationContext);
   if (context === undefined) {
     throw new Error(
-      'Base UI: LocalizationContext is missing. Temporal components must be place within <LocalizationProvider />',
+      'Base UI: LocalizationContext is missing. Temporal components must be placed within <LocalizationProvider />',
     );
   }
 

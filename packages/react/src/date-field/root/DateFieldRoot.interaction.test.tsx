@@ -157,7 +157,7 @@ describe('<DateField /> - DOM Interactions', () => {
   });
 
   describe('ArrowLeft / ArrowRight (section navigation)', () => {
-    it('should move focus to the next section on ArrowRight', async () => {
+    it('should move selection to the next section on ArrowRight', async () => {
       await render(
         <DateField
           format={numericDateFormat}
@@ -169,11 +169,12 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.focus(sections[0]); // month section
       fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
 
-      // Day section (index 1) should now be selected
-      expect(sections[1]).toHaveAttribute('aria-valuenow', '15');
+      // Verify day section is now active by pressing ArrowUp and checking day increments
+      fireEvent.keyDown(sections[1], { key: 'ArrowUp' });
+      expect(sections[1]).toHaveAttribute('aria-valuenow', '16'); // day incremented from 15
     });
 
-    it('should move focus to the previous section on ArrowLeft', async () => {
+    it('should move selection to the previous section on ArrowLeft', async () => {
       await render(
         <DateField
           format={numericDateFormat}
@@ -186,8 +187,9 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.focus(sections[1]);
       fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
 
-      // Month section (index 0) should now be selected
-      expect(sections[0]).toHaveAttribute('aria-valuenow', '3');
+      // Verify month section is now active by pressing ArrowUp and checking month increments
+      fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '4'); // month incremented from 3
     });
 
     it('should not move past the first section on ArrowLeft', async () => {
@@ -202,8 +204,9 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.focus(sections[0]); // already at first section
       fireEvent.keyDown(sections[0], { key: 'ArrowLeft' });
 
-      // Should stay on month section
-      expect(sections[0]).toHaveAttribute('aria-valuenow', '3');
+      // Should stay on month section — ArrowUp should increment month, not day
+      fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
+      expect(sections[0]).toHaveAttribute('aria-valuenow', '4'); // month incremented
     });
 
     it('should not move past the last section on ArrowRight', async () => {
@@ -219,8 +222,9 @@ describe('<DateField /> - DOM Interactions', () => {
       fireEvent.focus(lastSection); // year section
       fireEvent.keyDown(lastSection, { key: 'ArrowRight' });
 
-      // Should stay on year section
-      expect(lastSection).toHaveAttribute('aria-valuenow', '2024');
+      // Should stay on year section — ArrowUp should increment year
+      fireEvent.keyDown(lastSection, { key: 'ArrowUp' });
+      expect(lastSection).toHaveAttribute('aria-valuenow', '2025'); // year incremented
     });
   });
 

@@ -80,7 +80,7 @@ describe('<TimeField /> - DOM Interactions', () => {
     });
 
     describe('ArrowLeft / ArrowRight (section navigation)', () => {
-      it('should move focus to the next section on ArrowRight', async () => {
+      it('should move selection to the next section on ArrowRight', async () => {
         await render(
           <TimeField
             format={time24Format}
@@ -92,11 +92,12 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[0]); // hours section
         fireEvent.keyDown(sections[0], { key: 'ArrowRight' });
 
-        // Minutes section should now be selected
-        expect(sections[1]).toHaveAttribute('aria-valuenow', '30');
+        // Verify minutes section is now active by pressing ArrowUp
+        fireEvent.keyDown(sections[1], { key: 'ArrowUp' });
+        expect(sections[1]).toHaveAttribute('aria-valuenow', '31'); // minutes incremented from 30
       });
 
-      it('should move focus to the previous section on ArrowLeft', async () => {
+      it('should move selection to the previous section on ArrowLeft', async () => {
         await render(
           <TimeField
             format={time24Format}
@@ -108,8 +109,9 @@ describe('<TimeField /> - DOM Interactions', () => {
         fireEvent.focus(sections[1]); // minutes section
         fireEvent.keyDown(sections[1], { key: 'ArrowLeft' });
 
-        // Hours section should now be selected
-        expect(sections[0]).toHaveAttribute('aria-valuenow', '14');
+        // Verify hours section is now active by pressing ArrowUp
+        fireEvent.keyDown(sections[0], { key: 'ArrowUp' });
+        expect(sections[0]).toHaveAttribute('aria-valuenow', '15'); // hours incremented from 14
       });
     });
 

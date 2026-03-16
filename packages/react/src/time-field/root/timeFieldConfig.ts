@@ -3,8 +3,7 @@ import {
   TemporalFieldConfiguration,
   HiddenInputValidationProps,
 } from '../../date-field/utils/types';
-import { isDatePart } from '../../date-field/utils/utils';
-import { getInitialReferenceDate } from '../../utils/temporal/getInitialReferenceDate';
+import { baseTemporalFieldConfig, STEP_MULTIPLIERS } from '../../date-field/utils/baseTemporalFieldConfig';
 import { getTimeManager } from '../../utils/temporal/getTimeManager';
 /**
  * Formats a time value for native input.
@@ -36,31 +35,9 @@ function formatTimeForMinMax(adapter: TemporalAdapter, value: TemporalValue): st
   return formatTimeForNativeInput(adapter, value, 'seconds');
 }
 
-/**
- * Multipliers to convert props.step to native input step (in seconds).
- */
-const STEP_MULTIPLIERS: Partial<Record<TemporalFieldDatePartType, number>> = {
-  hours: 3600,
-  minutes: 60,
-  seconds: 1,
-};
-
 export const timeFieldConfig: TemporalFieldConfiguration<TemporalValue> = {
+  ...baseTemporalFieldConfig,
   getManager: getTimeManager,
-  getSectionsFromValue: (date, getSectionsFromDate) => getSectionsFromDate(date),
-  getDateFromSection: (value) => value,
-  getDateSectionsFromValue: (sections) => sections,
-  updateDateInValue: (value, activeSection, activeDate) => activeDate,
-  parseValueStr: (valueStr, referenceValue, parseDate) =>
-    parseDate(valueStr.trim(), referenceValue),
-  getInitialReferenceValue: ({ value, ...other }) =>
-    getInitialReferenceDate({ ...other, externalDate: value }),
-  clearDateSections: (sections) =>
-    sections.map((section) => (isDatePart(section) ? { ...section, value: '' } : section)),
-  updateReferenceValue: (adapter, value, prevReferenceValue) =>
-    adapter.isValid(value) ? value : prevReferenceValue,
-  stringifyValue: (adapter, value) =>
-    adapter.isValid(value) ? adapter.toJsDate(value).toISOString() : '',
   hiddenInputType: 'time',
   stringifyValueForHiddenInput: formatTimeForNativeInput,
   stringifyValidationPropsForHiddenInput: (adapter, validationProps, parsedFormat, step) => {

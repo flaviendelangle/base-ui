@@ -339,6 +339,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       undefined,
     );
 
+    // Capture field context and manager before calling onValueChange,
+    // because the callback could synchronously trigger state updates.
+    const fieldContext = this.state.fieldContext;
+    const manager = this.state.manager;
+
     this.context.onValueChange?.(newValueWithInputTimezone, eventDetails);
     if (!eventDetails.isCanceled && this.state.valueProp === undefined) {
       this.update({
@@ -348,18 +353,17 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
 
     // Update Field context state (filled, dirty, validation)
-    const fieldContext = this.state.fieldContext;
     if (fieldContext) {
       fieldContext.setFilled(
-        !this.state.manager.areValuesEqual(
+        !manager.areValuesEqual(
           newValueWithInputTimezone,
-          this.state.manager.emptyValue,
+          manager.emptyValue,
         ),
       );
 
       // Set dirty state by comparing with initial value
       fieldContext.setDirty(
-        !this.state.manager.areValuesEqual(
+        !manager.areValuesEqual(
           newValueWithInputTimezone,
           fieldContext.validityData.initialValue as TValue,
         ),
@@ -533,7 +537,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
      * Decide which section should be focused
      */
     if (shouldGoToNextSection) {
-      this.selectRightDatePart();
+      this.selectNextDatePart();
     }
 
     /**
@@ -563,7 +567,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       if (activeDate == null) {
         this.timeoutManager.startTimeout('cleanActiveDateSectionsIfValueNull', 0, () => {
           if (this.state.value === currentValue) {
-            this.set('sections', fieldConfig.clearDateSections(sectionsList, dp));
+            const freshSections = selectors.sections(this.state);
+            this.set('sections', fieldConfig.clearDateSections(freshSections, dp));
           }
         });
       }
@@ -629,7 +634,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectRightDatePart() {
+  public selectNextDatePart() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -642,7 +647,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectLeftDatePart() {
+  public selectPreviousDatePart() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -860,15 +865,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
 
-      // Move selection to the section on the right
+      // Move selection to the next/previous section
+      // No RTL swap needed — FormatParser already reverses section order for RTL.
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        this.selectRightDatePart();
-      }
-      // Move selection to the section on the left
-      else if (event.key === 'ArrowLeft') {
+        this.selectNextDatePart();
+      } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        this.selectLeftDatePart();
+        this.selectPreviousDatePart();
       }
       // Reset the value of the current section
       else if (event.key === 'Delete') {
@@ -916,6 +920,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         return;
       }
       this.selectClosestDatePart(sectionIndex);
+      this.state.fieldContext?.setFocused(true);
     },
 
     onBlur: () => {
@@ -927,6 +932,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         // If focus didn't move to another section in this field, clear selection
         if (newSectionIndex == null || !this.state.inputRef.current?.contains(activeEl)) {
           this.removeSelectedSection();
+
+          const fieldContext = this.state.fieldContext;
+          if (fieldContext) {
+            fieldContext.setTouched(true);
+            fieldContext.setFocused(false);
+            if (fieldContext.validationMode === 'onBlur') {
+              fieldContext.validation.commit(this.state.value);
+            }
+          }
         }
       });
     },
@@ -1003,6 +1017,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     // When initializing the year and there is no validation boundary in the direction we are going,
     // we set the section to the current year instead of the structural boundary.
     const isYearInitialization = datePart.value === '' && datePart.token.config.part === 'year';
+    // When decrementing, the value wraps to the max boundary; when incrementing, to the min.
+    // If the wrap-target boundary is absent, the structural boundary (0000 or 9999) is unhelpful,
+    // so we use the current year instead.
     const hasNoBoundaryInDirection =
       (isDecrementDirection(keyCode) && validationProps.max == null) ||
       (isIncrementDirection(keyCode) && validationProps.min == null);
@@ -1043,14 +1060,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     } else {
       const currentValue = parseInt(removeLocalizedDigits(dp.value, localizedDigits), 10);
       newValue = currentValue + delta * step;
-
-      // Align to step boundary if needed
-      if (step > 1 && newValue % step !== 0) {
-        newValue = alignToStep(newValue, step, direction);
-      }
     }
 
-    return formatValue(wrapInRange(newValue, boundaries.minimum, boundaries.maximum));
+    // Wrap first, then align to step boundary
+    newValue = wrapInRange(newValue, boundaries.minimum, boundaries.maximum);
+    if (step > 1 && newValue % step !== 0) {
+      newValue = alignToStep(newValue, step, direction);
+    }
+
+    return formatValue(newValue);
   }
 
   private getAdjustedLetterPartValue(

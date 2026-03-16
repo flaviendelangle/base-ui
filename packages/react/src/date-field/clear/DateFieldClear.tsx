@@ -37,7 +37,7 @@ export const DateFieldClear = React.forwardRef(function DateFieldClear(
   return useRenderElement('button', componentProps, {
     state,
     ref: [forwardedRef, buttonRef],
-    props: [props, store.clearEventHandlers, elementProps, getButtonProps],
+    props: [{ type: 'button' }, props, store.clearEventHandlers, elementProps, getButtonProps],
   });
 });
 
