@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 
@@ -14,7 +13,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('2');
+        expect(view.getFocusedItemId()).toBe('2');
       });
 
       it('should move the focus to a child item', async () => {
@@ -27,7 +26,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it('should move the focus to a child item with a dynamic tree', async () => {
@@ -42,7 +41,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it("should move the focus to a parent's sibling", async () => {
@@ -55,7 +54,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('2');
+        expect(view.getFocusedItemId()).toBe('2');
       });
 
       it('should skip disabled items', async () => {
@@ -67,7 +66,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('3');
+        expect(view.getFocusedItemId()).toBe('3');
       });
 
       it('should not skip disabled items if itemFocusableWhenDisabled={true}', async () => {
@@ -80,7 +79,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('2');
+        expect(view.getFocusedItemId()).toBe('2');
       });
 
       it('should not move the focus when the last item is focused', async () => {
@@ -92,7 +91,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('2').focus();
         });
         fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowDown' });
-        expect(view.getFocusedItemId()).to.equal('2');
+        expect(view.getFocusedItemId()).toBe('2');
       });
     });
 
@@ -106,7 +105,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('2').focus();
         });
         fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it('should move the focus to a parent', async () => {
@@ -119,7 +118,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it("should move the focus to a sibling's child", async () => {
@@ -132,7 +131,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('2').focus();
         });
         fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it('should move the focus to the last visible and enabled descendant of the previous sibling', async () => {
@@ -157,7 +156,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('2').focus();
         });
         fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1-2-3');
+        expect(view.getFocusedItemId()).toBe('1-2-3');
       });
 
       it('should move the focus to the last visible descendant of the previous sibling, skipping disabled items', async () => {
@@ -182,7 +181,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('2').focus();
         });
         fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1-2-2');
+        expect(view.getFocusedItemId()).toBe('1-2-2');
       });
 
       it('should skip disabled items', async () => {
@@ -194,7 +193,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('3').focus();
         });
         fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it('should not skip disabled items if itemFocusableWhenDisabled={true}', async () => {
@@ -207,7 +206,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('3').focus();
         });
         fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('2');
+        expect(view.getFocusedItemId()).toBe('2');
       });
 
       it('should not move the focus when the first item is focused', async () => {
@@ -219,7 +218,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowUp' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
     });
 
@@ -233,8 +232,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowRight' });
-        expect(view.isItemExpanded('1')).to.equal(true);
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.isItemExpanded('1')).toBe(true);
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it('should not change focus if ctrl is pressed', async () => {
@@ -247,7 +246,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowRight', ctrlKey: true });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it('should move the focus to the first child if the focus is on an open item', async () => {
@@ -260,7 +259,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowRight' });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it('should do nothing if the focus is on a leaf', async () => {
@@ -273,7 +272,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowRight' });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it('should not expand an item with children if it is collapsed but disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -286,7 +285,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowRight' });
-        expect(view.isItemExpanded('1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
       });
     });
 
@@ -301,7 +300,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowLeft' });
-        expect(view.isItemExpanded('1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
       });
 
       it('should not change focus if ctrl is pressed', async () => {
@@ -314,7 +313,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowLeft', ctrlKey: true });
-        expect(view.getFocusedItemId()).to.equal('1.1');
+        expect(view.getFocusedItemId()).toBe('1.1');
       });
 
       it("should move focus to the item's parent if the focus is on a child item that is a leaf", async () => {
@@ -327,8 +326,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowLeft' });
-        expect(view.getFocusedItemId()).to.equal('1');
-        expect(view.isItemExpanded('1')).to.equal(true);
+        expect(view.getFocusedItemId()).toBe('1');
+        expect(view.isItemExpanded('1')).toBe(true);
       });
 
       it("should move the focus to the item's parent if the focus is on a child item that is closed", async () => {
@@ -341,8 +340,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1.1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowLeft' });
-        expect(view.getFocusedItemId()).to.equal('1');
-        expect(view.isItemExpanded('1')).to.equal(true);
+        expect(view.getFocusedItemId()).toBe('1');
+        expect(view.isItemExpanded('1')).toBe(true);
       });
 
       it('should do nothing if the focus is on a root item that is closed', async () => {
@@ -354,8 +353,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowLeft' });
-        expect(view.getFocusedItemId()).to.equal('1');
-        expect(view.isItemExpanded('1')).to.equal(false);
+        expect(view.getFocusedItemId()).toBe('1');
+        expect(view.isItemExpanded('1')).toBe(false);
       });
 
       it('should do nothing if the focus is on a root item that is a leaf', async () => {
@@ -367,7 +366,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowLeft' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
 
       it('should not collapse an item with children if it is collapsed but disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -381,7 +380,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowLeft' });
-        expect(view.isItemExpanded('1')).to.equal(true);
+        expect(view.isItemExpanded('1')).toBe(true);
       });
     });
 
@@ -395,7 +394,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('4').focus();
         });
         fireEvent.keyDown(view.getItemRoot('4'), { key: 'Home' });
-        expect(view.getFocusedItemId()).to.equal('1');
+        expect(view.getFocusedItemId()).toBe('1');
       });
     });
 
@@ -414,7 +413,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'End' });
-        expect(view.getFocusedItemId()).to.equal('4');
+        expect(view.getFocusedItemId()).toBe('4');
       });
 
       it('should move the focus to the last item in the tree when the last item is expanded', async () => {
@@ -432,7 +431,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'End' });
-        expect(view.getFocusedItemId()).to.equal('4.1.1');
+        expect(view.getFocusedItemId()).toBe('4.1.1');
       });
     });
 
@@ -451,15 +450,15 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
 
-        expect(view.isItemExpanded('1')).to.equal(false);
-        expect(view.isItemExpanded('2')).to.equal(false);
-        expect(view.isItemExpanded('3')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
+        expect(view.isItemExpanded('2')).toBe(false);
+        expect(view.isItemExpanded('3')).toBe(false);
 
         fireEvent.keyDown(view.getItemRoot('1'), { key: '*' });
-        expect(view.isItemExpanded('1')).to.equal(true);
-        expect(view.isItemExpanded('2')).to.equal(true);
-        expect(view.isItemExpanded('3')).to.equal(true);
-        expect(view.isItemExpanded('3.1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(true);
+        expect(view.isItemExpanded('2')).toBe(true);
+        expect(view.isItemExpanded('3')).toBe(true);
+        expect(view.isItemExpanded('3.1')).toBe(false);
       });
 
       it('should expand all items that are at the same depth as the current item (depth = 1)', async () => {
@@ -485,17 +484,17 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('3.1').focus();
         });
 
-        expect(view.isItemExpanded('1')).to.equal(false);
-        expect(view.isItemExpanded('2')).to.equal(false);
-        expect(view.isItemExpanded('3')).to.equal(true);
-        expect(view.isItemExpanded('3.1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
+        expect(view.isItemExpanded('2')).toBe(false);
+        expect(view.isItemExpanded('3')).toBe(true);
+        expect(view.isItemExpanded('3.1')).toBe(false);
 
         fireEvent.keyDown(view.getItemRoot('3.1'), { key: '*' });
-        expect(view.isItemExpanded('1')).to.equal(false);
-        expect(view.isItemExpanded('2')).to.equal(false);
-        expect(view.isItemExpanded('3')).to.equal(true);
-        expect(view.isItemExpanded('3.1')).to.equal(true);
-        expect(view.isItemExpanded('3.1.2')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
+        expect(view.isItemExpanded('2')).toBe(false);
+        expect(view.isItemExpanded('3')).toBe(true);
+        expect(view.isItemExpanded('3.1')).toBe(true);
+        expect(view.isItemExpanded('3.1.2')).toBe(false);
       });
     });
 
@@ -509,7 +508,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-        expect(view.isItemExpanded('1')).to.equal(true);
+        expect(view.isItemExpanded('1')).toBe(true);
       });
 
       it('should collapse an item with children if it is expanded', async () => {
@@ -522,7 +521,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-        expect(view.isItemExpanded('1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
       });
 
       it('should not expand an item with children if it is collapsed but disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -535,7 +534,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           view.getItemRoot('1').focus();
         });
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-        expect(view.isItemExpanded('1')).to.equal(false);
+        expect(view.isItemExpanded('1')).toBe(false);
       });
     });
   });
@@ -552,7 +551,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.isItemSelected('1')).to.equal(true);
+          expect(view.isItemSelected('1')).toBe(true);
         });
 
         it('should un-select the focused item when Space is pressed', async () => {
@@ -565,7 +564,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
 
         it('should not select the focused item when Space is pressed and disableSelection={true}', async () => {
@@ -578,7 +577,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
 
         it('should not select the focused item when Space is pressed and the item is disabled', async () => {
@@ -590,7 +589,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
 
         it('should not select the focused item when Space is pressed and the item is disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -603,7 +602,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
       });
 
@@ -617,7 +616,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-          expect(view.isItemSelected('1')).to.equal(true);
+          expect(view.isItemSelected('1')).toBe(true);
         });
 
         it('should not un-select the focused item when Enter is pressed', async () => {
@@ -630,7 +629,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-          expect(view.isItemSelected('1')).to.equal(true);
+          expect(view.isItemSelected('1')).toBe(true);
         });
 
         it('should not select the focused item when Enter is pressed and disableSelection={true}', async () => {
@@ -643,7 +642,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
 
         it('should not select the focused item when Enter is pressed and the item is disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -656,7 +655,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-          expect(view.isItemSelected('1')).to.equal(false);
+          expect(view.isItemSelected('1')).toBe(false);
         });
       });
     });
@@ -674,7 +673,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
         });
 
         it('should un-select the focused item when Space is pressed', async () => {
@@ -688,7 +687,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
 
         it('should select the focused item without un-selecting the other selected items when Space is pressed while holding Ctrl', async () => {
@@ -702,7 +701,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: ' ', ctrlKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
         });
 
         it('should un-select the focused item when Space is pressed while holding Ctrl', async () => {
@@ -716,7 +715,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ', ctrlKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
 
         it('should not select the focused item when Space is pressed and disableSelection={true}', async () => {
@@ -729,7 +728,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should not select the focused item when Space is pressed and the item is disabled', async () => {
@@ -742,7 +741,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should not select the focused item when Space is pressed and the item is disabled even if itemFocusableWhenDisabled={true}', async () => {
@@ -756,7 +755,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should expand the selection range when Space is pressed while holding Shift', async () => {
@@ -769,13 +768,13 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+          expect(view.getSelectedTreeItems()).toEqual(['1']);
 
           act(() => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: ' ', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2', '3']);
         });
       });
 
@@ -791,7 +790,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
         });
 
         it('should not un-select the item below the focused item when ArrowDown is pressed while holding Shift from a selected item', async () => {
@@ -805,7 +804,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
         });
 
         it('should un-select the focused item when ArrowDown is pressed while holding Shift and the item below have been selected in the same range', async () => {
@@ -819,10 +818,10 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
 
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['3']);
+          expect(view.getSelectedTreeItems()).toEqual(['3']);
         });
 
         it('should not select any item when ArrowDown is pressed while holding Shift and disabledSelection={true}', async () => {
@@ -835,7 +834,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should select the next non-disabled item when ArrowDown is pressed while holding Shift', async () => {
@@ -849,7 +848,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
         });
 
         it('should not select the next item when ArrowDown is pressed while holding Shift if the next item is disabled and itemFocusableWhenDisabled={true}', async () => {
@@ -864,8 +863,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
-          expect(view.getFocusedItemId()).to.equal('2');
+          expect(view.getSelectedTreeItems()).toEqual(['1']);
+          expect(view.getFocusedItemId()).toBe('2');
         });
 
         it('should select the next item when ArrowDown is pressed while holding Shift if the focused item is disabled and itemFocusableWhenDisabled={true}', async () => {
@@ -879,7 +878,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
       });
 
@@ -895,7 +894,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
         });
 
         it('should not un-select the item above the focused item when ArrowUp is pressed while holding Shift from a selected item', async () => {
@@ -909,7 +908,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
         });
 
         it('should un-select the focused item when ArrowUp is pressed while holding Shift and the item above have been selected in the same range', async () => {
@@ -923,10 +922,10 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowDown', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
 
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
 
         it('should not select any item when ArrowUp is pressed while holding Shift and disabledSelection={true}', async () => {
@@ -939,7 +938,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should select the next non-disabled item when ArrowUp is pressed while holding Shift', async () => {
@@ -953,7 +952,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
         });
 
         it('should not select the next item when ArrowUp is pressed while holding Shift if the next item is disabled and itemFocusableWhenDisabled={true}', async () => {
@@ -968,8 +967,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['3']);
-          expect(view.getFocusedItemId()).to.equal('2');
+          expect(view.getSelectedTreeItems()).toEqual(['3']);
+          expect(view.getFocusedItemId()).toBe('2');
         });
 
         it('should select the previous item when ArrowUp is pressed while holding Shift if the focused item is disabled and itemFocusableWhenDisabled={true}', async () => {
@@ -983,7 +982,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('3').focus();
           });
           fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
       });
 
@@ -1003,7 +1002,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2', '2.1', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2', '2.1', '3']);
         });
 
         it('should not select any item when Home is pressed while holding Shift + Ctrl and disableSelection={true}', async () => {
@@ -1020,7 +1019,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should not select disabled items when Home is pressed while holding Shift + Ctrl', async () => {
@@ -1043,7 +1042,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
         });
       });
 
@@ -1063,7 +1062,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '2.1', '3', '4']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '2.1', '3', '4']);
         });
 
         it('should not select any item when End is pressed while holding Shift + Ctrl and disableSelection={true}', async () => {
@@ -1080,7 +1079,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should not select disabled items when End is pressed while holding Shift + Ctrl', async () => {
@@ -1103,7 +1102,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             shiftKey: true,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2', '4']);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '4']);
         });
       });
 
@@ -1122,7 +1121,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             keyCode: 65,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2', '3', '4']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2', '3', '4']);
         });
 
         it('should not select any item when Ctrl + A is pressed and disableSelection={true}', async () => {
@@ -1139,7 +1138,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             keyCode: 65,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal([]);
+          expect(view.getSelectedTreeItems()).toEqual([]);
         });
 
         it('should not select disabled items when Ctrl + A is pressed', async () => {
@@ -1161,7 +1160,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             keyCode: 65,
             ctrlKey: true,
           });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3', '4']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '3', '4']);
         });
       });
 
@@ -1177,7 +1176,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('2').focus();
           });
           fireEvent.keyDown(view.getItemRoot('2'), { key: 'Enter' });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
         });
 
         it('should un-select the focused item when Enter is pressed', async () => {
@@ -1191,7 +1190,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             view.getItemRoot('1').focus();
           });
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-          expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+          expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
       });
     });
@@ -1211,19 +1210,19 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'f' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
 
       fireEvent.keyDown(view.getItemRoot('4'), { key: 'o' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
 
       fireEvent.keyDown(view.getItemRoot('4'), { key: 'o' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should move to the next item in the displayed order when typing the same starting character', async () => {
@@ -1234,19 +1233,19 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('A1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('A1');
+      expect(view.getFocusedItemId()).toBe('A1');
 
       fireEvent.keyDown(view.getItemRoot('A1'), { key: 'b' });
-      expect(view.getFocusedItemId()).to.equal('B1');
+      expect(view.getFocusedItemId()).toBe('B1');
 
       fireEvent.keyDown(view.getItemRoot('B1'), { key: 'b' });
-      expect(view.getFocusedItemId()).to.equal('B3');
+      expect(view.getFocusedItemId()).toBe('B3');
 
       fireEvent.keyDown(view.getItemRoot('B3'), { key: 'b' });
-      expect(view.getFocusedItemId()).to.equal('B2');
+      expect(view.getFocusedItemId()).toBe('B2');
 
       fireEvent.keyDown(view.getItemRoot('B2'), { key: 'b' });
-      expect(view.getFocusedItemId()).to.equal('B1');
+      expect(view.getFocusedItemId()).toBe('B1');
     });
 
     it('should work with capitalized label', async () => {
@@ -1262,19 +1261,19 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'f' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
 
       fireEvent.keyDown(view.getItemRoot('4'), { key: 'o' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
 
       fireEvent.keyDown(view.getItemRoot('4'), { key: 'o' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should work after adding / removing items', async () => {
@@ -1287,19 +1286,19 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       });
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: '4' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
 
       await view.setItems([{ id: '1' }, { id: '2' }, { id: '3' }]);
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
 
       fireEvent.keyDown(view.getItemRoot('3'), { key: '2' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       await view.setItems([{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }]);
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       fireEvent.keyDown(view.getItemRoot('2'), { key: '4' });
-      expect(view.getFocusedItemId()).to.equal('4');
+      expect(view.getFocusedItemId()).toBe('4');
     });
 
     it('should not move focus when a modifier key and a letter are pressed', async () => {
@@ -1315,16 +1314,16 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't', ctrlKey: true });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't', metaKey: true });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't', shiftKey: true });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should work on disabled item when itemFocusableWhenDisabled={true}', async () => {
@@ -1341,10 +1340,10 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should not move focus on disabled item when itemFocusableWhenDisabled={false}', async () => {
@@ -1361,10 +1360,10 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should skip disabled items and focus the next enabled match', async () => {
@@ -1380,10 +1379,10 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 't' });
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
     });
   });
 
@@ -1401,12 +1400,12 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       act(() => {
         view.getItemRoot('1').focus();
       });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'a' });
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'p' });
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'r' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should work after adding / removing items', async () => {
@@ -1423,25 +1422,25 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       });
 
       fireEvent.keyDown(view.getItemRoot('3'), { key: 'a' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'p' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'r' });
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'a' });
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       await view.setItems([
         { id: '1', label: 'apple' },
         { id: '3', label: 'banana' },
       ]);
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
 
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'b' });
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
       fireEvent.keyDown(view.getItemRoot('3'), { key: 'a' });
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
     });
   });
 
@@ -1456,13 +1455,13 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         view.getItemRoot('1').focus();
       });
       fireEvent.keyDown(view.getItemRoot('1'), { key: ' ' });
-      expect(view.isItemSelected('1')).to.equal(false);
+      expect(view.isItemSelected('1')).toBe(false);
 
       act(() => {
         view.getItemRoot('2').focus();
       });
       fireEvent.keyDown(view.getItemRoot('2'), { key: ' ' });
-      expect(view.isItemSelected('2')).to.equal(true);
+      expect(view.isItemSelected('2')).toBe(true);
     });
 
     it('should not select item with Enter when isItemSelectionDisabled returns true (single selection, leaf item)', async () => {
@@ -1475,13 +1474,13 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         view.getItemRoot('1').focus();
       });
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-      expect(view.isItemSelected('1')).to.equal(false);
+      expect(view.isItemSelected('1')).toBe(false);
 
       act(() => {
         view.getItemRoot('2').focus();
       });
       fireEvent.keyDown(view.getItemRoot('2'), { key: 'Enter' });
-      expect(view.isItemSelected('2')).to.equal(true);
+      expect(view.isItemSelected('2')).toBe(true);
     });
 
     it('should not select non-selectable items with Shift+ArrowDown in multi selection', async () => {
@@ -1496,8 +1495,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         view.getItemRoot('1').focus();
       });
       fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', shiftKey: true });
-      expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getSelectedTreeItems()).toEqual(['1']);
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should not select non-selectable items with Shift+ArrowUp in multi selection', async () => {
@@ -1512,8 +1511,8 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         view.getItemRoot('3').focus();
       });
       fireEvent.keyDown(view.getItemRoot('3'), { key: 'ArrowUp', shiftKey: true });
-      expect(view.getSelectedTreeItems()).to.deep.equal(['3']);
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getSelectedTreeItems()).toEqual(['3']);
+      expect(view.getFocusedItemId()).toBe('2');
     });
   });
 });

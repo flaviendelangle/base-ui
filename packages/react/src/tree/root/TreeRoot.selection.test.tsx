@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy, stub } from 'sinon';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 
@@ -14,7 +12,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         items: [{ id: '1' }, { id: '2' }],
       });
 
-      expect(view.isItemSelected('1')).to.equal(false);
+      expect(view.isItemSelected('1')).toBe(false);
     });
 
     it('should use the default state when defined', async () => {
@@ -23,7 +21,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         defaultSelectedItems: ['1'],
       });
 
-      expect(view.isItemSelected('1')).to.equal(true);
+      expect(view.isItemSelected('1')).toBe(true);
     });
 
     it('should use the controlled state when defined', async () => {
@@ -32,7 +30,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         selectedItems: ['1'],
       });
 
-      expect(view.isItemSelected('1')).to.equal(true);
+      expect(view.isItemSelected('1')).toBe(true);
     });
 
     it('should use the controlled state instead of the default state when both are defined', async () => {
@@ -42,7 +40,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         defaultSelectedItems: ['2'],
       });
 
-      expect(view.isItemSelected('1')).to.equal(true);
+      expect(view.isItemSelected('1')).toBe(true);
     });
 
     it('should react to controlled state update', async () => {
@@ -52,11 +50,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       await view.setProps({ selectedItems: ['1'] });
-      expect(view.isItemSelected('1')).to.equal(true);
+      expect(view.isItemSelected('1')).toBe(true);
     });
 
     it('should call the onSelectedItemsChange callback when the model is updated (single selection and add selected item)', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -65,13 +63,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       fireEvent.click(view.getItemRoot('1'));
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(onSelectedItemsChange.lastCall.args[0]).to.deep.equal('1');
-      expect(onSelectedItemsChange.lastCall.args[1]).to.have.property('reason', 'item-press');
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual('1');
+      expect(onSelectedItemsChange.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
     });
 
     it('should call the onSelectedItemsChange callback when the model is updated (multi selection and add selected item to empty list)', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         selectionMode: 'multiple',
@@ -81,13 +79,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       fireEvent.click(view.getItemRoot('1'));
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(onSelectedItemsChange.lastCall.args[0]).to.deep.equal(['1']);
-      expect(onSelectedItemsChange.lastCall.args[1]).to.have.property('reason', 'item-press');
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1']);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
     });
 
     it('should call the onSelectedItemsChange callback when the model is updated (multi selection and add selected item to non-empty list)', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         selectionMode: 'multiple',
@@ -98,13 +96,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       fireEvent.click(view.getItemRoot('2'), { ctrlKey: true });
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(onSelectedItemsChange.lastCall.args[0]).to.deep.equal(['2', '1']);
-      expect(onSelectedItemsChange.lastCall.args[1]).to.have.property('reason', 'item-press');
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['2', '1']);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
     });
 
     it('should call the onSelectedItemsChange callback when the model is updated (multi selection and remove selected item)', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         selectionMode: 'multiple',
@@ -115,13 +113,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(onSelectedItemsChange.lastCall.args[0]).to.deep.equal([]);
-      expect(onSelectedItemsChange.lastCall.args[1]).to.have.property('reason', 'item-press');
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([]);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
     });
 
     it('should not select when onSelectedItemsChange cancels the event', async () => {
-      const onSelectedItemsChange = spy((_selectedItems: any, eventDetails: any) => {
+      const onSelectedItemsChange = vi.fn((_selectedItems: any, eventDetails: any) => {
         eventDetails.cancel();
       });
 
@@ -132,12 +130,12 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       fireEvent.click(view.getItemRoot('1'));
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(view.isItemSelected('1')).to.equal(false);
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(view.isItemSelected('1')).toBe(false);
     });
 
     it('should pass reason "imperative-action" when using setItemSelection', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -148,8 +146,8 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         view.actionsRef.current!.setItemSelection('1', true);
       });
 
-      expect(onSelectedItemsChange.callCount).to.equal(1);
-      expect(onSelectedItemsChange.lastCall.args[1]).to.have.property(
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![1]).toHaveProperty(
         'reason',
         'imperative-action',
       );
@@ -158,7 +156,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
   describe('onItemSelectionToggle prop', () => {
     it('should call onItemSelectionToggle when selecting an item', async () => {
-      const onItemSelectionToggle = spy();
+      const onItemSelectionToggle = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -166,17 +164,17 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       fireEvent.click(view.getItemRoot('1'));
-      expect(onItemSelectionToggle.callCount).to.equal(1);
-      expect(onItemSelectionToggle.lastCall.args[0]).to.deep.equal({
+      expect(onItemSelectionToggle.mock.calls.length).toBe(1);
+      expect(onItemSelectionToggle.mock.calls.at(-1)![0]).toEqual({
         itemId: '1',
         isSelected: true,
       });
-      expect(onItemSelectionToggle.lastCall.args[1]).to.have.property('reason', 'item-press');
-      expect(onItemSelectionToggle.lastCall.args[1]).to.have.property('event');
+      expect(onItemSelectionToggle.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
+      expect(onItemSelectionToggle.mock.calls.at(-1)![1]).toHaveProperty('event');
     });
 
     it('should call onItemSelectionToggle when un-selecting an item (multi selection)', async () => {
-      const onItemSelectionToggle = spy();
+      const onItemSelectionToggle = vi.fn();
 
       const view = await render({
         selectionMode: 'multiple',
@@ -186,16 +184,16 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
-      expect(onItemSelectionToggle.callCount).to.equal(1);
-      expect(onItemSelectionToggle.lastCall.args[0]).to.deep.equal({
+      expect(onItemSelectionToggle.mock.calls.length).toBe(1);
+      expect(onItemSelectionToggle.mock.calls.at(-1)![0]).toEqual({
         itemId: '1',
         isSelected: false,
       });
-      expect(onItemSelectionToggle.lastCall.args[1]).to.have.property('reason', 'item-press');
+      expect(onItemSelectionToggle.mock.calls.at(-1)![1]).toHaveProperty('reason', 'item-press');
     });
 
     it('should not call onItemSelectionToggle when the selection is canceled', async () => {
-      const onItemSelectionToggle = spy();
+      const onItemSelectionToggle = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -206,11 +204,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       fireEvent.click(view.getItemRoot('1'));
-      expect(onItemSelectionToggle.callCount).to.equal(0);
+      expect(onItemSelectionToggle.mock.calls.length).toBe(0);
     });
 
     it('should call onItemSelectionToggle when using the setItemSelection imperative API', async () => {
-      const onItemSelectionToggle = spy();
+      const onItemSelectionToggle = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -221,19 +219,19 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         view.actionsRef.current!.setItemSelection('1', true);
       });
 
-      expect(onItemSelectionToggle.callCount).to.equal(1);
-      expect(onItemSelectionToggle.lastCall.args[0]).to.deep.equal({
+      expect(onItemSelectionToggle.mock.calls.length).toBe(1);
+      expect(onItemSelectionToggle.mock.calls.at(-1)![0]).toEqual({
         itemId: '1',
         isSelected: true,
       });
-      expect(onItemSelectionToggle.lastCall.args[1]).to.have.property(
+      expect(onItemSelectionToggle.mock.calls.at(-1)![1]).toHaveProperty(
         'reason',
         'imperative-action',
       );
     });
 
     it('should call onItemSelectionToggle for each changed item when selecting replaces previous selection (single select)', async () => {
-      const onItemSelectionToggle = spy();
+      const onItemSelectionToggle = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
@@ -242,13 +240,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       fireEvent.click(view.getItemRoot('2'));
-      expect(onItemSelectionToggle.callCount).to.equal(2);
+      expect(onItemSelectionToggle.mock.calls.length).toBe(2);
 
-      const calls = onItemSelectionToggle.getCalls().map((call: any) => call.args[0]);
-      expect(calls).to.deep.include.members([
+      const calls = onItemSelectionToggle.mock.calls.map((call: any) => call[0]);
+      expect(calls).toEqual(expect.arrayContaining([
         { itemId: '2', isSelected: true },
         { itemId: '1', isSelected: false },
-      ]);
+      ]));
     });
   });
 
@@ -259,10 +257,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should not un-select selected item when clicking on an item', async () => {
@@ -271,10 +269,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: '1',
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should not select an item when click and disableSelection', async () => {
@@ -283,10 +281,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           selectionMode: 'none',
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when clicking on a disabled item', async () => {
@@ -294,9 +292,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1', disabled: true }, { id: '2' }],
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when clicking the expansion trigger', async () => {
@@ -305,7 +303,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemExpansionTrigger('1')!);
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
     });
 
@@ -317,10 +315,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['2'],
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
       });
 
       it('should not un-select selected item when clicking on an item', async () => {
@@ -330,10 +328,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1'],
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should un-select selected item when clicking on its content while holding Ctrl', async () => {
@@ -343,9 +341,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1', '2'],
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
         fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
       it('should un-select selected item when clicking on its content while holding Meta', async () => {
@@ -355,10 +353,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1', '2'],
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
 
         fireEvent.click(view.getItemRoot('1'), { metaKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
       it('should not select an item when click and selectionMode is none', async () => {
@@ -367,10 +365,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           selectionMode: 'none',
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when clicking on a disabled item', async () => {
@@ -379,9 +377,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1', disabled: true }, { id: '2' }],
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should select un-selected item when clicking on its content while holding Ctrl', async () => {
@@ -391,10 +389,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1'],
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
       });
 
       it('should do nothing when clicking on an item on a fresh tree while holding Shift', async () => {
@@ -404,7 +402,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
       });
 
       it('should expand the selection range when clicking on an item below the last selected item while holding Shift', async () => {
@@ -414,10 +412,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['2', '2.1', '3']);
       });
 
       it('should expand the selection range when clicking on an item above the last selected item while holding Shift', async () => {
@@ -427,10 +425,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('3'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['3']);
+        expect(view.getSelectedTreeItems()).toEqual(['3']);
 
         fireEvent.click(view.getItemRoot('2'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['2', '2.1', '3']);
       });
 
       it('should expand the selection range when clicking on an item while holding Shift after un-selecting another item', async () => {
@@ -440,16 +438,16 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('2'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
 
         fireEvent.click(view.getItemRoot('2'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2', '2.1', '3']);
       });
 
       it('should not expand the selection range when clicking on a disabled item then clicking on an item while holding Shift', async () => {
@@ -465,10 +463,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
       });
 
       it('should not expand the selection range when clicking on an item then clicking a disabled item while holding Shift', async () => {
@@ -484,10 +482,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
       it('should not select disabled items that are part of the selected range', async () => {
@@ -497,10 +495,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
       });
 
       it('should not crash when selecting multiple items in a deeply nested tree', async () => {
@@ -513,7 +511,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         fireEvent.click(view.getItemRoot('1.1.1'));
         fireEvent.click(view.getItemRoot('2'), { shiftKey: true });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1.1.1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1.1.1', '2']);
       });
     });
   });
@@ -526,10 +524,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should un-select selected item when clicking on a checkbox item', async () => {
@@ -539,10 +537,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select when disableSelection is true', async () => {
@@ -552,9 +550,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when clicking on a disabled checkbox item', async () => {
@@ -563,9 +561,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
     });
 
@@ -578,10 +576,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['2'],
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
       });
 
       it('should un-select selected item when clicking on a checkbox item', async () => {
@@ -592,10 +590,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1'],
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select when selectionMode is none', async () => {
@@ -605,9 +603,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           selectionMode: 'none',
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when clicking on a disabled item', async () => {
@@ -617,9 +615,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1', disabled: true }, { id: '2' }],
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should expand the selection range when clicking on a checkbox item below the last selected item while holding Shift', async () => {
@@ -630,10 +628,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['2', '2.1', '3']);
       });
 
       it('should expand the selection range when clicking on a checkbox item above the last selected item while holding Shift', async () => {
@@ -644,10 +642,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('3'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['3']);
+        expect(view.getSelectedTreeItems()).toEqual(['3']);
 
         fireEvent.click(view.getItemRoot('2'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['2', '2.1', '3']);
       });
 
       it('should expand the selection range when clicking on a checkbox item while holding Shift after un-selecting another item', async () => {
@@ -658,16 +656,16 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2', '2.1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2', '2.1', '3']);
       });
 
       it('should not expand the selection range when clicking on a disabled checkbox item then clicking on a checkbox item while holding Shift', async () => {
@@ -684,10 +682,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
       });
 
       it('should not expand the selection range when clicking on a checkbox item then clicking a disabled checkbox item while holding Shift', async () => {
@@ -704,10 +702,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
       it('should not select disabled items that are part of the selected range', async () => {
@@ -718,10 +716,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
       });
 
       it('should not select the parent when selecting all the children if checkboxSelectionPropagation.parents is false', async () => {
@@ -735,7 +733,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1.1', '1.2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1.1', '1.2']);
       });
 
       it('should set the checkbox item as indeterminate when some children are selected but the parent is not', async () => {
@@ -747,7 +745,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1'],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
       });
 
       it('should set the checkbox item as indeterminate when all its children are selected but the parent is not (no propagation)', async () => {
@@ -760,7 +758,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: false, descendants: false },
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
       });
 
       it('should set the checkbox item as indeterminate when some of its descendants are selected but the parent is not', async () => {
@@ -777,7 +775,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1', '1.2'],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
       });
 
       it('should keep the checkbox item indeterminate after collapsing it and expanding another node', async () => {
@@ -792,13 +790,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1'],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
 
         // Use expansion trigger to collapse/expand without toggling selection
         fireEvent.click(view.getItemExpansionTrigger('1')!);
         fireEvent.click(view.getItemExpansionTrigger('2')!);
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
       });
 
       it('should keep parent indeterminate (3 levels) after collapsing the parent and expanding a sibling node', async () => {
@@ -819,14 +817,14 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1', '1.1'],
         });
 
-        expect(view.getItemRoot('1.1')).to.have.attribute('data-indeterminate');
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1.1')).toHaveAttribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
 
         // Use expansion trigger to collapse/expand without toggling selection
         fireEvent.click(view.getItemExpansionTrigger('1')!);
         fireEvent.click(view.getItemExpansionTrigger('2')!);
 
-        expect(view.getItemRoot('1')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
       });
 
       it('should not set the checkbox item as indeterminate when no child is selected and the parent is not either', async () => {
@@ -837,7 +835,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1'],
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('data-indeterminate');
       });
 
       it('should update the indeterminate state of the parent when selecting a child', async () => {
@@ -848,13 +846,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['2'],
         });
 
-        expect(view.getItemRoot('2')).not.to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('2')).not.toHaveAttribute('data-indeterminate');
 
         fireEvent.click(view.getItemRoot('2.1'));
-        expect(view.getItemRoot('2')).to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('2')).toHaveAttribute('data-indeterminate');
 
         fireEvent.click(view.getItemRoot('2.1'));
-        expect(view.getItemRoot('2')).not.to.have.attribute('data-indeterminate');
+        expect(view.getItemRoot('2')).not.toHaveAttribute('data-indeterminate');
       });
     });
 
@@ -870,7 +868,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1', '1.2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.2']);
       });
 
       it('should deselect all the children when deselecting a parent', async () => {
@@ -884,7 +882,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
       });
 
       it('should not select the parent when selecting all the children', async () => {
@@ -898,7 +896,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1.1', '1.2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1.1', '1.2']);
       });
 
       it('should not unselect the parent when unselecting a children', async () => {
@@ -912,7 +910,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.2']);
       });
     });
 
@@ -927,7 +925,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1', '1.1.1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.1.1']);
       });
 
       it('should deselect all the parents when deselecting a child', async () => {
@@ -941,7 +939,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal([]);
+        expect(view.getSelectedTreeItems()).toEqual([]);
       });
     });
 
@@ -962,7 +960,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1', '1.3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.3']);
       });
 
       it('should not select non-selectable descendants when selecting a parent', async () => {
@@ -982,7 +980,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1', '1.3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.3']);
       });
 
       it('should auto-select parent when all selectable children are selected (ignoring disabled children)', async () => {
@@ -1001,7 +999,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1']);
       });
 
       it('should auto-select parent when all selectable children are selected (ignoring non-selectable children)', async () => {
@@ -1021,7 +1019,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '1.1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '1.1']);
       });
 
       it('should not auto-select a non-selectable parent even when all children are selected', async () => {
@@ -1041,29 +1039,29 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1.1', '1.2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1.1', '1.2']);
       });
     });
   });
 
   describe('checkboxSelectionPropagation warning', () => {
     it('should warn when checkboxSelectionPropagation is used with single selection mode', async () => {
-      const consoleWarn = stub(console, 'warn');
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         await render({
           items: [{ id: '1', children: [{ id: '1.1' }] }],
           checkboxSelectionPropagation: { descendants: true },
         });
 
-        expect(consoleWarn.callCount).to.be.greaterThanOrEqual(1);
-        expect(consoleWarn.firstCall.args[0]).to.include('checkboxSelectionPropagation');
+        expect(consoleWarn.mock.calls.length).toBeGreaterThanOrEqual(1);
+        expect(consoleWarn.mock.calls[0][0]).toContain('checkboxSelectionPropagation');
       } finally {
-        consoleWarn.restore();
+        consoleWarn.mockRestore();
       }
     });
 
     it('should not warn when checkboxSelectionPropagation is used with multiple selection mode', async () => {
-      const consoleWarn = stub(console, 'warn');
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         await render({
           items: [{ id: '1', children: [{ id: '1.1' }] }],
@@ -1071,9 +1069,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true },
         });
 
-        expect(consoleWarn.callCount).to.equal(0);
+        expect(consoleWarn.mock.calls.length).toBe(0);
       } finally {
-        consoleWarn.restore();
+        consoleWarn.mockRestore();
       }
     });
   });
@@ -1084,13 +1082,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         items: [{ id: '1' }, { id: '2' }],
       });
 
-      expect(view.getRoot()).not.to.have.attribute('aria-multiselectable');
+      expect(view.getRoot()).not.toHaveAttribute('aria-multiselectable');
     });
 
     it('should have the attribute `aria-multiselectable=true if using multi select`', async () => {
       const view = await render({ items: [{ id: '1' }, { id: '2' }], selectionMode: 'multiple' });
 
-      expect(view.getRoot()).to.have.attribute('aria-multiselectable', 'true');
+      expect(view.getRoot()).toHaveAttribute('aria-multiselectable', 'true');
     });
   });
 
@@ -1101,7 +1099,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('aria-selected', 'false');
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'false');
       });
 
       it('should have the attribute `aria-selected=true` if selected', async () => {
@@ -1110,7 +1108,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: '1',
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('aria-selected', 'true');
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
       });
 
       it('should not have `aria-checked` attribute', async () => {
@@ -1118,7 +1116,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('aria-checked');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
       });
     });
 
@@ -1129,7 +1127,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('aria-selected', 'false');
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'false');
       });
 
       it('should have the attribute `aria-selected=true` if selected', async () => {
@@ -1139,7 +1137,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultSelectedItems: ['1'],
         });
 
-        expect(view.getItemRoot('1')).to.have.attribute('aria-selected', 'true');
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
       });
 
       it('should not have `aria-selected` if selectionMode is none', async () => {
@@ -1148,7 +1146,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           selectionMode: 'none',
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('aria-selected');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-selected');
       });
 
       it('should not have `aria-selected` if the item is disabled', async () => {
@@ -1157,7 +1155,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1', disabled: true }, { id: '2' }],
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('aria-selected');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-selected');
       });
     });
   });
@@ -1169,7 +1167,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1')).to.have.attribute('aria-checked', 'false');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'false');
     });
 
     it('should have the attribute `aria-checked=true` if selected', async () => {
@@ -1179,7 +1177,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1')).to.have.attribute('aria-checked', 'true');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('should have the attribute `aria-checked="mixed"` if partially selected', async () => {
@@ -1189,7 +1187,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         defaultExpandedItems: ['1'],
         checkboxSelection: true,
       });
-      expect(view.getItemRoot('1')).to.have.attribute('aria-checked', 'mixed');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'mixed');
     });
 
     it('should not have `aria-checked` if selectionMode is none', async () => {
@@ -1199,7 +1197,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1')).not.to.have.attribute('aria-checked');
+      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
     });
 
     it('should not have `aria-checked` if the item is disabled', async () => {
@@ -1209,7 +1207,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1')).not.to.have.attribute('aria-checked');
+      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
     });
 
     it('should not have `aria-selected` attribute', async () => {
@@ -1218,7 +1216,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1')).not.to.have.attribute('aria-selected');
+      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-selected');
     });
   });
 
@@ -1233,7 +1231,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', true);
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should un-select selected item', async () => {
@@ -1246,7 +1244,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', false);
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not select an item when disableSelection is true', async () => {
@@ -1259,11 +1257,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', true);
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not un-select an item when disableSelection is true', async () => {
-        const onSelectedItemsChange = spy();
+        const onSelectedItemsChange = vi.fn();
 
         const view = await render({
           items: [{ id: '1' }, { id: '2' }],
@@ -1277,10 +1275,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         // The selection change should be prevented
-        expect(onSelectedItemsChange.callCount).to.equal(0);
+        expect(onSelectedItemsChange.mock.calls.length).toBe(0);
         // Re-enable selection to verify the item is still selected
         await view.setProps({ selectionMode: 'single' });
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
     });
 
@@ -1296,7 +1294,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', true);
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
       });
     });
   });
@@ -1311,9 +1309,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should allow selecting a different item', async () => {
@@ -1323,10 +1321,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           disallowEmptySelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.isItemSelected('2')).to.equal(true);
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('2')).toBe(true);
+        expect(view.isItemSelected('1')).toBe(false);
       });
 
       it('should not un-select via setItemSelection imperative API', async () => {
@@ -1340,7 +1338,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', false);
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
     });
 
@@ -1353,9 +1351,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           disallowEmptySelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
         fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should allow un-selecting an item when another item is still selected', async () => {
@@ -1366,9 +1364,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           disallowEmptySelection: true,
         });
 
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '2']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
         fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['2']);
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
       it('should not un-select the last selected item via checkbox click', async () => {
@@ -1380,9 +1378,9 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelection: true,
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
 
       it('should not un-select all items via setItemSelection imperative API', async () => {
@@ -1397,7 +1395,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           view.actionsRef.current!.setItemSelection('1', false);
         });
 
-        expect(view.isItemSelected('1')).to.equal(true);
+        expect(view.isItemSelected('1')).toBe(true);
       });
     });
   });
@@ -1411,13 +1409,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           isItemSelectionDisabled: (item: any) => !!item.children && item.children.length > 0,
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
-        expect(view.isItemSelected('1.1')).to.equal(false);
+        expect(view.isItemSelected('1.1')).toBe(false);
         fireEvent.click(view.getItemRoot('1.1'));
-        expect(view.isItemSelected('1.1')).to.equal(true);
+        expect(view.isItemSelected('1.1')).toBe(true);
       });
 
       it('should not have aria-selected attribute when item is not selectable (Tree.Item)', async () => {
@@ -1427,8 +1425,8 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           isItemSelectionDisabled: (item: any) => !!item.children && item.children.length > 0,
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('aria-selected');
-        expect(view.getItemRoot('1.1')).to.have.attribute('aria-selected', 'false');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-selected');
+        expect(view.getItemRoot('1.1')).toHaveAttribute('aria-selected', 'false');
       });
 
       it('should not have aria-checked attribute when item is not selectable (Tree.CheckboxItem)', async () => {
@@ -1439,8 +1437,8 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           isItemSelectionDisabled: (item: any) => !!item.children && item.children.length > 0,
         });
 
-        expect(view.getItemRoot('1')).not.to.have.attribute('aria-checked');
-        expect(view.getItemRoot('1.1')).to.have.attribute('aria-checked', 'false');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
+        expect(view.getItemRoot('1.1')).toHaveAttribute('aria-checked', 'false');
       });
     });
 
@@ -1452,13 +1450,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           isItemSelectionDisabled: (item: any) => item.id === '1',
         });
 
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.isItemSelected('1')).to.equal(false);
+        expect(view.isItemSelected('1')).toBe(false);
 
-        expect(view.isItemSelected('2')).to.equal(false);
+        expect(view.isItemSelected('2')).toBe(false);
         fireEvent.click(view.getItemRoot('2'));
-        expect(view.isItemSelected('2')).to.equal(true);
+        expect(view.isItemSelected('2')).toBe(true);
       });
     });
 
@@ -1471,10 +1469,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1']);
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-        expect(view.getSelectedTreeItems()).to.deep.equal(['1', '3']);
+        expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
       });
     });
   });

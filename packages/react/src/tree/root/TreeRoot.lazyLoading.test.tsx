@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import * as React from 'react';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { createRenderer } from '../../../test/createRenderer';
@@ -101,13 +99,13 @@ describe('TreeRoot - Lazy Loading', () => {
         <TreeWithLazyLoading items={[{ id: '1', label: '1', childrenCount: 1 }]} />,
       );
 
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should not load children if item has no children (childrenCount: 0)', async () => {
@@ -115,13 +113,13 @@ describe('TreeRoot - Lazy Loading', () => {
         <TreeWithLazyLoading items={[{ id: '1', label: '1', childrenCount: 0 }]} />,
       );
 
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
     });
 
     it('should load children if item has unknown children count (childrenCount: -1)', async () => {
@@ -129,13 +127,13 @@ describe('TreeRoot - Lazy Loading', () => {
         <TreeWithLazyLoading items={[{ id: '1', label: '1', childrenCount: -1 }]} />,
       );
 
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should handle errors during fetching (item stays collapsed)', async () => {
@@ -154,13 +152,13 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(false);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(isItemExpanded(container, '1')).toBe(false);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
     });
 
     it('should load expanded items on mount', async () => {
@@ -172,8 +170,8 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should load expanded items on mount (deeper items)', async () => {
@@ -193,8 +191,8 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       await awaitMockFetch();
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1', '1-1-1', '1-1-1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '1-1-1', '1-1-1-1']);
     });
 
     it('should use data from props.items on mount (no fetch needed)', async () => {
@@ -213,8 +211,8 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should allow mixing props.items and fetched items on mount', async () => {
@@ -242,17 +240,17 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       // Item 1 has inline children available immediately; item 2 is still loading
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(isItemExpanded(container, '2')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1', '2']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(isItemExpanded(container, '2')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '2']);
 
       // Resolve item 2's fetch
       await act(async () => {
         resolveItem2!([{ id: '2-1', label: '2-1' }]);
       });
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(isItemExpanded(container, '2')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1', '2', '2-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(isItemExpanded(container, '2')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '2', '2-1']);
     });
   });
 
@@ -267,13 +265,13 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(getAllTreeItemIds(container)).to.deep.equal(['initial']);
+      expect(getAllTreeItemIds(container)).toEqual(['initial']);
 
       await act(async () => {
         await actionsRef.current!.updateItemChildren(null);
       });
 
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
     });
 
     it('should refresh specific item children when called with an id', async () => {
@@ -286,7 +284,7 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1']);
+      expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       await act(async () => {
         await actionsRef.current!.updateItemChildren('1');
@@ -295,7 +293,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
   });
 
@@ -323,7 +321,7 @@ describe('TreeRoot - Lazy Loading', () => {
       // Loading indicator should be visible
       // eslint-disable-next-line testing-library/no-container
       const loadingIndicator = container.querySelector('[data-testid="loading-indicator"]');
-      expect(loadingIndicator).to.not.equal(null);
+      expect(loadingIndicator).not.toBe(null);
 
       // Resolve and verify loading goes away
       await act(async () => {
@@ -332,7 +330,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // eslint-disable-next-line testing-library/no-container
       const loadingAfter = container.querySelector('[data-testid="loading-indicator"]');
-      expect(loadingAfter).to.equal(null);
+      expect(loadingAfter).toBe(null);
     });
 
     it('should hide loading indicator after fetch completes', async () => {
@@ -345,7 +343,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // eslint-disable-next-line testing-library/no-container
       const loadingIndicator2 = container.querySelector('[data-testid="loading-indicator"]');
-      expect(loadingIndicator2).to.equal(null);
+      expect(loadingIndicator2).toBe(null);
     });
   });
 
@@ -369,7 +367,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // eslint-disable-next-line testing-library/no-container
       const errorIndicator = container.querySelector('[data-testid="error-indicator"]');
-      expect(errorIndicator).to.not.equal(null);
+      expect(errorIndicator).not.toBe(null);
     });
 
     it('should clear error indicator on successful retry', async () => {
@@ -397,14 +395,14 @@ describe('TreeRoot - Lazy Loading', () => {
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       // eslint-disable-next-line testing-library/no-container
-      expect(container.querySelector('[data-testid="error-indicator"]')).to.not.equal(null);
+      expect(container.querySelector('[data-testid="error-indicator"]')).not.toBe(null);
 
       // Retry — succeeds
       shouldFail = false;
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       // eslint-disable-next-line testing-library/no-container
-      expect(container.querySelector('[data-testid="error-indicator"]')).to.equal(null);
+      expect(container.querySelector('[data-testid="error-indicator"]')).toBe(null);
     });
   });
 
@@ -414,7 +412,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
   describe('cache', () => {
     it('should use cached data on second expansion (with DataSourceCacheDefault)', async () => {
-      const fetchSpy = spy(mockFetchChildren);
+      const fetchSpy = vi.fn(mockFetchChildren);
 
       const { container } = await render(
         <TreeWithLazyLoading
@@ -426,22 +424,22 @@ describe('TreeRoot - Lazy Loading', () => {
       // Expand
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(1);
-      expect(isItemExpanded(container, '1')).to.equal(true);
+      expect(fetchSpy.mock.calls.length).toBe(1);
+      expect(isItemExpanded(container, '1')).toBe(true);
 
       // Collapse
       fireEvent.click(getItemRoot(container, '1'));
-      expect(isItemExpanded(container, '1')).to.equal(false);
+      expect(isItemExpanded(container, '1')).toBe(false);
 
       // Expand again — should use cache, not re-fetch
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(1);
-      expect(isItemExpanded(container, '1')).to.equal(true);
+      expect(fetchSpy.mock.calls.length).toBe(1);
+      expect(isItemExpanded(container, '1')).toBe(true);
     });
 
     it('should bypass cache when updateItemChildren is called (forceRefresh)', async () => {
-      const fetchSpy = spy(mockFetchChildren);
+      const fetchSpy = vi.fn(mockFetchChildren);
       const actionsRef = React.createRef<TreeRootActions | null>();
 
       const { container } = await render(
@@ -455,18 +453,18 @@ describe('TreeRoot - Lazy Loading', () => {
       // Expand to populate cache
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(1);
+      expect(fetchSpy.mock.calls.length).toBe(1);
 
       // Force refresh — should bypass cache
       await act(async () => {
         await actionsRef.current!.updateItemChildren('1');
       });
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(2);
+      expect(fetchSpy.mock.calls.length).toBe(2);
     });
 
     it('should work without cache (no double fetch)', async () => {
-      const fetchSpy = spy(mockFetchChildren);
+      const fetchSpy = vi.fn(mockFetchChildren);
 
       const { container } = await render(
         <TreeWithLazyLoading
@@ -478,8 +476,8 @@ describe('TreeRoot - Lazy Loading', () => {
       // Expand
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(1);
-      expect(isItemExpanded(container, '1')).to.equal(true);
+      expect(fetchSpy.mock.calls.length).toBe(1);
+      expect(isItemExpanded(container, '1')).toBe(true);
     });
   });
 
@@ -489,7 +487,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
   describe('queue', () => {
     it('should not duplicate requests for the same item', async () => {
-      const fetchSpy = spy(mockFetchChildren);
+      const fetchSpy = vi.fn(mockFetchChildren);
 
       const { container } = await render(
         <TreeWithLazyLoading
@@ -502,7 +500,7 @@ describe('TreeRoot - Lazy Loading', () => {
       fireEvent.click(getItemRoot(container, '1'));
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(fetchSpy.callCount).to.equal(1);
+      expect(fetchSpy.mock.calls.length).toBe(1);
     });
 
     it('should handle rapid expand/collapse without race conditions', async () => {
@@ -528,8 +526,8 @@ describe('TreeRoot - Lazy Loading', () => {
       });
 
       // Item should be expanded with children
-      expect(isItemExpanded(container, '1')).to.equal(true);
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(isItemExpanded(container, '1')).toBe(true);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
   });
 
@@ -545,7 +543,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // Item should be expandable (has aria-expanded attribute)
       const item = getItemRoot(container, '1');
-      expect(item.getAttribute('aria-expanded')).to.equal('false');
+      expect(item.getAttribute('aria-expanded')).toBe('false');
     });
 
     it('should not mutate state.items when children are fetched', async () => {
@@ -557,9 +555,9 @@ describe('TreeRoot - Lazy Loading', () => {
       await awaitMockFetch();
 
       // Original items array should be unchanged
-      expect(items).to.deep.equal([{ id: '1', label: '1', childrenCount: 1 }]);
+      expect(items).toEqual([{ id: '1', label: '1', childrenCount: 1 }]);
       // But the tree should show the fetched children
-      expect(getAllTreeItemIds(container)).to.deep.equal(['1', '1-1']);
+      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should correctly compute depth for lazily-loaded nested items', async () => {
@@ -571,7 +569,7 @@ describe('TreeRoot - Lazy Loading', () => {
       await awaitMockFetch();
 
       const childItem = getItemRoot(container, '1-1');
-      expect(childItem.style.getPropertyValue('--depth')).to.equal('1');
+      expect(childItem.style.getPropertyValue('--depth')).toBe('1');
     });
   });
 });

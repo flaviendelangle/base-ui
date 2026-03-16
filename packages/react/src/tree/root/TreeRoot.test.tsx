@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 
@@ -11,7 +9,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
       });
 
       await view.setItems([{ id: '1' }]);
-      expect(view.getAllTreeItemIds()).to.deep.equal(['1']);
+      expect(view.getAllTreeItemIds()).toEqual(['1']);
     });
 
     it('should support adding an item at the end', async () => {
@@ -20,7 +18,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
       });
 
       await view.setItems([{ id: '1' }, { id: '2' }]);
-      expect(view.getAllTreeItemIds()).to.deep.equal(['1', '2']);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '2']);
     });
 
     it('should support adding an item at the beginning', async () => {
@@ -29,11 +27,11 @@ describeTree('TreeRoot - Items', ({ render }) => {
       });
 
       await view.setItems([{ id: '1' }, { id: '2' }]);
-      expect(view.getAllTreeItemIds()).to.deep.equal(['1', '2']);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '2']);
     });
 
     it('should update indexes when two items are swapped', async () => {
-      const onSelectedItemsChange = spy();
+      const onSelectedItemsChange = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }, { id: '3' }],
@@ -42,12 +40,12 @@ describeTree('TreeRoot - Items', ({ render }) => {
       });
 
       await view.setItems([{ id: '1' }, { id: '3' }, { id: '2' }]);
-      expect(view.getAllTreeItemIds()).to.deep.equal(['1', '3', '2']);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '3', '2']);
 
       // Check if the internal state is updated by running a range selection
       fireEvent.click(view.getItemRoot('1'));
       fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
-      expect(onSelectedItemsChange.lastCall.args[0]).to.deep.equal(['1', '3']);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1', '3']);
     });
 
     it('should not mark an item as expandable if its children is an empty array', async () => {
@@ -56,7 +54,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
         defaultExpandedItems: ['1'],
       });
 
-      expect(view.getItemRoot('1')).not.to.have.attribute('aria-expanded');
+      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-expanded');
     });
 
     it('should use itemToStringLabel to render the label', async () => {
@@ -65,8 +63,8 @@ describeTree('TreeRoot - Items', ({ render }) => {
         itemToStringLabel: (item: any) => `Label: ${item.id}`,
       });
 
-      expect(view.getItemRoot('1')).to.have.text('Label: 1');
-      expect(view.getItemRoot('2')).to.have.text('Label: 2');
+      expect(view.getItemRoot('1')).toHaveTextContent('Label: 1');
+      expect(view.getItemRoot('2')).toHaveTextContent('Label: 2');
     });
 
     it('should use itemToChildren to find children', async () => {
@@ -88,7 +86,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
         defaultExpandedItems: ['1'],
       });
 
-      expect(view.getAllTreeItemIds()).to.deep.equal(['1', '1.1', '1.2', '2']);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '1.1', '1.2', '2']);
     });
   });
 
@@ -98,9 +96,9 @@ describeTree('TreeRoot - Items', ({ render }) => {
         items: [{ id: '1' }, { id: '2', disabled: false }, { id: '3', disabled: true }],
       });
 
-      expect(view.getItemRoot('1')).not.to.have.attribute('aria-disabled');
-      expect(view.getItemRoot('2')).not.to.have.attribute('aria-disabled');
-      expect(view.getItemRoot('3')).to.have.attribute('aria-disabled');
+      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-disabled');
+      expect(view.getItemRoot('2')).not.toHaveAttribute('aria-disabled');
+      expect(view.getItemRoot('3')).toHaveAttribute('aria-disabled');
     });
 
     it('should disable all descendants of a disabled item', async () => {
@@ -111,9 +109,9 @@ describeTree('TreeRoot - Items', ({ render }) => {
         defaultExpandedItems: ['1', '1.1'],
       });
 
-      expect(view.getItemRoot('1')).to.have.attribute('aria-disabled', 'true');
-      expect(view.getItemRoot('1.1')).to.have.attribute('aria-disabled', 'true');
-      expect(view.getItemRoot('1.1.1')).to.have.attribute('aria-disabled', 'true');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-disabled', 'true');
+      expect(view.getItemRoot('1.1')).toHaveAttribute('aria-disabled', 'true');
+      expect(view.getItemRoot('1.1.1')).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -124,7 +122,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
         });
 
-        expect(view.actionsRef.current!.getItem('1')).to.deep.equal({
+        expect(view.actionsRef.current!.getItem('1')).toEqual({
           id: '1',
           label: '1',
           children: [{ id: '1.1', label: '1.1' }],
@@ -138,7 +136,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         await view.setItems([{ id: '1' }, { id: '2' }]);
 
-        expect(view.actionsRef.current!.getItem('1')).to.deep.equal({
+        expect(view.actionsRef.current!.getItem('1')).toEqual({
           id: '1',
           label: '1',
         });
@@ -151,7 +149,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1' }],
         });
 
-        expect(view.actionsRef.current!.getItemDOMElement('1')).to.equal(view.getItemRoot('1'));
+        expect(view.actionsRef.current!.getItemDOMElement('1')).toBe(view.getItemRoot('1'));
       });
 
       it('should return null when the item does not exist', async () => {
@@ -159,7 +157,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1' }],
         });
 
-        expect(view.actionsRef.current!.getItemDOMElement('2')).to.equal(null);
+        expect(view.actionsRef.current!.getItemDOMElement('2')).toBe(null);
       });
     });
 
@@ -169,7 +167,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
         });
 
-        expect(view.actionsRef.current!.getItemTree()).to.deep.equal([
+        expect(view.actionsRef.current!.getItemTree()).toEqual([
           { id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] },
           { id: '2', label: '2' },
         ]);
@@ -182,7 +180,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         await view.setItems([{ id: '1' }, { id: '2' }]);
 
-        expect(view.actionsRef.current!.getItemTree()).to.deep.equal([
+        expect(view.actionsRef.current!.getItemTree()).toEqual([
           { id: '1', label: '1' },
           { id: '2', label: '2' },
         ]);
@@ -195,7 +193,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }],
         });
 
-        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).to.deep.equal([
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual([
           '1.1',
           '1.2',
         ]);
@@ -206,7 +204,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.actionsRef.current!.getItemOrderedChildrenIds(null)).to.deep.equal(['1', '2']);
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds(null)).toEqual(['1', '2']);
       });
 
       it('should have up to date children when items change', async () => {
@@ -216,7 +214,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         await view.setItems([{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }]);
 
-        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).to.deep.equal([
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual([
           '1.1',
           '1.2',
         ]);
@@ -229,7 +227,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }] }],
         });
 
-        expect(view.actionsRef.current!.getParentId('1.1')).to.equal('1');
+        expect(view.actionsRef.current!.getParentId('1.1')).toBe('1');
       });
 
       it('should return null for root items', async () => {
@@ -237,7 +235,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.actionsRef.current!.getParentId('1')).to.equal(null);
+        expect(view.actionsRef.current!.getParentId('1')).toBe(null);
       });
     });
 
@@ -248,7 +246,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           defaultExpandedItems: ['1'],
         });
 
-        expect(view.actionsRef.current!.isItemExpanded('1')).to.equal(true);
+        expect(view.actionsRef.current!.isItemExpanded('1')).toBe(true);
       });
 
       it('should return false for collapsed items', async () => {
@@ -256,7 +254,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }] }],
         });
 
-        expect(view.actionsRef.current!.isItemExpanded('1')).to.equal(false);
+        expect(view.actionsRef.current!.isItemExpanded('1')).toBe(false);
       });
     });
 
@@ -267,7 +265,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           defaultSelectedItems: ['1'],
         });
 
-        expect(view.actionsRef.current!.isItemSelected('1')).to.equal(true);
+        expect(view.actionsRef.current!.isItemSelected('1')).toBe(true);
       });
 
       it('should return false for non-selected items', async () => {
@@ -275,7 +273,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }],
         });
 
-        expect(view.actionsRef.current!.isItemSelected('1')).to.equal(false);
+        expect(view.actionsRef.current!.isItemSelected('1')).toBe(false);
       });
     });
   });
@@ -291,9 +289,9 @@ describeTree('TreeRoot - Items', ({ render }) => {
       const childRoot = view.getItemRoot('1.1');
 
       // In flat DOM structure, the child is NOT a descendant of the parent
-      expect(parentRoot.contains(childRoot)).to.equal(false);
+      expect(parentRoot.contains(childRoot)).toBe(false);
       // Both items should be siblings (same parent)
-      expect(parentRoot.parentElement).to.equal(childRoot.parentElement);
+      expect(parentRoot.parentElement).toBe(childRoot.parentElement);
     });
 
     it('should render deeply nested items correctly', async () => {
@@ -307,8 +305,8 @@ describeTree('TreeRoot - Items', ({ render }) => {
       const item111 = view.getItemRoot('1.1.1');
 
       // All items should be siblings in flat structure
-      expect(item1.parentElement).to.equal(item11.parentElement);
-      expect(item11.parentElement).to.equal(item111.parentElement);
+      expect(item1.parentElement).toBe(item11.parentElement);
+      expect(item11.parentElement).toBe(item111.parentElement);
     });
   });
 });

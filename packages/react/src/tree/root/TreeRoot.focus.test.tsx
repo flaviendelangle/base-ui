@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 
@@ -15,10 +13,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('2'));
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       fireEvent.focus(view.getItemRoot('1'));
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should focus the next sibling when a focused middle item is removed', async () => {
@@ -27,10 +25,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('2'));
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       await view.setItems([{ id: '1' }, { id: '3' }]);
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
     });
 
     it('should focus the previous sibling when the focused last item is removed', async () => {
@@ -39,10 +37,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('3'));
-      expect(view.getFocusedItemId()).to.equal('3');
+      expect(view.getFocusedItemId()).toBe('3');
 
       await view.setItems([{ id: '1' }, { id: '2' }]);
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should focus the remaining sibling when the focused item is removed and only one sibling is left', async () => {
@@ -51,10 +49,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('2'));
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
 
       await view.setItems([{ id: '1' }]);
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
 
     it('should focus the parent when the focused item is removed and has no siblings left', async () => {
@@ -64,10 +62,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('2.1'));
-      expect(view.getFocusedItemId()).to.equal('2.1');
+      expect(view.getFocusedItemId()).toBe('2.1');
 
       await view.setItems([{ id: '1' }, { id: '2' }]);
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should focus the next nested sibling when a focused nested item is removed', async () => {
@@ -77,10 +75,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getItemRoot('2.2'));
-      expect(view.getFocusedItemId()).to.equal('2.2');
+      expect(view.getFocusedItemId()).toBe('2.2');
 
       await view.setItems([{ id: '1' }, { id: '2', children: [{ id: '2.1' }, { id: '2.3' }] }]);
-      expect(view.getFocusedItemId()).to.equal('2.3');
+      expect(view.getFocusedItemId()).toBe('2.3');
     });
   });
 
@@ -90,8 +88,8 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         items: [{ id: '1' }, { id: '2' }],
       });
 
-      expect(view.getItemRoot('1').tabIndex).to.equal(0);
-      expect(view.getItemRoot('2').tabIndex).to.equal(-1);
+      expect(view.getItemRoot('1').tabIndex).toBe(0);
+      expect(view.getItemRoot('2').tabIndex).toBe(-1);
     });
 
     it('should set tabIndex={0} on the selected item (single selection)', async () => {
@@ -100,8 +98,8 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         selectedItems: '2',
       });
 
-      expect(view.getItemRoot('1').tabIndex).to.equal(-1);
-      expect(view.getItemRoot('2').tabIndex).to.equal(0);
+      expect(view.getItemRoot('1').tabIndex).toBe(-1);
+      expect(view.getItemRoot('2').tabIndex).toBe(0);
     });
 
     it('should set tabIndex={0} on the first selected item (multi selection)', async () => {
@@ -111,9 +109,9 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         multiple: true,
       });
 
-      expect(view.getItemRoot('1').tabIndex).to.equal(-1);
-      expect(view.getItemRoot('2').tabIndex).to.equal(0);
-      expect(view.getItemRoot('3').tabIndex).to.equal(-1);
+      expect(view.getItemRoot('1').tabIndex).toBe(-1);
+      expect(view.getItemRoot('2').tabIndex).toBe(0);
+      expect(view.getItemRoot('3').tabIndex).toBe(-1);
     });
 
     it('should set tabIndex={0} on the first item if selected item is not visible', async () => {
@@ -122,8 +120,8 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         selectedItems: '2.1',
       });
 
-      expect(view.getItemRoot('1').tabIndex).to.equal(0);
-      expect(view.getItemRoot('2').tabIndex).to.equal(-1);
+      expect(view.getItemRoot('1').tabIndex).toBe(0);
+      expect(view.getItemRoot('2').tabIndex).toBe(-1);
     });
 
     it('should set tabIndex={0} on the first item if no selected item is visible', async () => {
@@ -133,8 +131,8 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         multiple: true,
       });
 
-      expect(view.getItemRoot('1').tabIndex).to.equal(0);
-      expect(view.getItemRoot('2').tabIndex).to.equal(-1);
+      expect(view.getItemRoot('1').tabIndex).toBe(0);
+      expect(view.getItemRoot('2').tabIndex).toBe(-1);
     });
   });
 
@@ -148,7 +146,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         view.actionsRef.current!.focusItem('2');
       });
 
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should not focus item if parent is collapsed', async () => {
@@ -160,7 +158,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         view.actionsRef.current!.focusItem('2.1');
       });
 
-      expect(view.getFocusedItemId()).to.equal(null);
+      expect(view.getFocusedItemId()).toBe(null);
     });
 
     it('should not focus item if grandparent is collapsed', async () => {
@@ -179,7 +177,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         view.actionsRef.current!.focusItem('2.1.1');
       });
 
-      expect(view.getFocusedItemId()).to.equal(null);
+      expect(view.getFocusedItemId()).toBe(null);
     });
 
     it('should focus a deeply nested item if all ancestors are expanded', async () => {
@@ -198,13 +196,13 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         view.actionsRef.current!.focusItem('2.1.1');
       });
 
-      expect(view.getFocusedItemId()).to.equal('2.1.1');
+      expect(view.getFocusedItemId()).toBe('2.1.1');
     });
   });
 
   describe('onItemFocus prop', () => {
     it('should be called when an item is focused', async () => {
-      const onItemFocus = spy();
+      const onItemFocus = vi.fn();
 
       const view = await render({
         items: [{ id: '1' }],
@@ -215,10 +213,10 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         view.getItemRoot('1').focus();
       });
 
-      expect(onItemFocus.callCount).to.equal(1);
-      expect(onItemFocus.lastCall.args[0]).to.equal('1');
-      expect(onItemFocus.lastCall.args[1]).to.have.property('reason', 'keyboard');
-      expect(onItemFocus.lastCall.args[1]).to.have.property('event');
+      expect(onItemFocus.mock.calls.length).toBe(1);
+      expect(onItemFocus.mock.calls.at(-1)![0]).toBe('1');
+      expect(onItemFocus.mock.calls.at(-1)![1]).toHaveProperty('reason', 'keyboard');
+      expect(onItemFocus.mock.calls.at(-1)![1]).toHaveProperty('event');
     });
   });
 
@@ -231,7 +229,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getFocusedItemId()).to.equal(null);
+        expect(view.getFocusedItemId()).toBe(null);
       });
 
       it('should set tabIndex={-1} on the disabled item and tabIndex={0} on the first non-disabled item', async () => {
@@ -240,9 +238,9 @@ describeTree('TreeRoot - Focus', ({ render }) => {
           itemFocusableWhenDisabled: false,
         });
 
-        expect(view.getItemRoot('1').tabIndex).to.equal(-1);
-        expect(view.getItemRoot('2').tabIndex).to.equal(0);
-        expect(view.getItemRoot('3').tabIndex).to.equal(-1);
+        expect(view.getItemRoot('1').tabIndex).toBe(-1);
+        expect(view.getItemRoot('2').tabIndex).toBe(0);
+        expect(view.getItemRoot('3').tabIndex).toBe(-1);
       });
     });
 
@@ -254,7 +252,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
         });
 
         fireEvent.click(view.getItemRoot('1'));
-        expect(view.getFocusedItemId()).to.equal(null);
+        expect(view.getFocusedItemId()).toBe(null);
       });
 
       it('should set tabIndex={0} on the disabled item and tabIndex={-1} on the other items', async () => {
@@ -263,9 +261,9 @@ describeTree('TreeRoot - Focus', ({ render }) => {
           itemFocusableWhenDisabled: true,
         });
 
-        expect(view.getItemRoot('1').tabIndex).to.equal(0);
-        expect(view.getItemRoot('2').tabIndex).to.equal(-1);
-        expect(view.getItemRoot('3').tabIndex).to.equal(-1);
+        expect(view.getItemRoot('1').tabIndex).toBe(0);
+        expect(view.getItemRoot('2').tabIndex).toBe(-1);
+        expect(view.getItemRoot('3').tabIndex).toBe(-1);
       });
     });
   });
@@ -278,7 +276,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getRoot());
-      expect(view.getFocusedItemId()).to.equal('2');
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should focus the first item when the tree root receives focus and no item is selected', async () => {
@@ -287,12 +285,12 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       });
 
       fireEvent.focus(view.getRoot());
-      expect(view.getFocusedItemId()).to.equal('1');
+      expect(view.getFocusedItemId()).toBe('1');
     });
   });
 
   it('should not error when component state changes', async () => {
-    const onItemFocus = spy();
+    const onItemFocus = vi.fn();
 
     const view = await render({
       items: [{ id: '1', children: [{ id: '1.1' }] }],
@@ -303,15 +301,15 @@ describeTree('TreeRoot - Focus', ({ render }) => {
     act(() => {
       view.getItemRoot('1').focus();
     });
-    expect(view.getFocusedItemId()).to.equal('1');
+    expect(view.getFocusedItemId()).toBe('1');
 
     fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-    expect(view.getFocusedItemId()).to.equal('1.1');
+    expect(view.getFocusedItemId()).toBe('1.1');
 
     fireEvent.keyDown(view.getItemRoot('1.1'), { key: 'ArrowUp' });
-    expect(view.getFocusedItemId()).to.equal('1');
+    expect(view.getFocusedItemId()).toBe('1');
 
     fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
-    expect(view.getFocusedItemId()).to.equal('1.1');
+    expect(view.getFocusedItemId()).toBe('1.1');
   });
 });
