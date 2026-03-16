@@ -101,5 +101,6 @@
   "101": "Base UI: TemporalFieldRootContext is missing. Temporal Field parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />.",
   "102": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />, <TimeField.Root /> or <DateTimeField.Root />.",
   "103": "Base UI: LocalizationContext is missing. Temporal components must be placed within <LocalizationProvider />",
-  "104": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />."
+  "104": "Base UI: DateFieldRootContext is missing. DateField parts must be placed within <DateField.Root />.",
+  "105": "Base UI: DateFieldRootContext is missing. DateField, TimeField and DateTimeField parts must be placed within their respective Root component."
 }
