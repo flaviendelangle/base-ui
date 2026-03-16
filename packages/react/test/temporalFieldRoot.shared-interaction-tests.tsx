@@ -3,8 +3,13 @@ import { createRenderer } from '#test-utils';
 import { TemporalFieldTestDescriptor, adapter } from './temporalField.test-descriptors';
 
 export function describeTemporalFieldInteraction(descriptor: TemporalFieldTestDescriptor) {
-  const { name, Field: FieldComponent, defaultFormat, defaultValueISO, expectedSectionLabels } =
-    descriptor;
+  const {
+    name,
+    Field: FieldComponent,
+    defaultFormat,
+    defaultValueISO,
+    expectedSectionLabels,
+  } = descriptor;
 
   describe(`<${name} /> - DOM Interactions`, () => {
     const { render } = createRenderer();

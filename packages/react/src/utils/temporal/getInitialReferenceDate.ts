@@ -125,11 +125,19 @@ export function getInitialReferenceDate(
 
   let referenceDate = roundDate(adapter, granularity, adapter.now(timezone));
 
-  if (min != null && adapter.isValid(min) && isBeforeForType(adapter, dateType, referenceDate, min)) {
+  if (
+    min != null &&
+    adapter.isValid(min) &&
+    isBeforeForType(adapter, dateType, referenceDate, min)
+  ) {
     referenceDate = clampToBoundary(adapter, dateType, granularity, referenceDate, min);
   }
 
-  if (max != null && adapter.isValid(max) && isAfterForType(adapter, dateType, referenceDate, max)) {
+  if (
+    max != null &&
+    adapter.isValid(max) &&
+    isAfterForType(adapter, dateType, referenceDate, max)
+  ) {
     referenceDate = clampToBoundary(adapter, dateType, granularity, referenceDate, max);
   }
 

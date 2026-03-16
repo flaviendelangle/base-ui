@@ -589,5 +589,4 @@ describe('TemporalFieldStore - Field Integration', () => {
       expect(adapter.isValid(store.state.value)).toBe(true);
     });
   });
-
 });

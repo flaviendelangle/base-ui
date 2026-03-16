@@ -361,10 +361,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     // Update Field context state (filled, dirty, validation)
     if (fieldContext) {
       fieldContext.setFilled(
-        !manager.areValuesEqual(
-          newValueWithInputTimezone,
-          manager.emptyValue,
-        ),
+        !manager.areValuesEqual(newValueWithInputTimezone, manager.emptyValue),
       );
 
       // Set dirty state by comparing with initial value
@@ -566,7 +563,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       const mergedDate = mergeDateIntoReferenceDate(
         newActiveDate,
         newActiveDateSections,
-        fieldConfig.getDateFromSection(refValue as TValue, dp) ?? (refValue as TemporalSupportedObject),
+        fieldConfig.getDateFromSection(refValue as TValue, dp) ??
+          (refValue as TemporalSupportedObject),
         true,
       );
 

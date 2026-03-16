@@ -361,11 +361,7 @@ export default function DateFieldValidation() {
                 <Field.Label className={styles.Label}>
                   Date (min: {format(minLarge, 'MMM d')}, max: {format(maxLarge, 'MMM d')})
                 </Field.Label>
-                <DateField.Root
-                  className={styles.Root}
-                  min={minLarge}
-                  max={maxLarge}
-                >
+                <DateField.Root className={styles.Root} min={minLarge} max={maxLarge}>
                   {(section) => (
                     <DateField.Section
                       key={section.index}
@@ -439,11 +435,7 @@ export default function DateFieldValidation() {
                 <Field.Label className={styles.Label}>
                   Date (min: {format(min, 'MMM d')})
                 </Field.Label>
-                <DateField.Root
-                  className={styles.Root}
-                  format="EEEE, MMM d, yyyy"
-                  min={min}
-                >
+                <DateField.Root className={styles.Root} format="EEEE, MMM d, yyyy" min={min}>
                   {(section) => (
                     <DateField.Section
                       key={section.index}

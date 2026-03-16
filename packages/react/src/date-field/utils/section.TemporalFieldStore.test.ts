@@ -677,11 +677,23 @@ describe('TemporalFieldStore - Section', () => {
       expect(store.state.value).toBe(null);
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '03', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '03',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '15', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '15',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(4);
-      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2024',
+        shouldGoToNextSection: false,
+      });
 
       const value = store.state.value;
       expect(adapter.isValid(value)).toBe(true);
@@ -699,11 +711,23 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: 'Feb', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: 'Feb',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '14', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '14',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(4);
-      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2024',
+        shouldGoToNextSection: false,
+      });
 
       const value = store.state.value;
       expect(adapter.isValid(value)).toBe(true);
@@ -719,9 +743,17 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '14', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '14',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '30', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '30',
+        shouldGoToNextSection: false,
+      });
 
       const value = store.state.value;
       expect(adapter.isValid(value)).toBe(true);
@@ -737,11 +769,23 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '30', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '30',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(4);
-      store.updateDatePart({ sectionIndex: 4, newDatePartValue: 'PM', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: 'PM',
+        shouldGoToNextSection: false,
+      });
 
       const value = store.state.value;
       expect(adapter.isValid(value)).toBe(true);
@@ -757,11 +801,23 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '25', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '25',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '12', shouldGoToNextSection: true });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '12',
+        shouldGoToNextSection: true,
+      });
       store.selectClosestDatePart(4);
-      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2024',
+        shouldGoToNextSection: false,
+      });
 
       const value = store.state.value;
       expect(adapter.isValid(value)).toBe(true);
@@ -798,7 +854,11 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: false,
+      });
 
       expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
 
@@ -814,7 +874,11 @@ describe('TemporalFieldStore - Section', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: false,
+      });
 
       expect((store as any).sectionToUpdateOnNextInvalidDate).not.toBe(null);
 

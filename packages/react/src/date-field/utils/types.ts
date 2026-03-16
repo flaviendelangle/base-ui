@@ -352,9 +352,7 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
   /**
    * Returns the manager of the field.
    */
-  getManager: (
-    adapter: TemporalAdapter,
-  ) => TemporalManager<TValue>;
+  getManager: (adapter: TemporalAdapter) => TemporalManager<TValue>;
   /**
    * Creates the section list from the current value.
    * The `prevSections` are used on the range fields to avoid losing the sections of a partially filled date when editing the other date.

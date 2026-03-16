@@ -16,9 +16,18 @@ describe('TemporalFieldStore - Edge Dates', () => {
   }
 
   // Helper to fill all sections of a date (MM/DD/YYYY format)
-  function fillDate(store: TemporalFieldStore<TemporalValue>, month: string, day: string, year: string) {
+  function fillDate(
+    store: TemporalFieldStore<TemporalValue>,
+    month: string,
+    day: string,
+    year: string,
+  ) {
     store.selectClosestDatePart(0);
-    store.updateDatePart({ sectionIndex: 0, newDatePartValue: month, shouldGoToNextSection: false });
+    store.updateDatePart({
+      sectionIndex: 0,
+      newDatePartValue: month,
+      shouldGoToNextSection: false,
+    });
     store.selectClosestDatePart(2);
     store.updateDatePart({ sectionIndex: 2, newDatePartValue: day, shouldGoToNextSection: false });
     store.selectClosestDatePart(4);
@@ -89,11 +98,19 @@ describe('TemporalFieldStore - Edge Dates', () => {
 
       // Update year to 2024 (leap year)
       store.selectClosestDatePart(4);
-      store.updateDatePart({ sectionIndex: 4, newDatePartValue: '2024', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 4,
+        newDatePartValue: '2024',
+        shouldGoToNextSection: false,
+      });
 
       // Update day to 29
       store.selectClosestDatePart(2);
-      store.updateDatePart({ sectionIndex: 2, newDatePartValue: '29', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 2,
+        newDatePartValue: '29',
+        shouldGoToNextSection: false,
+      });
 
       const value = selectors.value(store.state);
       expect(adapter.isValid(value)).toBe(true);
@@ -158,7 +175,11 @@ describe('TemporalFieldStore - Edge Dates', () => {
       );
 
       store.selectClosestDatePart(0);
-      store.updateDatePart({ sectionIndex: 0, newDatePartValue: '02', shouldGoToNextSection: false });
+      store.updateDatePart({
+        sectionIndex: 0,
+        newDatePartValue: '02',
+        shouldGoToNextSection: false,
+      });
 
       const value = selectors.value(store.state);
       // Feb 31 is invalid — the store should keep the original value

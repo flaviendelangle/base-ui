@@ -159,8 +159,7 @@ describe('SharedCalendarStore - value', () => {
 
       expect(onValueChange.mock.calls.length).toBe(1);
 
-      const eventDetails = onValueChange.mock
-        .calls[0][1] as CalendarValueChangeEventDetails;
+      const eventDetails = onValueChange.mock.calls[0][1] as CalendarValueChangeEventDetails;
       const validationError = eventDetails.getValidationError();
       expect(validationError).toBe('rangeUnderflow');
     });
@@ -176,8 +175,7 @@ describe('SharedCalendarStore - value', () => {
 
       expect(onValueChange.mock.calls.length).toBe(1);
 
-      const eventDetails = onValueChange.mock
-        .calls[0][1] as CalendarValueChangeEventDetails;
+      const eventDetails = onValueChange.mock.calls[0][1] as CalendarValueChangeEventDetails;
       const validationError = eventDetails.getValidationError();
       expect(validationError).toBe(null);
     });

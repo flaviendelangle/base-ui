@@ -34,9 +34,7 @@ const readOnlySelector = createSelector((state: State) => state.readOnly);
 const editableSelector = createSelector(
   (state: State) => !(state.fieldContext?.state.disabled || state.disabledProp) && !state.readOnly,
 );
-const invalidSelector = createSelector(
-  (state: State) => state.fieldContext?.state.valid === false,
-);
+const invalidSelector = createSelector((state: State) => state.fieldContext?.state.valid === false);
 const nameSelector = createSelector((state: State) => state.fieldContext?.name ?? state.nameProp);
 const idSelector = createSelector((state: State) => state.id);
 const managerSelector = createSelector((state: State) => state.manager);

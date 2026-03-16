@@ -388,10 +388,7 @@ export function describeTemporalFieldRoot(descriptor: TemporalFieldTestDescripto
 
       it('should set min attribute when min is provided', async () => {
         await render(
-          <FieldComponent
-            format={defaultFormat}
-            min={adapter.date(minValueISO, 'default')}
-          />,
+          <FieldComponent format={defaultFormat} min={adapter.date(minValueISO, 'default')} />,
         );
 
         const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;
@@ -400,10 +397,7 @@ export function describeTemporalFieldRoot(descriptor: TemporalFieldTestDescripto
 
       it('should set max attribute when max is provided', async () => {
         await render(
-          <FieldComponent
-            format={defaultFormat}
-            max={adapter.date(maxValueISO, 'default')}
-          />,
+          <FieldComponent format={defaultFormat} max={adapter.date(maxValueISO, 'default')} />,
         );
 
         const hiddenInput = document.querySelector('input[tabindex="-1"]') as HTMLInputElement;

@@ -74,9 +74,7 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
 
       // Only use min and max to restrict month if they share the same year
       const shouldIgnoreValidation =
-        !adapter.isValid(min) ||
-        !adapter.isValid(max) ||
-        !adapter.isSameYear(min, max);
+        !adapter.isValid(min) || !adapter.isValid(max) || !adapter.isSameYear(min, max);
 
       return {
         characterEditing: boundaries,
@@ -180,9 +178,7 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
 
       // Only use min and max to restrict day if they share the same month
       const shouldIgnoreValidation =
-        !adapter.isValid(min) ||
-        !adapter.isValid(max) ||
-        !adapter.isSameMonth(min, max);
+        !adapter.isValid(min) || !adapter.isValid(max) || !adapter.isSameMonth(min, max);
 
       return {
         characterEditing: boundaries,
@@ -237,9 +233,7 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
 
       // Only use min and max to restrict hours if they share the same day
       const shouldIgnoreValidation =
-        !adapter.isValid(min) ||
-        !adapter.isValid(max) ||
-        !adapter.isSameDay(min, max);
+        !adapter.isValid(min) || !adapter.isValid(max) || !adapter.isSameDay(min, max);
 
       return {
         characterEditing: boundaries,
@@ -273,9 +267,7 @@ const DATE_PART_HELPERS_MAP: Record<TemporalFieldDatePartType, FormatParserDateP
 
       // Only use min and max to restrict minutes if they share the same hour
       const shouldIgnoreValidation =
-        !adapter.isValid(min) ||
-        !adapter.isValid(max) ||
-        !adapter.isSameHour(min, max);
+        !adapter.isValid(min) || !adapter.isValid(max) || !adapter.isSameHour(min, max);
 
       return {
         characterEditing: boundaries,

@@ -3,7 +3,10 @@ import {
   TemporalFieldConfiguration,
   HiddenInputValidationProps,
 } from '../../date-field/utils/types';
-import { baseTemporalFieldConfig, STEP_MULTIPLIERS } from '../../date-field/utils/baseTemporalFieldConfig';
+import {
+  baseTemporalFieldConfig,
+  STEP_MULTIPLIERS,
+} from '../../date-field/utils/baseTemporalFieldConfig';
 import { getTimeManager } from '../../utils/temporal/getTimeManager';
 /**
  * Formats a time value for native input.

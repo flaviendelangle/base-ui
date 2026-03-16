@@ -110,7 +110,10 @@ describe('Temporal field translations', () => {
 
     it('should render Clear button with English aria-label', async () => {
       await render(
-        <DateFieldBase.Root format={numericDateFormat} defaultValue={adapter.date('2024-03-15', 'default')}>
+        <DateFieldBase.Root
+          format={numericDateFormat}
+          defaultValue={adapter.date('2024-03-15', 'default')}
+        >
           <DateFieldBase.SectionList>
             {(section) => <DateFieldBase.Section key={section.index} section={section} />}
           </DateFieldBase.SectionList>
@@ -216,7 +219,10 @@ describe('Temporal field translations', () => {
     it('should render Clear button with French aria-label', async () => {
       await render(
         <LocalizationProvider translations={frFR}>
-          <DateFieldBase.Root format={numericDateFormat} defaultValue={adapter.date('2024-03-15', 'default')}>
+          <DateFieldBase.Root
+            format={numericDateFormat}
+            defaultValue={adapter.date('2024-03-15', 'default')}
+          >
             <DateFieldBase.SectionList>
               {(section) => <DateFieldBase.Section key={section.index} section={section} />}
             </DateFieldBase.SectionList>
