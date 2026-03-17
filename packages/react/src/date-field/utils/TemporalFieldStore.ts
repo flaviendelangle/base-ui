@@ -986,7 +986,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return;
     }
 
-    const selection = ownerDocument(this.rootRef.current).getSelection();
+    const ownerDoc = ownerDocument(this.rootRef.current);
+    const ownerWin = ownerDoc.defaultView ?? window;
+    const selection = ownerDoc.getSelection();
     if (!selection) {
       return;
     }
@@ -997,7 +999,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       if (
         selection.rangeCount > 0 &&
         // Firefox can return a Restricted object here
-        selection.getRangeAt(0).startContainer instanceof Node &&
+        selection.getRangeAt(0).startContainer instanceof ownerWin.Node &&
         this.rootRef.current.contains(selection.getRangeAt(0).startContainer)
       ) {
         selection.removeAllRanges();
@@ -1006,7 +1008,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return;
     }
 
-    const range = new window.Range();
+    const range = new ownerWin.Range();
     const target = this.getSectionElement(selected);
     if (target == null) {
       return;
