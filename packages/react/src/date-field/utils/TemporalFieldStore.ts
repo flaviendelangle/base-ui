@@ -5,7 +5,6 @@ import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
 import {
   TemporalFieldDatePartType,
-  TemporalNonNullableValue,
   TemporalSupportedObject,
   TemporalSupportedValue,
 } from '../../types/temporal';
@@ -31,7 +30,6 @@ import {
   buildSections,
   getAdjustmentDelta,
   getDirection,
-  getTimezoneToRender,
   applyLocalizedDigits,
   cleanDigitDatePartValue,
   getLetterEditingOptions,
@@ -131,28 +129,6 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
     validateParsedFormat(manager.dateType, parsedFormat);
 
-    const referenceValue = config.getInitialReferenceValue({
-      externalReferenceDate: parameters.referenceDate,
-      value,
-      adapter,
-      validationProps,
-      granularity: parsedFormat.granularity,
-      dateType: manager.dateType,
-      timezone: getTimezoneToRender(
-        adapter,
-        manager,
-        value,
-        parameters.referenceDate,
-        parameters.timezone,
-      ),
-    });
-
-    const sections = config.getSectionsFromValue(value, (date) =>
-      buildSections(adapter, parsedFormat, date),
-    );
-
-    const hiddenInputRef = React.createRef<HTMLInputElement>();
-
     super(
       {
         rawFormat: parameters.format,
@@ -174,12 +150,18 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         translations,
         manager,
         value,
-        sections,
-        referenceValue,
+        sections: config.getSectionsFromValue(value, (date) =>
+          buildSections(adapter, parsedFormat, date),
+        ),
+        lastValidValue: config.updateReferenceValue(
+          adapter,
+          value,
+          manager.emptyValue as TValue,
+        ),
         format: parsedFormat,
         characterQuery: null,
         selectedSection: null,
-        hiddenInputRef,
+        hiddenInputRef: React.createRef<HTMLInputElement>(),
         clearErrors: parameters.clearErrors,
       },
       { onValueChange: parameters.onValueChange },
@@ -411,7 +393,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       return mergeDateIntoReferenceDate(date, sectionsList, referenceDate, false);
     };
 
-    const newValue = fieldConfig.parseValueStr(valueStr, this.state.referenceValue, parseDateStr);
+    const newValue = fieldConfig.parseValueStr(
+      valueStr,
+      selectors.referenceValue(this.state),
+      parseDateStr,
+    );
     if (!invalidValue) {
       this.publish(newValue, reason, event);
     }
@@ -452,7 +438,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const config = selectors.config(this.state);
     const format = selectors.format(this.state);
     const sectionsBefore = selectors.sections(this.state);
-    const referenceValueBefore = selectors.referenceValue(this.state);
+    const lastValidValueBefore = selectors.lastValidValue(this.state);
     const sectionToUpdate = this.sectionToUpdateOnNextInvalidDate;
 
     const isActiveDateInvalid =
@@ -473,13 +459,13 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
     return {
       sections: sectionsList,
-      referenceValue: (isActiveDateInvalid
-        ? referenceValueBefore
+      lastValidValue: (isActiveDateInvalid
+        ? lastValidValueBefore
         : config.updateReferenceValue(
             adapter,
             newValue,
-            referenceValueBefore,
-          )) as TemporalNonNullableValue<TValue>,
+            lastValidValueBefore,
+          )) as TValue,
     };
   }
 

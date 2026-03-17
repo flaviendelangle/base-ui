@@ -15,7 +15,7 @@ export const baseTemporalFieldConfig: Pick<
   | 'getDateSectionsFromValue'
   | 'updateDateInValue'
   | 'parseValueStr'
-  | 'getInitialReferenceValue'
+  | 'getReferenceValue'
   | 'clearDateSections'
   | 'updateReferenceValue'
   | 'stringifyValue'
@@ -26,13 +26,13 @@ export const baseTemporalFieldConfig: Pick<
   updateDateInValue: (value, activeSection, activeDate) => activeDate,
   parseValueStr: (valueStr, referenceValue, parseDate) =>
     parseDate(valueStr.trim(), referenceValue),
-  getInitialReferenceValue: ({ value, ...other }) =>
-    getInitialReferenceDate({ ...other, externalDate: value }),
+  getReferenceValue: ({ lastValidValue, ...other }) =>
+    getInitialReferenceDate({ ...other, externalDate: lastValidValue }),
 
   clearDateSections: (sections) =>
     sections.map((section) => (isDatePart(section) ? { ...section, value: '' } : section)),
-  updateReferenceValue: (adapter, value, prevReferenceValue) =>
-    adapter.isValid(value) ? value : prevReferenceValue,
+  updateReferenceValue: (adapter, value, prevLastValidValue) =>
+    adapter.isValid(value) ? value : prevLastValidValue,
   stringifyValue: (adapter, value) =>
     adapter.isValid(value) ? adapter.toJsDate(value).toISOString() : '',
 };

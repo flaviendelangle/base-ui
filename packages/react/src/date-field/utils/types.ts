@@ -168,10 +168,13 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   selectedSection: number | null;
   /**
-   * Non-nullable value used to keep trace of the timezone and the date parts not present in the format.
-   * It is updated whenever we have a valid date (for the Range Pickers we update only the portion of the range that is valid).
+   * The last valid value entered by the user.
+   * Used to keep track of date parts not present in the format (e.g., time on a date-only field).
+   * - `null` (or `[null, null]` for range) if no valid value has been entered yet.
+   * - Updated whenever the value is valid; preserved when the value becomes null/invalid.
+   * - For range fields, each part is updated independently.
    */
-  referenceValue: TemporalNonNullableValue<TValue>;
+  lastValidValue: TValue;
   /**
    * Whether the user must enter a value before submitting a form.
    */
@@ -396,11 +399,12 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
     section: TemporalFieldSection,
   ) => TemporalFieldSection[];
   /**
-   * Returns the reference value to use when mounting the component.
+   * Returns the reference value (used as merge base when editing) derived from `lastValidValue` and other props.
+   * Called by the `referenceValue` selector on every relevant state change.
    */
-  getInitialReferenceValue: (params: {
+  getReferenceValue: (params: {
     externalReferenceDate: TemporalSupportedObject | undefined;
-    value: TValue;
+    lastValidValue: TValue;
     validationProps: GetInitialReferenceDateValidationProps;
     adapter: TemporalAdapter;
     granularity: TemporalFieldDatePartType;
@@ -415,14 +419,16 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
     section: TemporalFieldSection,
   ) => TemporalFieldSection[];
   /**
-   * Updates the reference value with the new value.
-   * This method must make sure that no date inside the returned `referenceValue` is invalid.
+   * Updates `lastValidValue` when the field value changes.
+   * For non-range: keeps the previous `lastValidValue` when value is invalid, otherwise uses the new value.
+   * For range: updates each part independently — only the valid parts are updated.
+   * Must handle `null` as `prevLastValidValue` (treated as the empty starting state).
    */
   updateReferenceValue: (
     adapter: TemporalAdapter,
     value: TValue,
-    prevReferenceValue: TemporalNonNullableValue<TValue>,
-  ) => TemporalNonNullableValue<TValue>;
+    prevLastValidValue: TValue,
+  ) => TValue;
   /**
    * Stringifies the value to be used in form submissions.
    */

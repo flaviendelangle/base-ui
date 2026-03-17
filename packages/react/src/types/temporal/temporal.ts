@@ -47,3 +47,4 @@ export type TemporalNonNullableValue<TValue extends TemporalSupportedValue> =
       ? TemporalSupportedObject | TemporalNonNullableRangeValue
       : TemporalNonNullableRangeValue
     : TemporalSupportedObject;
+

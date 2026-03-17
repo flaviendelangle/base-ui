@@ -227,7 +227,7 @@ describe('TemporalFieldStore - Value', () => {
       expect(dateParts[2].value).toBe('2024'); // year
     });
 
-    it('should update reference value for a valid date', () => {
+    it('should update last valid value for a valid date', () => {
       const store = new TemporalFieldStore(
         {
           ...DEFAULT_PARAMETERS,
@@ -239,7 +239,7 @@ describe('TemporalFieldStore - Value', () => {
       const newDate = adapter.date('2024-06-15', 'default');
       const derived = store.deriveStateFromNewValue(newDate);
 
-      expect(adapter.isValid(derived.referenceValue)).toBe(true);
+      expect(adapter.isValid(derived.lastValidValue)).toBe(true);
     });
 
     it('should return sections with empty values for null value', () => {
@@ -257,6 +257,75 @@ describe('TemporalFieldStore - Value', () => {
       dateParts.forEach((section) => {
         expect(section.value).toBe('');
       });
+    });
+  });
+
+  describe('referenceValue staleness', () => {
+    it('should pick up a new referenceDate when value is null', () => {
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+      const referenceDate = adapter.date('2020-03-15', 'default');
+      store.set('referenceDateProp', referenceDate);
+
+      const refValue = selectors.referenceValue(store.state);
+      expect(adapter.getYear(refValue)).toBe(2020);
+      expect(adapter.getMonth(refValue)).toBe(2); // March (0-indexed)
+      expect(adapter.getDate(refValue)).toBe(15);
+    });
+
+    it('should re-clamp referenceValue to new min when value and referenceDate are null', () => {
+      // Without a referenceDate prop, the reference falls back to now(), which is clamped to min.
+      // Set a far-future min so now() (2026-03-17 in tests) is before it and gets clamped.
+      const futureMin = adapter.date('2030-06-01', 'default');
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, min: futureMin },
+        dateFieldConfig,
+      );
+
+      const refValue = selectors.referenceValue(store.state);
+      expect(adapter.getYear(refValue)).toBe(2030);
+      expect(adapter.getMonth(refValue)).toBe(5); // June (0-indexed)
+
+      // Now change min to an even further future date
+      const newMin = adapter.date('2035-01-01', 'default');
+      store.set('min', newMin);
+
+      const updatedRefValue = selectors.referenceValue(store.state);
+      expect(adapter.getYear(updatedRefValue)).toBe(2035);
+    });
+
+    it('should apply updated timezone to referenceValue when value is valid', () => {
+      const validDate = adapter.date('2024-06-15', 'default');
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, defaultValue: validDate },
+        dateFieldConfig,
+      );
+
+      store.set('timezoneProp', 'UTC');
+
+      const refValue = selectors.referenceValue(store.state);
+      expect(adapter.getTimezone(refValue)).toBe('UTC');
+      expect(adapter.getYear(refValue)).toBe(2024);
+    });
+
+    it('should keep last valid value as reference after value is cleared, ignoring new referenceDate', () => {
+      const validDate = adapter.date('2024-06-15', 'default');
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, defaultValue: validDate },
+        dateFieldConfig,
+      );
+
+      // Clear the value
+      store.clear();
+
+      // Change referenceDate after clearing
+      store.set('referenceDateProp', adapter.date('2020-01-01', 'default'));
+
+      const refValue = selectors.referenceValue(store.state);
+      // Should still use the last valid value (2024-06-15), not the new referenceDate
+      expect(adapter.getYear(refValue)).toBe(2024);
+      expect(adapter.getMonth(refValue)).toBe(5); // June (0-indexed)
+      expect(adapter.getDate(refValue)).toBe(15);
     });
   });
 });

@@ -48,10 +48,31 @@ const fieldContextSelector = createSelector((state: State) => state.fieldContext
 const stepSelector = createSelector((state: State) => state.step);
 const hiddenInputRefSelector = createSelector((state: State) => state.hiddenInputRef);
 const valueSelector = createSelector((state: State) => state.value);
+const lastValidValueSelector = createSelector((state: State) => state.lastValidValue);
 const sectionsSelector = createSelector((state: State) => state.sections);
 const areAllSectionsEmptySelector = createSelectorMemoized(
   (state: State) => state.sections,
   (sections) => sections.every((section) => !isDatePart(section) || section.value === ''),
+);
+const referenceValueSelector = createSelectorMemoized(
+  (state: State) => state.lastValidValue,
+  (state: State) => state.referenceDateProp,
+  timezoneToRenderSelector,
+  validationPropsSelector,
+  (state: State) => state.format.granularity,
+  (state: State) => state.manager,
+  adapterSelector,
+  configSelector,
+  (lastValidValue, referenceDate, timezone, validationProps, granularity, manager, adapter, config) =>
+    config.getReferenceValue({
+      lastValidValue,
+      externalReferenceDate: referenceDate ?? undefined,
+      adapter,
+      validationProps,
+      granularity,
+      dateType: manager.dateType,
+      timezone,
+    }),
 );
 
 const formatSelector = createSelector((state: State) => state.format);
@@ -79,7 +100,8 @@ export const selectors = {
 
   // Value
   value: valueSelector,
-  referenceValue: createSelector((state: State) => state.referenceValue),
+  lastValidValue: lastValidValueSelector,
+  referenceValue: referenceValueSelector,
 
   // Section
   sections: sectionsSelector,
