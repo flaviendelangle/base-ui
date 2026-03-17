@@ -896,6 +896,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         event.preventDefault();
         this.selectPreviousDatePart();
       }
+      // Navigate to previous section when Backspace is pressed on an empty section
+      else if (event.key === 'Backspace') {
+        const section = selectors.datePart(this.state, sectionIndex);
+        if (section != null && section.value === '') {
+          event.preventDefault();
+          this.selectPreviousDatePart();
+        }
+      }
       // Reset the value of the current section
       else if (event.key === 'Delete') {
         event.preventDefault();

@@ -603,6 +603,31 @@ describe('TemporalFieldStore - Section', () => {
       expect(store.state.selectedSection).toBe(1); // Should select month (first date part)
     });
 
+    it('should navigate to previous section on clearActive when section is already empty', () => {
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+      // Select day section (index 2) and verify it's empty
+      store.selectClosestDatePart(2);
+      expect(store.state.selectedSection).toBe(2);
+      const dayPart = selectors.datePart(store.state, 2);
+      expect(dayPart!.value).toBe('');
+
+      // Navigate to previous section
+      store.selectPreviousDatePart();
+      expect(store.state.selectedSection).toBe(0); // month (skips separator at index 1)
+    });
+
+    it('should stay on first section when trying to navigate to previous from first empty section', () => {
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+      store.selectClosestDatePart(0); // month (first section)
+      expect(store.state.selectedSection).toBe(0);
+
+      // Should stay at month since there's no previous section
+      store.selectPreviousDatePart();
+      expect(store.state.selectedSection).toBe(0);
+    });
+
     it('should remove selected section', () => {
       const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
 
