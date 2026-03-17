@@ -628,7 +628,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectNextDatePart() {
+  public selectDatePartOnTheRight() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -641,7 +641,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
   }
 
-  public selectPreviousDatePart() {
+  public selectDatePartOnTheLeft() {
     const selected = selectors.selectedSection(this.state);
     if (selected == null) {
       return;
@@ -651,6 +651,22 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const previousIndex = this.getAdjacentDatePartIndex(sectionsList, selected - 1, -1);
     if (previousIndex != null) {
       this.set('selectedSection', previousIndex);
+    }
+  }
+
+  public selectNextDatePart() {
+    if (selectors.direction(this.state) === 'rtl') {
+      this.selectDatePartOnTheLeft();
+    } else {
+      this.selectDatePartOnTheRight();
+    }
+  }
+
+  public selectPreviousDatePart() {
+    if (selectors.direction(this.state) === 'rtl') {
+      this.selectDatePartOnTheRight();
+    } else {
+      this.selectDatePartOnTheLeft();
     }
   }
 
@@ -891,10 +907,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       // No RTL swap needed — FormatParser already reverses section order for RTL.
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        this.selectNextDatePart();
+        this.selectDatePartOnTheRight();
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        this.selectPreviousDatePart();
+        this.selectDatePartOnTheLeft();
       }
       // Navigate to previous section when Backspace is pressed on an empty section
       else if (event.key === 'Backspace') {

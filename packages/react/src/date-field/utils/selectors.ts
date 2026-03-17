@@ -87,6 +87,7 @@ const referenceValueSelector = createSelectorMemoized(
     }),
 );
 
+const directionSelector = createSelector((state: State) => state.direction);
 const formatSelector = createSelector((state: State) => state.format);
 const translationsSelector = createSelector((state: State) => state.translations);
 
@@ -107,6 +108,7 @@ export const selectors = {
   fieldContext: fieldContextSelector,
   step: stepSelector,
   controlRef: controlRefSelector,
+  direction: directionSelector,
 
   // CharacterEditing
   characterQuery: createSelector((state: State) => state.characterQuery),

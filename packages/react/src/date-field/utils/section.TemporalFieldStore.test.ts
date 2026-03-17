@@ -514,10 +514,10 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(0); // month
       expect(store.state.selectedSection).toBe(0);
 
-      store.selectNextDatePart();
+      store.selectDatePartOnTheRight();
       expect(store.state.selectedSection).toBe(2); // day (skips separator at index 1)
 
-      store.selectNextDatePart();
+      store.selectDatePartOnTheRight();
       expect(store.state.selectedSection).toBe(4); // year (skips separator at index 3)
     });
 
@@ -527,10 +527,10 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(4); // year
       expect(store.state.selectedSection).toBe(4);
 
-      store.selectPreviousDatePart();
+      store.selectDatePartOnTheLeft();
       expect(store.state.selectedSection).toBe(2); // day (skips separator at index 3)
 
-      store.selectPreviousDatePart();
+      store.selectDatePartOnTheLeft();
       expect(store.state.selectedSection).toBe(0); // month (skips separator at index 1)
     });
 
@@ -540,7 +540,7 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(4); // year (last section)
       expect(store.state.selectedSection).toBe(4);
 
-      store.selectNextDatePart();
+      store.selectDatePartOnTheRight();
       expect(store.state.selectedSection).toBe(4); // Should stay at year
     });
 
@@ -550,7 +550,7 @@ describe('TemporalFieldStore - Section', () => {
       store.selectClosestDatePart(0); // month (first section)
       expect(store.state.selectedSection).toBe(0);
 
-      store.selectPreviousDatePart();
+      store.selectDatePartOnTheLeft();
       expect(store.state.selectedSection).toBe(0); // Should stay at month
     });
 
@@ -567,7 +567,7 @@ describe('TemporalFieldStore - Section', () => {
       expect(store.state.selectedSection).toBe(4);
 
       // Should not throw and should stay on the current section
-      store.selectNextDatePart();
+      store.selectDatePartOnTheRight();
       expect(store.state.selectedSection).toBe(4);
     });
 
@@ -585,8 +585,46 @@ describe('TemporalFieldStore - Section', () => {
       expect(store.state.selectedSection).toBe(1);
 
       // Should not throw and should stay on the current section
-      store.selectPreviousDatePart();
+      store.selectDatePartOnTheLeft();
       expect(store.state.selectedSection).toBe(1);
+    });
+
+    it('should navigate to the next logical section (right in LTR)', () => {
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+      store.selectClosestDatePart(0); // month
+      store.selectNextDatePart();
+      expect(store.state.selectedSection).toBe(2); // day
+    });
+
+    it('should navigate to the previous logical section (left in LTR)', () => {
+      const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+      store.selectClosestDatePart(4); // year
+      store.selectPreviousDatePart();
+      expect(store.state.selectedSection).toBe(2); // day
+    });
+
+    it('should navigate to the next logical section (left in RTL)', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, direction: 'rtl' },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(2); // day
+      store.selectNextDatePart();
+      expect(store.state.selectedSection).toBe(0); // month (left in RTL = next)
+    });
+
+    it('should navigate to the previous logical section (right in RTL)', () => {
+      const store = new TemporalFieldStore(
+        { ...DEFAULT_PARAMETERS, direction: 'rtl' },
+        dateFieldConfig,
+      );
+
+      store.selectClosestDatePart(0); // month
+      store.selectPreviousDatePart();
+      expect(store.state.selectedSection).toBe(2); // day (right in RTL = previous)
     });
 
     it('should select the first date part when clicking on a leading separator', () => {
