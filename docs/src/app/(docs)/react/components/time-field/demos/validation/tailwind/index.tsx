@@ -1,14 +1,12 @@
 'use client';
 import * as React from 'react';
-import { set } from 'date-fns/set';
 import { format } from 'date-fns/format';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
 import { TimeField } from '@base-ui/react/time-field';
 
-const today = new Date();
-const min = set(today, { hours: 9, minutes: 0, seconds: 0 });
-const max = set(today, { hours: 17, minutes: 30, seconds: 0 });
+const min = new Date(2026, 0, 1, 9, 0, 0);
+const max = new Date(2026, 0, 1, 17, 30, 0);
 
 export default function ExampleTimeFieldValidation() {
   return (

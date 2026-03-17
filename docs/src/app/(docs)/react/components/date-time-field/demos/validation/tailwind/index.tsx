@@ -1,15 +1,12 @@
 'use client';
 import * as React from 'react';
-import { subDays } from 'date-fns/subDays';
-import { addDays } from 'date-fns/addDays';
 import { format } from 'date-fns/format';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
 import { DateTimeField } from '@base-ui/react/date-time-field';
 
-const today = new Date();
-const min = subDays(today, 7);
-const max = addDays(today, 7);
+const min = new Date(2026, 2, 10);
+const max = new Date(2026, 2, 24);
 
 export default function ExampleDateTimeFieldValidation() {
   return (

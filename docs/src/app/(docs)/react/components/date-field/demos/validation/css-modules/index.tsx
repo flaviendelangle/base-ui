@@ -1,8 +1,5 @@
 'use client';
 import * as React from 'react';
-import { startOfDay } from 'date-fns/startOfDay';
-import { subDays } from 'date-fns/subDays';
-import { addDays } from 'date-fns/addDays';
 import { format } from 'date-fns/format';
 import { Field } from '@base-ui/react/field';
 import { Form } from '@base-ui/react/form';
@@ -10,9 +7,8 @@ import { DateField } from '@base-ui/react/date-field';
 import fieldStyles from '../../date-field.module.css';
 import styles from './index.module.css';
 
-const today = startOfDay(new Date());
-const min = subDays(today, 7);
-const max = addDays(today, 30);
+const min = new Date(2026, 2, 10);
+const max = new Date(2026, 3, 16);
 
 export default function ExampleDateFieldValidation() {
   return (
