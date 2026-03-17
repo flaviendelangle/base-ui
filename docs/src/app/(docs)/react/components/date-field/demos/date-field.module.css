@@ -28,7 +28,8 @@
   }
 
   &:focus {
-    background-color: color-mix(in srgb, var(--color-blue) 35%, transparent);
+    background-color: var(--color-blue);
+    color: white;
   }
 
   &[data-separator] {

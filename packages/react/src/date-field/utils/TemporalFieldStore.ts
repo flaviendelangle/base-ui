@@ -153,11 +153,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         sections: config.getSectionsFromValue(value, (date) =>
           buildSections(adapter, parsedFormat, date),
         ),
-        lastValidValue: config.updateReferenceValue(
-          adapter,
-          value,
-          manager.emptyValue as TValue,
-        ),
+        lastValidValue: config.updateReferenceValue(adapter, value, manager.emptyValue as TValue),
         format: parsedFormat,
         characterQuery: null,
         selectedSection: null,
@@ -291,6 +287,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     };
   }
 
+  // Arrow property to preserve `this` binding when passed directly to `useOnMount`.
   public mountEffect = () => {
     // Sync selection to DOM on mount and whenever the selected section changes.
     const unsubscribe = this.observe(selectors.selectedSection, this.syncSelectionToDOM);
@@ -463,11 +460,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       sections: sectionsList,
       lastValidValue: (isActiveDateInvalid
         ? lastValidValueBefore
-        : config.updateReferenceValue(
-            adapter,
-            newValue,
-            lastValidValueBefore,
-          )) as TValue,
+        : config.updateReferenceValue(adapter, newValue, lastValidValueBefore)) as TValue,
     };
   }
 
@@ -770,20 +763,26 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     },
   };
 
-  public readonly sectionEventHandlers = {
-    onClick: (event: React.MouseEvent<HTMLElement>) => {
-      // The click event on the clear button would propagate to the input, trigger this handler and result in a wrong section selection.
-      // We avoid this by checking if the call to this function is actually intended, or a side effect.
-      if (selectors.disabled(this.state) || event.isDefaultPrevented()) {
-        return;
-      }
+  // The click event on the clear button would propagate to the input, trigger this handler and result in a wrong section selection.
+  // We avoid this by checking if the call to this function is actually intended, or a side effect.
+  private readonly handleSectionClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (selectors.disabled(this.state) || event.isDefaultPrevented()) {
+      return;
+    }
 
-      const sectionIndex = this.getSectionIndexFromDOMElement(event.target as HTMLElement);
-      if (sectionIndex == null) {
-        return;
-      }
-      this.selectClosestDatePart(sectionIndex);
-    },
+    const sectionIndex = this.getSectionIndexFromDOMElement(event.target as HTMLElement);
+    if (sectionIndex == null) {
+      return;
+    }
+    this.selectClosestDatePart(sectionIndex);
+  };
+
+  public readonly separatorEventHandlers = {
+    onClick: this.handleSectionClick,
+  };
+
+  public readonly sectionEventHandlers = {
+    onClick: this.handleSectionClick,
 
     onInput: (event: React.FormEvent) => {
       const target = event.target as HTMLSpanElement;
@@ -969,7 +968,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     this.syncSelectionToDOM();
   }
 
-  private syncSelectionToDOM = () => {
+  public syncSelectionToDOM = () => {
     if (!this.rootRef.current) {
       return;
     }

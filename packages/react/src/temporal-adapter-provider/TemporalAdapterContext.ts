@@ -18,7 +18,7 @@ export function useTemporalAdapter() {
   const context = React.useContext(TemporalAdapterContext);
   if (context === undefined) {
     throw new Error(
-      'Base UI: TemporalAdapterContext is missing. Temporal components must be place within <TemporalAdapterProvider />',
+      'Base UI: TemporalAdapterContext is missing. Temporal components must be placed within <TemporalAdapterProvider />.',
     );
   }
 

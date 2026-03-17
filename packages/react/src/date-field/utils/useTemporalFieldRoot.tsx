@@ -162,10 +162,18 @@ export function useTemporalFieldRoot(
   const state = store.useState('rootState');
   const useFieldParams = store.useState('useFieldParams');
   const sections = store.useState('sections');
-  const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef, useFieldParams.controlRef);
+  const hiddenInputRef = useMergedRefs(
+    inputRefProp,
+    fieldContext.validation.inputRef,
+    useFieldParams.controlRef,
+  );
 
   useField(useFieldParams);
   useOnMount(store.mountEffect);
+
+  React.useLayoutEffect(() => {
+    store.syncSelectionToDOM();
+  }, [sections, store]);
 
   const resolvedChildren =
     typeof children === 'function' ? (

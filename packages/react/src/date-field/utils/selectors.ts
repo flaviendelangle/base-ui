@@ -65,7 +65,16 @@ const referenceValueSelector = createSelectorMemoized(
   (state: State) => state.manager,
   adapterSelector,
   configSelector,
-  (lastValidValue, referenceDate, timezone, validationProps, granularity, manager, adapter, config) =>
+  (
+    lastValidValue,
+    referenceDate,
+    timezone,
+    validationProps,
+    granularity,
+    manager,
+    adapter,
+    config,
+  ) =>
     config.getReferenceValue({
       lastValidValue,
       externalReferenceDate: referenceDate ?? undefined,
