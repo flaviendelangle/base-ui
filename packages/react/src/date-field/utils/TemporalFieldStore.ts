@@ -163,6 +163,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         selectedSection: null,
         hiddenInputRef: React.createRef<HTMLInputElement>(),
         clearErrors: parameters.clearErrors,
+        ariaLabelledBy: undefined,
+        ariaDescribedBy: undefined,
       },
       { onValueChange: parameters.onValueChange },
       selectors,

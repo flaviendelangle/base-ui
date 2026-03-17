@@ -237,6 +237,16 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    * Provided by Form context when the field is used inside a Form component.
    */
   clearErrors: (name: string | undefined) => void;
+  /**
+   * The ID(s) of the element(s) that label the field group.
+   * Propagated to each spinbutton section for screen reader context.
+   */
+  ariaLabelledBy: string | undefined;
+  /**
+   * The ID(s) of the element(s) that describe the field (errors, help text).
+   * Propagated to each spinbutton section so validation feedback is announced.
+   */
+  ariaDescribedBy: string | undefined;
 }
 
 export interface TemporalFieldCharacterEditingQuery {

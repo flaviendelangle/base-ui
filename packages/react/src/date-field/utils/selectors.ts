@@ -47,6 +47,8 @@ const validationPropsSelector = createSelectorMemoized(
 const fieldContextSelector = createSelector((state: State) => state.fieldContext);
 const stepSelector = createSelector((state: State) => state.step);
 const hiddenInputRefSelector = createSelector((state: State) => state.hiddenInputRef);
+const ariaLabelledBySelector = createSelector((state: State) => state.ariaLabelledBy);
+const ariaDescribedBySelector = createSelector((state: State) => state.ariaDescribedBy);
 const valueSelector = createSelector((state: State) => state.value);
 const lastValidValueSelector = createSelector((state: State) => state.lastValidValue);
 const sectionsSelector = createSelector((state: State) => state.sections);
@@ -242,6 +244,9 @@ export const selectors = {
     requiredSelector,
     timezoneToRenderSelector,
     translationsSelector,
+    idSelector,
+    ariaLabelledBySelector,
+    ariaDescribedBySelector,
     (
       adapter,
       editable,
@@ -251,10 +256,14 @@ export const selectors = {
       required,
       timezone,
       translations,
+      id,
+      ariaLabelledBy,
+      ariaDescribedBy,
       section: TemporalFieldSection,
     ): React.HTMLAttributes<HTMLDivElement> => {
       // Date part
       if (isDatePart(section)) {
+        const part = section.token.config.part;
         return {
           // Aria attributes
           'aria-readonly': readOnly,
@@ -266,7 +275,13 @@ export const selectors = {
           'aria-valuetext': section.value
             ? getAriaValueText(adapter, section, timezone)
             : translations.temporalFieldEmptySectionText,
-          'aria-label': translations[temporalFieldSectionLabelKey[section.token.config.part]],
+          // When a field label exists, reference both the field label and the
+          // per-section hidden label span so screen readers announce e.g. "Birthday Month".
+          // Fall back to aria-label when no field label is available.
+          ...(ariaLabelledBy && id
+            ? { 'aria-labelledby': `${ariaLabelledBy} ${id}-${part}-label` }
+            : { 'aria-label': translations[temporalFieldSectionLabelKey[part]] }),
+          'aria-describedby': ariaDescribedBy || undefined,
           'aria-disabled': disabled,
 
           // Other

@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { useOnMount } from '@base-ui/utils/useOnMount';
+import { visuallyHiddenInput } from '@base-ui/utils/visuallyHidden';
 import { useTemporalAdapter } from '../../temporal-adapter-provider/TemporalAdapterContext';
 import { useTranslations } from '../../localization-provider/LocalizationContext';
 import { useRenderElement } from '../../utils/useRenderElement';
@@ -24,6 +25,8 @@ import {
   TemporalFieldConfiguration,
   TemporalFieldRootActions,
 } from './types';
+import { isDatePart } from './utils';
+import { temporalFieldSectionLabelKey } from '../../translations/types';
 
 export interface UseTemporalFieldRootProps extends Omit<
   TemporalFieldStoreParameters<TemporalValue>,
@@ -98,6 +101,7 @@ export function useTemporalFieldRoot(
   const id = useLabelableId({ id: idProp });
   const { getDescriptionProps, labelId } = useLabelableContext();
   const ariaLabelledBy = useAriaLabelledBy(undefined, labelId, fieldContext.validation.inputRef);
+  const { 'aria-describedby': ariaDescribedBy } = getDescriptionProps({});
 
   const store = useRefWithInit(
     () =>
@@ -146,6 +150,8 @@ export function useTemporalFieldRoot(
     step,
     fieldContext,
     clearErrors,
+    ariaLabelledBy,
+    ariaDescribedBy,
   });
 
   store.useControlledProp('valueProp', value);
@@ -155,6 +161,7 @@ export function useTemporalFieldRoot(
   const hiddenInputProps = store.useState('hiddenInputProps');
   const state = store.useState('rootState');
   const useFieldParams = store.useState('useFieldParams');
+  const sections = store.useState('sections');
   const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef, useFieldParams.controlRef);
 
   useField(useFieldParams);
@@ -167,12 +174,40 @@ export function useTemporalFieldRoot(
       children
     );
 
+  // Render visually-hidden label spans for each date-part section so that
+  // spinbutton elements can reference both the field label and the part name
+  // via aria-labelledby (e.g. "Birthday Month, spinbutton").
+  // They are aria-hidden to prevent them appearing in reading-mode navigation,
+  // which is allowed — aria-labelledby resolution traverses aria-hidden elements.
+  const hiddenSectionLabels =
+    ariaLabelledBy && id
+      ? sections.filter(isDatePart).map((section) => (
+          <span
+            key={section.token.config.part}
+            id={`${id}-${section.token.config.part}-label`}
+            style={visuallyHiddenInput}
+            aria-hidden="true"
+          >
+            {translations[temporalFieldSectionLabelKey[section.token.config.part]]}
+          </span>
+        ))
+      : null;
+
   const element = useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, store.rootRef],
     props: [
       store.rootEventHandlers,
-      { role: 'group', 'aria-labelledby': ariaLabelledBy, children: resolvedChildren },
+      {
+        role: 'group',
+        'aria-labelledby': ariaLabelledBy,
+        children: (
+          <React.Fragment>
+            {hiddenSectionLabels}
+            {resolvedChildren}
+          </React.Fragment>
+        ),
+      },
       getDescriptionProps,
       elementProps,
     ],

@@ -498,6 +498,54 @@ export function describeTemporalFieldRoot(descriptor: TemporalFieldTestDescripto
         expect(input).toHaveAttribute('aria-describedby');
         expect(input.getAttribute('aria-describedby')).toContain(error.id);
       });
+
+      it('should use aria-label on spinbutton sections when no Field.Label is present', async () => {
+        await render(<FieldComponent format={defaultFormat} />);
+
+        const sections = screen.getAllByRole('spinbutton');
+        expect(sections).toHaveLength(expectedSectionCount);
+        sections.forEach((section, index) => {
+          expect(section).toHaveAttribute('aria-label', expectedSectionLabels[index]);
+          expect(section).not.toHaveAttribute('aria-labelledby');
+        });
+      });
+
+      it('should use aria-labelledby on spinbutton sections referencing the field label when a Field.Label is present', async () => {
+        await render(
+          <Field.Root>
+            <Field.Label data-testid="label">Birthday</Field.Label>
+            <FieldComponent format={defaultFormat} />
+          </Field.Root>,
+        );
+
+        const label = screen.getByTestId('label');
+        const sections = screen.getAllByRole('spinbutton');
+        sections.forEach((section) => {
+          expect(section).not.toHaveAttribute('aria-label');
+          expect(section.getAttribute('aria-labelledby')).toContain(label.id);
+        });
+      });
+
+      it('should have aria-describedby on spinbutton sections linking to Field.Error when error is shown', async () => {
+        await render(
+          <Form>
+            <Field.Root name="field">
+              <FieldComponent format={defaultFormat} required />
+              <Field.Error match="valueMissing" data-testid="error">
+                {missingError}
+              </Field.Error>
+            </Field.Root>
+            <button type="submit">Submit</button>
+          </Form>,
+        );
+
+        fireEvent.click(screen.getByText('Submit'));
+
+        const error = screen.getByTestId('error');
+        for (const section of screen.getAllByRole('spinbutton')) {
+          expect(section.getAttribute('aria-describedby')).toContain(error.id);
+        }
+      });
     });
   });
 }

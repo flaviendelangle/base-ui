@@ -267,7 +267,7 @@ describe('TemporalFieldStore - Value', () => {
       const referenceDate = adapter.date('2020-03-15', 'default');
       store.set('referenceDateProp', referenceDate);
 
-      const refValue = selectors.referenceValue(store.state);
+      const refValue = selectors.referenceValue(store.state) as Date;
       expect(adapter.getYear(refValue)).toBe(2020);
       expect(adapter.getMonth(refValue)).toBe(2); // March (0-indexed)
       expect(adapter.getDate(refValue)).toBe(15);
@@ -282,7 +282,7 @@ describe('TemporalFieldStore - Value', () => {
         dateFieldConfig,
       );
 
-      const refValue = selectors.referenceValue(store.state);
+      const refValue = selectors.referenceValue(store.state) as Date;
       expect(adapter.getYear(refValue)).toBe(2030);
       expect(adapter.getMonth(refValue)).toBe(5); // June (0-indexed)
 
@@ -290,7 +290,7 @@ describe('TemporalFieldStore - Value', () => {
       const newMin = adapter.date('2035-01-01', 'default');
       store.set('min', newMin);
 
-      const updatedRefValue = selectors.referenceValue(store.state);
+      const updatedRefValue = selectors.referenceValue(store.state) as Date;
       expect(adapter.getYear(updatedRefValue)).toBe(2035);
     });
 
@@ -303,7 +303,7 @@ describe('TemporalFieldStore - Value', () => {
 
       store.set('timezoneProp', 'UTC');
 
-      const refValue = selectors.referenceValue(store.state);
+      const refValue = selectors.referenceValue(store.state) as Date;
       expect(adapter.getTimezone(refValue)).toBe('UTC');
       expect(adapter.getYear(refValue)).toBe(2024);
     });
@@ -321,7 +321,7 @@ describe('TemporalFieldStore - Value', () => {
       // Change referenceDate after clearing
       store.set('referenceDateProp', adapter.date('2020-01-01', 'default'));
 
-      const refValue = selectors.referenceValue(store.state);
+      const refValue = selectors.referenceValue(store.state) as Date;
       // Should still use the last valid value (2024-06-15), not the new referenceDate
       expect(adapter.getYear(refValue)).toBe(2024);
       expect(adapter.getMonth(refValue)).toBe(5); // June (0-indexed)
