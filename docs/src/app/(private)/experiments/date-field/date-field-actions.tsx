@@ -37,12 +37,12 @@ export default function DateFieldActions() {
     <div>
       <h1>Date Field Actions</h1>
       <div className={styles.Page}>
-        <section>
+        {/* <section>
           <h2>Controlled with actionsRef</h2>
           <div className={styles.Form}>
             <ControlledExample />
           </div>
-        </section>
+        </section> */}
         <section>
           <h2>Uncontrolled with actionsRef</h2>
           <div className={styles.Form}>

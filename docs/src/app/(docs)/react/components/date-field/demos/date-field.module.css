@@ -28,8 +28,12 @@
   }
 
   &:focus {
-    background-color: var(--color-highlight);
+    background-color: oklch(45% 50% 264deg);
     color: white;
+
+    @media (prefers-color-scheme: dark) {
+      background-color: oklch(45% 40% 264deg);
+    }
   }
 
   &[data-separator] {

@@ -157,6 +157,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         format: parsedFormat,
         characterQuery: null,
         selectedSection: null,
+        focusedSectionIndex: null,
         hiddenInputRef: React.createRef<HTMLInputElement>(),
         clearErrors: parameters.clearErrors,
         ariaLabelledBy: undefined,
@@ -652,7 +653,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   public removeSelectedSection() {
+    // Imperatively disable contentEditable on all sections before the React re-render
+    // so no caret can appear during the window between this call and React committing
+    // contentEditable=false to the DOM.
+    this.sectionElementMap.forEach((el) => {
+      el.contentEditable = 'false';
+    });
     this.set('selectedSection', null);
+    this.set('focusedSectionIndex', null);
   }
 
   private resetCharacterQuery() {
@@ -719,17 +727,25 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
 
     this.sectionElementMap.set(index, sectionElement);
-    return () => this.sectionElementMap.delete(index);
+
+    return () => {
+      this.sectionElementMap.delete(index);
+    };
   };
 
   public readonly rootEventHandlers = {
-    onClick: () => {
+    onPointerDown: (event: React.PointerEvent) => {
+      event.preventDefault();
+
       if (selectors.disabled(this.state) || !this.rootRef.current) {
         return;
       }
 
       if (!this.isFocused() && selectors.selectedSection(this.state) == null) {
-        this.selectClosestDatePart(0);
+        const clickedSectionIndex = this.getSectionIndexFromDOMElement(
+          event.target as HTMLElement,
+        );
+        this.selectClosestDatePart(clickedSectionIndex ?? 0);
       }
     },
   };
@@ -922,11 +938,35 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       if (sectionIndex == null) {
         return;
       }
+      this.set('focusedSectionIndex', sectionIndex);
       this.selectClosestDatePart(sectionIndex);
       this.state.fieldContext?.setFocused(true);
     },
 
-    onBlur: () => {
+    onBlur: (event: React.FocusEvent) => {
+      // Immediately disable contentEditable on the blurring section so that Webkit cannot
+      // place a caret in it when the browser's click-event handler looks for the "nearest
+      // text node" in the parent (the Webkit inline-block contenteditable bug). React will
+      // sync this back to true if focus returns to the same section.
+      (event.target as HTMLElement).contentEditable = 'false';
+
+      // Clear any active DOM selection within the field synchronously on blur.
+      // This prevents Webkit from routing a subsequent click on a non-interactive element
+      // back to the still-contenteditable section (which would be a spurious re-focus).
+      if (this.rootRef.current) {
+        const ownerDoc = ownerDocument(this.rootRef.current);
+        const ownerWin = ownerWindow(this.rootRef.current);
+        const selection = ownerDoc.getSelection();
+        if (
+          selection &&
+          selection.rangeCount > 0 &&
+          selection.getRangeAt(0).startContainer instanceof ownerWin.Node &&
+          this.rootRef.current.contains(selection.getRangeAt(0).startContainer)
+        ) {
+          selection.removeAllRanges();
+        }
+      }
+
       // Defer to next tick to check if focus moved to another section
       this.timeoutManager.startTimeout('blur-detection', 0, () => {
         const activeEl = this.getActiveElement();

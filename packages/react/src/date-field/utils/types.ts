@@ -168,6 +168,13 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   selectedSection: number | null;
   /**
+   * The index of the section element that currently has DOM focus.
+   * Sections only get `contentEditable="true"` when they are DOM-focused.
+   * This prevents Webkit browsers from routing clicks on non-interactive elements
+   * to `contenteditable` sections (a known Webkit bug with inline-block elements).
+   */
+  focusedSectionIndex: number | null;
+  /**
    * The last valid value entered by the user.
    * Used to keep track of date parts not present in the format (e.g., time on a date-only field).
    * - `null` (or `[null, null]` for range) if no valid value has been entered yet.

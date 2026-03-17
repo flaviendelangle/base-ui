@@ -49,6 +49,7 @@ const stepSelector = createSelector((state: State) => state.step);
 const hiddenInputRefSelector = createSelector((state: State) => state.hiddenInputRef);
 const ariaLabelledBySelector = createSelector((state: State) => state.ariaLabelledBy);
 const ariaDescribedBySelector = createSelector((state: State) => state.ariaDescribedBy);
+const focusedSectionIndexSelector = createSelector((state: State) => state.focusedSectionIndex);
 const valueSelector = createSelector((state: State) => state.value);
 const lastValidValueSelector = createSelector((state: State) => state.lastValidValue);
 const sectionsSelector = createSelector((state: State) => state.sections);
@@ -256,6 +257,7 @@ export const selectors = {
     idSelector,
     ariaLabelledBySelector,
     ariaDescribedBySelector,
+    focusedSectionIndexSelector,
     (
       adapter,
       editable,
@@ -268,11 +270,17 @@ export const selectors = {
       id,
       ariaLabelledBy,
       ariaDescribedBy,
+      focusedSectionIndex,
       section: TemporalFieldSection,
     ): React.HTMLAttributes<HTMLDivElement> => {
       // Date part
       if (isDatePart(section)) {
         const part = section.token.config.part;
+        // Only enable contentEditable when this specific section is DOM-focused.
+        // Webkit browsers have a bug where clicking on non-interactive elements near an
+        // inline-block contenteditable will route focus to it. Keeping contentEditable
+        // disabled until the section is focused prevents this spurious focus.
+        const isContentEditable = editable && focusedSectionIndex === section.index;
         return {
           // Aria attributes
           'aria-readonly': readOnly,
@@ -296,14 +304,14 @@ export const selectors = {
           // Other
           children: section.value || section.token.placeholder,
           tabIndex: editable ? 0 : -1,
-          contentEditable: editable,
+          contentEditable: isContentEditable,
           suppressContentEditableWarning: true,
           role: 'spinbutton',
-          spellCheck: editable ? false : undefined,
+          spellCheck: isContentEditable ? false : undefined,
           // Firefox hydrates this as `'none`' instead of `'off'`. No problems in chromium with both values.
           // For reference https://github.com/mui/mui-x/issues/19012
-          autoCapitalize: editable ? 'none' : undefined,
-          autoCorrect: editable ? 'off' : undefined,
+          autoCapitalize: isContentEditable ? 'none' : undefined,
+          autoCorrect: isContentEditable ? 'off' : undefined,
           inputMode: section.token.config.contentType === 'letter' ? 'text' : 'numeric',
         };
       }

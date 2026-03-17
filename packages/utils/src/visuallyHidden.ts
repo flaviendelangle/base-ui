@@ -21,4 +21,5 @@ export const visuallyHidden: React.CSSProperties = {
 export const visuallyHiddenInput: React.CSSProperties = {
   ...visuallyHiddenBase,
   position: 'absolute',
+  pointerEvents: 'none',
 };
