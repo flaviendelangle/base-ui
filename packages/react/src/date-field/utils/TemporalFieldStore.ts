@@ -659,8 +659,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     this.sectionElementMap.forEach((el) => {
       el.contentEditable = 'false';
     });
-    this.set('selectedSection', null);
-    this.set('focusedSectionIndex', null);
+    this.update({ selectedSection: null, focusedSectionIndex: null });
   }
 
   private resetCharacterQuery() {
@@ -742,9 +741,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       }
 
       if (!this.isFocused() && selectors.selectedSection(this.state) == null) {
-        const clickedSectionIndex = this.getSectionIndexFromDOMElement(
-          event.target as HTMLElement,
-        );
+        const clickedSectionIndex = this.getSectionIndexFromDOMElement(event.target as HTMLElement);
         this.selectClosestDatePart(clickedSectionIndex ?? 0);
       }
     },
