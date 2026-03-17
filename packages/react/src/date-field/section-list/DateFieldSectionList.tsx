@@ -26,7 +26,7 @@ export interface DateFieldSectionListProps {
   /**
    * A function that receives each section and returns a React node.
    */
-  children: (section: TemporalFieldSection) => React.ReactNode;
+  children: (section: TemporalFieldSection, index: number) => React.ReactNode;
 }
 
 export namespace DateFieldSectionList {
