@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createSelectorMemoized, ReactStore } from '@base-ui/utils/store';
 import { warn } from '@base-ui/utils/warn';
-import { ownerDocument } from '@base-ui/utils/owner';
+import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
 import {
   TemporalFieldDatePartType,
@@ -987,7 +987,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
 
     const ownerDoc = ownerDocument(this.rootRef.current);
-    const ownerWin = ownerDoc.defaultView ?? window;
+    const ownerWin = ownerWindow(this.rootRef.current);
     const selection = ownerDoc.getSelection();
     if (!selection) {
       return;
