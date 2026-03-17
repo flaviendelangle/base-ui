@@ -1,6 +1,5 @@
 'use client';
 import * as React from 'react';
-import { Field } from '@base-ui/react/field';
 import { DateField } from '@base-ui/react/date-field';
 import fieldStyles from '../../date-field.module.css';
 import styles from './index.module.css';
@@ -8,8 +7,8 @@ import styles from './index.module.css';
 export default function ExampleDateFieldCustomFormat() {
   return (
     <div className={styles.Wrapper}>
-      <Field.Root className={fieldStyles.Field}>
-        <Field.Label className={fieldStyles.Label}>Default (numeric)</Field.Label>
+      <div className={fieldStyles.Field}>
+        <label className={fieldStyles.Label}>Default (numeric)</label>
         <DateField.Root className={fieldStyles.Root}>
           {(section) => (
             <DateField.Section
@@ -19,9 +18,9 @@ export default function ExampleDateFieldCustomFormat() {
             />
           )}
         </DateField.Root>
-      </Field.Root>
-      <Field.Root className={fieldStyles.Field}>
-        <Field.Label className={fieldStyles.Label}>With weekday</Field.Label>
+      </div>
+      <div className={fieldStyles.Field}>
+        <label className={fieldStyles.Label}>With weekday</label>
         <DateField.Root className={fieldStyles.Root} format="EEEE, MMMM dd, yyyy">
           {(section) => (
             <DateField.Section
@@ -31,9 +30,9 @@ export default function ExampleDateFieldCustomFormat() {
             />
           )}
         </DateField.Root>
-      </Field.Root>
-      <Field.Root className={fieldStyles.Field}>
-        <Field.Label className={fieldStyles.Label}>ISO format</Field.Label>
+      </div>
+      <div className={fieldStyles.Field}>
+        <label className={fieldStyles.Label}>ISO format</label>
         <DateField.Root className={fieldStyles.Root} format="yyyy-MM-dd">
           {(section) => (
             <DateField.Section
@@ -43,7 +42,7 @@ export default function ExampleDateFieldCustomFormat() {
             />
           )}
         </DateField.Root>
-      </Field.Root>
+      </div>
     </div>
   );
 }

@@ -43,7 +43,7 @@ export const Form = React.forwardRef(function Form<
       return;
     }
     control.focus();
-    if (control.tagName === 'INPUT' && !control.hasAttribute('aria-hidden')) {
+    if (control.tagName === 'INPUT') {
       (control as HTMLInputElement).select();
     }
   });

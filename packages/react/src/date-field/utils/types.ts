@@ -223,9 +223,10 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   step: number;
   /**
-   * A ref to the hidden input element used for form integration.
+   * A ref to the first focusable date-part section element.
+   * Used as the `controlRef` for form integration (focus on validation failure).
    */
-  hiddenInputRef: React.RefObject<HTMLInputElement | null>;
+  controlRef: React.RefObject<HTMLElement | null>;
   /**
    * The raw format string as passed to props (e.g., "MM/DD/YYYY").
    * This is the unparsed format string; the parsed representation is in `format`.

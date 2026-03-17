@@ -247,8 +247,16 @@ describe('TemporalFieldStore - Elements Props', () => {
     });
 
     describe('interactivity attributes', () => {
-      it('should set contentEditable to true when editable', () => {
+      it('should set contentEditable to false when editable but not focused', () => {
         const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+
+        const props = getProps(store, 0);
+        expect(props.contentEditable).toBe(false);
+      });
+
+      it('should set contentEditable to true when editable and focused', () => {
+        const store = new TemporalFieldStore(DEFAULT_PARAMETERS, dateFieldConfig);
+        store.set('focusedSectionIndex', 0);
 
         const props = getProps(store, 0);
         expect(props.contentEditable).toBe(true);

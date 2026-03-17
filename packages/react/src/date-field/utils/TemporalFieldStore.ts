@@ -129,6 +129,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
     validateParsedFormat(manager.dateType, parsedFormat);
 
+    const controlRef = React.createRef<HTMLElement>();
+
     super(
       {
         rawFormat: parameters.format,
@@ -158,7 +160,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         characterQuery: null,
         selectedSection: null,
         focusedSectionIndex: null,
-        hiddenInputRef: React.createRef<HTMLInputElement>(),
+        controlRef,
         clearErrors: parameters.clearErrors,
         ariaLabelledBy: undefined,
         ariaDescribedBy: undefined,
@@ -715,6 +717,14 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
   }
 
+  private updateControlRef() {
+    const sections = selectors.sections(this.state);
+    const firstDatePartIndex = sections.findIndex(isDatePart);
+    const controlRef = selectors.controlRef(this.state);
+    (controlRef as { current: HTMLElement | null }).current =
+      firstDatePartIndex >= 0 ? (this.sectionElementMap.get(firstDatePartIndex) ?? null) : null;
+  }
+
   public registerSection = (sectionElement: HTMLDivElement | null) => {
     if (sectionElement == null) {
       return undefined;
@@ -726,9 +736,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     }
 
     this.sectionElementMap.set(index, sectionElement);
+    this.updateControlRef();
 
     return () => {
       this.sectionElementMap.delete(index);
+      this.updateControlRef();
     };
   };
 

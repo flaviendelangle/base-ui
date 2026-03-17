@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { fr } from 'date-fns/locale/fr';
 import { de } from 'date-fns/locale/de';
-import { Field } from '@base-ui/react/field';
 import { DateField } from '@base-ui/react/date-field';
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
 
@@ -16,10 +15,8 @@ export default function ExampleDateFieldLocalization() {
           temporalFieldDayPlaceholder: () => 'JJ',
         }}
       >
-        <Field.Root className="flex flex-col items-start gap-1">
-          <Field.Label className="text-sm leading-5 font-medium text-gray-900">
-            French locale
-          </Field.Label>
+        <div className="flex flex-col items-start gap-1">
+          <label className="text-sm leading-5 font-medium text-gray-900">French locale</label>
           <DateField.Root className="box-border flex items-center border border-gray-200 px-2 h-10 text-base rounded-md text-gray-900 outline-none focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-blue">
             {(section) => (
               <DateField.Section
@@ -29,7 +26,7 @@ export default function ExampleDateFieldLocalization() {
               />
             )}
           </DateField.Root>
-        </Field.Root>
+        </div>
       </LocalizationProvider>
       <LocalizationProvider
         temporalLocale={de}
@@ -38,10 +35,8 @@ export default function ExampleDateFieldLocalization() {
           temporalFieldDayPlaceholder: () => 'TT',
         }}
       >
-        <Field.Root className="flex flex-col items-start gap-1">
-          <Field.Label className="text-sm leading-5 font-medium text-gray-900">
-            German locale
-          </Field.Label>
+        <div className="flex flex-col items-start gap-1">
+          <label className="text-sm leading-5 font-medium text-gray-900">German locale</label>
           <DateField.Root className="box-border flex items-center border border-gray-200 px-2 h-10 text-base rounded-md text-gray-900 outline-none focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-blue">
             {(section) => (
               <DateField.Section
@@ -51,7 +46,7 @@ export default function ExampleDateFieldLocalization() {
               />
             )}
           </DateField.Root>
-        </Field.Root>
+        </div>
       </LocalizationProvider>
     </div>
   );

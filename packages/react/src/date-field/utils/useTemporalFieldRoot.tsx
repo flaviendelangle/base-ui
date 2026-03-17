@@ -162,11 +162,7 @@ export function useTemporalFieldRoot(
   const state = store.useState('rootState');
   const useFieldParams = store.useState('useFieldParams');
   const sections = store.useState('sections');
-  const hiddenInputRef = useMergedRefs(
-    inputRefProp,
-    fieldContext.validation.inputRef,
-    useFieldParams.controlRef,
-  );
+  const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
 
   useField(useFieldParams);
   useOnMount(store.mountEffect);
