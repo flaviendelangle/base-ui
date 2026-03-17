@@ -97,7 +97,6 @@ export function useTemporalFieldRoot(
   const direction = useDirection();
   const id = useLabelableId({ id: idProp });
   const { getDescriptionProps, labelId } = useLabelableContext();
-  const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef);
   const ariaLabelledBy = useAriaLabelledBy(undefined, labelId, fieldContext.validation.inputRef);
 
   const store = useRefWithInit(
@@ -156,6 +155,7 @@ export function useTemporalFieldRoot(
   const hiddenInputProps = store.useState('hiddenInputProps');
   const state = store.useState('rootState');
   const useFieldParams = store.useState('useFieldParams');
+  const hiddenInputRef = useMergedRefs(inputRefProp, fieldContext.validation.inputRef, useFieldParams.controlRef);
 
   useField(useFieldParams);
   useOnMount(store.mountEffect);
@@ -169,7 +169,7 @@ export function useTemporalFieldRoot(
 
   const element = useRenderElement('div', componentProps, {
     state,
-    ref: [forwardedRef, useFieldParams.controlRef],
+    ref: [forwardedRef, store.rootRef],
     props: [
       store.rootEventHandlers,
       { role: 'group', 'aria-labelledby': ariaLabelledBy, children: resolvedChildren },

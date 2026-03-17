@@ -89,6 +89,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   TemporalFieldStoreContext<TValue>,
   typeof selectors
 > {
+  public readonly rootRef = React.createRef<HTMLDivElement>();
+
   private timeoutManager = new TimeoutManager();
 
   private sectionToUpdateOnNextInvalidDate: { index: number; value: string } | null = null;
@@ -149,7 +151,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       buildSections(adapter, parsedFormat, date),
     );
 
-    const inputRef = React.createRef<HTMLElement>();
+    const hiddenInputRef = React.createRef<HTMLInputElement>();
 
     super(
       {
@@ -177,7 +179,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         format: parsedFormat,
         characterQuery: null,
         selectedSection: null,
-        inputRef,
+        hiddenInputRef,
         clearErrors: parameters.clearErrors,
       },
       { onValueChange: parameters.onValueChange },
@@ -741,7 +743,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
 
   public readonly rootEventHandlers = {
     onClick: () => {
-      if (selectors.disabled(this.state) || !this.state.inputRef.current) {
+      if (selectors.disabled(this.state) || !this.rootRef.current) {
         return;
       }
 
@@ -776,7 +778,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       }
 
       this.clear('clear-press', event.nativeEvent);
-      this.state.inputRef.current?.focus();
+      this.rootRef.current?.focus();
     },
   };
 
@@ -910,7 +912,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       else if (event.key === 'Escape') {
         event.preventDefault();
         this.removeSelectedSection();
-        this.state.inputRef.current?.blur();
+        this.rootRef.current?.blur();
       }
     },
 
@@ -941,7 +943,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       // Defer to next tick to check if focus moved to another section
       this.timeoutManager.startTimeout('blur-detection', 0, () => {
         const activeEl = this.getActiveElement();
-        const isInsideField = !!this.state.inputRef.current?.contains(activeEl);
+        const isInsideField = !!this.rootRef.current?.contains(activeEl);
 
         // If focus left the field entirely, clear selection and update field state
         if (!isInsideField) {
@@ -980,11 +982,11 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   private syncSelectionToDOM = () => {
-    if (!this.state.inputRef.current) {
+    if (!this.rootRef.current) {
       return;
     }
 
-    const selection = ownerDocument(this.state.inputRef.current).getSelection();
+    const selection = ownerDocument(this.rootRef.current).getSelection();
     if (!selection) {
       return;
     }
@@ -996,7 +998,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         selection.rangeCount > 0 &&
         // Firefox can return a Restricted object here
         selection.getRangeAt(0).startContainer instanceof Node &&
-        this.state.inputRef.current.contains(selection.getRangeAt(0).startContainer)
+        this.rootRef.current.contains(selection.getRangeAt(0).startContainer)
       ) {
         selection.removeAllRanges();
       }
@@ -1115,7 +1117,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   private getActiveElement() {
-    const doc = ownerDocument(this.state.inputRef.current);
+    const doc = ownerDocument(this.rootRef.current);
     return activeElement(doc);
   }
 
@@ -1136,7 +1138,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
   }
 
   private isFocused() {
-    return !!this.state.inputRef.current?.contains(this.getActiveElement());
+    return !!this.rootRef.current?.contains(this.getActiveElement());
   }
 
   private getAdjacentDatePartIndex(

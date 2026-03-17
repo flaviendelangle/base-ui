@@ -46,7 +46,7 @@ const validationPropsSelector = createSelectorMemoized(
 );
 const fieldContextSelector = createSelector((state: State) => state.fieldContext);
 const stepSelector = createSelector((state: State) => state.step);
-const inputRefSelector = createSelector((state: State) => state.inputRef);
+const hiddenInputRefSelector = createSelector((state: State) => state.hiddenInputRef);
 const valueSelector = createSelector((state: State) => state.value);
 const sectionsSelector = createSelector((state: State) => state.sections);
 const areAllSectionsEmptySelector = createSelectorMemoized(
@@ -73,7 +73,6 @@ export const selectors = {
   validationProps: validationPropsSelector,
   fieldContext: fieldContextSelector,
   step: stepSelector,
-  inputRef: inputRefSelector,
 
   // CharacterEditing
   characterQuery: createSelector((state: State) => state.characterQuery),
@@ -195,10 +194,10 @@ export const selectors = {
     adapterSelector,
     configSelector,
     fieldContextSelector,
-    inputRefSelector,
+    hiddenInputRefSelector,
     valueSelector,
     formatSelector,
-    (id, name, adapter, config, fieldContext, inputRef, value, format) => {
+    (id, name, adapter, config, fieldContext, hiddenInputRef, value, format) => {
       const formValue = config.stringifyValueForHiddenInput(adapter, value, format.granularity);
       const commit = fieldContext != null ? fieldContext.validation.commit : NOOP;
 
@@ -208,7 +207,7 @@ export const selectors = {
         value: formValue,
         getValue: () => formValue,
         commit,
-        controlRef: inputRef,
+        controlRef: hiddenInputRef,
       };
     },
   ),

@@ -213,9 +213,9 @@ export interface TemporalFieldState<TValue extends TemporalSupportedValue = any>
    */
   step: number;
   /**
-   * A ref to the input element (the div containing the sections).
+   * A ref to the hidden input element used for form integration.
    */
-  inputRef: React.RefObject<HTMLElement | null>;
+  hiddenInputRef: React.RefObject<HTMLInputElement | null>;
   /**
    * The raw format string as passed to props (e.g., "MM/DD/YYYY").
    * This is the unparsed format string; the parsed representation is in `format`.

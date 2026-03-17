@@ -294,6 +294,25 @@ export function describeTemporalFieldRoot(descriptor: TemporalFieldTestDescripto
         expect(handleSubmit.mock.calls.length).toBe(0);
         expect(screen.getByTestId('error')).toHaveTextContent(overflowError);
       });
+
+      it.skipIf(isJSDOM)(
+        'focuses the first section when form submission fails validation',
+        async () => {
+          await render(
+            <Form>
+              <Field.Root name="field">
+                <FieldComponent format={defaultFormat} required />
+              </Field.Root>
+              <button type="submit">Submit</button>
+            </Form>,
+          );
+
+          fireEvent.click(screen.getByText('Submit'));
+
+          const sections = screen.getAllByRole('spinbutton');
+          expect(document.activeElement).toBe(sections[0]);
+        },
+      );
     });
 
     describe('Controlled value updates', () => {
