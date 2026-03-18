@@ -218,7 +218,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         (state: TemporalFieldState<TValue>) => state.min,
         (state: TemporalFieldState<TValue>) => state.max,
         (state: TemporalFieldState<TValue>) => state.timezoneProp,
-        (rawFormat, adapterVal, directionVal, translationsVal, minVal, maxVal, timezonePropVal) => ({
+        (
+          rawFormat,
+          adapterVal,
+          directionVal,
+          translationsVal,
+          minVal,
+          maxVal,
+          timezonePropVal,
+        ) => ({
           rawFormat,
           adapter: adapterVal,
           direction: directionVal,
@@ -1502,9 +1510,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           return response;
         }
 
-        const numericValue = Number(
-          removeLocalizedDigits(response.datePartValue, localizedDigits),
-        );
+        const numericValue = Number(removeLocalizedDigits(response.datePartValue, localizedDigits));
         const formattedValue = getWeekDaysStr(adapter, dp.token.value)[numericValue - 1];
         return {
           ...response,

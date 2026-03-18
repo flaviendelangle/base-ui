@@ -199,9 +199,7 @@ export function buildSections(
   timezone?: TemporalTimezone,
 ): TemporalFieldSection[] {
   const dateInTz =
-    date != null && adapter.isValid(date) && timezone
-      ? adapter.setTimezone(date, timezone)
-      : date;
+    date != null && adapter.isValid(date) && timezone ? adapter.setTimezone(date, timezone) : date;
   return parsedFormat.elements.map((element, index) => {
     if (isToken(element)) {
       return {
