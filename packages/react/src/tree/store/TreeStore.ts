@@ -749,8 +749,10 @@ export class TreeStore<
     itemId: TreeItemId;
     keepExistingSelection?: boolean | undefined;
     shouldBeSelected?: boolean | undefined;
-    /** Whether to propagate the selection change through the tree hierarchy.
-     * Defaults to the value of `keepExistingSelection` (toggle semantics propagate, replace semantics don't). */
+    /**
+     * Whether to propagate the selection change through the tree hierarchy.
+     * Defaults to the value of `keepExistingSelection` (toggle semantics propagate, replace semantics don't).
+     */
     shouldPropagate?: boolean | undefined;
     reason: TreeRootSelectionChangeEventReason;
     event?: Event | undefined;
@@ -798,7 +800,7 @@ export class TreeStore<
       reason,
       event,
       [itemId],
-      shouldPropagate ?? keepExistingSelection,
+      shouldPropagate ?? false,
     );
     this.lastSelectedItem = itemId;
     this.lastSelectedRange = {};
@@ -808,9 +810,18 @@ export class TreeStore<
    * Converts the "all" sentinel into an explicit array of all currently selectable item IDs.
    */
   private materializeSelectedItems(): TreeItemId[] {
-    return getAllNavigableItems(this.state).filter((id) =>
-      selectors.canItemBeSelected(this.state, id),
-    );
+    const result: TreeItemId[] = [];
+    const traverse = (parentId: TreeItemId | null) => {
+      const children = selectors.itemOrderedChildrenIds(this.state, parentId);
+      for (const childId of children) {
+        if (selectors.canItemBeSelected(this.state, childId)) {
+          result.push(childId);
+        }
+        traverse(childId);
+      }
+    };
+    traverse(null);
+    return result;
   }
 
   public selectAllNavigableItems(reason: TreeRootSelectionChangeEventReason, event?: Event) {
@@ -1013,6 +1024,14 @@ export class TreeStore<
     return selectors.canItemBeSelected(this.state, itemId);
   }
 
+  private isCheckboxItem(element: HTMLElement): boolean {
+    return (
+      element.hasAttribute('data-checked') ||
+      element.hasAttribute('data-unchecked') ||
+      element.hasAttribute('data-indeterminate')
+    );
+  }
+
   private canToggleItemExpansion(itemId: TreeItemId): boolean {
     return (
       !selectors.isItemDisabled(this.state, itemId) &&
@@ -1090,6 +1109,7 @@ export class TreeStore<
       // Select the item when pressing "Space"
       case key === ' ' && this.canToggleItemSelection(itemId): {
         event.preventDefault();
+        const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
         if (isMulti && event.shiftKey) {
           this.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
         } else {
@@ -1097,6 +1117,7 @@ export class TreeStore<
             itemId,
             keepExistingSelection: isMulti,
             shouldBeSelected: undefined,
+            shouldPropagate: isCheckbox,
             reason: REASONS.keyboard,
             event: event.nativeEvent,
           });
@@ -1130,6 +1151,7 @@ export class TreeStore<
             this.setItemSelection({
               itemId,
               keepExistingSelection: true,
+              shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
               reason: REASONS.keyboard,
               event: event.nativeEvent,
             });
@@ -1417,6 +1439,7 @@ export class TreeStore<
         this.setItemSelection({
           itemId,
           keepExistingSelection: isMulti,
+          shouldPropagate: true,
           reason: REASONS.itemPress,
           event: event.nativeEvent,
         });

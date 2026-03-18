@@ -56,6 +56,17 @@ import { Tree } from '@base-ui/react/tree';
       </React.Fragment>
     )}
   </Tree.AnimatedItemList>
+
+  {/* Virtualized rendering */}
+  <Tree.VirtualizedItemList itemHeight={32}>
+    {(item) => (
+      <Tree.Item>
+        <Tree.ItemExpansionTrigger />
+        <Tree.ItemGroupIndicator />
+        <Tree.ItemLabel />
+      </Tree.Item>
+    )}
+  </Tree.VirtualizedItemList>
 </Tree.Root>;
 ```
 

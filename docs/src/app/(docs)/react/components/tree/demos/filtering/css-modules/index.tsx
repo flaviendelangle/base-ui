@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import { Switch } from '@base-ui/react/switch';
 import styles from './index.module.css';
 
 const items: Tree.DefaultItemModel[] = [
@@ -42,22 +43,41 @@ const items: Tree.DefaultItemModel[] = [
 
 export default function ExampleTreeFiltering() {
   const [filterText, setFilterText] = React.useState('');
+  const [autoExpand, setAutoExpand] = React.useState(false);
   const filter = Tree.useFilter();
-  const filteredItems = Tree.useFilteredItems({
+  const result = Tree.useFilteredItems({
     items,
     filterText,
     filter,
+    autoExpand: true,
   });
 
   return (
     <div className={styles.Demo}>
-      <input
-        className={styles.FilterInput}
-        placeholder="Filter items…"
-        value={filterText}
-        onChange={(event) => setFilterText(event.target.value)}
-      />
-      <Tree.Root items={filteredItems} defaultExpandedItems={[]} className={styles.Tree}>
+      <div className={styles.Toolbar}>
+        <input
+          className={styles.FilterInput}
+          placeholder="Filter items…"
+          value={filterText}
+          onChange={(event) => setFilterText(event.target.value)}
+        />
+        <label className={styles.SwitchLabel}>
+          <Switch.Root
+            checked={autoExpand}
+            onCheckedChange={setAutoExpand}
+            className={styles.Switch}
+          >
+            <Switch.Thumb className={styles.SwitchThumb} />
+          </Switch.Root>
+          Auto-expand
+        </label>
+      </div>
+      <Tree.Root
+        items={result.items}
+        expandedItems={autoExpand ? result.expandedItems : undefined}
+        defaultExpandedItems={[]}
+        className={styles.Tree}
+      >
         <Tree.ItemList>
           {(item) => (
             <Tree.Item itemId={item.id} className={styles.Item}>
