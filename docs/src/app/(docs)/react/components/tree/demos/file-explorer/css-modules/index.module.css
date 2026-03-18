@@ -37,13 +37,17 @@
     }
   }
 
-  &[data-focused] {
+  &[data-focused]:not([data-editing]) {
     outline: 2px solid var(--color-blue);
     outline-offset: -2px;
   }
 
-  &[data-selected] {
+  &[data-selected]:not([data-editing]) {
     background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+  }
+
+  &[data-editing] {
+    background: none;
   }
 }
 
@@ -69,32 +73,6 @@
   &[data-expanded] svg {
     transform: rotate(90deg);
   }
-}
-
-.GroupIndicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-
-  & svg:last-child {
-    display: none;
-  }
-
-  &[data-expanded] svg:first-child {
-    display: none;
-  }
-
-  &[data-expanded] svg:last-child {
-    display: block;
-  }
-}
-
-.FolderIcon {
-  width: 1rem;
-  height: 1rem;
 }
 
 .FileIcon {

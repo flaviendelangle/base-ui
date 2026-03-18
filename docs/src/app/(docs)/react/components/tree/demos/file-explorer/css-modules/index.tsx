@@ -6,57 +6,206 @@ import styles from './index.module.css';
 import { BASE_UI_FILES, type FileItem } from '../baseUIFiles';
 
 // ---------------------------------------------------------------------------
-// File-type icons
+// File-type icons — Seti-style monochrome glyphs, each in its signature color
 // ---------------------------------------------------------------------------
 
-const FILE_TYPE_COLORS: Record<string, string> = {
-  ts: '#3178C6',
-  tsx: '#3178C6',
-  js: '#F0DB4F',
-  mjs: '#F0DB4F',
-  json: '#F0DB4F',
-  css: '#A855F7',
-  md: '#9CA3AF',
-  yaml: '#E34F26',
-  mts: '#3178C6',
-  toml: '#9CA3AF',
-  other: '#9CA3AF',
-};
+// Shared file page silhouette used as a base for most icons
+const FILE_PATH = 'M4.5 1H10l3.5 3.5V14a1 1 0 01-1 1h-8a1 1 0 01-1-1V2a1 1 0 011-1z';
+const FOLD_PATH = 'M10 1v2.5a1 1 0 001 1h2.5';
+
+function TypeScriptIcon() {
+  // Blue file with a "TS" badge
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#3178C6" fillOpacity={0.15} stroke="#3178C6" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#3178C6" strokeWidth="1" strokeLinecap="round" />
+      <path d="M4.5 9h3M6 9v3.5" stroke="#3178C6" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TypeScriptReactIcon() {
+  // Blue file with a small React atom
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#3178C6" fillOpacity={0.15} stroke="#3178C6" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#3178C6" strokeWidth="1" strokeLinecap="round" />
+      <ellipse cx="7" cy="10.5" rx="3.5" ry="1.3" stroke="#3178C6" strokeWidth="0.75" />
+      <ellipse
+        cx="7"
+        cy="10.5"
+        rx="3.5"
+        ry="1.3"
+        stroke="#3178C6"
+        strokeWidth="0.75"
+        transform="rotate(60 7 10.5)"
+      />
+      <ellipse
+        cx="7"
+        cy="10.5"
+        rx="3.5"
+        ry="1.3"
+        stroke="#3178C6"
+        strokeWidth="0.75"
+        transform="rotate(120 7 10.5)"
+      />
+      <circle cx="7" cy="10.5" r="0.7" fill="#3178C6" />
+    </svg>
+  );
+}
+
+function JavaScriptIcon() {
+  // Yellow file with "JS" badge
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#E8D44D" fillOpacity={0.15} stroke="#B8A62E" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#B8A62E" strokeWidth="1" strokeLinecap="round" />
+      <path d="M5.5 9v2.5a1 1 0 01-2 0" stroke="#B8A62E" strokeWidth="1.3" strokeLinecap="round" />
+      <path
+        d="M8.5 9.5a1.2 1.2 0 012 .2.9.9 0 01-.4 1l-1.2.7a.9.9 0 00-.4 1 1.2 1.2 0 002 .2"
+        stroke="#B8A62E"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function JsonIcon() {
+  // Yellow file with curly braces
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#E8D44D" fillOpacity={0.15} stroke="#B8A62E" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#B8A62E" strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M5.5 8C5 8 4.5 8.2 4.5 8.8v.7c0 .6-.5.9-1 1 .5.1 1 .4 1 1v.7c0 .6.5.8 1 .8M9.5 8c.5 0 1 .2 1 .8v.7c0 .6.5.9 1 1-.5.1-1 .4-1 1v.7c0 .6-.5.8-1 .8"
+        stroke="#B8A62E"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CssIcon() {
+  // Purple file with # (selector)
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#663399" fillOpacity={0.15} stroke="#663399" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#663399" strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M5 9.5h5M5 11.5h5M6.5 8l-1 5M8.5 8l-1 5"
+        stroke="#663399"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MarkdownIcon() {
+  // Gray file with M↓ glyph
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path
+        d={FILE_PATH}
+        fill="var(--color-gray-300)"
+        fillOpacity={0.3}
+        stroke="var(--color-gray-400)"
+        strokeWidth="1"
+      />
+      <path d={FOLD_PATH} stroke="var(--color-gray-400)" strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M4 13V8.5l1.75 2 1.75-2V13"
+        stroke="var(--color-gray-500)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 10v2.5M10 12.5l1.25-1.5M10 12.5l-1.25-1.5"
+        stroke="var(--color-gray-500)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function YamlIcon() {
+  // Red file with indented lines (config-like)
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} fill="#E34F26" fillOpacity={0.15} stroke="#E34F26" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="#E34F26" strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M4.5 8.5h4M4.5 10.5h6M6 12.5h4.5"
+        stroke="#E34F26"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ConfigIcon() {
+  // Gray file with a gear
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path
+        d={FILE_PATH}
+        fill="var(--color-gray-300)"
+        fillOpacity={0.3}
+        stroke="var(--color-gray-400)"
+        strokeWidth="1"
+      />
+      <path d={FOLD_PATH} stroke="var(--color-gray-400)" strokeWidth="1" strokeLinecap="round" />
+      <circle cx="7.5" cy="10.5" r="1.5" stroke="var(--color-gray-500)" strokeWidth="1" />
+      <path
+        d="M7.5 7.5v1.2M7.5 12v1.2M5 10.5H4M11 10.5h-1M5.5 8.5l.8.8M9.2 12.2l.8.8M9.5 8.5l-.8.8M5.8 12.2l-.8.8"
+        stroke="var(--color-gray-500)"
+        strokeWidth="0.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function DefaultFileIcon() {
+  // Plain file outline
+  return (
+    <svg className={styles.FileIcon} viewBox="0 0 16 16" fill="none">
+      <path d={FILE_PATH} stroke="var(--color-gray-400)" strokeWidth="1" />
+      <path d={FOLD_PATH} stroke="var(--color-gray-400)" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function FileIcon({ fileType }: { fileType: string }) {
-  const color = FILE_TYPE_COLORS[fileType] ?? '#9CA3AF';
-  return (
-    <svg className={styles.FileIcon} viewBox="0 0 16 16" style={{ color }}>
-      <path
-        d="M4 1h5.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V14a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.25"
-      />
-    </svg>
-  );
-}
-
-function FolderClosedIcon() {
-  return (
-    <svg className={styles.FolderIcon} viewBox="0 0 16 16">
-      <path
-        d="M1.5 13h12a.5.5 0 00.5-.5V4.5a.5.5 0 00-.5-.5H7L5.5 2.5h-4a.5.5 0 00-.5.5v9.5a.5.5 0 00.5.5z"
-        fill="#C09553"
-      />
-    </svg>
-  );
-}
-
-function FolderOpenIcon() {
-  return (
-    <svg className={styles.FolderIcon} viewBox="0 0 16 16">
-      <path
-        d="M1.5 14h11l2-6H4.5l-2 6H1V3h4l1.5 1.5H13v3h1V3.5a.5.5 0 00-.5-.5H7L5.5 1.5h-4A.5.5 0 001 2v11.5a.5.5 0 00.5.5z"
-        fill="#DCAD5A"
-      />
-    </svg>
-  );
+  switch (fileType) {
+    case 'ts':
+    case 'mts':
+      return <TypeScriptIcon />;
+    case 'tsx':
+      return <TypeScriptReactIcon />;
+    case 'js':
+    case 'mjs':
+      return <JavaScriptIcon />;
+    case 'json':
+      return <JsonIcon />;
+    case 'css':
+      return <CssIcon />;
+    case 'md':
+      return <MarkdownIcon />;
+    case 'yaml':
+      return <YamlIcon />;
+    case 'toml':
+      return <ConfigIcon />;
+    default:
+      return <DefaultFileIcon />;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -99,8 +248,7 @@ const FileExplorerContext = React.createContext<FileExplorerContextValue>({
 // ---------------------------------------------------------------------------
 
 function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
-  const { editingItemId, startEditing, stopEditing, saveEdit } =
-    React.useContext(FileExplorerContext);
+  const { editingItemId, stopEditing, saveEdit } = React.useContext(FileExplorerContext);
   const isEditing = editingItemId === itemId;
   const inputRef = React.useRef<HTMLInputElement>(null);
   const wasEditingRef = React.useRef(false);
@@ -117,13 +265,7 @@ function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
   }, [isEditing, itemId]);
 
   return (
-    <Tree.ItemLabel
-      className={styles.Label}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        startEditing(itemId);
-      }}
-    >
+    <Tree.ItemLabel className={styles.Label}>
       {isEditing ? (
         <input
           ref={inputRef}
@@ -342,6 +484,7 @@ export default function ExampleFileExplorer() {
             items={items}
             expandedItems={expandedItems}
             onExpandedItemsChange={(newExpanded) => setExpandedItems(newExpanded)}
+            expandOnClick
             className={styles.Tree}
             onKeyDown={(event) => {
               const focused = (event.currentTarget as HTMLElement).querySelector<HTMLElement>(
@@ -365,21 +508,19 @@ export default function ExampleFileExplorer() {
                 const fileItem = item as FileItem;
                 const isFolder = fileItem.children !== undefined;
                 const isCut = clipboard?.itemId === fileItem.id && clipboard?.operation === 'cut';
+                const isEditing = editingItemId === fileItem.id;
 
                 return (
                   <Tree.Item
                     itemId={fileItem.id}
                     className={styles.Item}
+                    data-editing={isEditing || undefined}
                     style={isCut ? { opacity: 0.4 } : undefined}
                     onContextMenu={() => setContextMenuItemId(fileItem.id)}
                   >
                     <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
                       <ChevronIcon />
                     </Tree.ItemExpansionTrigger>
-                    <Tree.ItemGroupIndicator className={styles.GroupIndicator}>
-                      <FolderClosedIcon />
-                      <FolderOpenIcon />
-                    </Tree.ItemGroupIndicator>
                     {!isFolder && <FileIcon fileType={fileItem.fileType} />}
                     <EditableLabel itemId={fileItem.id} label={fileItem.label} />
                   </Tree.Item>
