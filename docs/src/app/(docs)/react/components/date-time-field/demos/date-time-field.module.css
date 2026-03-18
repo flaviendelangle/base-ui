@@ -24,20 +24,17 @@
   caret-color: transparent;
 
   &:focus {
-    background-color: oklch(45% 50% 264deg);
+    --focus-bg: oklch(45% 50% 264deg);
+    background-color: var(--focus-bg);
     color: white;
 
     &::selection {
-      background-color: oklch(45% 50% 264deg);
+      background-color: var(--focus-bg);
       color: white;
     }
 
     @media (prefers-color-scheme: dark) {
-      background-color: oklch(45% 40% 264deg);
-
-      &::selection {
-        background-color: oklch(45% 40% 264deg);
-      }
+      --focus-bg: oklch(45% 40% 264deg);
     }
   }
 
