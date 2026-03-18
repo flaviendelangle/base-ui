@@ -1572,14 +1572,12 @@ A tree component for displaying hierarchical data.
     - Virtualized
     - CRUD
   - API reference
-  - useVisibleItems
-    - Return value
   - useFilteredItems
     - Input parameters
     - Return value
 - Exports:
   - Tree - Root
-    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultSelectedItems, disabled, disallowEmptySelection, expandOnClick, expandedItems, isItemDisabled, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onSelectedItemsChange, render, selectedItems, selectionMode, style, virtualized
+    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultSelectedItems, disabled, disallowEmptySelection, expandOnClick, expandedItems, isItemDisabled, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onSelectedItemsChange, render, selectedItems, selectionMode, style
     - Data Attributes: data-disabled
   - Tree - Item
     - Props: className, itemId, render, style
@@ -1614,6 +1612,8 @@ A tree component for displaying hierarchical data.
     - CSS Variables: --tree-group-height
   - Tree - Empty
     - Props: className, render, style
+  - Tree - VirtualizedItemList
+    - Props: children, className, itemHeight, overscan, render, style
   - Tree - ItemModelProvider
     - Props: animatedChildren, children, itemId, store
 

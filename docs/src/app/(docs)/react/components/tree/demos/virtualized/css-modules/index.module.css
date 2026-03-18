@@ -3,33 +3,21 @@
   padding: 0;
   margin: 0;
   width: 14rem;
+  height: 24rem;
   color: var(--color-gray-900);
   border: 1px solid var(--color-gray-200);
   border-radius: 0.5rem;
   background: var(--color-content);
 }
 
-.Scroller {
-  height: min(24rem, var(--total-size));
-  max-height: 24rem;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-.VirtualizedPlaceholder {
-  width: 100%;
-  position: relative;
-}
-
 .Item {
   --trigger-width: 1.5rem;
-  --depth-offset: 0px;
 
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding-block: 0.25rem;
-  padding-inline-start: calc(0.5rem + var(--depth-offset));
+  height: 32px;
+  padding-inline-start: calc(0.5rem + var(--depth) * 1.5rem);
   padding-inline-end: 0.5rem;
   cursor: pointer;
   user-select: none;
@@ -40,7 +28,7 @@
   box-sizing: border-box;
 
   &:not([data-expandable]) {
-    padding-inline-start: calc(0.5rem + var(--depth-offset) + var(--trigger-width));
+    padding-inline-start: calc(0.5rem + var(--depth) * 1.5rem + var(--trigger-width));
   }
 
   @media (hover: hover) {

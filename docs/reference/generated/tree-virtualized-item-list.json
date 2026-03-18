@@ -1,0 +1,39 @@
+{
+  "name": "TreeVirtualizedItemList",
+  "description": "Renders tree items in a virtualized scrolling container.\nOnly items visible in the viewport (plus an overscan buffer) are rendered.\nPlace inside `Tree.Root` to render items alongside other children like `Tree.Empty`.\n\nRequires `@mui/x-virtualizer` as a peer dependency.",
+  "props": {
+    "itemHeight": {
+      "type": "number",
+      "required": true,
+      "description": "The fixed height (in pixels) of each item row.\nRequired for virtualization calculations."
+    },
+    "overscan": {
+      "type": "number",
+      "default": "150",
+      "description": "The number of pixels to render above and below the visible area.",
+      "detailedType": "number | undefined"
+    },
+    "children": {
+      "type": "((item: any) => ReactNode)",
+      "required": true,
+      "description": "The render function for each tree item.",
+      "detailedType": "(item: any) => ReactNode"
+    },
+    "className": {
+      "type": "string | ((state: Tree.VirtualizedItemList.State) => string | undefined)",
+      "description": "CSS class applied to the element, or a function that\nreturns a class based on the component’s state.",
+      "detailedType": "| string\n| ((\n    state: Tree.VirtualizedItemList.State,\n  ) => string | undefined)"
+    },
+    "style": {
+      "type": "CSSProperties | ((state: Tree.VirtualizedItemList.State) => CSSProperties | undefined)",
+      "detailedType": "| React.CSSProperties\n| ((\n    state: Tree.VirtualizedItemList.State,\n  ) => CSSProperties | undefined)\n| undefined"
+    },
+    "render": {
+      "type": "ReactElement | ((props: HTMLProps, state: Tree.VirtualizedItemList.State) => ReactElement)",
+      "description": "Allows you to replace the component’s HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render.",
+      "detailedType": "| ReactElement\n| ((\n    props: HTMLProps,\n    state: Tree.VirtualizedItemList.State,\n  ) => ReactElement)"
+    }
+  },
+  "dataAttributes": {},
+  "cssVariables": {}
+}

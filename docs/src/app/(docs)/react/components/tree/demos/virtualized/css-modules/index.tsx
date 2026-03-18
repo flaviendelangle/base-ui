@@ -1,111 +1,25 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import styles from './index.module.css';
 
 export default function ExampleVirtualizedTree() {
-  const scrollToItemRef = React.useRef<ScrollToItem | null>(null);
-
   return (
-    <Tree.Root
-      virtualized
-      items={items}
-      expandOnClick
-      onItemFocus={(itemId) => {
-        scrollToItemRef.current?.(itemId);
-      }}
-      className={styles.Tree}
-    >
-      <VirtualizedList scrollToItemRef={scrollToItemRef} />
+    <Tree.Root items={items} expandOnClick className={styles.Tree}>
+      <Tree.VirtualizedItemList itemHeight={32}>
+        {(item) => (
+          <Tree.Item itemId={item.id} className={styles.Item}>
+            <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
+              <ChevronIcon />
+            </Tree.ItemExpansionTrigger>
+            <Tree.ItemGroupIndicator className={styles.Icon}>
+              <FolderIcon />
+            </Tree.ItemGroupIndicator>
+            <Tree.ItemLabel className={styles.Label} />
+          </Tree.Item>
+        )}
+      </Tree.VirtualizedItemList>
     </Tree.Root>
-  );
-}
-
-function VirtualizedList({
-  scrollToItemRef,
-}: {
-  scrollToItemRef: React.RefObject<ScrollToItem | null>;
-}) {
-  const visibleItems = Tree.useVisibleItems();
-  const scrollElementRef = React.useRef<HTMLDivElement | null>(null);
-
-  const virtualizer = useVirtualizer({
-    count: visibleItems.length,
-    getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => 32,
-    overscan: 20,
-  });
-
-  React.useImperativeHandle(
-    scrollToItemRef,
-    () => (itemId: string) => {
-      const index = visibleItems.findIndex((v) => v.itemId === itemId);
-      if (index >= 0) {
-        queueMicrotask(() => {
-          virtualizer.scrollToIndex(index, { align: 'auto' });
-        });
-      }
-    },
-    [visibleItems, virtualizer],
-  );
-
-  const handleScrollElementRef = React.useCallback(
-    (element: HTMLDivElement | null) => {
-      scrollElementRef.current = element;
-      if (element) {
-        virtualizer.measure();
-      }
-    },
-    [virtualizer],
-  );
-
-  const totalSize = virtualizer.getTotalSize();
-
-  return (
-    <div
-      role="presentation"
-      ref={handleScrollElementRef}
-      className={styles.Scroller}
-      style={{ '--total-size': `${totalSize}px` } as React.CSSProperties}
-    >
-      <div
-        role="presentation"
-        className={styles.VirtualizedPlaceholder}
-        style={{ height: totalSize }}
-      >
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const { itemId, depth } = visibleItems[virtualItem.index];
-          return (
-            <Tree.Item
-              key={itemId}
-              itemId={itemId}
-              ref={virtualizer.measureElement}
-              data-index={virtualItem.index}
-              className={styles.Item}
-              style={
-                {
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualItem.start}px)`,
-                  '--depth-offset': `${depth * 1.5}rem`,
-                } as React.CSSProperties
-              }
-            >
-              <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
-                <ChevronIcon />
-              </Tree.ItemExpansionTrigger>
-              <Tree.ItemGroupIndicator className={styles.Icon}>
-                <FolderIcon />
-              </Tree.ItemGroupIndicator>
-              <Tree.ItemLabel className={styles.Label} />
-            </Tree.Item>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -164,5 +78,3 @@ function generateItems(): Tree.DefaultItemModel[] {
 }
 
 const items = generateItems();
-
-type ScrollToItem = (itemId: string) => void;

@@ -118,11 +118,15 @@
     "@date-fns/tz": "^1.2.0",
     "@types/react": "^17 || ^18 || ^19",
     "date-fns": "^4.0.0",
+    "@mui/x-virtualizer": "^1.0.0-alpha.0",
     "react": "^17 || ^18 || ^19",
     "react-dom": "^17 || ^18 || ^19"
   },
   "peerDependenciesMeta": {
     "@types/react": {
+      "optional": true
+    },
+    "@mui/x-virtualizer": {
       "optional": true
     }
   },

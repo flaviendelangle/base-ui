@@ -79,8 +79,6 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     actionsRef,
     // Plugins
     lazyLoading,
-    // Virtualization
-    virtualized,
     // Props forwarded to the DOM element
     ...elementProps
   } = componentProps;
@@ -127,7 +125,6 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         direction,
         rootRef,
         lazyLoading,
-        virtualized,
       }),
   ).current;
 
@@ -151,7 +148,6 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     isItemDisabled,
     isItemSelectionDisabled,
     direction,
-    virtualized: virtualized ?? false,
   });
 
   store.useContextCallback('onExpandedItemsChange', onExpandedItemsChange);
@@ -168,13 +164,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
 
   const renderChildren = React.useMemo(() => {
     if (typeof children !== 'function') {
-      // AnimatedItemList, ItemList, or other ReactNode handles its own rendering.
-      // When virtualized, the consumer controls rendering via useVisibleItems().
+      // AnimatedItemList, ItemList, VirtualizedItemList,
+      // or other ReactNode handles its own rendering.
       return children;
-    }
-
-    if (virtualized) {
-      return null;
     }
 
     return flatItemIds.map((itemId) => (
@@ -182,7 +174,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         {children as any}
       </TreeItemModelProvider>
     ));
-  }, [virtualized, flatItemIds, store, children]);
+  }, [flatItemIds, store, children]);
 
   const state: TreeRoot.State = {
     disabled: disabled ?? false,

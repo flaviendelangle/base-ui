@@ -113,7 +113,7 @@ import { DemoTreeFiltering } from './demos/filtering';
 
 ### Virtualized
 
-Render large trees efficiently by only rendering items currently visible in the viewport. Set `virtualized` on `Tree.Root` and use `Tree.useVisibleItems()` to get the flat list of visible items, then wire up your own virtualizer (for example, `@tanstack/react-virtual`). Each `Tree.Item` must receive an `itemId` prop.
+Render large trees efficiently by only rendering items currently visible in the viewport. Use `Tree.VirtualizedItemList` instead of `Tree.ItemList` with a fixed `itemHeight`. Requires `@mui/x-virtualizer` as a peer dependency. The parent container must have a defined height.
 
 import { DemoTreeVirtualized } from './demos/virtualized';
 
@@ -131,29 +131,7 @@ import { DemoTreeCrud } from './demos/crud';
 
 <Reference
   component="Tree"
-  parts="Root, AnimatedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemLoadingIndicator, ItemErrorIndicator"
-/>
-
-## useVisibleItems
-
-Returns the flat list of visible items (respecting the current expansion state) when called inside `<Tree.Root>`. Use this hook with `virtualized` to get the items to render.
-
-### Return value
-
-Returns an array of `Tree.useVisibleItems.Item` objects:
-
-<PropsReferenceTable
-  type="return"
-  data={{
-    itemId: {
-      type: 'string',
-      description: 'The unique ID of the item.',
-    },
-    depth: {
-      type: 'number',
-      description: 'The depth of the item in the tree hierarchy (0-based).',
-    },
-  }}
+  parts="Root, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemLoadingIndicator, ItemErrorIndicator"
 />
 
 ## useFilteredItems

@@ -23,6 +23,7 @@ export type * from './item-list/TreeItemList';
 export type * from './animated-item-list/TreeAnimatedItemList';
 export type * from './group-transition/TreeGroupTransition';
 export type * from './empty/TreeEmpty';
+export type * from './virtualized-item-list/TreeVirtualizedItemList';
 export type {
   TreeItemId,
   TreeSelectionMode,
@@ -40,4 +41,3 @@ export type {
   TreeItemSelectionToggleEventDetails,
   TreeItemSelectionToggleValue,
 } from './store/types';
-export type { VisibleItem } from './store/selectors';

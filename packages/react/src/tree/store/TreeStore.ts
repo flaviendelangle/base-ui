@@ -193,11 +193,6 @@ export interface TreeStoreParameters<
    * The lazy loading plugin instance, used to load items on demand when expanding a parent item.
    */
   lazyLoading?: TreeLazyLoading<TItem> | undefined;
-  /**
-   * Whether the items are being externally virtualized.
-   * @default false
-   */
-  virtualized?: boolean | undefined;
 }
 
 function getLookupFromArray(array: string[]): Record<string, true> {
@@ -289,7 +284,7 @@ export class TreeStore<
         isItemDisabled,
         isItemSelectionDisabled,
         direction: parameters.direction,
-        virtualized: parameters.virtualized ?? false,
+        virtualized: false,
         enableGroupTransition: false,
         animatingGroups: EMPTY_OBJECT,
       },

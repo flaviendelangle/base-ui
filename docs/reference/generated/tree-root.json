@@ -123,12 +123,6 @@
       "description": "The selection mode of the tree.\nUse `'single'` for single selection, `'multiple'` for multiple selection.",
       "detailedType": "TreeSelectionMode | undefined"
     },
-    "virtualized": {
-      "type": "boolean",
-      "default": "false",
-      "description": "Whether the items are being externally virtualized.",
-      "detailedType": "boolean | undefined"
-    },
     "disabled": {
       "type": "boolean",
       "default": "false",
