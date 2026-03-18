@@ -24,6 +24,7 @@ export type * from './animated-item-list/TreeAnimatedItemList';
 export type * from './group-transition/TreeGroupTransition';
 export type * from './empty/TreeEmpty';
 export type * from './virtualized-item-list/TreeVirtualizedItemList';
+export { TREE_SELECTION_ALL } from './store/types';
 export type {
   TreeItemId,
   TreeSelectionMode,

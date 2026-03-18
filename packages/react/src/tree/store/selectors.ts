@@ -8,7 +8,7 @@ import type {
   TreeItemsState,
   FlatListEntry,
 } from './types';
-import { TREE_VIEW_ROOT_PARENT_ID } from './types';
+import { TREE_VIEW_ROOT_PARENT_ID, TREE_SELECTION_ALL } from './types';
 import { buildItemsState } from './buildItemsState';
 
 /**
@@ -195,27 +195,20 @@ const isItemExpandedSelector = createSelector(
   (expandedSet, itemId: TreeItemId): boolean => expandedSet.has(itemId),
 );
 
-const selectedItemsNormalizedSelector = createSelectorMemoized(
+const selectedItemsSetSelector = createSelectorMemoized(
   (state: TreeState) => state.selectedItems,
-  (raw): readonly TreeItemId[] => {
+  (raw): Set<TreeItemId> | typeof TREE_SELECTION_ALL => {
+    if (raw === TREE_SELECTION_ALL) {
+      return TREE_SELECTION_ALL;
+    }
     if (Array.isArray(raw)) {
-      return raw;
+      return new Set(raw);
     }
     if (raw != null) {
-      return [raw as TreeItemId];
+      return new Set([raw as TreeItemId]);
     }
-    return [];
+    return new Set();
   },
-);
-
-const selectedItemsSetSelector = createSelectorMemoized(
-  selectedItemsNormalizedSelector,
-  (items): Set<TreeItemId> => new Set(items),
-);
-
-const isItemSelectedSelector = createSelector(
-  selectedItemsSetSelector,
-  (set, itemId: TreeItemId): boolean => set.has(itemId),
 );
 
 const isSelectionDisabledSelector = createSelector(
@@ -238,6 +231,16 @@ const canItemBeSelectedSelector = createSelector(
   },
 );
 
+const isItemSelectedSelector = createSelector(
+  (state: TreeState, itemId: TreeItemId): boolean => {
+    const selectedSet = selectedItemsSetSelector(state);
+    if (selectedSet === TREE_SELECTION_ALL) {
+      return canItemBeSelectedSelector(state, itemId);
+    }
+    return selectedSet.has(itemId);
+  },
+);
+
 export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 
 /**
@@ -246,9 +249,22 @@ export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
  * or tree structure changes.
  */
 const descendantSelectionCountsSelector = createSelectorMemoized(
-  selectedItemsSetSelector,
+  (state: TreeState) => state.selectedItems,
   itemOrderedChildrenIdsLookupSelector,
-  (selectedSet, childrenLookup): Record<TreeItemId, { selected: number; total: number }> => {
+  (selectedItems, childrenLookup): Record<TreeItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
+    if (selectedItems === TREE_SELECTION_ALL) {
+      return TREE_SELECTION_ALL;
+    }
+
+    let selectedSet: Set<TreeItemId>;
+    if (Array.isArray(selectedItems)) {
+      selectedSet = new Set(selectedItems);
+    } else if (selectedItems != null) {
+      selectedSet = new Set([selectedItems as TreeItemId]);
+    } else {
+      selectedSet = new Set();
+    }
+
     const counts: Record<TreeItemId, { selected: number; total: number }> = {};
 
     const compute = (itemId: string): { selected: number; total: number } => {
@@ -288,7 +304,12 @@ const checkboxSelectionStatusSelector = createSelector(
       return 'checked';
     }
 
-    const counts = descendantSelectionCountsSelector(state)[itemId];
+    const allCounts = descendantSelectionCountsSelector(state);
+    if (allCounts === TREE_SELECTION_ALL) {
+      return 'checked';
+    }
+
+    const counts = allCounts[itemId];
     if (!counts || counts.total === 0) {
       return 'empty';
     }
@@ -319,7 +340,7 @@ const isItemFocusedSelector = createSelector(
 );
 
 const defaultFocusableItemIdSelector = createSelectorMemoized(
-  selectedItemsNormalizedSelector,
+  (state: TreeState) => state.selectedItems,
   expandedItemsSetSelector,
   itemMetaLookupSelector,
   (state: TreeState) => state.itemFocusableWhenDisabled,
@@ -331,24 +352,36 @@ const defaultFocusableItemIdSelector = createSelectorMemoized(
     disabledFocusable,
     childrenLookup,
   ): TreeItemId | null => {
-    // Try to focus the first selected and visible item
-    for (const selectedId of selectedItems) {
-      const meta = metaLookup[selectedId];
-      if (!meta) {
-        continue;
+    // When "all" or no explicit selection, skip to first root item
+    if (selectedItems !== TREE_SELECTION_ALL) {
+      let normalized: readonly TreeItemId[];
+      if (Array.isArray(selectedItems)) {
+        normalized = selectedItems;
+      } else if (selectedItems != null) {
+        normalized = [selectedItems as TreeItemId];
+      } else {
+        normalized = [];
       }
-      // Check if the item is visible (all ancestors are expanded)
-      let isVisible = true;
-      let parentId = meta.parentId;
-      while (parentId != null) {
-        if (!expandedSet.has(parentId)) {
-          isVisible = false;
-          break;
+
+      // Try to focus the first selected and visible item
+      for (const selectedId of normalized) {
+        const meta = metaLookup[selectedId];
+        if (!meta) {
+          continue;
         }
-        parentId = metaLookup[parentId]?.parentId ?? null;
-      }
-      if (isVisible && (disabledFocusable || !meta.disabled)) {
-        return selectedId;
+        // Check if the item is visible (all ancestors are expanded)
+        let isVisible = true;
+        let parentId = meta.parentId;
+        while (parentId != null) {
+          if (!expandedSet.has(parentId)) {
+            isVisible = false;
+            break;
+          }
+          parentId = metaLookup[parentId]?.parentId ?? null;
+        }
+        if (isVisible && (disabledFocusable || !meta.disabled)) {
+          return selectedId;
+        }
       }
     }
 

@@ -485,6 +485,7 @@ export default function ExampleFileExplorer() {
             expandedItems={expandedItems}
             onExpandedItemsChange={(newExpanded) => setExpandedItems(newExpanded)}
             expandOnClick
+            selectionMode="multiple"
             className={styles.Tree}
             onKeyDown={(event) => {
               const focused = (event.currentTarget as HTMLElement).querySelector<HTMLElement>(

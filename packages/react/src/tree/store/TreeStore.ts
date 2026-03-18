@@ -22,6 +22,7 @@ import type {
   TreeItemSelectionToggleValue,
   TreeItemFocusEventDetails,
 } from './types';
+import { TREE_SELECTION_ALL } from './types';
 import { selectors } from './selectors';
 import {
   createChangeEventDetails,
@@ -203,6 +204,11 @@ function getLookupFromArray(array: string[]): Record<string, true> {
   return lookup;
 }
 
+/**
+ * Converts a raw selectedItems value to an array.
+ * Must NOT be called with the "all" sentinel — callers should handle that case
+ * explicitly (e.g. via `materializeSelectedItems`) before reaching this helper.
+ */
 function normalizeSelectedItems(raw: TreeItemId | null | readonly TreeItemId[]): TreeItemId[] {
   if (Array.isArray(raw)) {
     return raw as TreeItemId[];
@@ -560,7 +566,7 @@ export class TreeStore<
   // ===========================================================================
 
   private setSelectedItems(
-    newModel: TreeItemId[] | TreeItemId | null,
+    newModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
     additionalItemsToPropagate?: TreeItemId[],
@@ -569,9 +575,10 @@ export class TreeStore<
     const oldModel = this.state.selectedItems;
     const isMulti = this.state.selectionMode === 'multiple';
 
-    let cleanModel: TreeItemId[] | TreeItemId | null;
+    let cleanModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL;
 
     if (
+      newModel !== TREE_SELECTION_ALL &&
       shouldPropagate &&
       isMulti &&
       (this.state.checkboxSelectionPropagation.descendants ||
@@ -579,14 +586,16 @@ export class TreeStore<
     ) {
       cleanModel = this.propagateSelection(
         newModel as TreeItemId[],
-        Array.isArray(oldModel) ? oldModel : normalizeSelectedItems(oldModel),
+        oldModel === TREE_SELECTION_ALL
+          ? this.materializeSelectedItems()
+          : normalizeSelectedItems(oldModel),
         additionalItemsToPropagate,
       );
     } else {
       cleanModel = newModel;
     }
 
-    if (this.state.disallowEmptySelection) {
+    if (cleanModel !== TREE_SELECTION_ALL && this.state.disallowEmptySelection) {
       const normalizedClean = normalizeSelectedItems(cleanModel);
       if (normalizedClean.length === 0) {
         return;
@@ -594,11 +603,17 @@ export class TreeStore<
     }
 
     const details = createChangeEventDetails(reason, event);
-    this.context.onSelectedItemsChange(cleanModel as TreeItemId | null | TreeItemId[], details);
+    this.context.onSelectedItemsChange(cleanModel, details);
     if (details.isCanceled) {
       return;
     }
     this.set('selectedItems', cleanModel);
+
+    // Skip per-item toggle events when transitioning to/from "all"
+    // since we can't efficiently diff without materializing all items.
+    if (cleanModel === TREE_SELECTION_ALL || oldModel === TREE_SELECTION_ALL) {
+      return;
+    }
 
     // Fire onItemSelectionToggle for each item whose selection state changed
     const normalizedOld = new Set(normalizeSelectedItems(oldModel));
@@ -748,7 +763,10 @@ export class TreeStore<
     let newSelected: TreeItemId[] | TreeItemId | null;
 
     if (keepExistingSelection) {
-      const oldSelected = normalizeSelectedItems(this.state.selectedItems);
+      const oldSelected =
+        this.state.selectedItems === TREE_SELECTION_ALL
+          ? this.materializeSelectedItems()
+          : normalizeSelectedItems(this.state.selectedItems);
       const isSelectedBefore = selectors.isItemSelected(this.state, itemId);
 
       if (isSelectedBefore && (shouldBeSelected === false || shouldBeSelected == null)) {
@@ -786,16 +804,22 @@ export class TreeStore<
     this.lastSelectedRange = {};
   }
 
+  /**
+   * Converts the "all" sentinel into an explicit array of all currently selectable item IDs.
+   */
+  private materializeSelectedItems(): TreeItemId[] {
+    return getAllNavigableItems(this.state).filter((id) =>
+      selectors.canItemBeSelected(this.state, id),
+    );
+  }
+
   public selectAllNavigableItems(reason: TreeRootSelectionChangeEventReason, event?: Event) {
     if (this.state.selectionMode !== 'multiple') {
       return;
     }
 
-    const navigableItems = getAllNavigableItems(this.state).filter((id) =>
-      selectors.canItemBeSelected(this.state, id),
-    );
-    this.setSelectedItems(navigableItems, reason, event);
-    this.lastSelectedRange = getLookupFromArray(navigableItems);
+    this.setSelectedItems(TREE_SELECTION_ALL, reason, event);
+    this.lastSelectedRange = {};
   }
 
   public expandSelectionRange(
@@ -841,7 +865,10 @@ export class TreeStore<
       return;
     }
 
-    const currentSelectedItems = normalizeSelectedItems(this.state.selectedItems);
+    const currentSelectedItems =
+      this.state.selectedItems === TREE_SELECTION_ALL
+        ? this.materializeSelectedItems()
+        : normalizeSelectedItems(this.state.selectedItems);
     let newSelectedItems = currentSelectedItems.slice();
 
     if (Object.keys(this.lastSelectedRange).length === 0) {
@@ -873,7 +900,10 @@ export class TreeStore<
       return;
     }
 
-    const currentSelectedItems = normalizeSelectedItems(this.state.selectedItems);
+    const currentSelectedItems =
+      this.state.selectedItems === TREE_SELECTION_ALL
+        ? this.materializeSelectedItems()
+        : normalizeSelectedItems(this.state.selectedItems);
     let newSelectedItems = currentSelectedItems.slice();
 
     // Remove items from last range

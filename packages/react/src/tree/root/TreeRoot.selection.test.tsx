@@ -1478,4 +1478,134 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
     });
   });
+
+  describe('select all ("all" sentinel)', () => {
+    it('should render all items as selected when selectedItems="all"', async () => {
+      const view = await render({
+        items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+        selectionMode: 'multiple',
+        selectedItems: 'all',
+      });
+
+      expect(view.isItemSelected('1')).toBe(true);
+      expect(view.isItemSelected('2')).toBe(true);
+      expect(view.isItemSelected('3')).toBe(true);
+    });
+
+    it('should render all items as selected when defaultSelectedItems="all"', async () => {
+      const view = await render({
+        items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+        selectionMode: 'multiple',
+        defaultSelectedItems: 'all',
+      });
+
+      expect(view.isItemSelected('1')).toBe(true);
+      expect(view.isItemSelected('2')).toBe(true);
+      expect(view.isItemSelected('3')).toBe(true);
+    });
+
+    it('should not select disabled items when selectedItems="all"', async () => {
+      const view = await render({
+        items: [{ id: '1' }, { id: '2', disabled: true }, { id: '3' }],
+        selectionMode: 'multiple',
+        selectedItems: 'all',
+      });
+
+      expect(view.isItemSelected('1')).toBe(true);
+      expect(view.isItemSelected('2')).toBe(false);
+      expect(view.isItemSelected('3')).toBe(true);
+    });
+
+    it('should materialize "all" into explicit IDs when deselecting an item via Ctrl+click', async () => {
+      const onSelectedItemsChange = vi.fn();
+      const view = await render({
+        items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+        selectionMode: 'multiple',
+        defaultSelectedItems: 'all',
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot('2'), { ctrlKey: true });
+
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      const newSelection = onSelectedItemsChange.mock.calls[0][0] as string[];
+      expect(newSelection).toContain('1');
+      expect(newSelection).toContain('3');
+      expect(newSelection).not.toContain('2');
+    });
+
+    it('should report "all" in onSelectedItemsChange when setting controlled state to "all"', async () => {
+      const onSelectedItemsChange = vi.fn();
+      const view = await render({
+        items: [{ id: '1' }, { id: '2' }],
+        selectionMode: 'multiple',
+        selectedItems: [],
+        onSelectedItemsChange,
+      });
+
+      await view.setProps({ selectedItems: 'all' });
+
+      expect(view.isItemSelected('1')).toBe(true);
+      expect(view.isItemSelected('2')).toBe(true);
+    });
+
+    it('should return true from actionsRef.isItemSelected for all items when "all"', async () => {
+      const view = await render({
+        items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+        selectionMode: 'multiple',
+        selectedItems: 'all',
+      });
+
+      expect(view.actionsRef.current!.isItemSelected('1')).toBe(true);
+      expect(view.actionsRef.current!.isItemSelected('2')).toBe(true);
+      expect(view.actionsRef.current!.isItemSelected('3')).toBe(true);
+    });
+
+    it('should show all checkboxes as checked when selectedItems="all"', async () => {
+      const view = await render({
+        items: [
+          { id: '1', children: [{ id: '1.1' }, { id: '1.2' }] },
+          { id: '2' },
+        ],
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        selectedItems: 'all',
+        defaultExpandedItems: ['1'],
+      });
+
+      expect(view.isItemSelected('1')).toBe(true);
+      expect(view.isItemSelected('1.1')).toBe(true);
+      expect(view.isItemSelected('1.2')).toBe(true);
+      expect(view.isItemSelected('2')).toBe(true);
+    });
+
+    it('should select children revealed by expanding an item after Ctrl+A', async () => {
+      const view = await render({
+        items: [
+          { id: '1', children: [{ id: '1.1' }, { id: '1.2' }] },
+          { id: '2' },
+        ],
+        selectionMode: 'multiple',
+      });
+
+      // Press Ctrl+A to select all visible items
+      act(() => {
+        view.getItemRoot('1').focus();
+      });
+      fireEvent.keyDown(view.getItemRoot('1'), {
+        key: 'a',
+        keyCode: 65,
+        ctrlKey: true,
+      });
+
+      // Expand item 1 to reveal its children
+      act(() => {
+        view.actionsRef.current!.setItemExpansion('1', true);
+      });
+
+      // Children should be selected because state is "all"
+      expect(view.isItemSelected('1.1')).toBe(true);
+      expect(view.isItemSelected('1.2')).toBe(true);
+    });
+  });
 });

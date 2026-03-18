@@ -1108,9 +1108,11 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
 
       describe('key: Ctrl + A', () => {
         it('should select all items when Ctrl + A is pressed', async () => {
+          const onSelectedItemsChange = vi.fn();
           const view = await render({
             items: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }],
             selectionMode: 'multiple',
+            onSelectedItemsChange,
           });
 
           act(() => {
@@ -1122,6 +1124,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
             ctrlKey: true,
           });
           expect(view.getSelectedTreeItems()).toEqual(['1', '2', '3', '4']);
+          expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toBe('all');
         });
 
         it('should not select any item when Ctrl + A is pressed and disableSelection={true}', async () => {

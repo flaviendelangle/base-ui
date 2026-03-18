@@ -15,12 +15,24 @@ export type TreeItemId = string;
 export type TreeSelectionMode = 'none' | 'single' | 'multiple';
 
 /**
+ * Sentinel value representing "all selectable items are selected".
+ * When used as the value of `selectedItems`, every selectable item in the tree
+ * is considered selected — including items that are lazy-loaded after the value is set.
+ *
+ * Only valid when `selectionMode` is `'multiple'`.
+ *
+ * Note: avoid using the string `"all"` as an item `id` in your data,
+ * as it collides with this sentinel.
+ */
+export const TREE_SELECTION_ALL = 'all' as const;
+
+/**
  * Conditional type that narrows the selected items type based on the `selectionMode` prop.
- * When `Mode` is `'multiple'`, the type is `TreeItemId[]`.
+ * When `Mode` is `'multiple'`, the type is `TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
  * Otherwise, the type is `TreeItemId`.
  */
 export type TreeSelectedItemsType<Mode extends TreeSelectionMode | undefined> =
-  Mode extends 'multiple' ? TreeItemId[] : TreeItemId;
+  Mode extends 'multiple' ? TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
 
 /**
  * The shape of an item as provided by the user in the `items` prop.
@@ -158,10 +170,10 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
   /**
    * Currently selected items.
    * - string | null when selectionMode is 'single'
-   * - string[] when selectionMode is 'multiple'
+   * - string[] or 'all' when selectionMode is 'multiple'
    * - null when selectionMode is 'none'
    */
-  selectedItems: TreeItemId | null | readonly TreeItemId[];
+  selectedItems: TreeItemId | null | readonly TreeItemId[] | typeof TREE_SELECTION_ALL;
   /**
    * The selection mode of the tree
    */
@@ -248,7 +260,7 @@ export interface TreeStoreContext {
     details: TreeRootExpansionChangeEventDetails,
   ) => void;
   onSelectedItemsChange: (
-    selectedItems: TreeItemId | null | TreeItemId[],
+    selectedItems: TreeItemId | null | TreeItemId[] | typeof TREE_SELECTION_ALL,
     details: TreeRootSelectionChangeEventDetails,
   ) => void;
   onItemExpansionToggle: (

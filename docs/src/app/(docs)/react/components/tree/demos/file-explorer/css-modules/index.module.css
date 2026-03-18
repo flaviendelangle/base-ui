@@ -38,12 +38,12 @@
   }
 
   &[data-focused]:not([data-editing]) {
-    outline: 2px solid var(--color-blue);
-    outline-offset: -2px;
+    outline: 1px solid var(--color-blue);
+    outline-offset: -1px;
   }
 
   &[data-selected]:not([data-editing]) {
-    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 25%, transparent);
   }
 
   &[data-editing] {
