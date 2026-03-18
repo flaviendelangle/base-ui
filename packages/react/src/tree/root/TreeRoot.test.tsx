@@ -193,10 +193,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }],
         });
 
-        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual([
-          '1.1',
-          '1.2',
-        ]);
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual(['1.1', '1.2']);
       });
 
       it('should work for the root items', async () => {
@@ -214,10 +211,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         await view.setItems([{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }]);
 
-        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual([
-          '1.1',
-          '1.2',
-        ]);
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual(['1.1', '1.2']);
       });
     });
 

@@ -17,11 +17,7 @@ export default function VirtualizedTree() {
       <Tree.Root items={items} expandOnClick className={styles.tree} style={{ height: 400 }}>
         <Tree.VirtualizedItemList itemHeight={ITEM_HEIGHT}>
           {(item) => (
-            <Tree.Item
-              itemId={item.id}
-              className={styles.item}
-              style={{ height: ITEM_HEIGHT }}
-            >
+            <Tree.Item itemId={item.id} className={styles.item} style={{ height: ITEM_HEIGHT }}>
               <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
                 <ChevronIcon />
               </Tree.ItemExpansionTrigger>

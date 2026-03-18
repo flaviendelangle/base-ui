@@ -9,7 +9,7 @@
     },
     "overscan": {
       "type": "number",
-      "default": "150",
+      "default": "50",
       "description": "The number of pixels to render above and below the visible area.",
       "detailedType": "number | undefined"
     },

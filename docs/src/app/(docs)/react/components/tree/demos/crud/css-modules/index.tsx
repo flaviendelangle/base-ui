@@ -239,7 +239,9 @@ export default function ExampleTreeCrud() {
               {isContextMenuItemFolder && (
                 <ContextMenu.Item
                   className={styles.ContextMenuItem}
-                  onClick={() => contextMenuItemId && crudContext.addItem(contextMenuItemId, 'file')}
+                  onClick={() =>
+                    contextMenuItemId && crudContext.addItem(contextMenuItemId, 'file')
+                  }
                 >
                   Add file
                 </ContextMenu.Item>
@@ -277,10 +279,7 @@ export default function ExampleTreeCrud() {
   );
 }
 
-function findItem(
-  items: Tree.DefaultItemModel[],
-  targetId: string,
-): Tree.DefaultItemModel | null {
+function findItem(items: Tree.DefaultItemModel[], targetId: string): Tree.DefaultItemModel | null {
   for (const item of items) {
     if (item.id === targetId) {
       return item;

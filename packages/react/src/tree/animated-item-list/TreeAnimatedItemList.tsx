@@ -40,39 +40,43 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
     return map;
   }, [flatListEntries]);
 
-  return flatListEntries
-    .filter((entry) => entry.type === 'item')
-    .map((entry) => {
-      if (entry.type !== 'item') {
-        return null;
-      }
+  return (
+    <React.Fragment>
+      {flatListEntries
+        .filter((entry) => entry.type === 'item')
+        .map((entry) => {
+          if (entry.type !== 'item') {
+            return null;
+          }
 
-      const groupEntry = groupTransitions.get(entry.itemId);
+          const groupEntry = groupTransitions.get(entry.itemId);
 
-      let animatedChildren: React.ReactNode = null;
-      let contextValue: React.ContextType<typeof TreeGroupTransitionContext> = null;
+          let animatedChildren: React.ReactNode = null;
+          let contextValue: React.ContextType<typeof TreeGroupTransitionContext> = null;
 
-      if (groupEntry) {
-        animatedChildren = groupEntry.childIds.map((childId) => (
-          <TreeItemModelProvider key={childId} store={store} itemId={childId}>
-            {children}
-          </TreeItemModelProvider>
-        ));
-        contextValue = { parentId: entry.itemId, animation: groupEntry.animation };
-      }
+          if (groupEntry) {
+            animatedChildren = groupEntry.childIds.map((childId) => (
+              <TreeItemModelProvider key={childId} store={store} itemId={childId}>
+                {children}
+              </TreeItemModelProvider>
+            ));
+            contextValue = { parentId: entry.itemId, animation: groupEntry.animation };
+          }
 
-      return (
-        <TreeGroupTransitionContext.Provider key={entry.itemId} value={contextValue}>
-          <TreeItemModelProvider
-            store={store}
-            itemId={entry.itemId}
-            animatedChildren={animatedChildren}
-          >
-            {children}
-          </TreeItemModelProvider>
-        </TreeGroupTransitionContext.Provider>
-      );
-    });
+          return (
+            <TreeGroupTransitionContext.Provider key={entry.itemId} value={contextValue}>
+              <TreeItemModelProvider
+                store={store}
+                itemId={entry.itemId}
+                animatedChildren={animatedChildren}
+              >
+                {children}
+              </TreeItemModelProvider>
+            </TreeGroupTransitionContext.Provider>
+          );
+        })}
+    </React.Fragment>
+  );
 }
 
 export interface TreeAnimatedItemListState {}

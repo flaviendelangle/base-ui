@@ -19,11 +19,15 @@ export function TreeItemList(componentProps: TreeItemList.Props) {
 
   const flatItemIds = useStore(store, selectors.flatList);
 
-  return flatItemIds.map((itemId) => (
-    <TreeItemModelProvider key={itemId} store={store} itemId={itemId}>
-      {children}
-    </TreeItemModelProvider>
-  ));
+  return (
+    <React.Fragment>
+      {flatItemIds.map((itemId) => (
+        <TreeItemModelProvider key={itemId} store={store} itemId={itemId}>
+          {children}
+        </TreeItemModelProvider>
+      ))}
+    </React.Fragment>
+  );
 }
 
 export interface TreeItemListState {}

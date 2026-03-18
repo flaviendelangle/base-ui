@@ -243,10 +243,12 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       expect(onItemSelectionToggle.mock.calls.length).toBe(2);
 
       const calls = onItemSelectionToggle.mock.calls.map((call: any) => call[0]);
-      expect(calls).toEqual(expect.arrayContaining([
-        { itemId: '2', isSelected: true },
-        { itemId: '1', isSelected: false },
-      ]));
+      expect(calls).toEqual(
+        expect.arrayContaining([
+          { itemId: '2', isSelected: true },
+          { itemId: '1', isSelected: false },
+        ]),
+      );
     });
   });
 

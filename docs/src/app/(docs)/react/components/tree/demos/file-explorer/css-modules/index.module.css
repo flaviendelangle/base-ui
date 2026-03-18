@@ -1,0 +1,191 @@
+.Tree {
+  list-style: none;
+  padding: 0.25rem 0;
+  margin: 0;
+  width: 20rem;
+  height: 28rem;
+  color: var(--color-gray-900);
+  background: var(--color-content);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 0.5rem;
+  font-family: 'Menlo', 'Monaco', 'Consolas', 'Droid Sans Mono', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.Item {
+  --trigger-width: 1rem;
+
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 22px;
+  padding-inline-start: calc(0.5rem + var(--depth) * 1rem);
+  padding-inline-end: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  color: var(--color-gray-900);
+  box-sizing: border-box;
+
+  &:not([data-expandable]) {
+    padding-inline-start: calc(0.5rem + var(--depth) * 1rem + var(--trigger-width));
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--color-gray-100);
+    }
+  }
+
+  &[data-focused] {
+    outline: 2px solid var(--color-blue);
+    outline-offset: -2px;
+  }
+
+  &[data-selected] {
+    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+  }
+}
+
+.ExpansionTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-gray-500);
+  flex-shrink: 0;
+
+  & svg {
+    width: 0.625rem;
+    height: 0.625rem;
+    transition: transform 100ms ease;
+  }
+
+  &[data-expanded] svg {
+    transform: rotate(90deg);
+  }
+}
+
+.GroupIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+
+  & svg:last-child {
+    display: none;
+  }
+
+  &[data-expanded] svg:first-child {
+    display: none;
+  }
+
+  &[data-expanded] svg:last-child {
+    display: block;
+  }
+}
+
+.FolderIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.FileIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.Label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.LabelInput {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: inherit;
+  padding: 0 4px;
+  height: 18px;
+  border: 1px solid var(--color-blue);
+  border-radius: 0.25rem;
+  outline: none;
+  background: var(--color-content);
+  color: var(--color-gray-900);
+  box-sizing: border-box;
+}
+
+.Positioner {
+  outline: 0;
+}
+
+.ContextMenuPopup {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-content);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 0.375rem;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+  padding-block: 0.25rem;
+  min-width: 12rem;
+}
+
+.ContextMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  cursor: default;
+  font-size: 0.8125rem;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: var(--color-gray-900);
+  white-space: nowrap;
+  outline: 0;
+  user-select: none;
+
+  &[data-highlighted] {
+    background: var(--color-gray-100);
+  }
+
+  &[data-disabled] {
+    opacity: 0.4;
+  }
+}
+
+.ContextMenuSeparator {
+  margin: 0.25rem 0.5rem;
+  height: 1px;
+  background-color: var(--color-gray-200);
+}
+
+.Shortcut {
+  margin-left: auto;
+  padding-left: 2rem;
+  color: var(--color-gray-500);
+  font-size: 12px;
+}
+
+.MenuIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--color-gray-500);
+}

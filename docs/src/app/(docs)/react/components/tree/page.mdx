@@ -119,19 +119,19 @@ import { DemoTreeVirtualized } from './demos/virtualized';
 
 <DemoTreeVirtualized compact />
 
-### CRUD
+### File explorer
 
-Add, rename, and delete tree items. This demo supports inline editing (double-click or F2), hover action buttons, and a right-click context menu for all CRUD operations.
+A VSCode-like file explorer with virtualization, file-type icons, and a full context menu. Right-click any item for actions: New File, New Folder, Cut, Copy, Paste, Rename, and Delete. Press F2 to rename the focused item, or double-click any label to edit it inline.
 
-import { DemoTreeCrud } from './demos/crud';
+import { DemoTreeFileExplorer } from './demos/file-explorer';
 
-<DemoTreeCrud compact />
+<DemoTreeFileExplorer compact />
 
 ## API reference
 
 <Reference
   component="Tree"
-  parts="Root, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemLoadingIndicator, ItemErrorIndicator"
+  parts="Root, ItemList, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemLoadingIndicator, ItemErrorIndicator"
 />
 
 ## useFilteredItems
