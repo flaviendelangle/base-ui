@@ -24,7 +24,7 @@ export default function ExampleDateTimeFieldLocalization() {
             {(section) => (
               <DateTimeField.Section
                 key={section.index}
-                className="outline-none font-[monospace] rounded px-1 caret-transparent [&::selection]:bg-transparent focus:bg-[oklch(45%_50%_264deg)] dark:focus:bg-[oklch(45%_40%_264deg)] focus:text-white data-[separator]:px-0 data-[empty]:text-gray-700"
+                className="outline-none font-[monospace] rounded px-1 caret-transparent focus:[&::selection]:bg-[oklch(45%_50%_264deg)] dark:focus:[&::selection]:bg-[oklch(45%_40%_264deg)] focus:[&::selection]:text-white focus:bg-[oklch(45%_50%_264deg)] dark:focus:bg-[oklch(45%_40%_264deg)] focus:text-white data-[separator]:px-0 data-[empty]:text-gray-700"
                 section={section}
               />
             )}
@@ -46,7 +46,7 @@ export default function ExampleDateTimeFieldLocalization() {
             {(section) => (
               <DateTimeField.Section
                 key={section.index}
-                className="outline-none font-[monospace] rounded px-1 caret-transparent [&::selection]:bg-transparent focus:bg-[oklch(45%_50%_264deg)] dark:focus:bg-[oklch(45%_40%_264deg)] focus:text-white data-[separator]:px-0 data-[empty]:text-gray-700"
+                className="outline-none font-[monospace] rounded px-1 caret-transparent focus:[&::selection]:bg-[oklch(45%_50%_264deg)] dark:focus:[&::selection]:bg-[oklch(45%_40%_264deg)] focus:[&::selection]:text-white focus:bg-[oklch(45%_50%_264deg)] dark:focus:bg-[oklch(45%_40%_264deg)] focus:text-white data-[separator]:px-0 data-[empty]:text-gray-700"
                 section={section}
               />
             )}

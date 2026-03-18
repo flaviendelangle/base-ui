@@ -30,6 +30,7 @@ import {
   buildSections,
   getAdjustmentDelta,
   getDirection,
+  getTimezoneToRender,
   applyLocalizedDigits,
   cleanDigitDatePartValue,
   getLetterEditingOptions,
@@ -153,7 +154,18 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         manager,
         value,
         sections: config.getSectionsFromValue(value, (date) =>
-          buildSections(adapter, parsedFormat, date),
+          buildSections(
+            adapter,
+            parsedFormat,
+            date,
+            getTimezoneToRender(
+              adapter,
+              manager,
+              value,
+              parameters.referenceDate,
+              parameters.timezone,
+            ),
+          ),
         ),
         lastValidValue: config.updateReferenceValue(adapter, value, manager.emptyValue as TValue),
         format: parsedFormat,
@@ -196,7 +208,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     );
 
     // Format / sections / manager derivation effect
-    // When format-related props change, re-parse the format and rebuild sections.
+    // When format-related props or timezone change, re-parse the format and rebuild sections.
     this.observe(
       createSelectorMemoized(
         (state: TemporalFieldState<TValue>) => state.rawFormat,
@@ -205,13 +217,15 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         (state: TemporalFieldState<TValue>) => state.translations,
         (state: TemporalFieldState<TValue>) => state.min,
         (state: TemporalFieldState<TValue>) => state.max,
-        (rawFormat, adapterVal, directionVal, translationsVal, minVal, maxVal) => ({
+        (state: TemporalFieldState<TValue>) => state.timezoneProp,
+        (rawFormat, adapterVal, directionVal, translationsVal, minVal, maxVal, timezonePropVal) => ({
           rawFormat,
           adapter: adapterVal,
           direction: directionVal,
           translations: translationsVal,
           min: minVal,
           max: maxVal,
+          timezoneProp: timezonePropVal,
         }),
       ),
       (next, previous) => {
@@ -224,7 +238,8 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           previous.direction === next.direction &&
           previous.translations === next.translations &&
           previous.min === next.min &&
-          previous.max === next.max
+          previous.max === next.max &&
+          previous.timezoneProp === next.timezoneProp
         ) {
           return;
         }
@@ -240,8 +255,9 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
         );
         validateParsedFormat(this.state.manager.dateType, nextParsedFormat);
 
+        const timezoneToRender = selectors.timezoneToRender(this.state);
         const newSections = currentConfig.getSectionsFromValue(this.state.value, (date) =>
-          buildSections(next.adapter, nextParsedFormat, date),
+          buildSections(next.adapter, nextParsedFormat, date, timezoneToRender),
         );
 
         this.sectionToUpdateOnNextInvalidDate = null;
@@ -441,6 +457,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
     const format = selectors.format(this.state);
     const sectionsBefore = selectors.sections(this.state);
     const lastValidValueBefore = selectors.lastValidValue(this.state);
+    const timezoneToRender = selectors.timezoneToRender(this.state);
     const sectionToUpdate = this.sectionToUpdateOnNextInvalidDate;
 
     const isActiveDateInvalid =
@@ -455,7 +472,7 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
       );
     } else {
       sectionsList = config.getSectionsFromValue(newValue, (date) =>
-        buildSections(adapter, format, date),
+        buildSections(adapter, format, date, timezoneToRender),
       );
     }
 
@@ -1485,9 +1502,10 @@ export class TemporalFieldStore<TValue extends TemporalSupportedValue> extends R
           return response;
         }
 
-        const formattedValue = getWeekDaysStr(adapter, dp.token.value)[
-          Number(response.datePartValue) - 1
-        ];
+        const numericValue = Number(
+          removeLocalizedDigits(response.datePartValue, localizedDigits),
+        );
+        const formattedValue = getWeekDaysStr(adapter, dp.token.value)[numericValue - 1];
         return {
           ...response,
           datePartValue: formattedValue,

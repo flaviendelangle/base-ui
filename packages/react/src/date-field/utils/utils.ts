@@ -196,13 +196,18 @@ export function buildSections(
   adapter: TemporalAdapter,
   parsedFormat: TemporalFieldParsedFormat,
   date: TemporalSupportedObject | null,
+  timezone?: TemporalTimezone,
 ): TemporalFieldSection[] {
+  const dateInTz =
+    date != null && adapter.isValid(date) && timezone
+      ? adapter.setTimezone(date, timezone)
+      : date;
   return parsedFormat.elements.map((element, index) => {
     if (isToken(element)) {
       return {
         type: 'datePart' as const,
         token: element,
-        value: adapter.isValid(date) ? adapter.formatByString(date, element.value) : '',
+        value: adapter.isValid(dateInTz) ? adapter.formatByString(dateInTz, element.value) : '',
         modified: false,
         index,
       };

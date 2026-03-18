@@ -461,8 +461,7 @@ export interface TemporalFieldConfiguration<TValue extends TemporalSupportedValu
    * For date inputs: 'YYYY-MM-DD'
    * For time inputs: 'HH:MM' or 'HH:MM:SS'
    * For datetime-local inputs: 'YYYY-MM-DDTHH:MM' or 'YYYY-MM-DDTHH:MM:SS'
-   * Returns 'invalid' for partial input (some sections filled) to trigger badInput validation.
-   * Returns '' for empty input to trigger valueMissing validation if required.
+   * Returns '' for empty or partial input to trigger valueMissing validation if required.
    */
   stringifyValueForHiddenInput: (
     adapter: TemporalAdapter,

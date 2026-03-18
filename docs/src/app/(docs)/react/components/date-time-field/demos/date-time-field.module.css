@@ -23,16 +23,21 @@
   padding: 0 4px;
   caret-color: transparent;
 
-  &::selection {
-    background-color: transparent;
-  }
-
   &:focus {
     background-color: oklch(45% 50% 264deg);
     color: white;
 
+    &::selection {
+      background-color: oklch(45% 50% 264deg);
+      color: white;
+    }
+
     @media (prefers-color-scheme: dark) {
       background-color: oklch(45% 40% 264deg);
+
+      &::selection {
+        background-color: oklch(45% 40% 264deg);
+      }
     }
   }
 

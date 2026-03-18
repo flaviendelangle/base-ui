@@ -180,7 +180,6 @@ export const selectors = {
     idSelector,
     validationPropsSelector,
     stepSelector,
-    areAllSectionsEmptySelector,
     (
       value,
       format,
@@ -193,24 +192,16 @@ export const selectors = {
       id,
       validationProps,
       step,
-      areAllSectionsEmpty,
     ) => {
       const formattedValue = config.stringifyValueForHiddenInput(
         adapter,
         value,
         format.granularity,
       );
-      // Return '' for empty, 'invalid' for partial fill (triggers badInput constraint), or the formatted value.
-      let hiddenValue: string;
-      if (formattedValue !== '') {
-        hiddenValue = formattedValue;
-      } else {
-        hiddenValue = areAllSectionsEmpty ? '' : 'invalid';
-      }
       return {
         ...config.stringifyValidationPropsForHiddenInput(adapter, validationProps, format, step),
         type: config.hiddenInputType,
-        value: hiddenValue,
+        value: formattedValue,
         name,
         id,
         disabled,
