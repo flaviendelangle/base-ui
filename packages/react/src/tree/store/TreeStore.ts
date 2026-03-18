@@ -1313,23 +1313,40 @@ export class TreeStore<
     return (event.currentTarget as HTMLElement).getAttribute('data-item-id');
   }
 
+  private readonly handleItemFocus = (event: React.FocusEvent) => {
+    const itemId = this.getItemIdFromEvent(event);
+    if (!itemId) {
+      return;
+    }
+    if (selectors.canItemBeFocused(this.state, itemId) && this.state.focusedItemId !== itemId) {
+      this.set('focusedItemId', itemId);
+      this.context.onItemFocus(
+        itemId,
+        createGenericEventDetails(this.lastFocusReason, event.nativeEvent),
+      );
+      this.lastFocusReason = REASONS.keyboard;
+    }
+  };
+
+  private readonly handleItemMouseDown = (event: React.MouseEvent) => {
+    const itemId = this.getItemIdFromEvent(event);
+    if (!itemId) {
+      return;
+    }
+    // Prevent text selection when using modifier keys for multi-select.
+    // Also prevent default for disabled items to avoid browser focus.
+    if (
+      event.shiftKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      selectors.isItemDisabled(this.state, itemId)
+    ) {
+      event.preventDefault();
+    }
+  };
+
   public readonly itemEventHandlers = {
-    onMouseDown: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Prevent text selection when using modifier keys for multi-select.
-      // Also prevent default for disabled items to avoid browser focus.
-      if (
-        event.shiftKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        selectors.isItemDisabled(this.state, itemId)
-      ) {
-        event.preventDefault();
-      }
-    },
+    onMouseDown: this.handleItemMouseDown,
     onClick: (event: React.MouseEvent) => {
       const itemId = this.getItemIdFromEvent(event);
       if (!itemId) {
@@ -1371,39 +1388,11 @@ export class TreeStore<
         this.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
       }
     },
-    onFocus: (event: React.FocusEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      if (selectors.canItemBeFocused(this.state, itemId) && this.state.focusedItemId !== itemId) {
-        this.set('focusedItemId', itemId);
-        this.context.onItemFocus(
-          itemId,
-          createGenericEventDetails(this.lastFocusReason, event.nativeEvent),
-        );
-        this.lastFocusReason = REASONS.keyboard;
-      }
-    },
+    onFocus: this.handleItemFocus,
   };
 
   public readonly checkboxItemEventHandlers = {
-    onMouseDown: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Prevent text selection when using modifier keys for multi-select.
-      // Also prevent default for disabled items to avoid browser focus.
-      if (
-        event.shiftKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        selectors.isItemDisabled(this.state, itemId)
-      ) {
-        event.preventDefault();
-      }
-    },
+    onMouseDown: this.handleItemMouseDown,
     onClick: (event: React.MouseEvent) => {
       const itemId = this.getItemIdFromEvent(event);
       if (!itemId) {
@@ -1438,20 +1427,7 @@ export class TreeStore<
         this.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
       }
     },
-    onFocus: (event: React.FocusEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      if (selectors.canItemBeFocused(this.state, itemId) && this.state.focusedItemId !== itemId) {
-        this.set('focusedItemId', itemId);
-        this.context.onItemFocus(
-          itemId,
-          createGenericEventDetails(this.lastFocusReason, event.nativeEvent),
-        );
-        this.lastFocusReason = REASONS.keyboard;
-      }
-    },
+    onFocus: this.handleItemFocus,
   };
 
   public readonly linkItemEventHandlers = {
@@ -1493,20 +1469,7 @@ export class TreeStore<
       // The primary action of a link is navigation, not expansion.
       // Expansion is done via ItemExpansionTrigger or ArrowRight/Left keys.
     },
-    onFocus: (event: React.FocusEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      if (selectors.canItemBeFocused(this.state, itemId) && this.state.focusedItemId !== itemId) {
-        this.set('focusedItemId', itemId);
-        this.context.onItemFocus(
-          itemId,
-          createGenericEventDetails(this.lastFocusReason, event.nativeEvent),
-        );
-        this.lastFocusReason = REASONS.keyboard;
-      }
-    },
+    onFocus: this.handleItemFocus,
   };
 
   public readonly expansionTriggerEventHandlers = {
