@@ -17,6 +17,7 @@ import { Tree } from '@base-ui/react/tree';
 <Tree.Root>
   <Tree.Empty />
   <Tree.ItemList>
+    {/* Standard items */}
     <Tree.Item>
       <Tree.ItemExpansionTrigger />
       <Tree.ItemGroupIndicator />
@@ -24,11 +25,15 @@ import { Tree } from '@base-ui/react/tree';
       <Tree.ItemLoadingIndicator />
       <Tree.ItemErrorIndicator />
     </Tree.Item>
+
+    {/* Link items */}
     <Tree.LinkItem>
       <Tree.ItemExpansionTrigger />
       <Tree.ItemGroupIndicator />
       <Tree.ItemLabel />
     </Tree.LinkItem>
+
+    {/* Checkbox items */}
     <Tree.CheckboxItem>
       <Tree.ItemExpansionTrigger />
       <Tree.CheckboxItemIndicator />
@@ -38,14 +43,8 @@ import { Tree } from '@base-ui/react/tree';
       <Tree.ItemErrorIndicator />
     </Tree.CheckboxItem>
   </Tree.ItemList>
-</Tree.Root>;
-```
 
-For animated expand/collapse, wrap the item render function in `Tree.AnimatedItemList`:
-
-```jsx title="Animated anatomy"
-<Tree.Root>
-  <Tree.Empty />
+  {/* Animated expand/collapse */}
   <Tree.AnimatedItemList>
     {(item, animatedChildren) => (
       <React.Fragment>
@@ -57,7 +56,7 @@ For animated expand/collapse, wrap the item render function in `Tree.AnimatedIte
       </React.Fragment>
     )}
   </Tree.AnimatedItemList>
-</Tree.Root>
+</Tree.Root>;
 ```
 
 ## Examples
@@ -119,6 +118,14 @@ Render large trees efficiently by only rendering items currently visible in the 
 import { DemoTreeVirtualized } from './demos/virtualized';
 
 <DemoTreeVirtualized compact />
+
+### CRUD
+
+Add, rename, and delete tree items. This demo supports inline editing (double-click or F2), hover action buttons, and a right-click context menu for all CRUD operations.
+
+import { DemoTreeCrud } from './demos/crud';
+
+<DemoTreeCrud compact />
 
 ## API reference
 

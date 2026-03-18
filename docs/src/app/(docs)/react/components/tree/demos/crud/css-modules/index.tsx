@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
 import { Popover } from '@base-ui/react/popover';
+import { ContextMenu } from '@base-ui/react/context-menu';
 import styles from './index.module.css';
 
 const initialItems: Tree.DefaultItemModel[] = [
@@ -160,7 +161,11 @@ export default function ExampleTreeCrud() {
   const [items, setItems] = React.useState(initialItems);
   const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
   const [expandedItems, setExpandedItems] = React.useState<string[]>(['src', 'components']);
+  const [contextMenuItemId, setContextMenuItemId] = React.useState<string | null>(null);
   const nextIdRef = React.useRef(0);
+
+  const contextMenuItem = contextMenuItemId ? findItem(items, contextMenuItemId) : null;
+  const isContextMenuItemFolder = contextMenuItem?.children !== undefined;
 
   const crudContext = React.useMemo(
     () => ({
@@ -191,38 +196,103 @@ export default function ExampleTreeCrud() {
 
   return (
     <CrudContext.Provider value={crudContext}>
-      <Tree.Root
-        items={items}
-        expandedItems={expandedItems}
-        onExpandedItemsChange={(newExpanded) => setExpandedItems(newExpanded)}
-        className={styles.Tree}
-        onKeyDown={(event) => {
-          const focused = (event.currentTarget as HTMLElement).querySelector<HTMLElement>(
-            '[data-focused]',
-          );
-          const itemId = focused?.getAttribute('data-item-id');
-          if (event.key === 'F2' && itemId && !editingItemId) {
-            event.preventDefault();
-            setEditingItemId(itemId);
-          }
-        }}
-      >
-        {(item) => (
-          <Tree.Item itemId={item.id} className={styles.Item}>
-            <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
-              <ChevronIcon />
-            </Tree.ItemExpansionTrigger>
-            <Tree.ItemGroupIndicator className={styles.GroupIndicator}>
-              <FolderIcon />
-            </Tree.ItemGroupIndicator>
-            <EditableLabel itemId={item.id} label={item.label} />
-            {item.children !== undefined && <AddItemButton parentId={item.id} />}
-            <DeleteButton itemId={item.id} />
-          </Tree.Item>
-        )}
-      </Tree.Root>
+      <ContextMenu.Root>
+        <ContextMenu.Trigger render={<div />}>
+          <Tree.Root
+            items={items}
+            expandedItems={expandedItems}
+            onExpandedItemsChange={(newExpanded) => setExpandedItems(newExpanded)}
+            className={styles.Tree}
+            onKeyDown={(event) => {
+              const focused = (event.currentTarget as HTMLElement).querySelector<HTMLElement>(
+                '[data-focused]',
+              );
+              const itemId = focused?.getAttribute('data-item-id');
+              if (event.key === 'F2' && itemId && !editingItemId) {
+                event.preventDefault();
+                setEditingItemId(itemId);
+              }
+            }}
+          >
+            {(item) => (
+              <Tree.Item
+                itemId={item.id}
+                className={styles.Item}
+                onContextMenu={() => setContextMenuItemId(item.id)}
+              >
+                <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
+                  <ChevronIcon />
+                </Tree.ItemExpansionTrigger>
+                <Tree.ItemGroupIndicator className={styles.GroupIndicator}>
+                  <FolderIcon />
+                </Tree.ItemGroupIndicator>
+                <EditableLabel itemId={item.id} label={item.label} />
+                {item.children !== undefined && <AddItemButton parentId={item.id} />}
+                <DeleteButton itemId={item.id} />
+              </Tree.Item>
+            )}
+          </Tree.Root>
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner className={styles.Positioner}>
+            <ContextMenu.Popup className={styles.ContextMenuPopup}>
+              {isContextMenuItemFolder && (
+                <ContextMenu.Item
+                  className={styles.ContextMenuItem}
+                  onClick={() => contextMenuItemId && crudContext.addItem(contextMenuItemId, 'file')}
+                >
+                  Add file
+                </ContextMenu.Item>
+              )}
+              {isContextMenuItemFolder && (
+                <ContextMenu.Item
+                  className={styles.ContextMenuItem}
+                  onClick={() =>
+                    contextMenuItemId && crudContext.addItem(contextMenuItemId, 'folder')
+                  }
+                >
+                  Add folder
+                </ContextMenu.Item>
+              )}
+              {isContextMenuItemFolder && (
+                <ContextMenu.Separator className={styles.ContextMenuSeparator} />
+              )}
+              <ContextMenu.Item
+                className={styles.ContextMenuItem}
+                onClick={() => contextMenuItemId && crudContext.startEditing(contextMenuItemId)}
+              >
+                Rename
+              </ContextMenu.Item>
+              <ContextMenu.Item
+                className={styles.ContextMenuItem}
+                onClick={() => contextMenuItemId && crudContext.deleteItem(contextMenuItemId)}
+              >
+                Delete
+              </ContextMenu.Item>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
     </CrudContext.Provider>
   );
+}
+
+function findItem(
+  items: Tree.DefaultItemModel[],
+  targetId: string,
+): Tree.DefaultItemModel | null {
+  for (const item of items) {
+    if (item.id === targetId) {
+      return item;
+    }
+    if (item.children) {
+      const found = findItem(item.children, targetId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
 }
 
 function updateLabel(
