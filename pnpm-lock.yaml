@@ -166,6 +166,9 @@ importers:
       '@mui/internal-docs-infra':
         specifier: 0.6.1-canary.1
         version: 0.6.1-canary.1(@types/react@19.2.14)(next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(prettier@3.8.1)(react@19.2.4)
+      '@mui/x-virtualizer':
+        specifier: ^1.0.0-alpha.0
+        version: 1.0.0-alpha.1(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@next/mdx':
         specifier: ^16.1.6
         version: 16.1.6(@mdx-js/loader@3.1.1(webpack@5.105.4))(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.4))
