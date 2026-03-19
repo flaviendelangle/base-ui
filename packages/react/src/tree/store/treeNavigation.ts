@@ -275,4 +275,3 @@ export const getNonDisabledItemsInRange = (
 
   return items;
 };
-

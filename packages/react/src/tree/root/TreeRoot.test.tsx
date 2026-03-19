@@ -116,33 +116,6 @@ describeTree('TreeRoot - Items', ({ render }) => {
   });
 
   describe('API methods', () => {
-    describe('getItem', () => {
-      it('should return the item model', async () => {
-        const view = await render({
-          items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        });
-
-        expect(view.actionsRef.current!.getItem('1')).toEqual({
-          id: '1',
-          label: '1',
-          children: [{ id: '1.1', label: '1.1' }],
-        });
-      });
-
-      it('should have up to date data when items change', async () => {
-        const view = await render({
-          items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        });
-
-        await view.setItems([{ id: '1' }, { id: '2' }]);
-
-        expect(view.actionsRef.current!.getItem('1')).toEqual({
-          id: '1',
-          label: '1',
-        });
-      });
-    });
-
     describe('getItemDOMElement', () => {
       it('should return the DOM element of the item', async () => {
         const view = await render({
@@ -159,31 +132,13 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         expect(view.actionsRef.current!.getItemDOMElement('2')).toBe(null);
       });
-    });
 
-    describe('getItemTree', () => {
-      it('should return the tree', async () => {
+      it('should return the DOM element with getItemDOMElement using numeric ids', async () => {
         const view = await render({
-          items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
+          items: [{ id: 1 }],
         });
 
-        expect(view.actionsRef.current!.getItemTree()).toEqual([
-          { id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] },
-          { id: '2', label: '2' },
-        ]);
-      });
-
-      it('should have up to date tree when items change', async () => {
-        const view = await render({
-          items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        });
-
-        await view.setItems([{ id: '1' }, { id: '2' }]);
-
-        expect(view.actionsRef.current!.getItemTree()).toEqual([
-          { id: '1', label: '1' },
-          { id: '2', label: '2' },
-        ]);
+        expect(view.actionsRef.current!.getItemDOMElement(1)).toBe(view.getItemRoot(1));
       });
     });
 
@@ -213,6 +168,14 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
         expect(view.actionsRef.current!.getItemOrderedChildrenIds('1')).toEqual(['1.1', '1.2']);
       });
+
+      it('should return ordered children ids using numeric ids', async () => {
+        const view = await render({
+          items: [{ id: 1, children: [{ id: 11 }, { id: 12 }] }],
+        });
+
+        expect(view.actionsRef.current!.getItemOrderedChildrenIds(1)).toEqual([11, 12]);
+      });
     });
 
     describe('getParentId', () => {
@@ -230,6 +193,15 @@ describeTree('TreeRoot - Items', ({ render }) => {
         });
 
         expect(view.actionsRef.current!.getParentId('1')).toBe(null);
+      });
+
+      it('should return the parent id using numeric ids', async () => {
+        const view = await render({
+          items: [{ id: 1, children: [{ id: 11 }] }],
+        });
+
+        expect(view.actionsRef.current!.getParentId(11)).toBe(1);
+        expect(view.actionsRef.current!.getParentId(1)).toBe(null);
       });
     });
 
@@ -318,45 +290,6 @@ describeTree('TreeRoot - Items', ({ render }) => {
       });
 
       expect(view.getAllTreeItemIds()).toEqual(['1', '11', '12', '2']);
-    });
-  });
-
-  describe('API methods', () => {
-    it('should return the item model with getItem using numeric ids', async () => {
-      const view = await render({
-        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
-      });
-
-      expect(view.actionsRef.current!.getItem(1)).toEqual({
-        id: 1,
-        label: '1',
-        children: [{ id: 11, label: '11' }],
-      });
-    });
-
-    it('should return the DOM element with getItemDOMElement using numeric ids', async () => {
-      const view = await render({
-        items: [{ id: 1 }],
-      });
-
-      expect(view.actionsRef.current!.getItemDOMElement(1)).toBe(view.getItemRoot(1));
-    });
-
-    it('should return ordered children ids using numeric ids', async () => {
-      const view = await render({
-        items: [{ id: 1, children: [{ id: 11 }, { id: 12 }] }],
-      });
-
-      expect(view.actionsRef.current!.getItemOrderedChildrenIds(1)).toEqual([11, 12]);
-    });
-
-    it('should return the parent id using numeric ids', async () => {
-      const view = await render({
-        items: [{ id: 1, children: [{ id: 11 }] }],
-      });
-
-      expect(view.actionsRef.current!.getParentId(11)).toBe(1);
-      expect(view.actionsRef.current!.getParentId(1)).toBe(null);
     });
   });
 });

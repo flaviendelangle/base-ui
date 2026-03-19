@@ -69,8 +69,12 @@ const resolvedItemsStateSelector = createSelectorMemoized(
     // Only copy lookup tables that will actually be modified
     const metaLookup = { ...raw.itemMetaLookup };
     const modelLookup = hasLazyChildren ? { ...raw.itemModelLookup } : raw.itemModelLookup;
-    const childrenIdsLookup = hasLazyChildren ? { ...raw.itemOrderedChildrenIdsLookup } : raw.itemOrderedChildrenIdsLookup;
-    const childrenIndexesLookup = hasLazyChildren ? { ...raw.itemChildrenIndexesLookup } : raw.itemChildrenIndexesLookup;
+    const childrenIdsLookup = hasLazyChildren
+      ? { ...raw.itemOrderedChildrenIdsLookup }
+      : raw.itemOrderedChildrenIdsLookup;
+    const childrenIndexesLookup = hasLazyChildren
+      ? { ...raw.itemChildrenIndexesLookup }
+      : raw.itemChildrenIndexesLookup;
     const idLookup = hasLazyChildren ? { ...raw.itemIdLookup } : raw.itemIdLookup;
 
     // Phase 1: Apply lazy-loaded children (tree structure mutations)
@@ -240,15 +244,13 @@ const canItemBeSelectedSelector = createSelector(
   },
 );
 
-const isItemSelectedSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId): boolean => {
-    const selectedSet = selectedItemsSetSelector(state);
-    if (selectedSet === TREE_SELECTION_ALL) {
-      return canItemBeSelectedSelector(state, itemId);
-    }
-    return selectedSet.has(itemId);
-  },
-);
+const isItemSelectedSelector = createSelector((state: TreeState, itemId: TreeItemId): boolean => {
+  const selectedSet = selectedItemsSetSelector(state);
+  if (selectedSet === TREE_SELECTION_ALL) {
+    return canItemBeSelectedSelector(state, itemId);
+  }
+  return selectedSet.has(itemId);
+});
 
 export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 
@@ -260,7 +262,10 @@ export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 const descendantSelectionCountsSelector = createSelectorMemoized(
   selectedItemsSetSelector,
   itemOrderedChildrenIdsLookupSelector,
-  (selectedSet, childrenLookup): Record<TreeItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
+  (
+    selectedSet,
+    childrenLookup,
+  ): Record<TreeItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
     if (selectedSet === TREE_SELECTION_ALL) {
       return TREE_SELECTION_ALL;
     }
@@ -512,6 +517,20 @@ const flatListWithGroupTransitionsSelector = createSelectorMemoized(
   },
 );
 
+const labelMapSelector = createSelectorMemoized(
+  itemMetaLookupSelector,
+  (metaLookup): Record<string, string> => {
+    const map: Record<string, string> = {};
+    for (const itemId of Object.keys(metaLookup)) {
+      const meta = metaLookup[itemId];
+      if (meta.label) {
+        map[itemId] = meta.label.toLowerCase();
+      }
+    }
+    return map;
+  },
+);
+
 export const selectors = {
   virtualized: createSelector((state: TreeState): boolean => state.virtualized),
   itemMetaLookup: itemMetaLookupSelector,
@@ -561,7 +580,7 @@ export const selectors = {
   isSelectionDisabled: isSelectionDisabledSelector,
   canItemBeSelected: canItemBeSelectedSelector,
   checkboxSelectionStatus: checkboxSelectionStatusSelector,
-  checkboxSelectionPropagationRules: createSelector(
+  checkboxSelectionPropagation: createSelector(
     (state: TreeState) => state.checkboxSelectionPropagation,
   ),
   focusedItemId: createSelector((state: TreeState): TreeItemId | null => state.focusedItemId),
@@ -583,4 +602,6 @@ export const selectors = {
       itemMetaLookupSelector(state)[itemId]?.label ?? '',
   ),
   itemIdLookup: itemIdLookupSelector,
+  expandedItemsSet: expandedItemsSetSelector,
+  labelMap: labelMapSelector,
 };

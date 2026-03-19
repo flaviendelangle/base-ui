@@ -185,7 +185,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
   public fetchItems = (parentIds: TreeItemId[]): Promise<void> =>
     this.nestedDataManager.queue(parentIds);
 
-  public updateItemChildren = (itemId: TreeItemId | null): Promise<void> =>
+  public refreshItemChildren = (itemId: TreeItemId | null): Promise<void> =>
     this.fetchItemChildren({ itemId, forceRefresh: true });
 
   public fetchItemChildren = async ({

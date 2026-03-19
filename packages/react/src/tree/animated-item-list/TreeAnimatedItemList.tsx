@@ -31,14 +31,20 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
   const flatListEntries = useStore(store, selectors.flatListWithGroupTransitions);
 
   // Fast path: no animations — flatListEntries is a plain TreeItemId[]
-  const isPlainList = flatListEntries.length === 0 || typeof flatListEntries[0] === 'string' || typeof flatListEntries[0] === 'number';
+  const isPlainList =
+    flatListEntries.length === 0 ||
+    typeof flatListEntries[0] === 'string' ||
+    typeof flatListEntries[0] === 'number';
 
   // Build a map of parentId -> group-transition entry for quick lookup (only when animating)
   const groupTransitions = React.useMemo(() => {
     if (isPlainList) {
       return null;
     }
-    const map = new Map<TreeItemId, { childIds: TreeItemId[]; animation: 'expanding' | 'collapsing' }>();
+    const map = new Map<
+      TreeItemId,
+      { childIds: TreeItemId[]; animation: 'expanding' | 'collapsing' }
+    >();
     for (const entry of flatListEntries as FlatListEntry[]) {
       if (entry.type === 'group-transition') {
         map.set(entry.parentId, { childIds: entry.childIds, animation: entry.animation });

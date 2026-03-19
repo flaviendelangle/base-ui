@@ -104,7 +104,7 @@ function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }
 
 export default function LazyLoadingEditingTree() {
   const [editingItemId, setEditingItemId] = React.useState<Tree.ItemId | null>(null);
-  const actionsRef = React.useRef<Tree.Root.Actions<LazyItem> | null>(null);
+  const actionsRef = React.useRef<Tree.Root.Actions | null>(null);
 
   const lazyLoading = Tree.useLazyLoading<LazyItem>({
     fetchChildren: fakeFetch,
@@ -130,7 +130,7 @@ export default function LazyLoadingEditingTree() {
         for (const [parentKey, items] of Object.entries(mutableServerData)) {
           if (items.some((item) => item.id === itemId)) {
             const parentId = parentKey === 'root' ? undefined : parentKey;
-            actionsRef.current?.updateItemChildren(parentId ?? null);
+            actionsRef.current?.refreshItemChildren(parentId ?? null);
             break;
           }
         }

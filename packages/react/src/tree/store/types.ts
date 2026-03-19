@@ -276,7 +276,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
  * Non-reactive context values stored alongside state in the TreeStore.
  */
 export interface TreeStoreContext {
-  // Callbacks wired via useContextCallback
+  rootRef: React.RefObject<HTMLElement | null>;
   onExpandedItemsChange: (
     expandedItems: TreeItemId[],
     details: TreeRootExpansionChangeEventDetails,
@@ -294,26 +294,22 @@ export interface TreeStoreContext {
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
   onItemFocus: (itemId: TreeItemId, details: TreeItemFocusEventDetails) => void;
-  // DOM ref for the tree root element
-  rootRef: React.RefObject<HTMLElement | null>;
 }
 
 /**
  * Actions that can be performed imperatively on a tree via actionsRef.
  */
-export interface TreeRootActions<TItem = TreeDefaultItemModel> {
+export interface TreeRootActions {
   focusItem: (itemId: TreeItemId) => void;
-  getItem: (itemId: TreeItemId) => TItem;
   getItemDOMElement: (itemId: TreeItemId) => HTMLElement | null;
   getItemOrderedChildrenIds: (itemId: TreeItemId | null) => TreeItemId[];
-  getItemTree: () => TItem[];
   getParentId: (itemId: TreeItemId) => TreeItemId | null;
   isItemExpanded: (itemId: TreeItemId) => boolean;
   isItemSelected: (itemId: TreeItemId) => boolean;
   setItemExpansion: (itemId: TreeItemId, isExpanded: boolean) => void;
   setItemSelection: (itemId: TreeItemId, isSelected: boolean) => void;
   setIsItemDisabled: (itemId: TreeItemId, isDisabled: boolean) => void;
-  updateItemChildren: (itemId: TreeItemId | null) => Promise<void>;
+  refreshItemChildren: (itemId: TreeItemId | null) => Promise<void>;
   expandAll: () => void;
   collapseAll: () => void;
 }

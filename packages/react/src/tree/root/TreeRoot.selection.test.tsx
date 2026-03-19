@@ -1563,10 +1563,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
     it('should show all checkboxes as checked when selectedItems="all"', async () => {
       const view = await render({
-        items: [
-          { id: '1', children: [{ id: '1.1' }, { id: '1.2' }] },
-          { id: '2' },
-        ],
+        items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }, { id: '2' }],
         selectionMode: 'multiple',
         checkboxSelection: true,
         selectedItems: 'all',
@@ -1581,10 +1578,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
     it('should select children revealed by expanding an item after Ctrl+A', async () => {
       const view = await render({
-        items: [
-          { id: '1', children: [{ id: '1.1' }, { id: '1.2' }] },
-          { id: '2' },
-        ],
+        items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }, { id: '2' }],
         selectionMode: 'multiple',
       });
 

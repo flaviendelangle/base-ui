@@ -226,7 +226,7 @@ export interface TreeRootProps<
   /**
    * A ref to imperative actions on the tree.
    */
-  actionsRef?: React.RefObject<TreeRootActions<TItem> | null> | undefined;
+  actionsRef?: React.RefObject<TreeRootActions | null> | undefined;
 }
 
 export namespace TreeRoot {
@@ -235,7 +235,7 @@ export namespace TreeRoot {
     Mode extends TreeSelectionMode | undefined = undefined,
     TItem = TreeDefaultItemModel,
   > = TreeRootProps<Mode, TItem>;
-  export type Actions<TItem = TreeDefaultItemModel> = TreeRootActions<TItem>;
+  export type Actions = TreeRootActions;
   export type ExpansionChangeEventReason = TreeRootExpansionChangeEventReason;
   export type ExpansionChangeEventDetails = TreeRootExpansionChangeEventDetails;
   export type SelectionChangeEventReason = TreeRootSelectionChangeEventReason;

@@ -254,7 +254,7 @@ describe('TreeRoot - Lazy Loading', () => {
     });
   });
 
-  describe('updateItemChildren', () => {
+  describe('refreshItemChildren', () => {
     it('should refresh root children when called with null', async () => {
       const actionsRef = React.createRef<TreeRootActions | null>();
 
@@ -268,7 +268,7 @@ describe('TreeRoot - Lazy Loading', () => {
       expect(getAllTreeItemIds(container)).toEqual(['initial']);
 
       await act(async () => {
-        await actionsRef.current!.updateItemChildren(null);
+        await actionsRef.current!.refreshItemChildren(null);
       });
 
       expect(getAllTreeItemIds(container)).toEqual(['1']);
@@ -287,7 +287,7 @@ describe('TreeRoot - Lazy Loading', () => {
       expect(getAllTreeItemIds(container)).toEqual(['1']);
 
       await act(async () => {
-        await actionsRef.current!.updateItemChildren('1');
+        await actionsRef.current!.refreshItemChildren('1');
       });
       await awaitMockFetch();
 
@@ -438,7 +438,7 @@ describe('TreeRoot - Lazy Loading', () => {
       expect(isItemExpanded(container, '1')).toBe(true);
     });
 
-    it('should bypass cache when updateItemChildren is called (forceRefresh)', async () => {
+    it('should bypass cache when refreshItemChildren is called (forceRefresh)', async () => {
       const fetchSpy = vi.fn(mockFetchChildren);
       const actionsRef = React.createRef<TreeRootActions | null>();
 
@@ -457,7 +457,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // Force refresh — should bypass cache
       await act(async () => {
-        await actionsRef.current!.updateItemChildren('1');
+        await actionsRef.current!.refreshItemChildren('1');
       });
       await awaitMockFetch();
       expect(fetchSpy.mock.calls.length).toBe(2);

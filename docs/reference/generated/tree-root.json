@@ -86,7 +86,7 @@
     "lazyLoading": {
       "type": "TreeLazyLoading<TItem>",
       "description": "The lazy loading plugin instance, used to load items on demand when expanding a parent item.",
-      "detailedType": "| {\n    attach: attach\n    onBeforeExpand: onBeforeExpand\n    updateItemChildren: updateItemChildren\n    destroy: destroy\n  }\n| undefined"
+      "detailedType": "| {\n    attach: attach\n    onBeforeExpand: onBeforeExpand\n    refreshItemChildren: refreshItemChildren\n    destroy: destroy\n  }\n| undefined"
     },
     "onExpandedItemsChange": {
       "type": "((expandedItems: string[], eventDetails: Tree.Root.ExpansionChangeEventDetails) => void)",

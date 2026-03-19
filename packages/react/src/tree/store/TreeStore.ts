@@ -7,7 +7,6 @@ import type {
   TreeStoreContext,
   TreeItemId,
   TreeDefaultItemModel,
-  TreeItemMeta,
   TreeRootActions,
   TreeRootExpansionChangeEventReason,
   TreeRootExpansionChangeEventDetails,
@@ -229,7 +228,7 @@ export interface TreeLazyLoading<TItem = TreeDefaultItemModel> {
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
   ): Promise<void>;
-  updateItemChildren(itemId: TreeItemId | null): Promise<void>;
+  refreshItemChildren(itemId: TreeItemId | null): Promise<void>;
   destroy(): void;
 }
 
@@ -249,8 +248,6 @@ export class TreeStore<
   private typeaheadQuery = '';
 
   private timeoutManager = new TimeoutManager();
-
-  private labelMap: Record<TreeItemId, string> = {};
 
   public lazyLoading: TreeLazyLoading<TItem> | undefined;
 
@@ -308,10 +305,7 @@ export class TreeStore<
     // Wire lazy loading plugin (attach is called in mountEffect)
     this.lazyLoading = parameters.lazyLoading;
 
-    // Build initial label map
-    this.labelMap = this.createLabelMap(selectors.itemMetaLookup(this.state));
-
-    // Observe items changes to keep focus valid and update label map
+    // Observe items changes to keep focus valid
     let previousState = this.state;
     let previousMetaLookup = selectors.itemMetaLookup(this.state);
     this.subscribe((newState) => {
@@ -320,8 +314,6 @@ export class TreeStore<
         previousState = newState;
         return;
       }
-
-      this.labelMap = this.createLabelMap(newMetaLookup);
 
       // If focused item was removed, focus the closest neighbor.
       // The focus call is deferred with requestAnimationFrame because this
@@ -515,7 +507,7 @@ export class TreeStore<
 
   public expandAll(reason: TreeRootExpansionChangeEventReason) {
     const metaLookup = selectors.itemMetaLookup(this.state);
-    const expandedSet = new Set(this.state.expandedItems);
+    const expandedSet = selectors.expandedItemsSet(this.state);
     const diff = Object.keys(metaLookup).filter(
       (itemId) => metaLookup[itemId].expandable && !expandedSet.has(itemId),
     );
@@ -571,16 +563,11 @@ export class TreeStore<
     shouldPropagate: boolean = true,
   ) {
     const oldModel = this.state.selectedItems;
-    const isMulti = this.state.selectionMode === 'multiple';
-
     let cleanModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL;
-
     if (
-      newModel !== TREE_SELECTION_ALL &&
       shouldPropagate &&
-      isMulti &&
-      (this.state.checkboxSelectionPropagation.descendants ||
-        this.state.checkboxSelectionPropagation.parents)
+      this.state.selectionMode === 'multiple' &&
+      newModel !== TREE_SELECTION_ALL
     ) {
       cleanModel = this.propagateSelection(
         newModel as TreeItemId[],
@@ -634,7 +621,7 @@ export class TreeStore<
     oldModel: TreeItemId[],
     additionalItemsToPropagate?: TreeItemId[],
   ): TreeItemId[] {
-    const { checkboxSelectionPropagation } = this.state;
+    const checkboxSelectionPropagation = selectors.checkboxSelectionPropagation(this.state);
     if (!checkboxSelectionPropagation.descendants && !checkboxSelectionPropagation.parents) {
       return newModel;
     }
@@ -793,13 +780,7 @@ export class TreeStore<
       }
     }
 
-    this.setSelectedItems(
-      newSelected,
-      reason,
-      event,
-      [itemId],
-      shouldPropagate ?? false,
-    );
+    this.setSelectedItems(newSelected, reason, event, [itemId], shouldPropagate ?? false);
     this.lastSelectedItem = itemId;
     this.lastSelectedRange = {};
   }
@@ -1037,17 +1018,6 @@ export class TreeStore<
     );
   }
 
-  private createLabelMap(metaLookup: Record<string, TreeItemMeta>): Record<string, string> {
-    const map: Record<string, string> = {};
-    for (const itemId of Object.keys(metaLookup)) {
-      const meta = metaLookup[itemId];
-      if (meta.label) {
-        map[itemId] = meta.label.toLowerCase();
-      }
-    }
-    return map;
-  }
-
   private getFirstItemMatchingTypeaheadQuery(
     itemId: TreeItemId,
     newKey: string,
@@ -1063,7 +1033,7 @@ export class TreeStore<
       let currentItemId: TreeItemId = query.length > 1 ? itemId : getNextItem(itemId);
       while (matchingItemId == null && !checkedItems[currentItemId]) {
         if (
-          this.labelMap[currentItemId]?.startsWith(query) &&
+          selectors.labelMap(this.state)[currentItemId]?.startsWith(query) &&
           selectors.canItemBeFocused(this.state, currentItemId)
         ) {
           matchingItemId = currentItemId;
@@ -1546,54 +1516,37 @@ export class TreeStore<
   // ===========================================================================
   // Actions (exposed via actionsRef)
   // ===========================================================================
-
-  public getActions(): TreeRootActions<TItem> {
-    return {
-      focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
-      getItem: (itemId) => selectors.itemModel(this.state, itemId) as TItem,
-      getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
-      getItemOrderedChildrenIds: (itemId) => selectors.itemOrderedChildrenIds(this.state, itemId),
-      getItemTree: () => this.getItemTree(),
-      getParentId: (itemId) => selectors.itemParentId(this.state, itemId),
-      isItemExpanded: (itemId) => selectors.isItemExpanded(this.state, itemId),
-      isItemSelected: (itemId) => selectors.isItemSelected(this.state, itemId),
-      setItemExpansion: (itemId, isExpanded) =>
-        this.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
-      setItemSelection: (itemId, isSelected) =>
-        this.setItemSelection({
-          itemId,
-          shouldBeSelected: isSelected,
-          shouldPropagate: true,
-          reason: REASONS.imperativeAction,
-        }),
-      setIsItemDisabled: (itemId, isDisabled) => this.setIsItemDisabled(itemId, isDisabled),
-      expandAll: () => this.expandAll(REASONS.imperativeAction),
-      collapseAll: () => this.collapseAll(REASONS.imperativeAction),
-      updateItemChildren: (itemId) => {
-        if (!this.lazyLoading) {
-          throw new Error(
-            'Base UI Tree: updateItemChildren requires a lazyLoading plugin. ' +
-              'Pass a lazyLoading prop to Tree.Root created via Tree.useLazyLoading().',
-          );
-        }
-        return this.lazyLoading.updateItemChildren(itemId);
-      },
-    };
-  }
-
-  private getItemTree(): TItem[] {
-    const getItemFromItemId = (itemId: TreeItemId): TItem => {
-      const item = selectors.itemModel(this.state, itemId) as TItem;
-      const itemToMutate = { ...item };
-      const childrenIds = selectors.itemOrderedChildrenIds(this.state, itemId);
-      if (childrenIds.length > 0) {
-        (itemToMutate as any).children = childrenIds.map(getItemFromItemId);
-      } else {
-        delete (itemToMutate as any).children;
+  private actions: TreeRootActions = {
+    focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
+    getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
+    getItemOrderedChildrenIds: (itemId) => selectors.itemOrderedChildrenIds(this.state, itemId),
+    getParentId: (itemId) => selectors.itemParentId(this.state, itemId),
+    isItemExpanded: (itemId) => selectors.isItemExpanded(this.state, itemId),
+    isItemSelected: (itemId) => selectors.isItemSelected(this.state, itemId),
+    setItemExpansion: (itemId, isExpanded) =>
+      this.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
+    setItemSelection: (itemId, isSelected) =>
+      this.setItemSelection({
+        itemId,
+        shouldBeSelected: isSelected,
+        shouldPropagate: true,
+        reason: REASONS.imperativeAction,
+      }),
+    setIsItemDisabled: (itemId, isDisabled) => this.setIsItemDisabled(itemId, isDisabled),
+    expandAll: () => this.expandAll(REASONS.imperativeAction),
+    collapseAll: () => this.collapseAll(REASONS.imperativeAction),
+    refreshItemChildren: (itemId) => {
+      if (!this.lazyLoading) {
+        throw new Error(
+          'Base UI Tree: refreshItemChildren requires a lazyLoading plugin. ' +
+            'Pass a lazyLoading prop to Tree.Root created via Tree.useLazyLoading().',
+        );
       }
-      return itemToMutate;
-    };
+      return this.lazyLoading.refreshItemChildren(itemId);
+    },
+  };
 
-    return selectors.itemOrderedChildrenIds(this.state, null).map(getItemFromItemId);
+  public getActions(): TreeRootActions {
+    return this.actions;
   }
 }

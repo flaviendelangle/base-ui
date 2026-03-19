@@ -87,7 +87,8 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
     return item.querySelector<HTMLInputElement>('input:not([type="checkbox"])');
   };
 
-  const isItemExpanded = (id: TreeItemId) => getItemRoot(id).getAttribute('aria-expanded') === 'true';
+  const isItemExpanded = (id: TreeItemId) =>
+    getItemRoot(id).getAttribute('aria-expanded') === 'true';
 
   const isItemSelected = (id: TreeItemId) => {
     const item = getItemRoot(id);
