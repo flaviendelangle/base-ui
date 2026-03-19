@@ -266,6 +266,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
   animatingGroups: Record<
     TreeItemId,
     {
+      parentId: TreeItemId;
       type: 'expanding' | 'collapsing';
       childIds: TreeItemId[];
     }

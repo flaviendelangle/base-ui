@@ -1682,5 +1682,71 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
       expect(view.isItemSelected(1)).toBe(true);
     });
+
+    it('should propagate selection to descendants with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        items: [{ id: 1, children: [{ id: 11 }, { id: 12 }] }],
+        defaultExpandedItems: [1],
+        checkboxSelectionPropagation: { descendants: true },
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(1));
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([1, 11, 12]);
+    });
+
+    it('should propagate selection to parents with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        items: [{ id: 1, children: [{ id: 11 }] }],
+        defaultExpandedItems: [1],
+        checkboxSelectionPropagation: { parents: true },
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(11));
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([11, 1]);
+    });
+
+    it('should support Shift+Click range selection with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        selectionMode: 'multiple',
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(2));
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([2]);
+
+      fireEvent.click(view.getItemRoot(4), { shiftKey: true });
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([2, 3, 4]);
+    });
+
+    it('should update Shift+Click range correctly with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        selectionMode: 'multiple',
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }],
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(2));
+      fireEvent.click(view.getItemRoot(4), { shiftKey: true });
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([2, 3, 4]);
+
+      // Shift+Click on a different target should replace the old range
+      fireEvent.click(view.getItemRoot(1), { shiftKey: true });
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([1, 2]);
+    });
   });
 });

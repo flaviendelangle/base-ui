@@ -459,8 +459,8 @@ const flatListWithGroupTransitionsSelector = createSelectorMemoized(
   flatListSelector,
   (state: TreeState) => state.animatingGroups,
   (flatList, animatingGroups): TreeItemId[] | FlatListEntry[] => {
-    const animatingGroupKeys = Object.keys(animatingGroups);
-    if (animatingGroupKeys.length === 0) {
+    const animatingGroupValues = Object.values(animatingGroups);
+    if (animatingGroupValues.length === 0) {
       return flatList;
     }
 
@@ -468,11 +468,10 @@ const flatListWithGroupTransitionsSelector = createSelectorMemoized(
     const animatingChildIds = new Set<TreeItemId>();
     // Map childId -> parentId for items in expanding groups
     const childToAnimatingParent = new Map<TreeItemId, TreeItemId>();
-    for (const parentId of animatingGroupKeys) {
-      const group = animatingGroups[parentId];
+    for (const group of animatingGroupValues) {
       for (const childId of group.childIds) {
         animatingChildIds.add(childId);
-        childToAnimatingParent.set(childId, parentId);
+        childToAnimatingParent.set(childId, group.parentId);
       }
     }
 
@@ -521,10 +520,9 @@ const labelMapSelector = createSelectorMemoized(
   itemMetaLookupSelector,
   (metaLookup): Record<string, string> => {
     const map: Record<string, string> = {};
-    for (const itemId of Object.keys(metaLookup)) {
-      const meta = metaLookup[itemId];
+    for (const meta of Object.values(metaLookup)) {
       if (meta.label) {
-        map[itemId] = meta.label.toLowerCase();
+        map[meta.id] = meta.label.toLowerCase();
       }
     }
     return map;

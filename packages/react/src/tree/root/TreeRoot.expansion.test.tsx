@@ -501,5 +501,24 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       });
       expect(view.isItemExpanded(1)).toBe(true);
     });
+
+    it('should support expandAll with numeric ids', async () => {
+      const onExpandedItemsChange = vi.fn();
+
+      const view = await render({
+        items: [
+          { id: 1, children: [{ id: 11 }] },
+          { id: 2, children: [{ id: 21 }] },
+          { id: 3 },
+        ],
+        onExpandedItemsChange,
+      });
+
+      act(() => {
+        view.actionsRef.current!.expandAll();
+      });
+
+      expect(onExpandedItemsChange.mock.calls.at(-1)![0]).toEqual([1, 2]);
+    });
   });
 });

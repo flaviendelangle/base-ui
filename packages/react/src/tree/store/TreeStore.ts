@@ -194,14 +194,6 @@ export interface TreeStoreParameters<
   lazyLoading?: TreeLazyLoading<TItem> | undefined;
 }
 
-function getLookupFromArray(array: TreeItemId[]): Record<TreeItemId, true> {
-  const lookup: Record<TreeItemId, true> = {};
-  for (const item of array) {
-    lookup[item] = true;
-  }
-  return lookup;
-}
-
 /**
  * Converts a raw selectedItems value to an array.
  * Must NOT be called with the "all" sentinel — callers should handle that case
@@ -242,7 +234,7 @@ export class TreeStore<
   // Selection tracking
   private lastSelectedItem: TreeItemId | null = null;
 
-  private lastSelectedRange: Record<TreeItemId, boolean> = {};
+  private lastSelectedRange = new Set<TreeItemId>();
 
   // Typeahead
   private typeaheadQuery = '';
@@ -422,6 +414,7 @@ export class TreeStore<
         this.set('animatingGroups', {
           ...this.state.animatingGroups,
           [itemId]: {
+            parentId: itemId,
             type: shouldBeExpanded ? 'expanding' : 'collapsing',
             childIds,
           },
@@ -508,9 +501,12 @@ export class TreeStore<
   public expandAll(reason: TreeRootExpansionChangeEventReason) {
     const metaLookup = selectors.itemMetaLookup(this.state);
     const expandedSet = selectors.expandedItemsSet(this.state);
-    const diff = Object.keys(metaLookup).filter(
-      (itemId) => metaLookup[itemId].expandable && !expandedSet.has(itemId),
-    );
+    const diff: TreeItemId[] = [];
+    for (const meta of Object.values(metaLookup)) {
+      if (meta.expandable && !expandedSet.has(meta.id)) {
+        diff.push(meta.id);
+      }
+    }
 
     if (diff.length === 0) {
       return;
@@ -627,15 +623,14 @@ export class TreeStore<
     }
 
     const flags = { shouldRegenerateModel: false };
-    const newModelLookup = getLookupFromArray(newModel);
+    const newModelSet = new Set(newModel);
 
     const oldModelSet = new Set(oldModel);
     const added = newModel.filter((id) => !oldModelSet.has(id));
-    const newModelSet = new Set(newModel);
     const removed = oldModel.filter((id) => !newModelSet.has(id));
 
     additionalItemsToPropagate?.forEach((itemId) => {
-      if (newModelLookup[itemId]) {
+      if (newModelSet.has(itemId)) {
         if (!added.includes(itemId)) {
           added.push(itemId);
         }
@@ -652,7 +647,7 @@ export class TreeStore<
               return;
             }
             flags.shouldRegenerateModel = true;
-            newModelLookup[itemId] = true;
+            newModelSet.add(itemId);
           }
           const children = selectors.itemOrderedChildrenIds(this.state, itemId);
           for (const childId of children) {
@@ -668,7 +663,7 @@ export class TreeStore<
           if (!selectors.canItemBeSelected(this.state, itemId)) {
             return true;
           }
-          if (!newModelLookup[itemId]) {
+          if (!newModelSet.has(itemId)) {
             return false;
           }
           const children = selectors.itemOrderedChildrenIds(this.state, itemId);
@@ -684,7 +679,7 @@ export class TreeStore<
           if (siblings.every(checkAllDescendantsSelected)) {
             if (selectors.canItemBeSelected(this.state, parentId)) {
               flags.shouldRegenerateModel = true;
-              newModelLookup[parentId] = true;
+              newModelSet.add(parentId);
             }
             selectParents(parentId);
           }
@@ -697,9 +692,9 @@ export class TreeStore<
       if (checkboxSelectionPropagation.parents) {
         let parentId = selectors.itemParentId(this.state, removedItemId);
         while (parentId != null) {
-          if (newModelLookup[parentId]) {
+          if (newModelSet.has(parentId)) {
             flags.shouldRegenerateModel = true;
-            delete newModelLookup[parentId];
+            newModelSet.delete(parentId);
           }
           parentId = selectors.itemParentId(this.state, parentId);
         }
@@ -709,7 +704,7 @@ export class TreeStore<
         const deSelectDescendants = (itemId: TreeItemId) => {
           if (itemId !== removedItemId) {
             flags.shouldRegenerateModel = true;
-            delete newModelLookup[itemId];
+            newModelSet.delete(itemId);
           }
           const children = selectors.itemOrderedChildrenIds(this.state, itemId);
           for (const childId of children) {
@@ -720,7 +715,7 @@ export class TreeStore<
       }
     }
 
-    return flags.shouldRegenerateModel ? Object.keys(newModelLookup) : newModel;
+    return flags.shouldRegenerateModel ? Array.from(newModelSet) : newModel;
   }
 
   public setItemSelection({
@@ -782,7 +777,7 @@ export class TreeStore<
 
     this.setSelectedItems(newSelected, reason, event, [itemId], shouldPropagate ?? false);
     this.lastSelectedItem = itemId;
-    this.lastSelectedRange = {};
+    this.lastSelectedRange = new Set();
   }
 
   /**
@@ -809,7 +804,7 @@ export class TreeStore<
     }
 
     this.setSelectedItems(TREE_SELECTION_ALL, reason, event);
-    this.lastSelectedRange = {};
+    this.lastSelectedRange = new Set();
   }
 
   public expandSelectionRange(
@@ -861,20 +856,20 @@ export class TreeStore<
         : normalizeSelectedItems(this.state.selectedItems);
     let newSelectedItems = currentSelectedItems.slice();
 
-    if (Object.keys(this.lastSelectedRange).length === 0) {
+    if (this.lastSelectedRange.size === 0) {
       newSelectedItems.push(nextItem);
-      this.lastSelectedRange = { [currentItem]: true, [nextItem]: true };
+      this.lastSelectedRange = new Set([currentItem, nextItem]);
     } else {
-      if (!this.lastSelectedRange[currentItem]) {
-        this.lastSelectedRange = {};
+      if (!this.lastSelectedRange.has(currentItem)) {
+        this.lastSelectedRange = new Set();
       }
 
-      if (this.lastSelectedRange[nextItem]) {
+      if (this.lastSelectedRange.has(nextItem)) {
         newSelectedItems = newSelectedItems.filter((id) => id !== currentItem);
-        delete this.lastSelectedRange[currentItem];
+        this.lastSelectedRange.delete(currentItem);
       } else {
         newSelectedItems.push(nextItem);
-        this.lastSelectedRange[nextItem] = true;
+        this.lastSelectedRange.add(nextItem);
       }
     }
 
@@ -897,17 +892,17 @@ export class TreeStore<
     let newSelectedItems = currentSelectedItems.slice();
 
     // Remove items from last range
-    if (Object.keys(this.lastSelectedRange).length > 0) {
-      newSelectedItems = newSelectedItems.filter((id) => !this.lastSelectedRange[id]);
+    if (this.lastSelectedRange.size > 0) {
+      newSelectedItems = newSelectedItems.filter((id) => !this.lastSelectedRange.has(id));
     }
 
     // Add items in new range that are selectable
-    const selectedItemsLookup = getLookupFromArray(newSelectedItems);
+    const selectedItemsSet = new Set(newSelectedItems);
     const range = getNonDisabledItemsInRange(this.state, start, end).filter((id) => {
       const meta = selectors.itemMeta(this.state, id);
       return meta?.selectable !== false;
     });
-    const itemsToAdd = range.filter((id) => !selectedItemsLookup[id]);
+    const itemsToAdd = range.filter((id) => !selectedItemsSet.has(id));
     newSelectedItems = newSelectedItems.concat(itemsToAdd);
 
     // Prevent empty selection when disallowEmptySelection is true
@@ -916,7 +911,7 @@ export class TreeStore<
     }
 
     this.setSelectedItems(newSelectedItems, reason, event);
-    this.lastSelectedRange = getLookupFromArray(range);
+    this.lastSelectedRange = new Set(range);
   }
 
   // ===========================================================================
