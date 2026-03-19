@@ -8,6 +8,7 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { TreeItemContext } from '../item/TreeItemContext';
 import { TreeLinkItemDataAttributes } from './TreeLinkItemDataAttributes';
 import { TreeItemCssVars } from '../item/TreeItemCssVars';
+import type { TreeItemId } from '../store/types';
 
 const EXPANDED_HOOK = { [TreeLinkItemDataAttributes.expanded]: '' };
 const COLLAPSED_HOOK = { [TreeLinkItemDataAttributes.collapsed]: '' };
@@ -15,8 +16,8 @@ const ACTIVE_HOOK = { [TreeLinkItemDataAttributes.active]: '' };
 const LINK_HOOK: Record<string, string> = { [TreeLinkItemDataAttributes.link]: '' };
 
 const stateAttributesMapping = {
-  itemId(v: string) {
-    return { [TreeLinkItemDataAttributes.itemId]: v };
+  itemId(v: TreeItemId) {
+    return { [TreeLinkItemDataAttributes.itemId]: String(v) };
   },
   expanded(v: boolean) {
     return v ? EXPANDED_HOOK : COLLAPSED_HOOK;
@@ -111,7 +112,7 @@ export interface TreeLinkItemState {
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
   /**
    * Whether the item is currently expanded.
    */
@@ -146,7 +147,7 @@ export interface TreeLinkItemProps extends BaseUIComponentProps<'a', TreeLinkIte
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
   /**
    * Whether this link represents the current page.
    * Sets `aria-current="page"` when true.

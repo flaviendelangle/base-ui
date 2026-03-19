@@ -454,4 +454,52 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       expect(onExpandedItemsChange.mock.calls.length).toBe(0);
     });
   });
+
+  describe('numeric ids', () => {
+    it('should support defaultExpandedItems with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
+        defaultExpandedItems: [1],
+      });
+
+      expect(view.isItemExpanded(1)).toBe(true);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '11', '2']);
+    });
+
+    it('should support controlled expandedItems with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
+        expandedItems: [1],
+      });
+
+      expect(view.isItemExpanded(1)).toBe(true);
+    });
+
+    it('should call onExpandedItemsChange with numeric ids on click', async () => {
+      const onExpandedItemsChange = vi.fn();
+
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
+        expandOnClick: true,
+        onExpandedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(1));
+
+      expect(onExpandedItemsChange.mock.calls.length).toBe(1);
+      expect(onExpandedItemsChange.mock.calls.at(-1)![0]).toEqual([1]);
+    });
+
+    it('should support setItemExpansion with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }],
+      });
+
+      expect(view.isItemExpanded(1)).toBe(false);
+      act(() => {
+        view.actionsRef.current!.setItemExpansion(1, true);
+      });
+      expect(view.isItemExpanded(1)).toBe(true);
+    });
+  });
 });

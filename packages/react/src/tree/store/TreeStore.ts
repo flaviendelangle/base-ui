@@ -36,7 +36,6 @@ import {
   getPreviousNavigableItem,
   findOrderInTremauxTree,
   getNonDisabledItemsInRange,
-  getAllNavigableItems,
 } from './treeNavigation';
 
 const TYPEAHEAD_TIMEOUT = 500;
@@ -196,8 +195,8 @@ export interface TreeStoreParameters<
   lazyLoading?: TreeLazyLoading<TItem> | undefined;
 }
 
-function getLookupFromArray(array: string[]): Record<string, true> {
-  const lookup: Record<string, true> = {};
+function getLookupFromArray(array: TreeItemId[]): Record<TreeItemId, true> {
+  const lookup: Record<TreeItemId, true> = {};
   for (const item of array) {
     lookup[item] = true;
   }
@@ -244,14 +243,14 @@ export class TreeStore<
   // Selection tracking
   private lastSelectedItem: TreeItemId | null = null;
 
-  private lastSelectedRange: Record<string, boolean> = {};
+  private lastSelectedRange: Record<TreeItemId, boolean> = {};
 
   // Typeahead
   private typeaheadQuery = '';
 
   private timeoutManager = new TimeoutManager();
 
-  private labelMap: Record<string, string> = {};
+  private labelMap: Record<TreeItemId, string> = {};
 
   public lazyLoading: TreeLazyLoading<TItem> | undefined;
 
@@ -268,7 +267,7 @@ export class TreeStore<
         disabled: parameters.disabled ?? false,
         items: parameters.items,
         itemMetaPatches: {},
-        lazyItems: { children: EMPTY_OBJECT, expandable: EMPTY_OBJECT },
+        lazyItems: undefined,
         expandedItems: parameters.expandedItems ?? parameters.defaultExpandedItems ?? EMPTY_ARRAY,
         expandOnClick: parameters.expandOnClick ?? false,
         selectedItems:
@@ -283,7 +282,6 @@ export class TreeStore<
         },
         focusedItemId: null,
         itemFocusableWhenDisabled: parameters.itemFocusableWhenDisabled ?? false,
-        lazyLoadedItems: undefined,
         itemToId,
         itemToStringLabel,
         itemToChildren,
@@ -338,7 +336,7 @@ export class TreeStore<
         // nearest surviving neighbor. Multiple siblings may have been removed
         // in the same batch, so we keep walking until we find one that still
         // exists in the new state (or exhaust both directions).
-        let candidate: string | null = null;
+        let candidate: TreeItemId | null = null;
 
         let probe = getNextNavigableItem(previousState, focusedId);
         while (probe != null && !newMetaLookup[probe]) {
@@ -1013,7 +1011,7 @@ export class TreeStore<
     if (!rootElement) {
       return null;
     }
-    return rootElement.querySelector(`[data-item-id="${CSS.escape(itemId)}"]`);
+    return rootElement.querySelector(`[data-item-id="${CSS.escape(String(itemId))}"]`);
   }
 
   // ===========================================================================
@@ -1332,7 +1330,11 @@ export class TreeStore<
   };
 
   private getItemIdFromEvent(event: React.SyntheticEvent): TreeItemId | null {
-    return (event.currentTarget as HTMLElement).getAttribute('data-item-id');
+    const stringId = (event.currentTarget as HTMLElement).getAttribute('data-item-id');
+    if (stringId == null) {
+      return null;
+    }
+    return selectors.itemIdLookup(this.state)[stringId] ?? null;
   }
 
   private readonly handleItemFocus = (event: React.FocusEvent) => {
@@ -1506,22 +1508,22 @@ export class TreeStore<
   // Lazy loading helpers (called by the plugin)
   // ===========================================================================
 
-  public setItemChildrenOverride(parentId: string, children: TItem[]) {
+  public setItemChildrenOverride(parentId: TreeItemId, children: TItem[]) {
     this.set('lazyItems', {
-      ...this.state.lazyItems,
-      children: { ...this.state.lazyItems.children, [parentId]: children },
+      ...this.state.lazyItems!,
+      children: { ...this.state.lazyItems!.children, [parentId]: children },
     });
   }
 
-  public removeChildrenOverride(parentId: string) {
-    const { [parentId]: removed, ...rest } = this.state.lazyItems.children;
-    this.set('lazyItems', { ...this.state.lazyItems, children: rest });
+  public removeChildrenOverride(parentId: TreeItemId) {
+    const { [parentId]: removed, ...rest } = this.state.lazyItems!.children;
+    this.set('lazyItems', { ...this.state.lazyItems!, children: rest });
   }
 
   public setItemExpandableOverrides(overrides: Record<TreeItemId, boolean>) {
     this.set('lazyItems', {
-      ...this.state.lazyItems,
-      expandable: { ...this.state.lazyItems.expandable, ...overrides },
+      ...this.state.lazyItems!,
+      expandable: { ...this.state.lazyItems!.expandable, ...overrides },
     });
   }
 

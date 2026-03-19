@@ -28,12 +28,12 @@ const initialItems: Tree.DefaultItemModel[] = [
 ];
 
 const DeleteContext = React.createContext<{
-  deleteItem: (itemId: string) => void;
+  deleteItem: (itemId: Tree.ItemId) => void;
 }>({
   deleteItem: () => {},
 });
 
-function DeleteButton({ itemId }: { itemId: string }) {
+function DeleteButton({ itemId }: { itemId: Tree.ItemId }) {
   const { deleteItem } = React.useContext(DeleteContext);
 
   return (
@@ -57,7 +57,7 @@ export default function DeleteItemTree() {
 
   const deleteContext = React.useMemo(
     () => ({
-      deleteItem: (itemId: string) => {
+      deleteItem: (itemId: Tree.ItemId) => {
         setItems((prev) => removeItem(prev, itemId));
       },
     }),
@@ -94,7 +94,10 @@ export default function DeleteItemTree() {
   );
 }
 
-function removeItem(items: Tree.DefaultItemModel[], targetId: string): Tree.DefaultItemModel[] {
+function removeItem(
+  items: Tree.DefaultItemModel[],
+  targetId: Tree.ItemId,
+): Tree.DefaultItemModel[] {
   return items
     .filter((item) => item.id !== targetId)
     .map((item) => {

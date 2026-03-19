@@ -213,21 +213,21 @@ function FileIcon({ fileType }: { fileType: string }) {
 // ---------------------------------------------------------------------------
 
 interface ClipboardState {
-  itemId: string;
+  itemId: Tree.ItemId;
   operation: 'cut' | 'copy';
 }
 
 interface FileExplorerContextValue {
-  editingItemId: string | null;
+  editingItemId: Tree.ItemId | null;
   clipboard: ClipboardState | null;
-  startEditing: (itemId: string) => void;
+  startEditing: (itemId: Tree.ItemId) => void;
   stopEditing: () => void;
-  saveEdit: (itemId: string, newLabel: string) => void;
-  deleteItem: (itemId: string) => void;
-  addItem: (parentId: string, type: 'file' | 'folder') => void;
-  cutItem: (itemId: string) => void;
-  copyItem: (itemId: string) => void;
-  pasteItem: (targetId: string) => void;
+  saveEdit: (itemId: Tree.ItemId, newLabel: string) => void;
+  deleteItem: (itemId: Tree.ItemId) => void;
+  addItem: (parentId: Tree.ItemId, type: 'file' | 'folder') => void;
+  cutItem: (itemId: Tree.ItemId) => void;
+  copyItem: (itemId: Tree.ItemId) => void;
+  pasteItem: (targetId: Tree.ItemId) => void;
 }
 
 const FileExplorerContext = React.createContext<FileExplorerContextValue>({
@@ -297,7 +297,7 @@ function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
 // Tree mutation helpers
 // ---------------------------------------------------------------------------
 
-function findItem(items: FileItem[], targetId: string): FileItem | null {
+function findItem(items: FileItem[], targetId: Tree.ItemId): FileItem | null {
   for (const item of items) {
     if (item.id === targetId) {
       return item;
@@ -314,9 +314,9 @@ function findItem(items: FileItem[], targetId: string): FileItem | null {
 
 function findParentId(
   items: FileItem[],
-  targetId: string,
-  parentId: string | null = null,
-): string | null {
+  targetId: Tree.ItemId,
+  parentId: Tree.ItemId | null = null,
+): Tree.ItemId | null {
   for (const item of items) {
     if (item.id === targetId) {
       return parentId;
@@ -331,7 +331,7 @@ function findParentId(
   return null;
 }
 
-function updateLabel(items: FileItem[], targetId: string, newLabel: string): FileItem[] {
+function updateLabel(items: FileItem[], targetId: Tree.ItemId, newLabel: string): FileItem[] {
   return items.map((item) => {
     if (item.id === targetId) {
       return { ...item, label: newLabel };
@@ -346,7 +346,7 @@ function updateLabel(items: FileItem[], targetId: string, newLabel: string): Fil
   });
 }
 
-function removeItem(items: FileItem[], targetId: string): FileItem[] {
+function removeItem(items: FileItem[], targetId: Tree.ItemId): FileItem[] {
   return items
     .filter((item) => item.id !== targetId)
     .map((item) => {
@@ -360,7 +360,7 @@ function removeItem(items: FileItem[], targetId: string): FileItem[] {
     });
 }
 
-function addChildItem(items: FileItem[], parentId: string, newItem: FileItem): FileItem[] {
+function addChildItem(items: FileItem[], parentId: Tree.ItemId, newItem: FileItem): FileItem[] {
   return items.map((item) => {
     if (item.id === parentId) {
       return { ...item, children: [...(item.children ?? []), newItem] };
@@ -393,20 +393,20 @@ function cloneItemWithNewIds(item: FileItem): FileItem {
 
 export default function ExampleFileExplorer() {
   const [items, setItems] = React.useState<FileItem[]>(BASE_UI_FILES);
-  const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
-  const [expandedItems, setExpandedItems] = React.useState<string[]>([
+  const [editingItemId, setEditingItemId] = React.useState<Tree.ItemId | null>(null);
+  const [expandedItems, setExpandedItems] = React.useState<Tree.ItemId[]>([
     'packages',
     'packages/react',
     'packages/react/src',
   ]);
-  const [contextMenuItemId, setContextMenuItemId] = React.useState<string | null>(null);
+  const [contextMenuItemId, setContextMenuItemId] = React.useState<Tree.ItemId | null>(null);
   const [clipboard, setClipboard] = React.useState<ClipboardState | null>(null);
 
   const contextMenuItem = contextMenuItemId ? findItem(items, contextMenuItemId) : null;
   const isContextMenuItemFolder = contextMenuItem?.children !== undefined;
 
   const getTargetFolderId = React.useCallback(
-    (itemId: string): string => {
+    (itemId: Tree.ItemId): Tree.ItemId => {
       const item = findItem(items, itemId);
       if (item?.children !== undefined) {
         return itemId;
@@ -420,21 +420,21 @@ export default function ExampleFileExplorer() {
     () => ({
       editingItemId,
       clipboard,
-      startEditing: (itemId: string) => setEditingItemId(itemId),
+      startEditing: (itemId: Tree.ItemId) => setEditingItemId(itemId),
       stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: string, newLabel: string) => {
+      saveEdit: (itemId: Tree.ItemId, newLabel: string) => {
         if (newLabel.trim()) {
           setItems((prev) => updateLabel(prev, itemId, newLabel.trim()));
         }
         setEditingItemId(null);
       },
-      deleteItem: (itemId: string) => {
+      deleteItem: (itemId: Tree.ItemId) => {
         setItems((prev) => removeItem(prev, itemId));
         if (clipboard?.itemId === itemId) {
           setClipboard(null);
         }
       },
-      addItem: (parentId: string, type: 'file' | 'folder') => {
+      addItem: (parentId: Tree.ItemId, type: 'file' | 'folder') => {
         nextId += 1;
         const newId = `new-${type}-${nextId}`;
         const newItem: FileItem =
@@ -445,13 +445,13 @@ export default function ExampleFileExplorer() {
         setExpandedItems((prev) => (prev.includes(parentId) ? prev : [...prev, parentId]));
         setEditingItemId(newId);
       },
-      cutItem: (itemId: string) => {
+      cutItem: (itemId: Tree.ItemId) => {
         setClipboard({ itemId, operation: 'cut' });
       },
-      copyItem: (itemId: string) => {
+      copyItem: (itemId: Tree.ItemId) => {
         setClipboard({ itemId, operation: 'copy' });
       },
-      pasteItem: (targetId: string) => {
+      pasteItem: (targetId: Tree.ItemId) => {
         if (!clipboard) {
           return;
         }

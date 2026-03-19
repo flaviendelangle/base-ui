@@ -28,10 +28,10 @@ const initialItems: Tree.DefaultItemModel[] = [
 ];
 
 const EditingContext = React.createContext<{
-  editingItemId: string | null;
-  startEditing: (itemId: string) => void;
+  editingItemId: Tree.ItemId | null;
+  startEditing: (itemId: Tree.ItemId) => void;
   stopEditing: () => void;
-  saveEdit: (itemId: string, newLabel: string) => void;
+  saveEdit: (itemId: Tree.ItemId, newLabel: string) => void;
 }>({
   editingItemId: null,
   startEditing: () => {},
@@ -39,7 +39,7 @@ const EditingContext = React.createContext<{
   saveEdit: () => {},
 });
 
-function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
+function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }) {
   const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
   const isEditing = editingItemId === itemId;
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -88,14 +88,14 @@ function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
 
 export default function TextEditingTree() {
   const [items, setItems] = React.useState(initialItems);
-  const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = React.useState<Tree.ItemId | null>(null);
 
   const editingContext = React.useMemo(
     () => ({
       editingItemId,
-      startEditing: (itemId: string) => setEditingItemId(itemId),
+      startEditing: (itemId: Tree.ItemId) => setEditingItemId(itemId),
       stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: string, newLabel: string) => {
+      saveEdit: (itemId: Tree.ItemId, newLabel: string) => {
         setItems((prev) => updateLabel(prev, itemId, newLabel));
         setEditingItemId(null);
       },
@@ -142,7 +142,7 @@ export default function TextEditingTree() {
 
 function updateLabel(
   items: Tree.DefaultItemModel[],
-  targetId: string,
+  targetId: Tree.ItemId,
   newLabel: string,
 ): Tree.DefaultItemModel[] {
   return items.map((item) => {

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { createRenderer } from '../../../test/createRenderer';
 import { Tree } from '../../tree';
-import type { TreeDefaultItemModel, TreeRootActions } from '../store/types';
+import type { TreeDefaultItemModel, TreeItemId, TreeRootActions } from '../store/types';
 import { DataSourceCacheDefault } from '../utils/cache';
 import type { UseTreeLazyLoadingParameters } from '../utils/useTreeLazyLoading';
 
@@ -12,7 +12,7 @@ interface ItemType extends TreeDefaultItemModel {
 
 const { render } = createRenderer();
 
-const mockFetchChildren = async (parentId?: string): Promise<ItemType[]> => {
+const mockFetchChildren = async (parentId?: TreeItemId): Promise<ItemType[]> => {
   const items: ItemType[] = [
     {
       id: parentId == null ? '1' : `${parentId}-1`,
@@ -74,21 +74,21 @@ function TreeWithLazyLoading(
   );
 }
 
-function getAllTreeItemIds(container: HTMLElement): string[] {
+function getAllTreeItemIds(container: HTMLElement): TreeItemId[] {
   return Array.from(container.querySelectorAll('[role="treeitem"]')).map(
     (item) => (item as HTMLElement).dataset.itemId!,
   );
 }
 
-function getItemRoot(container: HTMLElement, id: string): HTMLElement {
-  const item = container.querySelector(`[data-item-id="${CSS.escape(id)}"]`);
+function getItemRoot(container: HTMLElement, id: TreeItemId): HTMLElement {
+  const item = container.querySelector(`[data-item-id="${CSS.escape(String(id))}"]`);
   if (!item) {
     throw new Error(`Could not find item with id "${id}"`);
   }
   return item as HTMLElement;
 }
 
-function isItemExpanded(container: HTMLElement, id: string): boolean {
+function isItemExpanded(container: HTMLElement, id: TreeItemId): boolean {
   return getItemRoot(container, id).getAttribute('aria-expanded') === 'true';
 }
 
@@ -217,7 +217,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
     it('should allow mixing props.items and fetched items on mount', async () => {
       let resolveItem2: ((value: ItemType[]) => void) | null = null;
-      const controlledFetch = (_parentId?: string): Promise<ItemType[]> =>
+      const controlledFetch = (_parentId?: TreeItemId): Promise<ItemType[]> =>
         new Promise((resolve) => {
           resolveItem2 = resolve;
         });
@@ -372,7 +372,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
     it('should clear error indicator on successful retry', async () => {
       let shouldFail = true;
-      const conditionalFetchChildren = async (parentId?: string): Promise<ItemType[]> => {
+      const conditionalFetchChildren = async (parentId?: TreeItemId): Promise<ItemType[]> => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             if (shouldFail) {
@@ -505,7 +505,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
     it('should handle rapid expand/collapse without race conditions', async () => {
       let resolvePromise: ((value: ItemType[]) => void) | null = null;
-      const delayedFetchChildren = async (_parentId?: string): Promise<ItemType[]> =>
+      const delayedFetchChildren = async (_parentId?: TreeItemId): Promise<ItemType[]> =>
         new Promise((resolve) => {
           resolvePromise = resolve;
         });

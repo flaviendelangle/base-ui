@@ -9,6 +9,7 @@ import { TreeItemContext } from '../item/TreeItemContext';
 import { TreeCheckboxItemContext } from './TreeCheckboxItemContext';
 import { TreeCheckboxItemDataAttributes } from './TreeCheckboxItemDataAttributes';
 import { TreeItemCssVars } from '../item/TreeItemCssVars';
+import type { TreeItemId } from '../store/types';
 
 const EXPANDED_HOOK = { [TreeCheckboxItemDataAttributes.expanded]: '' };
 const COLLAPSED_HOOK = { [TreeCheckboxItemDataAttributes.collapsed]: '' };
@@ -17,8 +18,8 @@ const UNCHECKED_HOOK = { [TreeCheckboxItemDataAttributes.unchecked]: '' };
 const INDETERMINATE_HOOK = { [TreeCheckboxItemDataAttributes.indeterminate]: '' };
 
 const stateAttributesMapping = {
-  itemId(v: string) {
-    return { [TreeCheckboxItemDataAttributes.itemId]: v };
+  itemId(v: TreeItemId) {
+    return { [TreeCheckboxItemDataAttributes.itemId]: String(v) };
   },
   expanded(v: boolean) {
     return v ? EXPANDED_HOOK : COLLAPSED_HOOK;
@@ -142,7 +143,7 @@ export interface TreeCheckboxItemState {
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
   /**
    * Whether the item is currently expanded.
    */
@@ -181,7 +182,7 @@ export interface TreeCheckboxItemProps extends BaseUIComponentProps<'div', TreeC
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
 }
 
 export namespace TreeCheckboxItem {

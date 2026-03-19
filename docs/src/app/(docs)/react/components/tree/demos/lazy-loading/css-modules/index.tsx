@@ -32,7 +32,7 @@ const INITIAL_ITEMS: Tree.DefaultItemModel[] = [
   { id: 'notes', label: 'Notes.txt' },
 ];
 
-function fetchChildren(parentId: string | undefined): Promise<Tree.DefaultItemModel[]> {
+function fetchChildren(parentId: Tree.ItemId | undefined): Promise<Tree.DefaultItemModel[]> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const children = parentId ? SERVER_DATA[parentId] : undefined;

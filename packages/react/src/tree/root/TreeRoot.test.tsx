@@ -302,5 +302,61 @@ describeTree('TreeRoot - Items', ({ render }) => {
       expect(item1.parentElement).toBe(item11.parentElement);
       expect(item11.parentElement).toBe(item111.parentElement);
     });
+
+    it('should render items with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      });
+
+      expect(view.getAllTreeItemIds()).toEqual(['1', '2', '3']);
+    });
+
+    it('should render nested items with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }, { id: 12 }] }, { id: 2 }],
+        defaultExpandedItems: [1],
+      });
+
+      expect(view.getAllTreeItemIds()).toEqual(['1', '11', '12', '2']);
+    });
+  });
+
+  describe('API methods', () => {
+    it('should return the item model with getItem using numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
+      });
+
+      expect(view.actionsRef.current!.getItem(1)).toEqual({
+        id: 1,
+        label: '1',
+        children: [{ id: 11, label: '11' }],
+      });
+    });
+
+    it('should return the DOM element with getItemDOMElement using numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1 }],
+      });
+
+      expect(view.actionsRef.current!.getItemDOMElement(1)).toBe(view.getItemRoot(1));
+    });
+
+    it('should return ordered children ids using numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }, { id: 12 }] }],
+      });
+
+      expect(view.actionsRef.current!.getItemOrderedChildrenIds(1)).toEqual([11, 12]);
+    });
+
+    it('should return the parent id using numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1, children: [{ id: 11 }] }],
+      });
+
+      expect(view.actionsRef.current!.getParentId(11)).toBe(1);
+      expect(view.actionsRef.current!.getParentId(1)).toBe(null);
+    });
   });
 });

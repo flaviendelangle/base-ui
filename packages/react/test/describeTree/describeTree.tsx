@@ -2,10 +2,10 @@ import * as React from 'react';
 import { act } from '@mui/internal-test-utils';
 import { createRenderer, type BaseUIRenderResult } from '../createRenderer';
 import { Tree } from '../../src/tree';
-import type { TreeDefaultItemModel, TreeRootActions } from '../../src/tree/store/types';
+import type { TreeDefaultItemModel, TreeItemId, TreeRootActions } from '../../src/tree/store/types';
 
 export interface DescribeTreeItem {
-  id: string;
+  id: TreeItemId;
   label?: string;
   disabled?: boolean;
   children?: readonly DescribeTreeItem[];
@@ -15,12 +15,12 @@ export interface DescribeTreeRendererUtils {
   getRoot: () => HTMLElement;
   getAllTreeItemIds: () => string[];
   getFocusedItemId: () => string | null;
-  getItemRoot: (id: string) => HTMLElement;
-  getItemExpansionTrigger: (id: string) => HTMLElement | null;
-  getItemLabel: (id: string) => HTMLElement | null;
-  getItemLabelInput: (id: string) => HTMLInputElement | null;
-  isItemExpanded: (id: string) => boolean;
-  isItemSelected: (id: string) => boolean;
+  getItemRoot: (id: TreeItemId) => HTMLElement;
+  getItemExpansionTrigger: (id: TreeItemId) => HTMLElement | null;
+  getItemLabel: (id: TreeItemId) => HTMLElement | null;
+  getItemLabelInput: (id: TreeItemId) => HTMLInputElement | null;
+  isItemExpanded: (id: TreeItemId) => boolean;
+  isItemSelected: (id: TreeItemId) => boolean;
   getSelectedTreeItems: () => string[];
 }
 
@@ -64,32 +64,32 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
     return (activeElement as HTMLElement).dataset.itemId!;
   };
 
-  const getItemRoot = (id: string) => {
-    const item = result.container.querySelector(`[data-item-id="${CSS.escape(id)}"]`);
+  const getItemRoot = (id: TreeItemId) => {
+    const item = result.container.querySelector(`[data-item-id="${CSS.escape(String(id))}"]`);
     if (!item) {
       throw new Error(`Could not find item with id "${id}"`);
     }
     return item as HTMLElement;
   };
 
-  const getItemExpansionTrigger = (id: string): HTMLElement | null => {
+  const getItemExpansionTrigger = (id: TreeItemId): HTMLElement | null => {
     const item = getItemRoot(id);
     return item.querySelector<HTMLElement>('button');
   };
 
-  const getItemLabel = (id: string): HTMLElement | null => {
+  const getItemLabel = (id: TreeItemId): HTMLElement | null => {
     const item = getItemRoot(id);
     return item.querySelector<HTMLElement>('span');
   };
 
-  const getItemLabelInput = (id: string): HTMLInputElement | null => {
+  const getItemLabelInput = (id: TreeItemId): HTMLInputElement | null => {
     const item = getItemRoot(id);
     return item.querySelector<HTMLInputElement>('input:not([type="checkbox"])');
   };
 
-  const isItemExpanded = (id: string) => getItemRoot(id).getAttribute('aria-expanded') === 'true';
+  const isItemExpanded = (id: TreeItemId) => getItemRoot(id).getAttribute('aria-expanded') === 'true';
 
-  const isItemSelected = (id: string) => {
+  const isItemSelected = (id: TreeItemId) => {
     const item = getItemRoot(id);
     // Tree.CheckboxItem uses aria-checked, Tree.Item uses aria-selected
     return (
@@ -140,7 +140,7 @@ export function describeTree(
       const convertItems = (describeItems: readonly DescribeTreeItem[]): TreeDefaultItemModel[] =>
         describeItems.map((item) => ({
           id: item.id,
-          label: item.label ?? item.id,
+          label: item.label ?? String(item.id),
           ...(item.children ? { children: convertItems(item.children) } : {}),
         }));
 
@@ -208,7 +208,7 @@ export function describeTree(
 
 function findDescribeItem(
   items: readonly DescribeTreeItem[],
-  id: string,
+  id: TreeItemId,
 ): DescribeTreeItem | undefined {
   for (const item of items) {
     if (item.id === id) {

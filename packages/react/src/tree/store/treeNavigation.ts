@@ -101,11 +101,11 @@ export const getPreviousNavigableItem = (
 export const getNextNavigableItem = (state: TreeState, itemId: TreeItemId): TreeItemId | null => {
   // If the item is expanded and has some navigable children, return the first of them.
   if (isItemExpanded(state, itemId)) {
-    const firstNavigableChild = itemOrderedChildrenIds(state, itemId).find((childId) =>
-      canItemBeFocused(state, childId),
-    );
-    if (firstNavigableChild != null) {
-      return firstNavigableChild;
+    const children = itemOrderedChildrenIds(state, itemId);
+    for (let i = 0; i < children.length; i += 1) {
+      if (canItemBeFocused(state, children[i])) {
+        return children[i];
+      }
     }
   }
 
@@ -150,8 +150,15 @@ export const getLastNavigableItem = (state: TreeState): TreeItemId | null => {
   return currentItemId;
 };
 
-export const getFirstNavigableItem = (state: TreeState): TreeItemId | null =>
-  itemOrderedChildrenIds(state, null).find((id) => canItemBeFocused(state, id)) ?? null;
+export const getFirstNavigableItem = (state: TreeState): TreeItemId | null => {
+  const rootChildren = itemOrderedChildrenIds(state, null);
+  for (let i = 0; i < rootChildren.length; i += 1) {
+    if (canItemBeFocused(state, rootChildren[i])) {
+      return rootChildren[i];
+    }
+  }
+  return null;
+};
 
 /**
  * Determines the order of two items in the tree using the Tremaux tree algorithm.
@@ -179,12 +186,14 @@ export const findOrderInTremauxTree = (
 
   const aFamily: (TreeItemId | null)[] = [metaA.id];
   const bFamily: (TreeItemId | null)[] = [metaB.id];
+  const aFamilySet = new Set<TreeItemId | null>([metaA.id]);
+  const bFamilySet = new Set<TreeItemId | null>([metaB.id]);
 
   let aAncestor: TreeItemId | null = metaA.parentId;
   let bAncestor: TreeItemId | null = metaB.parentId;
 
-  let aAncestorIsCommon = bFamily.indexOf(aAncestor) !== -1;
-  let bAncestorIsCommon = aFamily.indexOf(bAncestor) !== -1;
+  let aAncestorIsCommon = bFamilySet.has(aAncestor);
+  let bAncestorIsCommon = aFamilySet.has(bAncestor);
 
   let continueA = true;
   let continueB = true;
@@ -192,7 +201,8 @@ export const findOrderInTremauxTree = (
   while (!bAncestorIsCommon && !aAncestorIsCommon) {
     if (continueA) {
       aFamily.push(aAncestor);
-      aAncestorIsCommon = bFamily.indexOf(aAncestor) !== -1;
+      aFamilySet.add(aAncestor);
+      aAncestorIsCommon = bFamilySet.has(aAncestor);
       continueA = aAncestor !== null;
       if (!aAncestorIsCommon && continueA) {
         aAncestor = itemParentId(state, aAncestor!);
@@ -201,7 +211,8 @@ export const findOrderInTremauxTree = (
 
     if (continueB && !aAncestorIsCommon) {
       bFamily.push(bAncestor);
-      bAncestorIsCommon = aFamily.indexOf(bAncestor) !== -1;
+      bFamilySet.add(bAncestor);
+      bAncestorIsCommon = aFamilySet.has(bAncestor);
       continueB = bAncestor !== null;
       if (!bAncestorIsCommon && continueB) {
         bAncestor = itemParentId(state, bAncestor!);
@@ -210,12 +221,11 @@ export const findOrderInTremauxTree = (
   }
 
   const commonAncestor = aAncestorIsCommon ? aAncestor : bAncestor;
-  const ancestorFamily = itemOrderedChildrenIds(state, commonAncestor);
 
   const aSide = aFamily[aFamily.indexOf(commonAncestor) - 1]!;
   const bSide = bFamily[bFamily.indexOf(commonAncestor) - 1]!;
 
-  return ancestorFamily.indexOf(aSide) < ancestorFamily.indexOf(bSide)
+  return itemIndex(state, aSide) < itemIndex(state, bSide)
     ? [itemAId, itemBId]
     : [itemBId, itemAId];
 };
@@ -266,16 +276,3 @@ export const getNonDisabledItemsInRange = (
   return items;
 };
 
-/**
- * Returns all navigable items in tree order.
- */
-export const getAllNavigableItems = (state: TreeState): TreeItemId[] => {
-  let item: TreeItemId | null = getFirstNavigableItem(state);
-  const navigableItems: TreeItemId[] = [];
-  while (item != null) {
-    navigableItems.push(item);
-    item = getNextNavigableItem(state, item);
-  }
-
-  return navigableItems;
-};

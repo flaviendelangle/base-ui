@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { Filter } from '../../utils/filter';
 import type { TreeItemId } from '../store/types';
 
-const defaultItemToId = (item: any): string => item.id;
+const defaultItemToId = (item: any): TreeItemId => item.id;
 const defaultItemToStringLabel = (item: any): string => item.label;
 const defaultItemToChildren = (item: any): any[] | undefined => item.children;
 
@@ -38,7 +38,7 @@ export interface UseTreeFilteredItemsOptions<TItem> {
    * Required when `autoExpand` is `true`.
    * @default (item) => item.id
    */
-  itemToId?: ((item: TItem) => string) | undefined;
+  itemToId?: ((item: TItem) => TreeItemId) | undefined;
   /**
    * Extracts the string label from an item for filtering.
    * @default (item) => item.label

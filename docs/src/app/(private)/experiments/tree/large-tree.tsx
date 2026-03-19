@@ -26,7 +26,7 @@ const items: Tree.DefaultItemModel[] = [
   ...generateItems(2, 5),
   ...generateItems(1, 5, 'flat').map((item) => ({
     ...item,
-    children: generateItems(0, 20, item.id),
+    children: generateItems(0, 20, item.id.toString()),
   })),
 ];
 

@@ -1608,4 +1608,85 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       expect(view.isItemSelected('1.2')).toBe(true);
     });
   });
+
+  describe('numeric ids', () => {
+    it('should support defaultSelectedItems with a numeric id (single selection)', async () => {
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }],
+        defaultSelectedItems: 1,
+      });
+
+      expect(view.isItemSelected(1)).toBe(true);
+      expect(view.isItemSelected(2)).toBe(false);
+    });
+
+    it('should select an item with a numeric id on click (single selection)', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }],
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(1));
+
+      expect(onSelectedItemsChange.mock.calls.length).toBe(1);
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toBe(1);
+    });
+
+    it('should support defaultSelectedItems with numeric ids (multiple selection)', async () => {
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        selectionMode: 'multiple',
+        defaultSelectedItems: [1, 3],
+      });
+
+      expect(view.isItemSelected(1)).toBe(true);
+      expect(view.isItemSelected(2)).toBe(false);
+      expect(view.isItemSelected(3)).toBe(true);
+    });
+
+    it('should support Ctrl+Click multi-selection with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        selectionMode: 'multiple',
+        defaultSelectedItems: [1],
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(2), { ctrlKey: true });
+
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([2, 1]);
+    });
+
+    it('should support checkbox selection with numeric ids', async () => {
+      const onSelectedItemsChange = vi.fn();
+
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }],
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        onSelectedItemsChange,
+      });
+
+      fireEvent.click(view.getItemRoot(1));
+
+      expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([1]);
+      expect(view.isItemSelected(1)).toBe(true);
+    });
+
+    it('should support setItemSelection with numeric ids', async () => {
+      const view = await render({
+        items: [{ id: 1 }, { id: 2 }],
+      });
+
+      expect(view.isItemSelected(1)).toBe(false);
+      act(() => {
+        view.actionsRef.current!.setItemSelection(1, true);
+      });
+      expect(view.isItemSelected(1)).toBe(true);
+    });
+  });
 });

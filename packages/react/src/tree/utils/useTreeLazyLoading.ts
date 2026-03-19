@@ -7,11 +7,6 @@ import { selectors } from '../store/selectors';
 import { NestedDataManager } from './NestedDataManager';
 import type { DataSourceCache } from './cache';
 
-const LAZY_LOADED_ITEMS_INITIAL_STATE = {
-  loading: {} as Record<string, boolean>,
-  errors: {} as Record<string, Error | undefined>,
-};
-
 export interface UseTreeLazyLoadingParameters<TItem = TreeDefaultItemModel> {
   /**
    * Fetches children for a given parent item.
@@ -56,7 +51,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     this.cache = this.config.cache;
 
     // Initialize lazy loading state
-    store.set('lazyLoadedItems', { ...LAZY_LOADED_ITEMS_INITIAL_STATE });
+    store.set('lazyItems', { children: {}, expandable: {}, loading: {}, errors: {} });
 
     // Scan existing items and mark expandable ones based on getChildrenCount
     this.updateExpandableOverrides();
@@ -147,7 +142,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
   }
 
   private setItemLoading(itemId: TreeItemId | null, isLoading: boolean): void {
-    if (!this.store?.state.lazyLoadedItems) {
+    if (!this.store?.state.lazyItems) {
       return;
     }
 
@@ -156,18 +151,18 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     }
 
     const itemIdWithDefault = itemId ?? TREE_VIEW_ROOT_PARENT_ID;
-    const loading = { ...this.store.state.lazyLoadedItems.loading };
+    const loading = { ...this.store.state.lazyItems.loading };
     if (!isLoading) {
       delete loading[itemIdWithDefault];
     } else {
       loading[itemIdWithDefault] = isLoading;
     }
 
-    this.store.set('lazyLoadedItems', { ...this.store.state.lazyLoadedItems, loading });
+    this.store.set('lazyItems', { ...this.store.state.lazyItems, loading });
   }
 
   private setItemError(itemId: TreeItemId | null, error: Error | null): void {
-    if (!this.store?.state.lazyLoadedItems) {
+    if (!this.store?.state.lazyItems) {
       return;
     }
 
@@ -177,14 +172,14 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
       return;
     }
 
-    const errors = { ...this.store.state.lazyLoadedItems.errors };
+    const errors = { ...this.store.state.lazyItems.errors };
     if (error === null) {
       delete errors[itemIdWithDefault];
     } else {
       errors[itemIdWithDefault] = error;
     }
 
-    this.store.set('lazyLoadedItems', { ...this.store.state.lazyLoadedItems, errors });
+    this.store.set('lazyItems', { ...this.store.state.lazyItems, errors });
   }
 
   public fetchItems = (parentIds: TreeItemId[]): Promise<void> =>
@@ -214,7 +209,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
 
     // Reset the state if we are fetching the root items
     if (itemId == null) {
-      this.store.set('lazyLoadedItems', { ...LAZY_LOADED_ITEMS_INITIAL_STATE });
+      this.store.set('lazyItems', { ...this.store.state.lazyItems!, loading: {}, errors: {} });
     }
 
     const cacheKey = itemId ?? TREE_VIEW_ROOT_PARENT_ID;

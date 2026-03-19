@@ -6,6 +6,7 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { selectors } from '../store/selectors';
 import { TreeGroupTransitionContext } from '../group-transition/TreeGroupTransitionContext';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
+import type { TreeItemId, FlatListEntry } from '../store/types';
 
 /**
  * Renders tree items with animated expand/collapse transitions.
@@ -29,27 +30,50 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
 
   const flatListEntries = useStore(store, selectors.flatListWithGroupTransitions);
 
-  // Build a map of parentId -> group-transition entry for quick lookup
+  // Fast path: no animations — flatListEntries is a plain TreeItemId[]
+  const isPlainList = flatListEntries.length === 0 || typeof flatListEntries[0] === 'string' || typeof flatListEntries[0] === 'number';
+
+  // Build a map of parentId -> group-transition entry for quick lookup (only when animating)
   const groupTransitions = React.useMemo(() => {
-    const map = new Map<string, { childIds: string[]; animation: 'expanding' | 'collapsing' }>();
-    for (const entry of flatListEntries) {
+    if (isPlainList) {
+      return null;
+    }
+    const map = new Map<TreeItemId, { childIds: TreeItemId[]; animation: 'expanding' | 'collapsing' }>();
+    for (const entry of flatListEntries as FlatListEntry[]) {
       if (entry.type === 'group-transition') {
         map.set(entry.parentId, { childIds: entry.childIds, animation: entry.animation });
       }
     }
     return map;
-  }, [flatListEntries]);
+  }, [flatListEntries, isPlainList]);
 
+  if (isPlainList) {
+    // No animations: render items directly without wrapping overhead
+    return (
+      <React.Fragment>
+        {(flatListEntries as TreeItemId[]).map((itemId) => (
+          <TreeGroupTransitionContext.Provider key={itemId} value={null}>
+            <TreeItemModelProvider store={store} itemId={itemId}>
+              {children}
+            </TreeItemModelProvider>
+          </TreeGroupTransitionContext.Provider>
+        ))}
+      </React.Fragment>
+    );
+  }
+
+  // Animation path: process FlatListEntry[] with group transitions
+  const entries = flatListEntries as FlatListEntry[];
   return (
     <React.Fragment>
-      {flatListEntries
+      {entries
         .filter((entry) => entry.type === 'item')
         .map((entry) => {
           if (entry.type !== 'item') {
             return null;
           }
 
-          const groupEntry = groupTransitions.get(entry.itemId);
+          const groupEntry = groupTransitions!.get(entry.itemId);
 
           let animatedChildren: React.ReactNode = null;
           let contextValue: React.ContextType<typeof TreeGroupTransitionContext> = null;

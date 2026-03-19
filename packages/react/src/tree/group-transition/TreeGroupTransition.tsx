@@ -12,16 +12,17 @@ import { TreeGroupTransitionDataAttributes } from './TreeGroupTransitionDataAttr
 import { TreeGroupTransitionCssVars } from './TreeGroupTransitionCssVars';
 import { TreeGroupTransitionContext } from './TreeGroupTransitionContext';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
+import type { TreeItemId } from '../store/types';
 
 interface TreeGroupTransitionInternalState extends TreeGroupTransitionState {
-  parentId: string;
+  parentId: TreeItemId;
   transitionStatus: TransitionStatus;
 }
 
 const groupTransitionStateAttributesMapping: StateAttributesMapping<TreeGroupTransitionInternalState> =
   {
     animation: () => null,
-    parentId: (value) => ({ [TreeGroupTransitionDataAttributes.parentId]: value }),
+    parentId: (value) => ({ [TreeGroupTransitionDataAttributes.parentId]: String(value) }),
     ...transitionStatusMapping,
   };
 

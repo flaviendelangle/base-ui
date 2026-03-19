@@ -1,5 +1,5 @@
 import type { TreeItemId, TreeDefaultItemModel, TreeItemMeta, TreeItemsState } from './types';
-import { TREE_VIEW_ROOT_PARENT_ID } from './types';
+import { TREE_SELECTION_ALL, TREE_VIEW_ROOT_PARENT_ID } from './types';
 
 export function buildItemsState<TItem = TreeDefaultItemModel>(
   items: readonly TItem[],
@@ -11,8 +11,9 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
 ): TreeItemsState<TItem> {
   const itemMetaLookup: Record<TreeItemId, TreeItemMeta> = {};
   const itemModelLookup: Record<TreeItemId, TItem> = {};
-  const itemOrderedChildrenIdsLookup: Record<string, TreeItemId[]> = {};
-  const itemChildrenIndexesLookup: Record<string, Record<TreeItemId, number>> = {};
+  const itemOrderedChildrenIdsLookup: Record<TreeItemId, TreeItemId[]> = {};
+  const itemChildrenIndexesLookup: Record<TreeItemId, Record<TreeItemId, number>> = {};
+  const itemIdLookup: Record<string, TreeItemId> = {};
 
   function processSiblings(siblings: readonly TItem[], parentId: TreeItemId | null, depth: number) {
     const parentKey = parentId ?? TREE_VIEW_ROOT_PARENT_ID;
@@ -32,8 +33,17 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
               'Each item must have a unique ID. The second item will overwrite the first.',
           );
         }
+
+        if (itemId === TREE_SELECTION_ALL) {
+          console.warn(
+            'Base UI Tree: An item has its `id` property equal to "all". ' +
+              'This value is reserved as a sentinel for selecting all items and will cause unexpected behavior with selection. ' +
+              'Please use a different `id` for this item.',
+          );
+        }
       }
 
+      itemIdLookup[itemId] = itemId;
       orderedChildrenIds.push(itemId);
       childrenIndexes[itemId] = i;
 
@@ -64,5 +74,6 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
     itemModelLookup,
     itemOrderedChildrenIdsLookup,
     itemChildrenIndexesLookup,
+    itemIdLookup,
   };
 }

@@ -1,8 +1,9 @@
 'use client';
 import * as React from 'react';
+import type { TreeItemId } from '../store/types';
 
 export interface TreeGroupTransitionContextValue {
-  parentId: string;
+  parentId: TreeItemId;
   animation: 'expanding' | 'collapsing';
 }
 

@@ -4,7 +4,7 @@ import type {
 } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 
-export type TreeItemId = string;
+export type TreeItemId = string | number;
 
 /**
  * The selection mode of the tree.
@@ -39,7 +39,7 @@ export type TreeSelectedItemsType<Mode extends TreeSelectionMode | undefined> =
  * Users can extend this with custom properties.
  */
 export interface TreeDefaultItemModel {
-  id: string;
+  id: TreeItemId;
   label: string;
   children?: TreeDefaultItemModel[] | undefined;
   [key: string]: any;
@@ -69,38 +69,64 @@ export interface TreeCheckboxSelectionPropagation {
 }
 
 /**
- * Lazy loading state for items.
- */
-export interface LazyLoadedItemsState {
-  loading: Record<string, boolean>;
-  errors: Record<string, Error | undefined>;
-}
-
-/**
  * Sparse per-item metadata patches applied on top of computed metadata.
  * Only the fields that are actually overridden are present.
  */
 export type ItemMetaPatches = Record<TreeItemId, Partial<Pick<TreeItemMeta, 'disabled'>>>;
 
 /**
- * Lazy-loaded tree structure additions.
- * Contains children arrays keyed by parent ID and expandability hints.
+ * Lazy-loaded tree structure and loading state.
  */
-export interface LazyItemsState<TItem = TreeDefaultItemModel> {
-  children: Record<string, TItem[]>;
+export interface TreeLazyItemsState<TItem = TreeDefaultItemModel> {
+  /**
+   * Lazily-fetched children arrays, keyed by parent item ID.
+   */
+  children: Record<TreeItemId, TItem[]>;
+  /**
+   * Whether each item should be treated as expandable (has children to load).
+   */
   expandable: Record<TreeItemId, boolean>;
+  /**
+   * Whether each item's children are currently being fetched.
+   */
+  loading: Record<TreeItemId, boolean>;
+  /**
+   * Error that occurred while fetching an item's children, if any.
+   */
+  errors: Record<TreeItemId, Error | undefined>;
 }
 
+/**
+ * Sentinel ID used as the parent key for root-level items in lazy loading state.
+ */
 export const TREE_VIEW_ROOT_PARENT_ID = '__ROOT__';
 
 /**
  * The computed lookup tables derived from the items prop and accessor functions.
  */
 export interface TreeItemsState<TItem = TreeDefaultItemModel> {
+  /**
+   * Maps each item ID to its full item model.
+   */
   itemModelLookup: Record<TreeItemId, TItem>;
+  /**
+   * Maps each item ID to its computed metadata (depth, parent, disabled, etc.).
+   */
   itemMetaLookup: Record<TreeItemId, TreeItemMeta>;
-  itemOrderedChildrenIdsLookup: Record<string, TreeItemId[]>;
-  itemChildrenIndexesLookup: Record<string, Record<TreeItemId, number>>;
+  /**
+   * Maps each item ID to the ordered list of its children's IDs.
+   * The root's children are keyed by `TREE_VIEW_ROOT_PARENT_ID`.
+   */
+  itemOrderedChildrenIdsLookup: Record<TreeItemId, TreeItemId[]>;
+  /**
+   * Maps each item ID to a record of its children's IDs to their index among siblings.
+   */
+  itemChildrenIndexesLookup: Record<TreeItemId, Record<TreeItemId, number>>;
+  /**
+   * Maps the stringified ID back to the original ID.
+   * Used to recover the original type (string vs number) when reading IDs from DOM attributes.
+   */
+  itemIdLookup: Record<string, TreeItemId>;
 }
 
 export type TreeRootExpansionChangeEventReason =
@@ -197,14 +223,10 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
    */
   itemFocusableWhenDisabled: boolean;
   /**
-   * Lazy-loaded tree structure additions.
-   * Contains children arrays keyed by parent ID and expandability hints.
+   * Lazy-loaded tree structure and loading state.
+   * `undefined` when lazy loading is not enabled.
    */
-  lazyItems: LazyItemsState<TItem>;
-  /**
-   * Lazy loading state. undefined when lazy loading is not in use
-   */
-  lazyLoadedItems: LazyLoadedItemsState | undefined;
+  lazyItems: TreeLazyItemsState<TItem> | undefined;
   /**
    * Extracts the ID from an item model
    */

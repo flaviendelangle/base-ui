@@ -8,13 +8,14 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { TreeItemContext } from './TreeItemContext';
 import { TreeItemDataAttributes } from './TreeItemDataAttributes';
 import { TreeItemCssVars } from './TreeItemCssVars';
+import type { TreeItemId } from '../store/types';
 
 const EXPANDED_HOOK = { [TreeItemDataAttributes.expanded]: '' };
 const COLLAPSED_HOOK = { [TreeItemDataAttributes.collapsed]: '' };
 
 const stateAttributesMapping = {
-  itemId(v: string) {
-    return { [TreeItemDataAttributes.itemId]: v };
+  itemId(v: TreeItemId) {
+    return { [TreeItemDataAttributes.itemId]: String(v) };
   },
   expanded(v: boolean) {
     return v ? EXPANDED_HOOK : COLLAPSED_HOOK;
@@ -103,7 +104,7 @@ export interface TreeItemState {
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
   /**
    * Whether the item is currently expanded.
    */
@@ -134,7 +135,7 @@ export interface TreeItemProps extends BaseUIComponentProps<'div', TreeItemState
   /**
    * The id of the item.
    */
-  itemId: string;
+  itemId: TreeItemId;
 }
 
 export namespace TreeItem {
