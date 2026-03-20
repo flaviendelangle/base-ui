@@ -3,9 +3,10 @@
   "description": "An individual tree item that uses replace selection behavior.\nClicking selects the item and deselects others.\nUse modifier keys (Ctrl/Cmd, Shift) for multi-select operations.\nRenders a `<div>` element.",
   "props": {
     "itemId": {
-      "type": "string",
+      "type": "Tree.Item.Id",
       "required": true,
-      "description": "The id of the item."
+      "description": "The id of the item.",
+      "detailedType": "string | number"
     },
     "className": {
       "type": "string | ((state: Tree.Item.State) => string | undefined)",
@@ -31,6 +32,15 @@
     },
     "data-collapsed": {
       "description": "Present when the item is collapsed."
+    },
+    "data-dragged": {
+      "description": "Present when the item is being dragged."
+    },
+    "data-drop-position": {
+      "description": "The drop position relative to the item: 'before', 'after', or 'child'."
+    },
+    "data-drop-target": {
+      "description": "Present when the item is a drop target."
     },
     "data-expandable": {
       "description": "Present when the item has children and can be expanded."

@@ -2,6 +2,10 @@ import * as React from 'react';
 import { ReactStore } from '@base-ui/utils/store';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
+import type { useDragAndDrop } from '../../use-drag-and-drop';
+import { TreeItemMutationPlugin } from '../plugins/TreeItemMutationPlugin';
+import { TreeSelectionPlugin } from '../plugins/TreeSelectionPlugin';
+import { TreeExpansionPlugin } from '../plugins/TreeExpansionPlugin';
 import type {
   TreeState,
   TreeStoreContext,
@@ -10,7 +14,6 @@ import type {
   TreeRootActions,
   TreeRootExpansionChangeEventReason,
   TreeRootExpansionChangeEventDetails,
-  TreeRootSelectionChangeEventReason,
   TreeRootSelectionChangeEventDetails,
   TreeSelectedItemsType,
   TreeSelectionMode,
@@ -20,21 +23,16 @@ import type {
   TreeItemSelectionToggleEventDetails,
   TreeItemSelectionToggleValue,
   TreeItemFocusEventDetails,
+  TreeRootItemsChangeEventDetails,
 } from './types';
-import { TREE_SELECTION_ALL } from './types';
 import { selectors } from './selectors';
-import {
-  createChangeEventDetails,
-  createGenericEventDetails,
-} from '../../utils/createBaseUIEventDetails';
+import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import {
   getFirstNavigableItem,
   getLastNavigableItem,
   getNextNavigableItem,
   getPreviousNavigableItem,
-  findOrderInTremauxTree,
-  getNonDisabledItemsInRange,
 } from './treeNavigation';
 
 const TYPEAHEAD_TIMEOUT = 500;
@@ -192,21 +190,14 @@ export interface TreeStoreParameters<
    * The lazy loading plugin instance, used to load items on demand when expanding a parent item.
    */
   lazyLoading?: TreeLazyLoading<TItem> | undefined;
-}
-
-/**
- * Converts a raw selectedItems value to an array.
- * Must NOT be called with the "all" sentinel — callers should handle that case
- * explicitly (e.g. via `materializeSelectedItems`) before reaching this helper.
- */
-function normalizeSelectedItems(raw: TreeItemId | null | readonly TreeItemId[]): TreeItemId[] {
-  if (Array.isArray(raw)) {
-    return raw as TreeItemId[];
-  }
-  if (raw != null) {
-    return [raw as TreeItemId];
-  }
-  return [];
+  /**
+   * The drag-and-drop plugin instance, used to enable reordering and reparenting via drag.
+   */
+  dragAndDrop?: ReturnType<typeof useDragAndDrop> | undefined;
+  /**
+   * Event handler called when items are reordered or reparented.
+   */
+  onItemsChange?: ((items: TItem[], details: TreeRootItemsChangeEventDetails) => void) | undefined;
 }
 
 function isPrintableKey(key: string): boolean {
@@ -231,17 +222,22 @@ export class TreeStore<
   // Focus reason tracking — default to 'keyboard' since tab focus is keyboard-like
   private lastFocusReason: TreeItemFocusEventReason = REASONS.keyboard;
 
-  // Selection tracking
-  private lastSelectedItem: TreeItemId | null = null;
-
-  private lastSelectedRange = new Set<TreeItemId>();
-
   // Typeahead
   private typeaheadQuery = '';
 
   private timeoutManager = new TimeoutManager();
 
+  public itemMutation = new TreeItemMutationPlugin(this);
+
+  public selection = new TreeSelectionPlugin(this);
+
+  public expansion = new TreeExpansionPlugin(this);
+
   public lazyLoading: TreeLazyLoading<TItem> | undefined;
+
+  public dragAndDrop: ReturnType<typeof useDragAndDrop> | undefined;
+
+  private dragAndDropCleanup: (() => void) | null = null;
 
   constructor(parameters: TreeStoreParameters<Mode, TItem>) {
     const selectionMode: TreeSelectionMode = parameters.selectionMode ?? 'single';
@@ -277,6 +273,7 @@ export class TreeStore<
         isItemDisabled,
         isItemSelectionDisabled,
         direction: parameters.direction,
+        dragAndDrop: undefined,
         virtualized: false,
         enableGroupTransition: false,
         animatingGroups: EMPTY_OBJECT,
@@ -289,13 +286,15 @@ export class TreeStore<
         onItemExpansionToggle: parameters.onItemExpansionToggle ?? (() => {}),
         onItemSelectionToggle: parameters.onItemSelectionToggle ?? (() => {}),
         onItemFocus: parameters.onItemFocus ?? (() => {}),
+        onItemsChange: parameters.onItemsChange ?? (() => {}),
         rootRef: parameters.rootRef,
       },
       selectors,
     );
 
-    // Wire lazy loading plugin (attach is called in mountEffect)
+    // Wire plugins (attach is called in mountEffect)
     this.lazyLoading = parameters.lazyLoading;
+    this.dragAndDrop = parameters.dragAndDrop;
 
     // Observe items changes to keep focus valid
     let previousState = this.state;
@@ -353,568 +352,6 @@ export class TreeStore<
   }
 
   // ===========================================================================
-  // Expansion
-  // ===========================================================================
-
-  public setItemExpansion(
-    itemId: TreeItemId,
-    shouldBeExpanded: boolean | undefined,
-    reason: TreeRootExpansionChangeEventReason,
-    event?: Event,
-  ) {
-    const isExpandedBefore = selectors.isItemExpanded(this.state, itemId);
-    const cleanShouldBeExpanded = shouldBeExpanded ?? !isExpandedBefore;
-    if (isExpandedBefore === cleanShouldBeExpanded) {
-      return;
-    }
-
-    // If lazy loading is active and we're expanding an item with no loaded children,
-    // defer expansion to the plugin (it will call applyItemExpansion on success).
-    if (
-      this.lazyLoading &&
-      cleanShouldBeExpanded &&
-      selectors.isItemExpandable(this.state, itemId) &&
-      selectors.itemOrderedChildrenIds(this.state, itemId).length === 0
-    ) {
-      this.lazyLoading.onBeforeExpand(itemId, reason, event);
-      return;
-    }
-
-    this.applyItemExpansion(itemId, cleanShouldBeExpanded, reason, event);
-  }
-
-  public applyItemExpansion(
-    itemId: TreeItemId,
-    shouldBeExpanded: boolean,
-    reason: TreeRootExpansionChangeEventReason,
-    event?: Event,
-  ) {
-    const oldExpanded = this.state.expandedItems;
-    let newExpanded: TreeItemId[];
-    if (shouldBeExpanded) {
-      newExpanded = [itemId, ...oldExpanded];
-    } else {
-      newExpanded = oldExpanded.filter((id) => id !== itemId);
-    }
-
-    const details = createChangeEventDetails(reason, event);
-    this.context.onExpandedItemsChange(newExpanded, details);
-    if (details.isCanceled) {
-      return;
-    }
-
-    if (this.state.enableGroupTransition) {
-      // Collect visible descendants using the appropriate expanded state
-      const childIds = this.getVisibleDescendants(
-        itemId,
-        shouldBeExpanded ? newExpanded : oldExpanded,
-      );
-
-      if (childIds.length > 0) {
-        this.set('animatingGroups', {
-          ...this.state.animatingGroups,
-          [itemId]: {
-            parentId: itemId,
-            type: shouldBeExpanded ? 'expanding' : 'collapsing',
-            childIds,
-          },
-        });
-      }
-    }
-
-    this.set('expandedItems', newExpanded);
-    this.context.onItemExpansionToggle(
-      { itemId, isExpanded: shouldBeExpanded },
-      createGenericEventDetails(reason, event),
-    );
-  }
-
-  /**
-   * Collects visible descendants of an item given a specific set of expanded items.
-   * Used to determine which items will appear/disappear during expand/collapse.
-   */
-  private getVisibleDescendants(
-    itemId: TreeItemId,
-    expandedItems: readonly TreeItemId[],
-  ): TreeItemId[] {
-    const expandedSet = new Set(expandedItems);
-    const childrenLookup = selectors.itemOrderedChildrenIds;
-    const result: TreeItemId[] = [];
-
-    const walk = (parentId: TreeItemId) => {
-      const children = childrenLookup(this.state, parentId) ?? [];
-      for (const childId of children) {
-        result.push(childId);
-        if (expandedSet.has(childId)) {
-          walk(childId);
-        }
-      }
-    };
-
-    walk(itemId);
-    return result;
-  }
-
-  /**
-   * Called when a group transition animation completes.
-   * Removes the animating group entry, causing the wrapper to be removed from the DOM.
-   */
-  public completeGroupTransition(parentId: TreeItemId) {
-    const { [parentId]: removedGroup, ...rest } = this.state.animatingGroups;
-    this.set('animatingGroups', rest);
-  }
-
-  public expandAllSiblings(
-    itemId: TreeItemId,
-    reason: TreeRootExpansionChangeEventReason,
-    event?: Event,
-  ) {
-    const meta = selectors.itemMeta(this.state, itemId);
-    if (meta == null) {
-      return;
-    }
-
-    const siblings = selectors.itemOrderedChildrenIds(this.state, meta.parentId);
-    const diff = siblings.filter(
-      (child) =>
-        selectors.isItemExpandable(this.state, child) &&
-        !selectors.isItemExpanded(this.state, child),
-    );
-
-    if (diff.length > 0) {
-      const newExpanded = [...this.state.expandedItems, ...diff];
-      const details = createChangeEventDetails(reason, event);
-      this.context.onExpandedItemsChange(newExpanded, details);
-      if (details.isCanceled) {
-        return;
-      }
-      this.set('expandedItems', newExpanded);
-      for (const expandedItemId of diff) {
-        this.context.onItemExpansionToggle(
-          { itemId: expandedItemId, isExpanded: true },
-          createGenericEventDetails(reason, event),
-        );
-      }
-    }
-  }
-
-  public expandAll(reason: TreeRootExpansionChangeEventReason) {
-    const metaLookup = selectors.itemMetaLookup(this.state);
-    const expandedSet = selectors.expandedItemsSet(this.state);
-    const diff: TreeItemId[] = [];
-    for (const meta of Object.values(metaLookup)) {
-      if (meta.expandable && !expandedSet.has(meta.id)) {
-        diff.push(meta.id);
-      }
-    }
-
-    if (diff.length === 0) {
-      return;
-    }
-
-    const newExpanded = [...this.state.expandedItems, ...diff];
-    const details = createChangeEventDetails(reason);
-    this.context.onExpandedItemsChange(newExpanded, details);
-    if (details.isCanceled) {
-      return;
-    }
-    this.set('expandedItems', newExpanded);
-    for (const expandedItemId of diff) {
-      this.context.onItemExpansionToggle(
-        { itemId: expandedItemId, isExpanded: true },
-        createGenericEventDetails(reason),
-      );
-    }
-  }
-
-  public collapseAll(reason: TreeRootExpansionChangeEventReason) {
-    const oldExpanded = this.state.expandedItems;
-    if (oldExpanded.length === 0) {
-      return;
-    }
-
-    const details = createChangeEventDetails(reason);
-    this.context.onExpandedItemsChange([], details);
-    if (details.isCanceled) {
-      return;
-    }
-    this.set('expandedItems', []);
-    for (const collapsedItemId of oldExpanded) {
-      this.context.onItemExpansionToggle(
-        { itemId: collapsedItemId, isExpanded: false },
-        createGenericEventDetails(reason),
-      );
-    }
-  }
-
-  // ===========================================================================
-  // Selection
-  // ===========================================================================
-
-  private setSelectedItems(
-    newModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-    additionalItemsToPropagate?: TreeItemId[],
-    shouldPropagate: boolean = true,
-  ) {
-    const oldModel = this.state.selectedItems;
-    let cleanModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL;
-    if (
-      shouldPropagate &&
-      this.state.selectionMode === 'multiple' &&
-      newModel !== TREE_SELECTION_ALL
-    ) {
-      cleanModel = this.propagateSelection(
-        newModel as TreeItemId[],
-        oldModel === TREE_SELECTION_ALL
-          ? this.materializeSelectedItems()
-          : normalizeSelectedItems(oldModel),
-        additionalItemsToPropagate,
-      );
-    } else {
-      cleanModel = newModel;
-    }
-
-    if (cleanModel !== TREE_SELECTION_ALL && this.state.disallowEmptySelection) {
-      const normalizedClean = normalizeSelectedItems(cleanModel);
-      if (normalizedClean.length === 0) {
-        return;
-      }
-    }
-
-    const details = createChangeEventDetails(reason, event);
-    this.context.onSelectedItemsChange(cleanModel, details);
-    if (details.isCanceled) {
-      return;
-    }
-    this.set('selectedItems', cleanModel);
-
-    // Skip per-item toggle events when transitioning to/from "all"
-    // since we can't efficiently diff without materializing all items.
-    if (cleanModel === TREE_SELECTION_ALL || oldModel === TREE_SELECTION_ALL) {
-      return;
-    }
-
-    // Fire onItemSelectionToggle for each item whose selection state changed
-    const normalizedOld = new Set(normalizeSelectedItems(oldModel));
-    const normalizedNew = new Set(normalizeSelectedItems(cleanModel));
-    const selectionDetails = createGenericEventDetails(reason, event);
-    for (const itemId of normalizedNew) {
-      if (!normalizedOld.has(itemId)) {
-        this.context.onItemSelectionToggle({ itemId, isSelected: true }, selectionDetails);
-      }
-    }
-    for (const itemId of normalizedOld) {
-      if (!normalizedNew.has(itemId)) {
-        this.context.onItemSelectionToggle({ itemId, isSelected: false }, selectionDetails);
-      }
-    }
-  }
-
-  private propagateSelection(
-    newModel: TreeItemId[],
-    oldModel: TreeItemId[],
-    additionalItemsToPropagate?: TreeItemId[],
-  ): TreeItemId[] {
-    const checkboxSelectionPropagation = selectors.checkboxSelectionPropagation(this.state);
-    if (!checkboxSelectionPropagation.descendants && !checkboxSelectionPropagation.parents) {
-      return newModel;
-    }
-
-    const flags = { shouldRegenerateModel: false };
-    const newModelSet = new Set(newModel);
-
-    const oldModelSet = new Set(oldModel);
-    const added = newModel.filter((id) => !oldModelSet.has(id));
-    const removed = oldModel.filter((id) => !newModelSet.has(id));
-
-    additionalItemsToPropagate?.forEach((itemId) => {
-      if (newModelSet.has(itemId)) {
-        if (!added.includes(itemId)) {
-          added.push(itemId);
-        }
-      } else if (!removed.includes(itemId)) {
-        removed.push(itemId);
-      }
-    });
-
-    for (const addedItemId of added) {
-      if (checkboxSelectionPropagation.descendants) {
-        const selectDescendants = (itemId: TreeItemId) => {
-          if (itemId !== addedItemId) {
-            if (!selectors.canItemBeSelected(this.state, itemId)) {
-              return;
-            }
-            flags.shouldRegenerateModel = true;
-            newModelSet.add(itemId);
-          }
-          const children = selectors.itemOrderedChildrenIds(this.state, itemId);
-          for (const childId of children) {
-            selectDescendants(childId);
-          }
-        };
-        selectDescendants(addedItemId);
-      }
-
-      if (checkboxSelectionPropagation.parents) {
-        const checkAllDescendantsSelected = (itemId: TreeItemId): boolean => {
-          // Non-selectable items don't count toward the "all selected" check
-          if (!selectors.canItemBeSelected(this.state, itemId)) {
-            return true;
-          }
-          if (!newModelSet.has(itemId)) {
-            return false;
-          }
-          const children = selectors.itemOrderedChildrenIds(this.state, itemId);
-          return children.every(checkAllDescendantsSelected);
-        };
-
-        const selectParents = (itemId: TreeItemId) => {
-          const parentId = selectors.itemParentId(this.state, itemId);
-          if (parentId == null) {
-            return;
-          }
-          const siblings = selectors.itemOrderedChildrenIds(this.state, parentId);
-          if (siblings.every(checkAllDescendantsSelected)) {
-            if (selectors.canItemBeSelected(this.state, parentId)) {
-              flags.shouldRegenerateModel = true;
-              newModelSet.add(parentId);
-            }
-            selectParents(parentId);
-          }
-        };
-        selectParents(addedItemId);
-      }
-    }
-
-    for (const removedItemId of removed) {
-      if (checkboxSelectionPropagation.parents) {
-        let parentId = selectors.itemParentId(this.state, removedItemId);
-        while (parentId != null) {
-          if (newModelSet.has(parentId)) {
-            flags.shouldRegenerateModel = true;
-            newModelSet.delete(parentId);
-          }
-          parentId = selectors.itemParentId(this.state, parentId);
-        }
-      }
-
-      if (checkboxSelectionPropagation.descendants) {
-        const deSelectDescendants = (itemId: TreeItemId) => {
-          if (itemId !== removedItemId) {
-            flags.shouldRegenerateModel = true;
-            newModelSet.delete(itemId);
-          }
-          const children = selectors.itemOrderedChildrenIds(this.state, itemId);
-          for (const childId of children) {
-            deSelectDescendants(childId);
-          }
-        };
-        deSelectDescendants(removedItemId);
-      }
-    }
-
-    return flags.shouldRegenerateModel ? Array.from(newModelSet) : newModel;
-  }
-
-  public setItemSelection({
-    itemId,
-    keepExistingSelection = false,
-    shouldBeSelected,
-    shouldPropagate,
-    reason,
-    event,
-  }: {
-    itemId: TreeItemId;
-    keepExistingSelection?: boolean | undefined;
-    shouldBeSelected?: boolean | undefined;
-    /**
-     * Whether to propagate the selection change through the tree hierarchy.
-     * Defaults to the value of `keepExistingSelection` (toggle semantics propagate, replace semantics don't).
-     */
-    shouldPropagate?: boolean | undefined;
-    reason: TreeRootSelectionChangeEventReason;
-    event?: Event | undefined;
-  }) {
-    if (this.state.selectionMode === 'none') {
-      return;
-    }
-
-    const isMulti = this.state.selectionMode === 'multiple';
-    let newSelected: TreeItemId[] | TreeItemId | null;
-
-    if (keepExistingSelection) {
-      const oldSelected =
-        this.state.selectedItems === TREE_SELECTION_ALL
-          ? this.materializeSelectedItems()
-          : normalizeSelectedItems(this.state.selectedItems);
-      const isSelectedBefore = selectors.isItemSelected(this.state, itemId);
-
-      if (isSelectedBefore && (shouldBeSelected === false || shouldBeSelected == null)) {
-        newSelected = oldSelected.filter((id) => id !== itemId);
-      } else if (!isSelectedBefore && (shouldBeSelected === true || shouldBeSelected == null)) {
-        newSelected = [itemId, ...oldSelected];
-      } else {
-        newSelected = oldSelected;
-      }
-    } else if (
-      shouldBeSelected === false ||
-      (shouldBeSelected == null && selectors.isItemSelected(this.state, itemId))
-    ) {
-      newSelected = isMulti ? [] : null;
-    } else {
-      newSelected = isMulti ? [itemId] : itemId;
-    }
-
-    // Prevent empty selection when disallowEmptySelection is true
-    if (this.state.disallowEmptySelection) {
-      const normalizedNew = normalizeSelectedItems(newSelected);
-      if (normalizedNew.length === 0) {
-        return;
-      }
-    }
-
-    this.setSelectedItems(newSelected, reason, event, [itemId], shouldPropagate ?? false);
-    this.lastSelectedItem = itemId;
-    this.lastSelectedRange = new Set();
-  }
-
-  /**
-   * Converts the "all" sentinel into an explicit array of all currently selectable item IDs.
-   */
-  private materializeSelectedItems(): TreeItemId[] {
-    const result: TreeItemId[] = [];
-    const traverse = (parentId: TreeItemId | null) => {
-      const children = selectors.itemOrderedChildrenIds(this.state, parentId);
-      for (const childId of children) {
-        if (selectors.canItemBeSelected(this.state, childId)) {
-          result.push(childId);
-        }
-        traverse(childId);
-      }
-    };
-    traverse(null);
-    return result;
-  }
-
-  public selectAllNavigableItems(reason: TreeRootSelectionChangeEventReason, event?: Event) {
-    if (this.state.selectionMode !== 'multiple') {
-      return;
-    }
-
-    this.setSelectedItems(TREE_SELECTION_ALL, reason, event);
-    this.lastSelectedRange = new Set();
-  }
-
-  public expandSelectionRange(
-    itemId: TreeItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) {
-    if (this.lastSelectedItem != null) {
-      const [start, end] = findOrderInTremauxTree(this.state, itemId, this.lastSelectedItem);
-      this.selectRange([start, end], reason, event);
-    }
-  }
-
-  public selectRangeFromStartToItem(
-    itemId: TreeItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) {
-    const firstItem = getFirstNavigableItem(this.state);
-    if (firstItem != null) {
-      this.selectRange([firstItem, itemId], reason, event);
-    }
-  }
-
-  public selectRangeFromItemToEnd(
-    itemId: TreeItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) {
-    const lastItem = getLastNavigableItem(this.state);
-    if (lastItem != null) {
-      this.selectRange([itemId, lastItem], reason, event);
-    }
-  }
-
-  public selectItemFromArrowNavigation(
-    currentItem: TreeItemId,
-    nextItem: TreeItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) {
-    if (this.state.selectionMode !== 'multiple') {
-      return;
-    }
-
-    const currentSelectedItems =
-      this.state.selectedItems === TREE_SELECTION_ALL
-        ? this.materializeSelectedItems()
-        : normalizeSelectedItems(this.state.selectedItems);
-    let newSelectedItems = currentSelectedItems.slice();
-
-    if (this.lastSelectedRange.size === 0) {
-      newSelectedItems.push(nextItem);
-      this.lastSelectedRange = new Set([currentItem, nextItem]);
-    } else {
-      if (!this.lastSelectedRange.has(currentItem)) {
-        this.lastSelectedRange = new Set();
-      }
-
-      if (this.lastSelectedRange.has(nextItem)) {
-        newSelectedItems = newSelectedItems.filter((id) => id !== currentItem);
-        this.lastSelectedRange.delete(currentItem);
-      } else {
-        newSelectedItems.push(nextItem);
-        this.lastSelectedRange.add(nextItem);
-      }
-    }
-
-    this.setSelectedItems(newSelectedItems, reason, event);
-  }
-
-  private selectRange(
-    [start, end]: [TreeItemId, TreeItemId],
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) {
-    if (this.state.selectionMode !== 'multiple') {
-      return;
-    }
-
-    const currentSelectedItems =
-      this.state.selectedItems === TREE_SELECTION_ALL
-        ? this.materializeSelectedItems()
-        : normalizeSelectedItems(this.state.selectedItems);
-    let newSelectedItems = currentSelectedItems.slice();
-
-    // Remove items from last range
-    if (this.lastSelectedRange.size > 0) {
-      newSelectedItems = newSelectedItems.filter((id) => !this.lastSelectedRange.has(id));
-    }
-
-    // Add items in new range that are selectable
-    const selectedItemsSet = new Set(newSelectedItems);
-    const range = getNonDisabledItemsInRange(this.state, start, end).filter((id) => {
-      const meta = selectors.itemMeta(this.state, id);
-      return meta?.selectable !== false;
-    });
-    const itemsToAdd = range.filter((id) => !selectedItemsSet.has(id));
-    newSelectedItems = newSelectedItems.concat(itemsToAdd);
-
-    // Prevent empty selection when disallowEmptySelection is true
-    if (this.state.disallowEmptySelection && newSelectedItems.length === 0) {
-      return;
-    }
-
-    this.setSelectedItems(newSelectedItems, reason, event);
-    this.lastSelectedRange = new Set(range);
-  }
-
-  // ===========================================================================
   // Focus
   // ===========================================================================
 
@@ -964,20 +401,6 @@ export class TreeStore<
     this.set('focusedItemId', null);
   }
 
-  public setIsItemDisabled(itemId: TreeItemId, isDisabled: boolean) {
-    const meta = selectors.itemMeta(this.state, itemId);
-    if (!meta || meta.disabled === isDisabled) {
-      return;
-    }
-
-    this.update({
-      itemMetaPatches: {
-        ...this.state.itemMetaPatches,
-        [itemId]: { ...this.state.itemMetaPatches[itemId], disabled: isDisabled },
-      },
-    });
-  }
-
   // ===========================================================================
   // Item DOM element
   // ===========================================================================
@@ -994,22 +417,11 @@ export class TreeStore<
   // Keyboard navigation
   // ===========================================================================
 
-  private canToggleItemSelection(itemId: TreeItemId): boolean {
-    return selectors.canItemBeSelected(this.state, itemId);
-  }
-
   private isCheckboxItem(element: HTMLElement): boolean {
     return (
       element.hasAttribute('data-checked') ||
       element.hasAttribute('data-unchecked') ||
       element.hasAttribute('data-indeterminate')
-    );
-  }
-
-  private canToggleItemExpansion(itemId: TreeItemId): boolean {
-    return (
-      !selectors.isItemDisabled(this.state, itemId) &&
-      selectors.isItemExpandable(this.state, itemId)
     );
   }
 
@@ -1070,13 +482,13 @@ export class TreeStore<
 
     switch (true) {
       // Select the item when pressing "Space"
-      case key === ' ' && this.canToggleItemSelection(itemId): {
+      case key === ' ' && selectors.canItemBeSelected(this.state, itemId): {
         event.preventDefault();
         const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
         if (isMulti && event.shiftKey) {
-          this.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
+          this.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
         } else {
-          this.setItemSelection({
+          this.selection.setItemSelection({
             itemId,
             keepExistingSelection: isMulti,
             shouldBeSelected: undefined,
@@ -1095,8 +507,8 @@ export class TreeStore<
         if (isLink) {
           // Let the browser follow the link natively (no preventDefault).
           // Still handle selection so the item becomes selected on navigation.
-          if (this.canToggleItemSelection(itemId)) {
-            this.setItemSelection({
+          if (selectors.canItemBeSelected(this.state, itemId)) {
+            this.selection.setItemSelection({
               itemId,
               shouldBeSelected: true,
               reason: REASONS.keyboard,
@@ -1105,13 +517,13 @@ export class TreeStore<
           }
           break;
         }
-        if (this.canToggleItemExpansion(itemId)) {
-          this.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
+        if (this.expansion.canToggleItemExpansion(itemId)) {
+          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
           event.preventDefault();
-        } else if (this.canToggleItemSelection(itemId)) {
+        } else if (selectors.canItemBeSelected(this.state, itemId)) {
           if (isMulti) {
             event.preventDefault();
-            this.setItemSelection({
+            this.selection.setItemSelection({
               itemId,
               keepExistingSelection: true,
               shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
@@ -1119,7 +531,7 @@ export class TreeStore<
               event: event.nativeEvent,
             });
           } else if (!selectors.isItemSelected(this.state, itemId)) {
-            this.setItemSelection({
+            this.selection.setItemSelection({
               itemId,
               reason: REASONS.keyboard,
               event: event.nativeEvent,
@@ -1136,8 +548,8 @@ export class TreeStore<
         if (nextItem) {
           event.preventDefault();
           this.focusItem(nextItem);
-          if (isMulti && event.shiftKey && this.canToggleItemSelection(nextItem)) {
-            this.selectItemFromArrowNavigation(
+          if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, nextItem)) {
+            this.selection.selectItemFromArrowNavigation(
               itemId,
               nextItem,
               REASONS.keyboard,
@@ -1154,8 +566,8 @@ export class TreeStore<
         if (prevItem) {
           event.preventDefault();
           this.focusItem(prevItem);
-          if (isMulti && event.shiftKey && this.canToggleItemSelection(prevItem)) {
-            this.selectItemFromArrowNavigation(
+          if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, prevItem)) {
+            this.selection.selectItemFromArrowNavigation(
               itemId,
               prevItem,
               REASONS.keyboard,
@@ -1178,8 +590,8 @@ export class TreeStore<
             this.focusItem(nextItemId);
             event.preventDefault();
           }
-        } else if (this.canToggleItemExpansion(itemId)) {
-          this.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
+        } else if (this.expansion.canToggleItemExpansion(itemId)) {
+          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
           event.preventDefault();
         }
         break;
@@ -1191,8 +603,11 @@ export class TreeStore<
         if (ctrlPressed) {
           return;
         }
-        if (this.canToggleItemExpansion(itemId) && selectors.isItemExpanded(this.state, itemId)) {
-          this.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
+        if (
+          this.expansion.canToggleItemExpansion(itemId) &&
+          selectors.isItemExpanded(this.state, itemId)
+        ) {
+          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
           event.preventDefault();
         } else {
           const parent = selectors.itemParentId(this.state, itemId);
@@ -1206,8 +621,13 @@ export class TreeStore<
 
       // Home: focus first item
       case key === 'Home': {
-        if (this.canToggleItemSelection(itemId) && isMulti && ctrlPressed && event.shiftKey) {
-          this.selectRangeFromStartToItem(itemId, REASONS.keyboard, event.nativeEvent);
+        if (
+          selectors.canItemBeSelected(this.state, itemId) &&
+          isMulti &&
+          ctrlPressed &&
+          event.shiftKey
+        ) {
+          this.selection.selectRangeFromStartToItem(itemId, REASONS.keyboard, event.nativeEvent);
         } else {
           const firstItem = getFirstNavigableItem(this.state);
           if (firstItem) {
@@ -1220,8 +640,13 @@ export class TreeStore<
 
       // End: focus last item
       case key === 'End': {
-        if (this.canToggleItemSelection(itemId) && isMulti && ctrlPressed && event.shiftKey) {
-          this.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
+        if (
+          selectors.canItemBeSelected(this.state, itemId) &&
+          isMulti &&
+          ctrlPressed &&
+          event.shiftKey
+        ) {
+          this.selection.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
         } else {
           const lastItem = getLastNavigableItem(this.state);
           if (lastItem) {
@@ -1234,14 +659,14 @@ export class TreeStore<
 
       // Expand all siblings
       case key === '*': {
-        this.expandAllSiblings(itemId, REASONS.keyboard, event.nativeEvent);
+        this.expansion.expandAllSiblings(itemId, REASONS.keyboard, event.nativeEvent);
         event.preventDefault();
         break;
       }
 
       // Ctrl+A: select all
       case event.key.toUpperCase() === 'A' && ctrlPressed && isMulti: {
-        this.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
+        this.selection.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
         event.preventDefault();
         break;
       }
@@ -1352,7 +777,7 @@ export class TreeStore<
       if (this.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.state, itemId)) {
         const isMulti = this.state.selectionMode === 'multiple';
         if (isMulti && (event.ctrlKey || event.metaKey)) {
-          this.setItemSelection({
+          this.selection.setItemSelection({
             itemId,
             keepExistingSelection: true,
             reason: REASONS.itemPress,
@@ -1361,10 +786,10 @@ export class TreeStore<
           return;
         }
         if (isMulti && event.shiftKey) {
-          this.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
+          this.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
           return;
         }
-        this.setItemSelection({
+        this.selection.setItemSelection({
           itemId,
           shouldBeSelected: true,
           reason: REASONS.itemPress,
@@ -1373,8 +798,8 @@ export class TreeStore<
       }
 
       // Handle expansion (skipped for multi-select modifier clicks via early return above)
-      if (this.state.expandOnClick && this.canToggleItemExpansion(itemId)) {
-        this.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+      if (this.state.expandOnClick && this.expansion.canToggleItemExpansion(itemId)) {
+        this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
       }
     },
     onFocus: this.handleItemFocus,
@@ -1399,11 +824,11 @@ export class TreeStore<
         const isMulti = this.state.selectionMode === 'multiple';
 
         if (isMulti && event.shiftKey) {
-          this.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
+          this.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
           return;
         }
 
-        this.setItemSelection({
+        this.selection.setItemSelection({
           itemId,
           keepExistingSelection: isMulti,
           shouldPropagate: true,
@@ -1413,8 +838,8 @@ export class TreeStore<
       }
 
       // Handle expansion
-      if (this.state.expandOnClick && this.canToggleItemExpansion(itemId)) {
-        this.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+      if (this.state.expandOnClick && this.expansion.canToggleItemExpansion(itemId)) {
+        this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
       }
     },
     onFocus: this.handleItemFocus,
@@ -1447,7 +872,7 @@ export class TreeStore<
 
       // Handle selection (same as Tree.Item: replace semantics)
       if (this.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.state, itemId)) {
-        this.setItemSelection({
+        this.selection.setItemSelection({
           itemId,
           shouldBeSelected: true,
           reason: REASONS.itemPress,
@@ -1465,7 +890,7 @@ export class TreeStore<
   public readonly expansionTriggerEventHandlers = {
     onClick: (event: React.MouseEvent, itemId: TreeItemId) => {
       event.stopPropagation();
-      this.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+      this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
     },
   };
 
@@ -1497,14 +922,40 @@ export class TreeStore<
   // ===========================================================================
 
   public mountEffect = () => {
-    // Attach lazy loading plugin on mount rather than in the constructor.
+    // Attach plugins on mount rather than in the constructor.
     // This correctly handles React Strict Mode's unmount/remount cycle:
     // destroy() nullifies the store reference, and attach() restores it.
     this.lazyLoading?.attach(this);
 
+    if (this.dragAndDrop) {
+      const context: useDragAndDrop.ComponentContext = {
+        getParentId: (id) => selectors.itemParentId(this.state, id),
+        getChildrenIds: (id) => selectors.itemOrderedChildrenIds(this.state, id),
+        isDescendantOf: (id, ancestorId) => {
+          let currentId: TreeItemId | null = id;
+          while (currentId != null) {
+            currentId = selectors.itemParentId(this.state, currentId);
+            if (currentId === ancestorId) {
+              return true;
+            }
+          }
+          return false;
+        },
+        getItemIndex: (id) => selectors.itemIndex(this.state, id),
+        isItemExpandable: (id) => selectors.isItemExpandable(this.state, id),
+        expandItem: (id) => this.expansion.applyItemExpansion(id, true, REASONS.imperativeAction),
+        hasItem: (id) => selectors.itemMeta(this.state, id) != null,
+        getSelectedItemIds: () => this.selection.materializeSelectedItems(),
+        onStateChange: (dndState) => this.set('dragAndDrop', dndState),
+      };
+      this.dragAndDropCleanup = this.dragAndDrop.attach(context);
+    }
+
     return () => {
       this.timeoutManager.clearAll();
       this.lazyLoading?.destroy();
+      this.dragAndDropCleanup?.();
+      this.dragAndDropCleanup = null;
     };
   };
 
@@ -1514,22 +965,30 @@ export class TreeStore<
   private actions: TreeRootActions = {
     focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
     getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
+    getItemModel: (itemId) => selectors.itemModel(this.state, itemId),
     getItemOrderedChildrenIds: (itemId) => selectors.itemOrderedChildrenIds(this.state, itemId),
     getParentId: (itemId) => selectors.itemParentId(this.state, itemId),
     isItemExpanded: (itemId) => selectors.isItemExpanded(this.state, itemId),
     isItemSelected: (itemId) => selectors.isItemSelected(this.state, itemId),
     setItemExpansion: (itemId, isExpanded) =>
-      this.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
+      this.expansion.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
     setItemSelection: (itemId, isSelected) =>
-      this.setItemSelection({
+      this.selection.setItemSelection({
         itemId,
         shouldBeSelected: isSelected,
         shouldPropagate: true,
         reason: REASONS.imperativeAction,
       }),
-    setIsItemDisabled: (itemId, isDisabled) => this.setIsItemDisabled(itemId, isDisabled),
-    expandAll: () => this.expandAll(REASONS.imperativeAction),
-    collapseAll: () => this.collapseAll(REASONS.imperativeAction),
+    setIsItemDisabled: this.itemMutation.setIsItemDisabled,
+    expandAll: () => this.expansion.expandAll(REASONS.imperativeAction),
+    collapseAll: () => this.expansion.collapseAll(REASONS.imperativeAction),
+    moveItems: this.itemMutation.moveItems,
+    moveItemsBefore: this.itemMutation.moveItemsBefore,
+    moveItemsAfter: this.itemMutation.moveItemsAfter,
+    removeItems: this.itemMutation.removeItems,
+    addItems: this.itemMutation.addItems,
+    addItemsBefore: this.itemMutation.addItemsBefore,
+    addItemsAfter: this.itemMutation.addItemsAfter,
     refreshItemChildren: (itemId) => {
       if (!this.lazyLoading) {
         throw new Error(

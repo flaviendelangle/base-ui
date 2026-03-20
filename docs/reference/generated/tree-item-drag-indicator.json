@@ -1,0 +1,29 @@
+{
+  "name": "TreeItemDragIndicator",
+  "description": "A drag handle indicator for draggable tree items.\nOnly renders when drag-and-drop is enabled and the item is draggable.\nRenders a `<span>` element.",
+  "props": {
+    "className": {
+      "type": "string | ((state: Tree.ItemDragIndicator.State) => string | undefined)",
+      "description": "CSS class applied to the element, or a function that\nreturns a class based on the component’s state.",
+      "detailedType": "| string\n| ((\n    state: Tree.ItemDragIndicator.State,\n  ) => string | undefined)"
+    },
+    "style": {
+      "type": "CSSProperties | ((state: Tree.ItemDragIndicator.State) => CSSProperties | undefined)",
+      "detailedType": "| React.CSSProperties\n| ((\n    state: Tree.ItemDragIndicator.State,\n  ) => CSSProperties | undefined)\n| undefined"
+    },
+    "render": {
+      "type": "ReactElement | ((props: HTMLProps, state: Tree.ItemDragIndicator.State) => ReactElement)",
+      "description": "Allows you to replace the component’s HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render.",
+      "detailedType": "| ReactElement\n| ((\n    props: HTMLProps,\n    state: Tree.ItemDragIndicator.State,\n  ) => ReactElement)"
+    }
+  },
+  "dataAttributes": {
+    "data-dragging": {
+      "description": "Present when the item is currently being dragged."
+    },
+    "data-draggable": {
+      "description": "Present when the item is draggable."
+    }
+  },
+  "cssVariables": {}
+}

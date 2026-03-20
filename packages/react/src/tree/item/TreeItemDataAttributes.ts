@@ -27,4 +27,20 @@ export enum TreeItemDataAttributes {
    * Present when the item has children and can be expanded.
    */
   expandable = 'data-expandable',
+  /**
+   * Present when the item is being dragged.
+   */
+  dragged = 'data-dragged',
+  /**
+   * Present when the item is a drop target.
+   */
+  dropTarget = 'data-drop-target',
+  /**
+   * The drop position relative to the item: 'before', 'after', or 'child'.
+   */
+  dropPosition = 'data-drop-position',
+  /**
+   * The drop operation for the item: 'move', 'copy', or 'link'.
+   */
+  dropOperation = 'data-drop-operation',
 }

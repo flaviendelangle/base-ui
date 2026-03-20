@@ -46,6 +46,10 @@
 
   &[data-selected] {
     background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+
+    @media (prefers-color-scheme: dark) {
+      background: color-mix(in srgb, var(--color-blue) 25%, transparent);
+    }
   }
 
   &[data-disabled] {

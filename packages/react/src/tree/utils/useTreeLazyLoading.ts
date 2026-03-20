@@ -137,7 +137,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
 
     const hasError = selectors.itemError(this.store.state, itemId) != null;
     if (!hasError) {
-      this.store.applyItemExpansion(itemId, true, reason, event);
+      this.store.expansion.applyItemExpansion(itemId, true, reason, event);
     }
   }
 

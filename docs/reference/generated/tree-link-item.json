@@ -9,9 +9,10 @@
       "detailedType": "boolean | undefined"
     },
     "itemId": {
-      "type": "string",
+      "type": "Tree.Item.Id",
       "required": true,
-      "description": "The id of the item."
+      "description": "The id of the item.",
+      "detailedType": "string | number"
     },
     "className": {
       "type": "string | ((state: Tree.LinkItem.State) => string | undefined)",

@@ -3,9 +3,9 @@
   "description": "Groups all parts of the tree.\nRenders a `<div>` element.",
   "props": {
     "actionsRef": {
-      "type": "RefObject<Tree.Root.Actions<TItem> | null>",
+      "type": "RefObject<Tree.Root.Actions | null>",
       "description": "A ref to imperative actions on the tree.",
-      "detailedType": "| React.RefObject<Tree.Root.Actions<TItem> | null>\n| undefined"
+      "detailedType": "React.RefObject<Tree.Root.Actions | null> | undefined"
     },
     "checkboxSelectionPropagation": {
       "type": "{ parents?: boolean, descendants?: boolean }",
@@ -14,22 +14,27 @@
       "detailedType": "| { parents?: boolean; descendants?: boolean }\n| undefined"
     },
     "defaultExpandedItems": {
-      "type": "string[]",
+      "type": "Tree.Item.Id[]",
       "default": "[]",
       "description": "The items that are initially expanded.\n\nTo render a controlled tree, use the `expandedItems` prop instead.",
-      "detailedType": "string[] | undefined"
+      "detailedType": "Tree.Item.Id[] | undefined"
     },
     "defaultSelectedItems": {
-      "type": "string[] | string | any | null",
+      "type": "'all' | Tree.Item.Id[] | Tree.Item.Id | any | null",
       "default": "[]",
       "description": "The items that are initially selected.\n\nTo render a controlled tree, use the `selectedItems` prop instead.",
-      "detailedType": "string[] | string | any | null | undefined"
+      "detailedType": "| 'all'\n| Tree.Item.Id[]\n| string\n| number\n| any\n| null\n| undefined"
     },
     "disallowEmptySelection": {
       "type": "boolean",
       "default": "false",
       "description": "Whether the tree disallows having no selected item.\nWhen `true`, at least one item must remain selected at all times.",
       "detailedType": "boolean | undefined"
+    },
+    "dragAndDrop": {
+      "type": "DragAndDrop",
+      "description": "The drag-and-drop plugin instance, used to enable reordering and reparenting via drag.",
+      "detailedType": "| {\n    attach: attach\n    setupItem: setupItem\n    canDragItem: canDragItem\n  }\n| undefined"
     },
     "expandOnClick": {
       "type": "boolean",
@@ -38,9 +43,9 @@
       "detailedType": "boolean | undefined"
     },
     "expandedItems": {
-      "type": "string[]",
+      "type": "Tree.Item.Id[]",
       "description": "The expanded items.\n\nTo render an uncontrolled tree, use the `defaultExpandedItems` prop instead.",
-      "detailedType": "string[] | undefined"
+      "detailedType": "Tree.Item.Id[] | undefined"
     },
     "isItemDisabled": {
       "type": "((item: TItem) => boolean)",
@@ -67,10 +72,10 @@
       "detailedType": "((item: TItem) => TItem[] | undefined) | undefined"
     },
     "itemToId": {
-      "type": "((item: TItem) => string)",
+      "type": "((item: TItem) => Tree.Item.Id)",
       "default": "(item) => item.id",
       "description": "Used to determine the id of a given item.",
-      "detailedType": "((item: TItem) => string) | undefined"
+      "detailedType": "((item: TItem) => Tree.Item.Id) | undefined"
     },
     "itemToStringLabel": {
       "type": "((item: TItem) => string)",
@@ -89,9 +94,9 @@
       "detailedType": "| {\n    attach: attach\n    onBeforeExpand: onBeforeExpand\n    refreshItemChildren: refreshItemChildren\n    destroy: destroy\n  }\n| undefined"
     },
     "onExpandedItemsChange": {
-      "type": "((expandedItems: string[], eventDetails: Tree.Root.ExpansionChangeEventDetails) => void)",
+      "type": "((expandedItems: Tree.Item.Id[], eventDetails: Tree.Root.ExpansionChangeEventDetails) => void)",
       "description": "Event handler called when items are expanded or collapsed.",
-      "detailedType": "| ((\n    expandedItems: string[],\n    eventDetails: Tree.Root.ExpansionChangeEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    expandedItems: Tree.Item.Id[],\n    eventDetails: Tree.Root.ExpansionChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemExpansionToggle": {
       "type": "((value: Tree.Item.ExpansionToggleValue, details: Tree.Item.ExpansionToggleEventDetails) => void)",
@@ -99,9 +104,9 @@
       "detailedType": "| ((\n    value: Tree.Item.ExpansionToggleValue,\n    details: Tree.Item.ExpansionToggleEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemFocus": {
-      "type": "((itemId: string, details: Tree.Item.FocusEventDetails) => void)",
+      "type": "((itemId: Tree.Item.Id, details: Tree.Item.FocusEventDetails) => void)",
       "description": "Event handler called when an item is focused.",
-      "detailedType": "| ((\n    itemId: string,\n    details: Tree.Item.FocusEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    itemId: Tree.Item.Id,\n    details: Tree.Item.FocusEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemSelectionToggle": {
       "type": "((value: Tree.Item.SelectionToggleValue, details: Tree.Item.SelectionToggleEventDetails) => void)",
@@ -109,14 +114,14 @@
       "detailedType": "| ((\n    value: Tree.Item.SelectionToggleValue,\n    details: Tree.Item.SelectionToggleEventDetails,\n  ) => void)\n| undefined"
     },
     "onSelectedItemsChange": {
-      "type": "((selectedItems: string[] | string | any | null, eventDetails: Tree.Root.SelectionChangeEventDetails) => void)",
+      "type": "((selectedItems: 'all' | Tree.Item.Id[] | Tree.Item.Id | any | null, eventDetails: Tree.Root.SelectionChangeEventDetails) => void)",
       "description": "Event handler called when the selected items change.",
-      "detailedType": "| ((\n    selectedItems: string[] | string | any | null,\n    eventDetails: Tree.Root.SelectionChangeEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    selectedItems:\n      | 'all'\n      | Tree.Item.Id[]\n      | Tree.Item.Id\n      | any\n      | null,\n    eventDetails: Tree.Root.SelectionChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "selectedItems": {
-      "type": "string[] | string | any | null",
+      "type": "'all' | Tree.Item.Id[] | Tree.Item.Id | any | null",
       "description": "The selected items.\n\nTo render an uncontrolled tree, use the `defaultSelectedItems` prop instead.",
-      "detailedType": "string[] | string | any | null | undefined"
+      "detailedType": "| 'all'\n| Tree.Item.Id[]\n| string\n| number\n| any\n| null\n| undefined"
     },
     "selectionMode": {
       "type": "TreeSelectionMode | undefined",

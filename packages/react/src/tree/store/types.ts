@@ -2,6 +2,7 @@ import type {
   BaseUIChangeEventDetails,
   BaseUIGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import type { DragAndDropState } from '../../use-drag-and-drop';
 import { REASONS } from '../../utils/reasons';
 
 export type TreeItemId = string | number;
@@ -158,6 +159,13 @@ export type TreeItemExpansionToggleEventDetails =
 export type TreeItemSelectionToggleEventDetails =
   BaseUIGenericEventDetails<TreeRootSelectionChangeEventReason>;
 
+export type TreeRootItemsChangeEventReason =
+  | typeof REASONS.imperativeAction
+  | typeof REASONS.drag;
+
+export type TreeRootItemsChangeEventDetails =
+  BaseUIChangeEventDetails<TreeRootItemsChangeEventReason>;
+
 export interface TreeItemExpansionToggleValue {
   itemId: TreeItemId;
   isExpanded: boolean;
@@ -260,6 +268,11 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
    */
   enableGroupTransition: boolean;
   /**
+   * Drag-and-drop visual state.
+   * `undefined` when drag-and-drop is not enabled.
+   */
+  dragAndDrop: DragAndDropState | undefined;
+  /**
    * Map of item IDs that are currently animating their children group.
    * Key: parent item ID, Value: animation direction and affected children.
    */
@@ -295,14 +308,20 @@ export interface TreeStoreContext {
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
   onItemFocus: (itemId: TreeItemId, details: TreeItemFocusEventDetails) => void;
+  onItemsChange: (items: any[], details: TreeRootItemsChangeEventDetails) => void;
 }
 
 /**
  * Actions that can be performed imperatively on a tree via actionsRef.
  */
-export interface TreeRootActions {
+export interface TreeRootActions<TItem = TreeDefaultItemModel> {
   focusItem: (itemId: TreeItemId) => void;
   getItemDOMElement: (itemId: TreeItemId) => HTMLElement | null;
+  /**
+   * Get the full item model for a given item ID.
+   * Returns `undefined` if the item does not exist.
+   */
+  getItemModel: (itemId: TreeItemId) => TItem | undefined;
   getItemOrderedChildrenIds: (itemId: TreeItemId | null) => TreeItemId[];
   getParentId: (itemId: TreeItemId) => TreeItemId | null;
   isItemExpanded: (itemId: TreeItemId) => boolean;
@@ -313,6 +332,37 @@ export interface TreeRootActions {
   refreshItemChildren: (itemId: TreeItemId | null) => Promise<void>;
   expandAll: () => void;
   collapseAll: () => void;
+  /**
+   * Move one or more items to a new position.
+   * Prunes descendants automatically and preserves relative order.
+   */
+  moveItems: (itemIds: Set<TreeItemId>, newParentId: TreeItemId | null, newIndex: number) => void;
+  /**
+   * Move one or more items directly before another item.
+   */
+  moveItemsBefore: (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId) => void;
+  /**
+   * Move one or more items directly after another item.
+   */
+  moveItemsAfter: (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId) => void;
+  /**
+   * Remove items by ID. Descendants are removed along with their parent.
+   */
+  removeItems: (itemIds: Set<TreeItemId>) => void;
+  /**
+   * Add item models at a specific position.
+   * If `parentId` is `null`, adds at root level.
+   * Descendants included in the item models are added along with their parent.
+   */
+  addItems: (items: TItem[], parentId: TreeItemId | null, index: number) => void;
+  /**
+   * Add item models directly before a reference item.
+   */
+  addItemsBefore: (items: TItem[], referenceItemId: TreeItemId) => void;
+  /**
+   * Add item models directly after a reference item.
+   */
+  addItemsAfter: (items: TItem[], referenceItemId: TreeItemId) => void;
 }
 
 /**

@@ -108,7 +108,7 @@ function TreeGroupTransitionInner(
     const abortController = new AbortController();
 
     runOnceAnimationsFinish(() => {
-      store.completeGroupTransition(parentId);
+      store.expansion.completeGroupTransition(parentId);
     }, abortController.signal);
 
     return () => {

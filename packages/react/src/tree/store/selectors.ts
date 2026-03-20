@@ -602,4 +602,28 @@ export const selectors = {
   itemIdLookup: itemIdLookupSelector,
   expandedItemsSet: expandedItemsSetSelector,
   labelMap: labelMapSelector,
+  // Drag-and-drop selectors
+  isDragAndDropEnabled: createSelector(
+    (state: TreeState): boolean => state.dragAndDrop != null,
+  ),
+  isItemDragged: createSelector(
+    (state: TreeState, itemId: TreeItemId): boolean =>
+      state.dragAndDrop?.draggedItemIds.has(itemId) ?? false,
+  ),
+  isItemDropTarget: createSelector(
+    (state: TreeState, itemId: TreeItemId): boolean =>
+      state.dragAndDrop?.dropTargetItemId === itemId,
+  ),
+  itemDropPosition: createSelector(
+    (state: TreeState, itemId: TreeItemId): 'before' | 'after' | 'on' | null =>
+      state.dragAndDrop?.dropTargetItemId === itemId
+        ? (state.dragAndDrop?.dropPosition ?? null)
+        : null,
+  ),
+  itemDropOperation: createSelector(
+    (state: TreeState, itemId: TreeItemId): 'move' | 'copy' | 'link' | 'cancel' | null =>
+      state.dragAndDrop?.dropTargetItemId === itemId
+        ? (state.dragAndDrop?.dropOperation ?? null)
+        : null,
+  ),
 };

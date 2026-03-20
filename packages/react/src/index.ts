@@ -43,6 +43,7 @@ export * from './toggle-group';
 export * from './toolbar';
 export * from './tooltip';
 export * from './tree';
+export * from './use-drag-and-drop';
 export * from './use-render';
 
 export type * from './types';

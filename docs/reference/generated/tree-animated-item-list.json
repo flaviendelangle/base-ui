@@ -1,19 +1,26 @@
 {
   "name": "TreeAnimatedItemList",
-  "description": "Renders tree items with animated expand/collapse transitions.\nPlace inside `Tree.Root` instead of using a direct render function\nto opt into group transition animations.",
+  "description": "Renders tree items with animated expand/collapse transitions.\nDoesn't render its own HTML element.\nPlace inside `Tree.Root` instead of using a direct render function\nto opt into group transition animations.",
   "props": {
-    "renderGroupTransition": {
-      "type": "ReactElement | ((props: HTMLAttributes<any> & RefAttributes<any>, state: TreeGroupTransitionState) => ReactElement)",
-      "required": true,
-      "description": "Customizes the wrapper element rendered during expand/collapse animation.\nFollows Base UI's render prop semantics.",
-      "example": "React element (props auto-merged via cloneElement):\n```tsx\nrenderGroupTransition={<div className={styles.GroupTransition} />}\n```\nFunction (manual prop spreading):\n```tsx\nrenderGroupTransition={(props, state) => <div {...props} />}\n```",
-      "detailedType": "| React.ReactElement\n| ((\n    props: HTMLAttributes<any> & RefAttributes<any>,\n    state: TreeGroupTransitionState,\n  ) => ReactElement)"
-    },
     "children": {
-      "type": "((item: Tree.Item.Model) => ReactNode)",
+      "type": "((item: any, animatedChildren: ReactNode) => ReactNode)",
       "required": true,
-      "description": "The render function for each tree item.\nCalled with the item model for each visible item.",
-      "detailedType": "(item: Tree.Item.Model) => ReactNode"
+      "description": "The render function for each tree item.\nCalled with the item model and any animated children for expand/collapse transitions.",
+      "detailedType": "  item: any,\n  animatedChildren: ReactNode,\n) => ReactNode"
+    },
+    "className": {
+      "type": "string | ((state: Tree.AnimatedItemList.State) => string | undefined)",
+      "description": "CSS class applied to the element, or a function that\nreturns a class based on the component’s state.",
+      "detailedType": "| string\n| ((\n    state: Tree.AnimatedItemList.State,\n  ) => string | undefined)"
+    },
+    "style": {
+      "type": "CSSProperties | ((state: Tree.AnimatedItemList.State) => CSSProperties | undefined)",
+      "detailedType": "| React.CSSProperties\n| ((\n    state: Tree.AnimatedItemList.State,\n  ) => CSSProperties | undefined)\n| undefined"
+    },
+    "render": {
+      "type": "ReactElement | ((props: HTMLProps, state: Tree.AnimatedItemList.State) => ReactElement)",
+      "description": "Allows you to replace the component’s HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render.",
+      "detailedType": "| ReactElement\n| ((\n    props: HTMLProps,\n    state: Tree.AnimatedItemList.State,\n  ) => ReactElement)"
     }
   },
   "dataAttributes": {},

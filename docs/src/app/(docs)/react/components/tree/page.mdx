@@ -15,57 +15,53 @@ Import the component and assemble its parts:
 import { Tree } from '@base-ui/react/tree';
 
 <Tree.Root>
+  {/* Standard items */}
+  <Tree.Item>
+    <Tree.ItemExpansionTrigger />
+    <Tree.ItemGroupIndicator />
+    <Tree.ItemLabel />
+    <Tree.ItemLoadingIndicator />
+    <Tree.ItemErrorIndicator />
+  </Tree.Item>
+
+  {/* Link items */}
+  <Tree.LinkItem>
+    <Tree.ItemExpansionTrigger />
+    <Tree.ItemGroupIndicator />
+    <Tree.ItemLabel />
+  </Tree.LinkItem>
+
+  {/* Checkbox items */}
+  <Tree.CheckboxItem>
+    <Tree.ItemExpansionTrigger />
+    <Tree.CheckboxItemIndicator />
+    <Tree.ItemGroupIndicator />
+    <Tree.ItemLabel />
+    <Tree.ItemLoadingIndicator />
+    <Tree.ItemErrorIndicator />
+  </Tree.CheckboxItem>
+
   <Tree.Empty />
+
   <Tree.ItemList>
-    {/* Standard items */}
     <Tree.Item>
-      <Tree.ItemExpansionTrigger />
-      <Tree.ItemGroupIndicator />
       <Tree.ItemLabel />
-      <Tree.ItemLoadingIndicator />
-      <Tree.ItemErrorIndicator />
     </Tree.Item>
-
-    {/* Link items */}
-    <Tree.LinkItem>
-      <Tree.ItemExpansionTrigger />
-      <Tree.ItemGroupIndicator />
-      <Tree.ItemLabel />
-    </Tree.LinkItem>
-
-    {/* Checkbox items */}
-    <Tree.CheckboxItem>
-      <Tree.ItemExpansionTrigger />
-      <Tree.CheckboxItemIndicator />
-      <Tree.ItemGroupIndicator />
-      <Tree.ItemLabel />
-      <Tree.ItemLoadingIndicator />
-      <Tree.ItemErrorIndicator />
-    </Tree.CheckboxItem>
   </Tree.ItemList>
 
   {/* Animated expand/collapse */}
   <Tree.AnimatedItemList>
-    {(item, animatedChildren) => (
-      <React.Fragment>
-        <Tree.Item>
-          <Tree.ItemExpansionTrigger />
-          <Tree.ItemLabel />
-        </Tree.Item>
-        <Tree.GroupTransition>{animatedChildren}</Tree.GroupTransition>
-      </React.Fragment>
-    )}
+    <Tree.Item>
+      <Tree.ItemLabel />
+    </Tree.Item>
+    <Tree.GroupTransition />
   </Tree.AnimatedItemList>
 
   {/* Virtualized rendering */}
-  <Tree.VirtualizedItemList itemHeight={32}>
-    {(item) => (
-      <Tree.Item>
-        <Tree.ItemExpansionTrigger />
-        <Tree.ItemGroupIndicator />
-        <Tree.ItemLabel />
-      </Tree.Item>
-    )}
+  <Tree.VirtualizedItemList>
+    <Tree.Item>
+      <Tree.ItemLabel />
+    </Tree.Item>
   </Tree.VirtualizedItemList>
 </Tree.Root>;
 ```
@@ -138,6 +134,34 @@ import { DemoTreeFileExplorer } from './demos/file-explorer';
 
 <DemoTreeFileExplorer compact />
 
+## Drag and drop examples
+
+Use `useDragAndDrop()` from `@base-ui/react/use-drag-and-drop` to enable drag and drop, and `Tree.ItemDragIndicator` to show a drag handle on draggable items.
+
+### Reorder only
+
+Restrict drag and drop to reordering by using the `onReorder` callback. Only `'before'` and `'after'` drop positions are shown — items cannot be moved into folders. Uses `Tree.moveItemBefore` and `Tree.moveItemAfter` for clean one-liner updates.
+
+import { DemoTreeReorderDnd } from './demos/reorder-dnd';
+
+<DemoTreeReorderDnd compact />
+
+### Reorder and reparent
+
+Allow full hierarchical reorganization — reorder siblings and move items into or out of folders. Drag to the top or bottom edge of an item to reorder, or onto the center of a folder to move it inside.
+
+import { DemoTreeDragAndDrop } from './demos/drag-and-drop';
+
+<DemoTreeDragAndDrop compact />
+
+### Cross-tree
+
+Drag items between two separate trees by giving them the same `dragType`. Each tree uses its own `useDragAndDrop` instance with matching `acceptedDragTypes`.
+
+import { DemoTreeCrossTreeDnd } from './demos/cross-tree-dnd';
+
+<DemoTreeCrossTreeDnd />
+
 ## Usage guidelines
 
 - **`"all"` is a reserved item ID**: When `selectionMode="multiple"`, the string `"all"` can be used as a special value for `selectedItems` or `defaultSelectedItems` to represent "every selectable item is selected." This includes items that are lazy-loaded after the value is set. Avoid using `"all"` as an item `id` in your data.
@@ -148,7 +172,7 @@ import { DemoTreeFileExplorer } from './demos/file-explorer';
 
 <Reference
   component="Tree"
-  parts="Root, ItemList, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemLoadingIndicator, ItemErrorIndicator"
+  parts="Root, ItemList, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemDragIndicator, ItemLoadingIndicator, ItemErrorIndicator"
 />
 
 ## useFilteredItems

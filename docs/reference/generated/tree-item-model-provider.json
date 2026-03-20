@@ -6,8 +6,9 @@
       "detailedType": "React.ReactNode"
     },
     "itemId": {
-      "type": "string",
-      "required": true
+      "type": "Tree.Item.Id",
+      "required": true,
+      "detailedType": "string | number"
     },
     "store": {
       "type": "TreeStore<any, any>",

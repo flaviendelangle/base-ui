@@ -77,8 +77,11 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     onItemFocus,
     // Actions
     actionsRef,
+    // Items mutation
+    onItemsChange,
     // Plugins
     lazyLoading,
+    dragAndDrop,
     // Props forwarded to the DOM element
     ...elementProps
   } = componentProps;
@@ -125,10 +128,20 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         direction,
         rootRef,
         lazyLoading,
+        dragAndDrop,
+        onItemsChange,
       }),
   ).current;
 
   useOnMount(store.mountEffect);
+
+  // Register root element as drop target for onRootDrop
+  React.useEffect(() => {
+    if (!store.dragAndDrop || !rootRef.current) {
+      return undefined;
+    }
+    return store.dragAndDrop.setupRoot(rootRef.current);
+  }, [store]);
 
   // Sync controlled props
   store.useControlledProp('expandedItems', expandedItems);
@@ -155,6 +168,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
   store.useContextCallback('onSelectedItemsChange', onSelectedItemsChange as any);
   store.useContextCallback('onItemSelectionToggle', onItemSelectionToggle);
   store.useContextCallback('onItemFocus', onItemFocus);
+  store.useContextCallback('onItemsChange', onItemsChange);
 
   // Expose imperative actions
   React.useImperativeHandle(actionsRef, () => store.getActions(), [store]);
