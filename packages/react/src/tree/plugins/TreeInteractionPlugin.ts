@@ -11,6 +11,7 @@ import {
   getNextNavigableItem,
   getPreviousNavigableItem,
 } from '../store/treeNavigation';
+import { contains, getTarget } from '../../floating-ui-react/utils/shadowDom';
 
 const TYPEAHEAD_TIMEOUT = 500;
 
@@ -212,7 +213,7 @@ export class TreeInteractionPlugin {
     // Select the item when pressing "Space"
     if (key === ' ' && selectors.canItemBeSelected(this.store.state, itemId)) {
       event.preventDefault();
-      const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
+      const isCheckbox = this.isCheckboxItem(getTarget(event.nativeEvent) as HTMLElement);
       if (isMulti && event.shiftKey) {
         this.store.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
       } else {
@@ -230,7 +231,7 @@ export class TreeInteractionPlugin {
     // Enter: for link items, let the browser handle native navigation.
     // For other items, expand/collapse or select.
     else if (key === 'Enter') {
-      const isLink = (event.target as HTMLElement).hasAttribute('data-link');
+      const isLink = (getTarget(event.nativeEvent) as HTMLElement).hasAttribute('data-link');
       if (isLink) {
         // Let the browser follow the link natively (no preventDefault).
         // Still handle selection so the item becomes selected on navigation.
@@ -258,7 +259,7 @@ export class TreeInteractionPlugin {
           this.store.selection.setItemSelection({
             itemId,
             keepExistingSelection: true,
-            shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
+            shouldPropagate: this.isCheckboxItem(getTarget(event.nativeEvent) as HTMLElement),
             reason: REASONS.keyboard,
             event: event.nativeEvent,
           });
@@ -476,7 +477,7 @@ export class TreeInteractionPlugin {
     onBlur: (event: React.FocusEvent) => {
       // Check if focus moved outside the tree entirely
       const rootElement = this.store.context.rootRef.current;
-      if (rootElement && !rootElement.contains(event.relatedTarget as Node)) {
+      if (rootElement && !contains(rootElement, event.relatedTarget as Element)) {
         this.store.set('focusedItemId', null);
       }
     },
