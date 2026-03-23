@@ -8,75 +8,12 @@ import {
   monitorForElements,
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview';
-import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
-
-// ---------------------------------------------------------------------------
-// Private constants
-// ---------------------------------------------------------------------------
+import { isMac, isIOS } from '@base-ui/utils/detectBrowser';
+import type { CollectionActions, CollectionItemId } from '../types/collection';
 
 const DEFAULT_DRAG_TYPE = 'base-ui-dnd-item';
-const AUTO_EXPAND_DELAY = 800;
 
-function dropOperationToDropEffect(op: DropOperation): 'move' | 'copy' | 'link' {
-  if (op === 'copy') {
-    return 'copy';
-  }
-  if (op === 'link') {
-    return 'link';
-  }
-  return 'move';
-}
-
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
-
-/**
- * Filter allowed operations based on keyboard modifiers pressed during drag.
- * Uses platform-specific mappings that match native OS behavior and React Aria:
- *
- * macOS:   Alt/Option → copy, Ctrl → link, Cmd → move
- * Win/Lin: Ctrl → copy, Alt → link, Shift → move
- *
- * When no modifier is pressed, all operations are available.
- * When a modifier IS pressed, only the intersection of the modifier-requested
- * operation and the source's allowed operations is returned.
- */
-function filterOperationsByModifiers(
-  allowedOperations: DropOperation[],
-  input: { altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean },
-): DropOperation[] {
-  let requested: DropOperation | null = null;
-
-  if (IS_MAC) {
-    if (input.altKey) {
-      requested = 'copy';
-    }
-    if (input.ctrlKey) {
-      requested = 'link';
-    }
-    if (input.metaKey) {
-      requested = 'move';
-    }
-  } else {
-    if (input.ctrlKey) {
-      requested = 'copy';
-    }
-    if (input.altKey) {
-      requested = 'link';
-    }
-    if (input.shiftKey) {
-      requested = 'move';
-    }
-  }
-
-  if (requested == null) {
-    return allowedOperations as DropOperation[];
-  }
-
-  return allowedOperations.includes(requested) ? [requested] : [];
-}
-
-const EMPTY_SET = new Set<DraggableItemId>();
+const EMPTY_SET = new Set<CollectionItemId>();
 
 const INITIAL_STATE: DragAndDropState = {
   draggedItemIds: EMPTY_SET,
@@ -85,45 +22,71 @@ const INITIAL_STATE: DragAndDropState = {
   dropOperation: null,
 };
 
-// ---------------------------------------------------------------------------
-// DragAndDropPlugin – private implementation
-// ---------------------------------------------------------------------------
+let nextInstanceId = 0;
 
-class DragAndDropPlugin {
-  private configRef: React.RefObject<UseDragAndDropParameters>;
+function getNextInstanceId() {
+  nextInstanceId += 1;
+  return nextInstanceId;
+}
 
-  private context: UseDragAndDropComponentContext | null = null;
+class DragAndDropPlugin<TItem> {
+  private static defaultAllowedOperations: DropOperation[] = ['move'];
+
+  private readonly instanceId = getNextInstanceId();
+
+  private configRef: React.RefObject<UseDragAndDropParameters<TItem>>;
+
+  private context: CollectionActions<TItem> | null = null;
+
+  private attachConfig: DragAndDropAttachConfig | null = null;
 
   private monitorCleanup: (() => void) | null = null;
 
-  private timeoutManager = new TimeoutManager();
+  /**
+   * Tracks the currently dragged item ids (set by the global monitor).
+   */
+  private currentDraggedItemIds: Set<CollectionItemId> = EMPTY_SET;
 
-  /** Tracks the currently dragged item ids (set by the global monitor). */
-  private currentDraggedItemIds: Set<DraggableItemId> = EMPTY_SET;
-
-  /** Whether the drag was initiated by an item in THIS plugin's collection. */
+  /**
+   * Whether the drag was initiated by an item in THIS plugin's collection.
+   */
   private dragOriginatedHere = false;
 
-  /** Whether the drop was handled by THIS plugin instance. */
+  /**
+   * Whether the drop was handled by THIS plugin instance.
+   */
   private dropHandledHere = false;
 
-  /** Tracks the last known drop position so we can use it in `onDrop`. */
+  /**
+   * Tracks the last known drop position so we can use it in `onDrop`.
+   */
   private lastDropPosition: DropPosition | null = null;
 
-  /** Tracks the last known drop target id so we can use it in `onDrop`. */
-  private lastDropTargetItemId: DraggableItemId | null = null;
+  /**
+   * Tracks the last known drop target id so we can use it in `onDrop`.
+   */
+  private lastDropTargetItemId: CollectionItemId | null = null;
 
-  /** The allowed operations for the current drag, set at drag start. */
-  private currentAllowedOperations: DropOperation[] = ['move'];
+  /**
+   * The allowed operations for the current drag, set at drag start.
+   */
+  private currentAllowedOperations: DropOperation[] = DragAndDropPlugin.defaultAllowedOperations;
 
-  /** The resolved drop operation for the current hover target. */
+  /**
+   * The resolved drop operation for the current hover target.
+   */
   private lastDropOperation: DropOperation | null = null;
+
+  /**
+   * The item data from the source's `getItems`, carried with the drag.
+   */
+  private currentDragItems: TItem[] = [];
 
   constructor(configRef: React.RefObject<UseDragAndDropParameters>) {
     this.configRef = configRef;
   }
 
-  private get config(): UseDragAndDropParameters {
+  private get config(): UseDragAndDropParameters<TItem> {
     return this.configRef.current;
   }
 
@@ -144,82 +107,82 @@ class DragAndDropPlugin {
    * Infer accepted drop positions from the provided callbacks.
    */
   private get resolvedAcceptedDropPositions(): DropPosition[] {
-    const conf = this.config;
     const positions = new Set<DropPosition>();
-    if (conf.onReorder || conf.onInsert || conf.onMove) {
+    if (this.config.onReorder || this.config.onInsert || this.config.onMove) {
       positions.add('before');
       positions.add('after');
     }
-    if (conf.onMove || conf.onItemDrop) {
+    if (this.config.onMove || this.config.onItemDrop) {
       positions.add('on');
     }
     return positions.size > 0 ? Array.from(positions) : ['before', 'after', 'on'];
   }
 
-  /**
-   * Remove items that are descendants of other items in the set.
-   * When a parent and its children are both selected, only the parent should move.
-   */
-  private pruneDescendants(itemIds: DraggableItemId[]): DraggableItemId[] {
-    if (!this.context) {
-      return itemIds;
-    }
-    return itemIds.filter(
-      (id) =>
-        !itemIds.some((otherId) => otherId !== id && this.context!.isDescendantOf(id, otherId)),
-    );
-  }
-
   // ---- DragAndDrop interface -----------------------------------------------
 
-  attach(context: UseDragAndDropComponentContext): () => void {
-    this.context = context;
+  attach(actions: CollectionActions<TItem>, config: DragAndDropAttachConfig): () => void {
+    this.context = actions;
+    this.attachConfig = config;
 
     // Initialize state so that items know DnD is enabled and can register via setupItem.
-    context.onStateChange(INITIAL_STATE);
+    config.onStateChange(INITIAL_STATE);
 
     this.monitorCleanup = monitorForElements({
-      canMonitor: ({ source }) => this.acceptsDragType(source.data.type),
+      canMonitor: ({ source }) => this.acceptsDragType(readSourceData<TItem>(source.data).type),
       onDragStart: ({ source }) => {
-        const itemIds = new Set(source.data.itemIds as DraggableItemId[]);
-        this.currentDraggedItemIds = itemIds;
-        this.currentAllowedOperations = (source.data.allowedOperations as
-          | DropOperation[]
-          | undefined) ?? ['move'];
+        const src = readSourceData<TItem>(source.data);
+        this.currentDraggedItemIds = src.itemIds;
+        this.currentAllowedOperations =
+          src.allowedOperations ?? DragAndDropPlugin.defaultAllowedOperations;
+        this.currentDragItems = src.items ?? [];
         this.lastDropPosition = null;
         this.lastDropTargetItemId = null;
         this.lastDropOperation = null;
         this.dropHandledHere = false;
-        // The drag originated here if all dragged items exist in this collection
-        this.dragOriginatedHere =
-          this.context != null && [...itemIds].every((id) => this.context!.hasItem(id));
+        // The drag originated here if this plugin instance initiated it
+        this.dragOriginatedHere = src.sourceInstanceId === this.instanceId;
 
-        context.onStateChange({
-          draggedItemIds: itemIds,
-          dropTargetItemId: null,
-          dropPosition: null,
-          dropOperation: null,
-        });
-
-        // Only fire the user callback on the plugin that owns the dragged items
+        // Only update state and fire the user callback on the plugin that owns the dragged items
         if (this.dragOriginatedHere) {
-          this.config.onDragStart?.({ itemIds });
+          config.onStateChange({
+            draggedItemIds: src.itemIds,
+            dropTargetItemId: null,
+            dropPosition: null,
+            dropOperation: null,
+          });
+          this.config.onDragStart?.({ itemIds: src.itemIds });
         }
       },
-      onDrop: () => {
+      onDrop: ({ location }) => {
         const draggedItemIds = this.currentDraggedItemIds;
-        this.handleDrop();
-        // isInternal = both the drag source and the drop target are this same plugin instance
-        const isInternal = this.dragOriginatedHere && this.dropHandledHere;
-        const dropOperation = this.lastDropOperation ?? 'cancel';
-        context.onStateChange(INITIAL_STATE);
+        // Only handle the drop if the actual drop target belongs to this plugin's collection
+        const actualTargetData = location.current.dropTargets[0]?.data;
+        const actualTargetItemId = actualTargetData
+          ? readTargetData(actualTargetData).itemId
+          : undefined;
+        if (actualTargetItemId != null && this.context?.hasItem(actualTargetItemId)) {
+          this.handleDrop();
+        }
+        // Read the resolved operation from the drop target's data (for cross-collection drops),
+        // fall back to this plugin's own lastDropOperation (for internal drops).
+        const dropOperation =
+          (actualTargetData ? readTargetData(actualTargetData).dropOperation : undefined) ??
+          this.lastDropOperation ??
+          'cancel';
+        const dragItems = this.currentDragItems;
+        config.onStateChange(INITIAL_STATE);
         this.currentDraggedItemIds = EMPTY_SET;
-        this.currentAllowedOperations = ['move'];
-        this.timeoutManager.clearAll();
+        this.currentAllowedOperations = DragAndDropPlugin.defaultAllowedOperations;
+        this.currentDragItems = [];
 
         // Only fire the user callback on the plugin that originated the drag
         if (draggedItemIds.size > 0 && this.dragOriginatedHere) {
-          this.config.onDragEnd?.({ itemIds: draggedItemIds, isInternal, dropOperation });
+          this.config.onDragEnd?.({
+            itemIds: draggedItemIds,
+            items: dragItems,
+            isInternal: this.dragOriginatedHere && this.dropHandledHere,
+            dropOperation,
+          });
         }
       },
     });
@@ -227,14 +190,15 @@ class DragAndDropPlugin {
     return () => {
       this.monitorCleanup?.();
       this.monitorCleanup = null;
-      this.timeoutManager.clearAll();
       this.context = null;
+      this.attachConfig = null;
       this.currentDraggedItemIds = EMPTY_SET;
-      this.currentAllowedOperations = ['move'];
+      this.currentAllowedOperations = DragAndDropPlugin.defaultAllowedOperations;
+      this.currentDragItems = [];
     };
   }
 
-  setupItem(itemId: DraggableItemId, element: HTMLElement): () => void {
+  setupItem(itemId: CollectionItemId, element: HTMLElement): () => void {
     const cleanups: Array<() => void> = [];
 
     // Register as draggable (if allowed)
@@ -244,23 +208,37 @@ class DragAndDropPlugin {
           element,
           getInitialData: () => {
             // If this item is part of a multi-selection, drag all selected items
-            let itemIds = [itemId];
-            const selected = this.context?.getSelectedItemIds() ?? [];
-            if (selected.length > 1 && selected.includes(itemId)) {
-              itemIds = this.pruneDescendants(selected);
+            let itemIdsSet = new Set([itemId]);
+            const selected = this.context?.getSelectedItemIds() ?? new Set();
+            if (selected.size > 1 && selected.has(itemId)) {
+              itemIdsSet = this.attachConfig?.pruneDraggedItems
+                ? this.attachConfig.pruneDraggedItems(selected)
+                : selected;
             }
-            // Resolve allowed operations for this drag
-            const itemIdsSet = new Set(itemIds);
             const allowedOperations = this.config.getAllowedDropOperations
               ? this.config.getAllowedDropOperations(itemIdsSet)
-              : (['move'] as DropOperation[]);
-            // pragmatic-dnd stores plain data — serialize as array, convert to Set at boundary
-            return { itemIds, type: this.dragType, allowedOperations };
+              : DragAndDropPlugin.defaultAllowedOperations;
+            const items = this.context?.getItemModels(itemIdsSet) ?? [];
+            const draggedItem = this.context?.getItemModels(new Set([itemId]))[0];
+            return {
+              itemIds: itemIdsSet,
+              draggedItemId: itemId,
+              type: this.dragType,
+              allowedOperations,
+              items,
+              draggedItem,
+              sourceInstanceId: this.instanceId,
+            } satisfies DragSourceData<TItem>;
           },
           onGenerateDragPreview: ({ nativeSetDragImage, source }) => {
             if (this.config.renderDragPreview) {
-              const itemIds = new Set(source.data.itemIds as DraggableItemId[]);
-              const preview = this.config.renderDragPreview({ itemIds, draggedItemId: itemId });
+              const src = readSourceData<TItem>(source.data);
+              const preview = this.config.renderDragPreview({
+                itemIds: src.itemIds,
+                draggedItemId: src.draggedItemId,
+                draggedItem: src.draggedItem,
+                items: src.items,
+              });
               setCustomNativeDragPreview({
                 nativeSetDragImage,
                 render: ({ container }) => {
@@ -282,12 +260,14 @@ class DragAndDropPlugin {
         getData: () => ({
           itemId,
           type: this.dragType,
+          dropOperation: this.lastDropOperation,
         }),
         getDropEffect: ({ source, input }) => {
+          const src = readSourceData(source.data);
           const allowedOperations =
-            (source.data.allowedOperations as DropOperation[] | undefined) ?? (['move'] as const);
-          const draggedItemIds = new Set(source.data.itemIds as DraggableItemId[]);
-          const position = this.computeDropPosition(itemId, element, input.clientY);
+            src.allowedOperations ?? DragAndDropPlugin.defaultAllowedOperations;
+          const draggedItemIds = src.itemIds;
+          const position = this.computeDropPosition(element, input.clientY);
           const op = this.resolveDropOperation(
             draggedItemIds,
             itemId,
@@ -298,45 +278,35 @@ class DragAndDropPlugin {
           return dropOperationToDropEffect(op);
         },
         canDrop: ({ source }) => {
-          if (!this.acceptsDragType(source.data.type)) {
+          const src = readSourceData(source.data);
+          if (!this.acceptsDragType(src.type)) {
             return false;
           }
-          const draggedItemIds = source.data.itemIds as DraggableItemId[];
           // Can't drop on any of the dragged items
-          if (draggedItemIds.includes(itemId)) {
+          if (src.itemIds.has(itemId)) {
             return false;
           }
-          // Can't drop on a descendant of any dragged item (same tree only)
-          if (source.data.type === this.dragType) {
-            for (const id of draggedItemIds) {
-              if (this.context?.isDescendantOf(itemId, id)) {
-                return false;
-              }
-            }
+          // Can't drop on an invalid target (e.g. descendant of a dragged item in a tree)
+          if (
+            src.type === this.dragType &&
+            this.attachConfig?.isDropTargetInvalid?.(itemId, src.itemIds)
+          ) {
+            return false;
           }
           return true;
         },
         onDragEnter: ({ location }) => {
           const { input } = location.current;
-          const position = this.computeDropPosition(itemId, element, input.clientY);
+          const position = this.computeDropPosition(element, input.clientY);
           this.updateDropState(itemId, position, input);
-          this.startAutoExpandTimer(itemId);
         },
         onDrag: ({ location }) => {
           const { input } = location.current;
-          const position = this.computeDropPosition(itemId, element, input.clientY);
+          const position = this.computeDropPosition(element, input.clientY);
           this.updateDropState(itemId, position, input);
         },
         onDragLeave: () => {
-          this.clearAutoExpandTimer();
-          if (this.currentDraggedItemIds.size > 0) {
-            this.context?.onStateChange({
-              draggedItemIds: this.currentDraggedItemIds,
-              dropTargetItemId: null,
-              dropPosition: null,
-              dropOperation: null,
-            });
-          }
+          this.clearDropState();
         },
       }),
     );
@@ -359,40 +329,52 @@ class DragAndDropPlugin {
         if (!this.config.onRootDrop) {
           return false;
         }
-        return this.acceptsDragType(source.data.type);
+        return this.acceptsDragType(readSourceData(source.data).type);
       },
-      onDrop: ({ source }) => {
+      onDrop: ({ source, location }) => {
         // Only fire if no item target was hit
-        if (this.lastDropTargetItemId != null) {
+        // We check the live drop target hierarchy rather than internal state
+        // because `lastDropTargetItemId` may be stale (it is not cleared on drag leave).
+        const deepestTarget = location.current.dropTargets[0];
+        if (deepestTarget?.data.itemId != null) {
           return;
         }
-        const itemIds = new Set(source.data.itemIds as DraggableItemId[]);
-        const allowedOperations = (source.data.allowedOperations as
-          | DropOperation[]
-          | undefined) ?? ['move'];
-        const dropOperation = allowedOperations[0] ?? 'move';
-        this.config.onRootDrop?.({ itemIds, dropOperation });
+        const src = readSourceData<TItem>(source.data);
+        const allowedOperations =
+          src.allowedOperations ?? DragAndDropPlugin.defaultAllowedOperations;
+
+        this.config.onRootDrop?.({
+          itemIds: src.itemIds,
+          items: src.items ?? [],
+          dropOperation: allowedOperations[0] ?? 'move',
+        });
       },
     });
   }
 
-  canDragItem(itemId: DraggableItemId): boolean {
+  canDragItem(itemId: CollectionItemId): boolean {
     return this.config.canDrag ? this.config.canDrag(itemId) : true;
   }
 
   // ---- Private helpers -----------------------------------------------------
 
-  private computeDropPosition(
-    targetItemId: DraggableItemId,
-    element: HTMLElement,
-    clientY: number,
-  ): DropPosition {
+  private clearDropState() {
+    if (this.currentDraggedItemIds.size > 0) {
+      this.attachConfig?.onStateChange({
+        draggedItemIds: this.currentDraggedItemIds,
+        dropTargetItemId: null,
+        dropPosition: null,
+        dropOperation: null,
+      });
+    }
+  }
+
+  private computeDropPosition(element: HTMLElement, clientY: number): DropPosition {
     const rect = element.getBoundingClientRect();
     const relativeY = (clientY - rect.top) / rect.height;
     const accepted = this.resolvedAcceptedDropPositions;
-    const isExpandable = this.context?.isItemExpandable(targetItemId) ?? false;
 
-    const hasOn = accepted.includes('on') && isExpandable;
+    const hasOn = accepted.includes('on');
     const hasBefore = accepted.includes('before');
     const hasAfter = accepted.includes('after');
 
@@ -424,7 +406,7 @@ class DragAndDropPlugin {
   }
 
   private updateDropState(
-    targetItemId: DraggableItemId,
+    targetItemId: CollectionItemId,
     position: DropPosition,
     input: { altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean },
   ) {
@@ -439,6 +421,7 @@ class DragAndDropPlugin {
         position,
       });
       if (!allowed) {
+        this.clearDropState();
         return;
       }
     }
@@ -454,6 +437,7 @@ class DragAndDropPlugin {
 
     // If the resolved operation is 'cancel', treat as not droppable
     if (dropOperation === 'cancel') {
+      this.clearDropState();
       return;
     }
 
@@ -461,7 +445,7 @@ class DragAndDropPlugin {
     this.lastDropPosition = position;
     this.lastDropOperation = dropOperation;
 
-    this.context.onStateChange({
+    this.attachConfig?.onStateChange({
       draggedItemIds: this.currentDraggedItemIds,
       dropTargetItemId: targetItemId,
       dropPosition: position,
@@ -516,15 +500,13 @@ class DragAndDropPlugin {
   }
 
   private handleInternalDrop(
-    draggedItemIds: Set<DraggableItemId>,
-    targetItemId: DraggableItemId,
+    draggedItemIds: Set<CollectionItemId>,
+    targetItemId: CollectionItemId,
     position: DropPosition,
     dropOperation: DropOperation,
   ) {
-    const conf = this.config;
-
-    if (conf.onMove) {
-      conf.onMove({
+    if (this.config.onMove) {
+      this.config.onMove({
         itemIds: draggedItemIds,
         target: { itemId: targetItemId, position },
         dropOperation,
@@ -532,8 +514,17 @@ class DragAndDropPlugin {
       return;
     }
 
-    if (conf.onReorder && position !== 'on') {
-      conf.onReorder({
+    if (position === 'on') {
+      if (this.config.onItemDrop) {
+        this.config.onItemDrop({
+          itemIds: draggedItemIds,
+          items: this.currentDragItems,
+          target: { itemId: targetItemId },
+          dropOperation,
+        });
+      }
+    } else if (this.config.onReorder) {
+      this.config.onReorder({
         itemIds: draggedItemIds,
         target: { itemId: targetItemId, position },
         dropOperation,
@@ -542,25 +533,27 @@ class DragAndDropPlugin {
   }
 
   private handleExternalDrop(
-    draggedItemIds: Set<DraggableItemId>,
-    targetItemId: DraggableItemId,
+    draggedItemIds: Set<CollectionItemId>,
+    targetItemId: CollectionItemId,
     position: DropPosition,
     dropOperation: DropOperation,
   ) {
-    const conf = this.config;
+    const items = this.currentDragItems;
 
     if (position === 'on') {
-      if (conf.onItemDrop) {
-        conf.onItemDrop({
+      if (this.config.onItemDrop) {
+        this.config.onItemDrop({
           itemIds: draggedItemIds,
+          items,
           target: { itemId: targetItemId },
           dropOperation,
         });
         return;
       }
-    } else if (conf.onInsert) {
-      conf.onInsert({
+    } else if (this.config.onInsert) {
+      this.config.onInsert({
         itemIds: draggedItemIds,
+        items,
         target: { itemId: targetItemId, position },
         dropOperation,
       });
@@ -568,55 +561,26 @@ class DragAndDropPlugin {
   }
 
   private resolveDropOperation(
-    draggedItemIds: Set<DraggableItemId>,
-    targetItemId: DraggableItemId,
+    draggedItemIds: Set<CollectionItemId>,
+    targetItemId: CollectionItemId,
     position: DropPosition,
     allowedOperations: readonly DropOperation[],
     input: { altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean },
   ): DropOperation {
-    // Pre-filter allowedOperations based on modifier keys (matches React Aria behavior).
-    // When a modifier is held, only the corresponding operation is offered.
-    const filtered = filterOperationsByModifiers(
-      allowedOperations as DropOperation[],
-      input,
-    );
+    const filtered = filterOperationsByModifiers(allowedOperations, input);
 
     if (!this.config.getDropOperation) {
       return filtered[0] ?? 'cancel';
     }
 
-    const isInternal =
-      this.context != null && [...draggedItemIds].every((id) => this.context!.hasItem(id));
-
     return this.config.getDropOperation({
       draggedItemIds,
       target: { itemId: targetItemId, position },
       allowedOperations: filtered,
-      isInternal,
+      isInternal: this.dragOriginatedHere,
     });
-  }
-
-  // ---- Auto-expand on hover ------------------------------------------------
-
-  private startAutoExpandTimer(targetItemId: DraggableItemId) {
-    if (!this.context?.isItemExpandable(targetItemId)) {
-      this.timeoutManager.clearTimeout('autoExpand');
-      return;
-    }
-
-    this.timeoutManager.startTimeout('autoExpand', AUTO_EXPAND_DELAY, () => {
-      this.context?.expandItem(targetItemId);
-    });
-  }
-
-  private clearAutoExpandTimer() {
-    this.timeoutManager.clearTimeout('autoExpand');
   }
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 /**
  * Creates a drag-and-drop configuration for collection components.
@@ -641,119 +605,295 @@ class DragAndDropPlugin {
  * </Tree.Root>
  * ```
  */
-export function useDragAndDrop(params: UseDragAndDropParameters) {
+export function useDragAndDrop<TItem = unknown>(params: UseDragAndDropParameters<TItem>) {
   const configRef = React.useRef(params);
 
   React.useEffect(() => {
     configRef.current = params;
   });
 
-  return useRefWithInit(() => new DragAndDropPlugin(configRef)).current;
+  return useRefWithInit(
+    () => new DragAndDropPlugin(configRef as React.RefObject<UseDragAndDropParameters>),
+  ).current;
 }
 
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
+function dropOperationToDropEffect(op: DropOperation): 'move' | 'copy' | 'link' {
+  if (op === 'copy') {
+    return 'copy';
+  }
+  if (op === 'link') {
+    return 'link';
+  }
+  return 'move';
+}
 
-type DraggableItemId = string | number;
+/**
+ * Filter allowed operations based on keyboard modifiers pressed during drag.
+ * Uses platform-specific mappings that match native OS behavior:
+ *
+ * macOS:   Alt/Option → copy, Ctrl → link, Cmd → move
+ * Win/Lin: Ctrl → copy, Alt → link, Shift → move
+ *
+ * When no modifier is pressed, all operations are available.
+ * When a modifier IS pressed, only the intersection of the modifier-requested
+ * operation and the source's allowed operations is returned.
+ */
+function filterOperationsByModifiers(
+  allowedOperations: readonly DropOperation[],
+  input: { altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean },
+): readonly DropOperation[] {
+  let requested: DropOperation | null = null;
+
+  if (isMac || isIOS) {
+    if (input.altKey) {
+      requested = 'copy';
+    }
+    if (input.ctrlKey) {
+      requested = 'link';
+    }
+    if (input.metaKey) {
+      requested = 'move';
+    }
+  } else {
+    if (input.ctrlKey) {
+      requested = 'copy';
+    }
+    if (input.altKey) {
+      requested = 'link';
+    }
+    if (input.shiftKey) {
+      requested = 'move';
+    }
+  }
+
+  if (requested == null) {
+    return allowedOperations;
+  }
+
+  return allowedOperations.includes(requested) ? [requested] : [];
+}
+
+function readSourceData<TItem>(data: Record<string, unknown>): DragSourceData<TItem> {
+  return data as unknown as DragSourceData<TItem>;
+}
+
+function readTargetData(data: Record<string | symbol, unknown>): DropTargetItemData {
+  return data as unknown as DropTargetItemData;
+}
+
+interface DragSourceData<TItem> {
+  type: string;
+  sourceInstanceId: number;
+  itemIds: Set<CollectionItemId>;
+  draggedItemId: CollectionItemId;
+  items: TItem[];
+  draggedItem: TItem | undefined;
+  allowedOperations: DropOperation[];
+}
+
+interface DropTargetItemData {
+  itemId: CollectionItemId;
+  type: string;
+  dropOperation: DropOperation | null;
+}
 
 type DropPosition = 'before' | 'after' | 'on';
 
 type DropOperation = 'move' | 'copy' | 'link' | 'cancel';
 
 interface GetDropOperationParameters {
-  /** The ids of the items being dragged. */
-  draggedItemIds: Set<DraggableItemId>;
-  /** The target item and drop position. */
-  target: { itemId: DraggableItemId; position: DropPosition };
+  /**
+   * The ids of the items being dragged.
+   */
+  draggedItemIds: Set<CollectionItemId>;
+  /**
+   * The target item and drop position.
+   */
+  target: { itemId: CollectionItemId; position: DropPosition };
   /**
    * The operations allowed by the drag source, filtered by the user's modifier keys.
    * When the user holds a modifier key (e.g., Alt/Option for copy),
    * only the corresponding operation is included.
    */
-  allowedOperations: DropOperation[];
-  /** Whether this is an internal drag (items come from the same collection). */
+  allowedOperations: readonly DropOperation[];
+  /**
+   * Whether this is an internal drag (items come from the same collection).
+   */
   isInternal: boolean;
 }
 
 interface OnReorderParameters {
-  /** The ids of the dragged items. */
-  itemIds: Set<DraggableItemId>;
-  /** The target item and drop position. */
-  target: { itemId: DraggableItemId; position: 'before' | 'after' };
-  /** The resolved drop operation. */
+  /**
+   * The ids of the dragged items.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The target item and drop position.
+   */
+  target: { itemId: CollectionItemId; position: 'before' | 'after' };
+  /**
+   * The resolved drop operation.
+   */
   dropOperation: DropOperation;
 }
 
 interface OnMoveParameters {
-  /** The ids of the dragged items. */
-  itemIds: Set<DraggableItemId>;
-  /** The target item and drop position. */
-  target: { itemId: DraggableItemId; position: DropPosition };
-  /** The resolved drop operation. */
+  /**
+   * The ids of the dragged items.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The target item and drop position.
+   */
+  target: { itemId: CollectionItemId; position: DropPosition };
+  /**
+   * The resolved drop operation.
+   */
   dropOperation: DropOperation;
 }
 
-interface OnInsertParameters {
-  /** The ids of the external items being inserted. */
-  itemIds: Set<DraggableItemId>;
-  /** Where to insert relative to the target. */
-  target: { itemId: DraggableItemId; position: 'before' | 'after' };
-  /** The resolved drop operation. */
+interface OnInsertParameters<TItem> {
+  /**
+   * The ids of the external items being inserted.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The item data returned by the source's `getItems` callback.
+   */
+  items: TItem[];
+  /**
+   * Where to insert relative to the target.
+   */
+  target: { itemId: CollectionItemId; position: 'before' | 'after' };
+  /**
+   * The resolved drop operation.
+   */
   dropOperation: DropOperation;
 }
 
-interface OnItemDropParameters {
-  /** The ids of the external items being dropped. */
-  itemIds: Set<DraggableItemId>;
-  /** The item being dropped onto. */
-  target: { itemId: DraggableItemId };
-  /** The resolved drop operation. */
+interface OnItemDropParameters<TItem> {
+  /**
+   * The ids of the external items being dropped.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The item data returned by the source's `getItems` callback.
+   */
+  items: TItem[];
+  /**
+   * The item being dropped onto.
+   */
+  target: { itemId: CollectionItemId };
+  /**
+   * The resolved drop operation.
+   */
   dropOperation: DropOperation;
 }
 
-interface OnRootDropParameters {
-  /** The ids of the items being dropped on the root. */
-  itemIds: Set<DraggableItemId>;
-  /** The resolved drop operation. */
+interface OnRootDropParameters<TItem> {
+  /**
+   * The ids of the items being dropped on the root.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The item data returned by the source's `getItems` callback.
+   */
+  items: TItem[];
+  /**
+   * The resolved drop operation.
+   */
   dropOperation: DropOperation;
 }
 
 interface CanDropParameters {
-  draggedItemIds: Set<DraggableItemId>;
-  targetItemId: DraggableItemId;
+  draggedItemIds: Set<CollectionItemId>;
+  targetItemId: CollectionItemId;
   position: DropPosition;
 }
 
 interface OnDragStartParameters {
-  /** The ids of the items being dragged. */
-  itemIds: Set<DraggableItemId>;
+  /**
+   * The ids of the items being dragged.
+   */
+  itemIds: Set<CollectionItemId>;
 }
 
-interface OnDragEndParameters {
-  /** The ids of the items that were being dragged. */
-  itemIds: Set<DraggableItemId>;
-  /** Whether the drop occurred within the same collection that initiated the drag. */
+interface OnDragEndParameters<TItem> {
+  /**
+   * The ids of the items that were being dragged.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The item data returned by `getItems`.
+   */
+  items: TItem[];
+  /**
+   * Whether the drop occurred within the same collection that initiated the drag.
+   */
   isInternal: boolean;
-  /** The resolved drop operation, or `'cancel'` if the drop was cancelled. */
+  /**
+   * The resolved drop operation, or `'cancel'` if the drop was cancelled.
+   */
   dropOperation: DropOperation;
 }
 
-interface RenderDragPreviewParameters {
-  /** The ids of the items being dragged. */
-  itemIds: Set<DraggableItemId>;
-  /** The id of the specific item the user grabbed to initiate the drag. */
-  draggedItemId: DraggableItemId;
+interface RenderDragPreviewParameters<TItem> {
+  /**
+   * The ids of the items being dragged.
+   */
+  itemIds: Set<CollectionItemId>;
+  /**
+   * The id of the specific item the user grabbed to initiate the drag.
+   */
+  draggedItemId: CollectionItemId;
+  /**
+   * The model of the specific item the user grabbed to initiate the drag.
+   */
+  draggedItem: TItem | undefined;
+  /**
+   * The models of all the items being dragged.
+   */
+  items: TItem[];
+}
+
+export interface DragAndDropAttachConfig {
+  /**
+   * Called when the drag-and-drop state changes (drag start, hover, drop, etc.).
+   */
+  onStateChange: (state: DragAndDropState) => void;
+  /**
+   * Given a set of selected item IDs being dragged, returns a pruned set
+   * that removes redundant items.
+   * For example, a tree removes descendants when their ancestor is also in the set.
+   * @default Returns the input set unchanged.
+   */
+  pruneDraggedItems?: ((itemIds: Set<CollectionItemId>) => Set<CollectionItemId>) | undefined;
+  /**
+   * Returns whether a drop target should be rejected given the dragged items.
+   * For example, a tree returns `true` if the target is a descendant of any dragged item.
+   * @default () => false
+   */
+  isDropTargetInvalid?:
+    | ((dropTargetItemId: CollectionItemId, draggedItemIds: Set<CollectionItemId>) => boolean)
+    | undefined;
 }
 
 export interface DragAndDropState {
-  /** The items currently being dragged (empty set when not dragging). */
-  draggedItemIds: Set<DraggableItemId>;
-  /** The item currently hovered as a drop target, or `null`. */
-  dropTargetItemId: DraggableItemId | null;
-  /** Drop position relative to the target item. */
+  /**
+   * The items currently being dragged (empty set when not dragging).
+   */
+  draggedItemIds: Set<CollectionItemId>;
+  /**
+   * The item currently hovered as a drop target, or `null`.
+   */
+  dropTargetItemId: CollectionItemId | null;
+  /**
+   * Drop position relative to the target item.
+   */
   dropPosition: DropPosition | null;
-  /** The resolved drop operation for the current target, or `null` when not over a valid target. */
+  /**
+   * The resolved drop operation for the current target, or `null` when not over a valid target.
+   */
   dropOperation: DropOperation | null;
 }
 
@@ -761,68 +901,63 @@ export interface DragAndDropState {
 // Parameters
 // ---------------------------------------------------------------------------
 
-export interface UseDragAndDropParameters {
+export interface UseDragAndDropParameters<TItem = unknown> {
   /**
    * Called when items are reordered within the same parent.
    * Only fires for `'before'`/`'after'` positions on siblings.
    * Mutually exclusive with `onMove`.
    */
   onReorder?: ((parameters: OnReorderParameters) => void) | undefined;
-
   /**
    * Called when items are moved within the same collection.
    * Fires for `'before'`, `'after'`, and `'on'` positions.
    * Subsumes `onReorder` — use one or the other.
    */
   onMove?: ((parameters: OnMoveParameters) => void) | undefined;
-
   /**
    * Called when external items are dropped between items.
    * Fires for `'before'`/`'after'` positions from a different source.
    */
-  onInsert?: ((parameters: OnInsertParameters) => void) | undefined;
-
+  onInsert?: ((parameters: OnInsertParameters<TItem>) => void) | undefined;
   /**
    * Called when external items are dropped ON an item.
    * Fires for `'on'` position from a different source.
    */
-  onItemDrop?: ((parameters: OnItemDropParameters) => void) | undefined;
-
+  onItemDrop?: ((parameters: OnItemDropParameters<TItem>) => void) | undefined;
   /**
    * Called when items are dropped on the collection root (empty area).
    */
-  onRootDrop?: ((parameters: OnRootDropParameters) => void) | undefined;
-
-  // ---- Configuration ----
-
+  onRootDrop?: ((parameters: OnRootDropParameters<TItem>) => void) | undefined;
   /**
    * Whether a given item can be dragged.
    * @default () => true
    */
-  canDrag?: ((itemId: DraggableItemId) => boolean) | undefined;
-
-  /** Whether a drop is allowed at a given position. */
+  canDrag?: ((itemId: CollectionItemId) => boolean) | undefined;
+  /**
+   * Whether a drop is allowed at a given position.
+   */
   canDrop?: ((parameters: CanDropParameters) => boolean) | undefined;
-
   /**
    * Custom drag preview renderer.
    * Return a React element to display as the drag preview.
    */
-  renderDragPreview?: ((parameters: RenderDragPreviewParameters) => React.ReactElement) | undefined;
-
-  /** Called when a drag operation starts. */
+  renderDragPreview?:
+    | ((parameters: RenderDragPreviewParameters<TItem>) => React.ReactElement)
+    | undefined;
+  /**
+   * Called when a drag operation starts.
+   */
   onDragStart?: ((parameters: OnDragStartParameters) => void) | undefined;
-
-  /** Called when a drag operation ends (drop or cancel). */
-  onDragEnd?: ((parameters: OnDragEndParameters) => void) | undefined;
-
+  /**
+   * Called when a drag operation ends (drop or cancel).
+   */
+  onDragEnd?: ((parameters: OnDragEndParameters<TItem>) => void) | undefined;
   /**
    * Determines which drop operations the dragged items support.
    * Called once when a drag starts.
    * @default () => ['move']
    */
-  getAllowedDropOperations?: ((itemIds: Set<DraggableItemId>) => DropOperation[]) | undefined;
-
+  getAllowedDropOperations?: ((itemIds: Set<CollectionItemId>) => DropOperation[]) | undefined;
   /**
    * Determines the actual drop operation for a given target.
    * Called repeatedly during drag-over as the target changes.
@@ -830,14 +965,12 @@ export interface UseDragAndDropParameters {
    * @default Returns the first allowed operation.
    */
   getDropOperation?: ((parameters: GetDropOperationParameters) => DropOperation) | undefined;
-
   /**
    * A string identifying the type of dragged items.
    * Used to filter which drag sources a drop target accepts.
    * @default 'base-ui-dnd-item'
    */
   dragType?: string | undefined;
-
   /**
    * Which drag types this instance accepts for drops.
    * Defaults to the same value as `dragType` (only accepts its own items).
@@ -846,33 +979,10 @@ export interface UseDragAndDropParameters {
   acceptedDragTypes?: string[] | 'all' | undefined;
 }
 
-// ---------------------------------------------------------------------------
-// Component context – provided by the consuming component (Tree, List, etc.)
-// ---------------------------------------------------------------------------
-
-export interface UseDragAndDropComponentContext {
-  /** Get the parent id of an item (`null` for root items). */
-  getParentId(itemId: DraggableItemId): DraggableItemId | null;
-  /** Get child ids for a parent (`null` = root children). */
-  getChildrenIds(parentId: DraggableItemId | null): DraggableItemId[];
-  /** Check if `itemId` is a descendant of `ancestorId`. */
-  isDescendantOf(itemId: DraggableItemId, ancestorId: DraggableItemId): boolean;
-  /** Get the index of an item among its siblings. */
-  getItemIndex(itemId: DraggableItemId): number;
-  /** Whether an item can be expanded (has children / is a group). */
-  isItemExpandable(itemId: DraggableItemId): boolean;
-  /** Expand an item (used for auto-expand on hover during drag). */
-  expandItem(itemId: DraggableItemId): void;
-  /** Whether the given item exists in this collection. */
-  hasItem(itemId: DraggableItemId): boolean;
-  /** Get the currently selected item IDs. */
-  getSelectedItemIds(): DraggableItemId[];
-  /** Update DnD visual state in the component's store. */
-  onStateChange(state: DragAndDropState): void;
-}
+export type UseDragAndDropReturnValue = ReturnType<typeof useDragAndDrop>;
 
 export namespace useDragAndDrop {
-  export type Parameters = UseDragAndDropParameters;
+  export type Parameters<TItem = unknown> = UseDragAndDropParameters<TItem>;
 
-  export type ComponentContext = UseDragAndDropComponentContext;
+  export type ReturnValue = UseDragAndDropReturnValue;
 }

@@ -1,5 +1,6 @@
 import type { TreeStore } from '../store/TreeStore';
-import type { TreeItemId, TreeRootExpansionChangeEventReason } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeRootExpansionChangeEventReason } from '../store/types';
 import { selectors } from '../store/selectors';
 import {
   createChangeEventDetails,
@@ -22,14 +23,14 @@ export class TreeExpansionPlugin {
    * Used to determine which items will appear/disappear during expand/collapse.
    */
   private getVisibleDescendants(
-    itemId: TreeItemId,
-    expandedItems: readonly TreeItemId[],
-  ): TreeItemId[] {
+    itemId: CollectionItemId,
+    expandedItems: readonly CollectionItemId[],
+  ): CollectionItemId[] {
     const expandedSet = new Set(expandedItems);
     const childrenLookup = selectors.itemOrderedChildrenIds;
-    const result: TreeItemId[] = [];
+    const result: CollectionItemId[] = [];
 
-    const walk = (parentId: TreeItemId) => {
+    const walk = (parentId: CollectionItemId) => {
       const children = childrenLookup(this.store.state, parentId) ?? [];
       for (const childId of children) {
         result.push(childId);
@@ -47,7 +48,7 @@ export class TreeExpansionPlugin {
   // Public — Query
   // ---------------------------------------------------------------------------
 
-  canToggleItemExpansion = (itemId: TreeItemId): boolean => {
+  canToggleItemExpansion = (itemId: CollectionItemId): boolean => {
     return (
       !selectors.isItemDisabled(this.store.state, itemId) &&
       selectors.isItemExpandable(this.store.state, itemId)
@@ -59,7 +60,7 @@ export class TreeExpansionPlugin {
   // ---------------------------------------------------------------------------
 
   setItemExpansion = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     shouldBeExpanded: boolean | undefined,
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
@@ -86,13 +87,13 @@ export class TreeExpansionPlugin {
   };
 
   applyItemExpansion = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     shouldBeExpanded: boolean,
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
   ) => {
     const oldExpanded = this.store.state.expandedItems;
-    let newExpanded: TreeItemId[];
+    let newExpanded: CollectionItemId[];
     if (shouldBeExpanded) {
       newExpanded = [itemId, ...oldExpanded];
     } else {
@@ -139,7 +140,7 @@ export class TreeExpansionPlugin {
    * Called when a group transition animation completes.
    * Removes the animating group entry, causing the wrapper to be removed from the DOM.
    */
-  completeGroupTransition = (parentId: TreeItemId) => {
+  completeGroupTransition = (parentId: CollectionItemId) => {
     const { [parentId]: removedGroup, ...rest } = this.store.state.animatingGroups;
     this.store.set('animatingGroups', rest);
   };
@@ -149,7 +150,7 @@ export class TreeExpansionPlugin {
   // ---------------------------------------------------------------------------
 
   expandAllSiblings = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
   ) => {
@@ -185,7 +186,7 @@ export class TreeExpansionPlugin {
   expandAll = (reason: TreeRootExpansionChangeEventReason) => {
     const metaLookup = selectors.itemMetaLookup(this.store.state);
     const expandedSet = selectors.expandedItemsSet(this.store.state);
-    const diff: TreeItemId[] = [];
+    const diff: CollectionItemId[] = [];
     for (const meta of Object.values(metaLookup)) {
       if (meta.expandable && !expandedSet.has(meta.id)) {
         diff.push(meta.id);

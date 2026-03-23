@@ -17,6 +17,6 @@ export { TreeItemDragIndicator as ItemDragIndicator } from './item-drag-indicato
 export { useLazyLoading } from './utils/useTreeLazyLoading';
 export { useTreeFilter as useFilter } from './utils/useTreeFilter';
 export { useTreeFilteredItems as useFilteredItems } from './utils/useFilteredItems';
-export type { TreeDefaultItemModel as DefaultItemModel, TreeItemId as ItemId } from './store/types';
+export type { TreeDefaultItemModel as DefaultItemModel } from './store/types';
 export type { DataSourceCache } from './utils/cache';
 export { DataSourceCacheDefault } from './utils/cache';

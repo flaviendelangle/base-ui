@@ -126,14 +126,6 @@ import { DemoTreeVirtualized } from './demos/virtualized';
 
 <DemoTreeVirtualized compact />
 
-### File explorer
-
-A VSCode-like file explorer with virtualization, file-type icons, and a full context menu. Right-click any item for actions: New File, New Folder, Cut, Copy, Paste, Rename, and Delete. Press F2 to rename the focused item, or double-click any label to edit it inline.
-
-import { DemoTreeFileExplorer } from './demos/file-explorer';
-
-<DemoTreeFileExplorer compact />
-
 ## Drag and drop examples
 
 Use `useDragAndDrop()` from `@base-ui/react/use-drag-and-drop` to enable drag and drop, and `Tree.ItemDragIndicator` to show a drag handle on draggable items.
@@ -161,6 +153,24 @@ Drag items between two separate trees by giving them the same `dragType`. Each t
 import { DemoTreeCrossTreeDnd } from './demos/cross-tree-dnd';
 
 <DemoTreeCrossTreeDnd />
+
+## Recipes
+
+### File explorer
+
+A VSCode-like file explorer with virtualization, editing, drag-and-drop and context menu.
+
+import { DemoTreeFileExplorer } from './demos/file-explorer';
+
+<DemoTreeFileExplorer compact />
+
+### Permission manager
+
+A role-based access control panel with checkbox selection propagation, filtering, animated transitions, and disabled items.
+
+import { DemoTreePermissionManager } from './demos/permission-manager';
+
+<DemoTreePermissionManager compact />
 
 ## Usage guidelines
 

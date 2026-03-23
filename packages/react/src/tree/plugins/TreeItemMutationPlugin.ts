@@ -1,13 +1,19 @@
 import type { TreeStore } from '../store/TreeStore';
-import type { TreeItemId, TreeRootItemsChangeEventReason } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type {
+  TreeRootItemsChangeEventReason,
+  TreeItemsChangeInfo,
+  TreeItemsState,
+} from '../store/types';
+import { TREE_VIEW_ROOT_PARENT_ID } from '../store/types';
 import { selectors } from '../store/selectors';
 import { createChangeEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 
-export class TreeItemMutationPlugin {
-  private store: TreeStore;
+export class TreeItemMutationPlugin<TItem> {
+  private store: TreeStore<any, TItem>;
 
-  constructor(store: TreeStore) {
+  constructor(store: TreeStore<any, TItem>) {
     this.store = store;
   }
 
@@ -15,29 +21,70 @@ export class TreeItemMutationPlugin {
   // Public — Remove
   // ---------------------------------------------------------------------------
 
-  removeItems = (itemIds: Set<TreeItemId>): void => {
+  removeItems = (itemIds: Set<CollectionItemId>): void => {
     if (itemIds.size === 0) {
       return;
     }
 
-    const newItems = this.removeItemModels(this.store.state.items, itemIds);
-    this.applyMutation(newItems, REASONS.imperativeAction);
+    const { state } = this.store;
+    const removed: TreeItemsChangeInfo['removed'] = [];
+    for (const itemId of itemIds) {
+      const meta = selectors.itemMeta(state, itemId);
+      if (meta) {
+        removed.push({ itemId, parentId: meta.parentId });
+      }
+    }
+
+    // Compute incremental lookup updates
+    const lookupUpdates = this.removeItemsFromLookups(itemIds);
+
+    const newItems = this.removeItemModels(state.items, itemIds);
+    this.applyMutation(
+      newItems,
+      REASONS.imperativeAction,
+      {
+        added: [],
+        removed,
+        moved: [],
+      },
+      lookupUpdates,
+    );
   };
 
   // ---------------------------------------------------------------------------
   // Public — Add
   // ---------------------------------------------------------------------------
 
-  addItems = (items: any[], parentId: TreeItemId | null, index: number): void => {
+  addItems = (items: TItem[], parentId: CollectionItemId | null, index: number): void => {
     if (items.length === 0) {
       return;
     }
 
+    const added: TreeItemsChangeInfo['added'] = items.map((item, i) => ({
+      item,
+      parentId,
+      index: index + i,
+    }));
+
+    // Compute incremental lookup updates
+    const parentMeta = parentId != null ? selectors.itemMeta(this.store.state, parentId) : null;
+    const depth = parentMeta ? parentMeta.depth + 1 : 0;
+    const lookupUpdates = this.addItemsToLookups(items, parentId, index, depth);
+
     const newItems = this.insertItemModels(this.store.state.items, items, parentId, index);
-    this.applyMutation(newItems, REASONS.imperativeAction);
+    this.applyMutation(
+      newItems,
+      REASONS.imperativeAction,
+      {
+        added,
+        removed: [],
+        moved: [],
+      },
+      lookupUpdates,
+    );
   };
 
-  addItemsBefore = (items: any[], referenceItemId: TreeItemId): void => {
+  addItemsBefore = (items: TItem[], referenceItemId: CollectionItemId): void => {
     const targetMeta = selectors.itemMeta(this.store.state, referenceItemId);
     if (!targetMeta) {
       return;
@@ -46,7 +93,7 @@ export class TreeItemMutationPlugin {
     this.addItems(items, targetMeta.parentId, targetIndex);
   };
 
-  addItemsAfter = (items: any[], referenceItemId: TreeItemId): void => {
+  addItemsAfter = (items: TItem[], referenceItemId: CollectionItemId): void => {
     const targetMeta = selectors.itemMeta(this.store.state, referenceItemId);
     if (!targetMeta) {
       return;
@@ -60,8 +107,8 @@ export class TreeItemMutationPlugin {
   // ---------------------------------------------------------------------------
 
   moveItems = (
-    itemIds: Set<TreeItemId>,
-    newParentId: TreeItemId | null,
+    itemIds: Set<CollectionItemId>,
+    newParentId: CollectionItemId | null,
     newIndex: number,
   ): void => {
     const { state } = this.store;
@@ -72,14 +119,14 @@ export class TreeItemMutationPlugin {
 
     // 1. Prune descendants: for each item, walk up its ancestor chain —
     //    if any ancestor is also in the set, skip this item.
-    const prunedIds: TreeItemId[] = [];
+    const prunedIds: CollectionItemId[] = [];
 
     for (const id of itemIds) {
       if (selectors.itemMeta(state, id) == null) {
         continue;
       }
       let dominated = false;
-      let currentId: TreeItemId | null = selectors.itemParentId(state, id);
+      let currentId: CollectionItemId | null = selectors.itemParentId(state, id);
       while (currentId != null) {
         if (itemIds.has(currentId)) {
           dominated = true;
@@ -112,8 +159,7 @@ export class TreeItemMutationPlugin {
     let adjustedIndex = newIndex;
     for (const id of prunedIds) {
       const parentId = selectors.itemParentId(state, id);
-      const isSameParent =
-        (parentId === null && newParentId === null) || parentId === newParentId;
+      const isSameParent = (parentId === null && newParentId === null) || parentId === newParentId;
       if (isSameParent) {
         const idx = selectors.itemIndex(state, id);
         if (idx !== -1 && idx < newIndex) {
@@ -122,19 +168,40 @@ export class TreeItemMutationPlugin {
       }
     }
 
-    // 4. Remove, then insert.
-    const withoutItems = this.removeItemModels(state.items, prunedIdSet);
-    const newItems = this.insertItemModels(
-      withoutItems,
-      itemsToMove,
-      newParentId,
-      adjustedIndex,
-    );
+    // 4. Capture old positions before mutation.
+    const moved: TreeItemsChangeInfo['moved'] = prunedIds.map((id, i) => ({
+      itemId: id,
+      oldPosition: {
+        parentId: selectors.itemParentId(state, id),
+        index: selectors.itemIndex(state, id),
+      },
+      newPosition: {
+        parentId: newParentId,
+        index: adjustedIndex + i,
+      },
+    }));
 
-    this.applyMutation(newItems, REASONS.imperativeAction);
+    // 5. Compute incremental lookup updates: remove from old parents, add to new parent,
+    //    update depths for moved subtrees.
+    const lookupUpdates = this.moveItemsInLookups(prunedIds, newParentId, adjustedIndex);
+
+    // 6. Remove, then insert (raw items array).
+    const withoutItems = this.removeItemModels(state.items, prunedIdSet);
+    const newItems = this.insertItemModels(withoutItems, itemsToMove, newParentId, adjustedIndex);
+
+    this.applyMutation(
+      newItems,
+      REASONS.imperativeAction,
+      {
+        added: [],
+        removed: [],
+        moved,
+      },
+      lookupUpdates,
+    );
   };
 
-  moveItemsBefore = (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId): void => {
+  moveItemsBefore = (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId): void => {
     const targetMeta = selectors.itemMeta(this.store.state, referenceItemId);
     if (!targetMeta) {
       return;
@@ -143,7 +210,7 @@ export class TreeItemMutationPlugin {
     this.moveItems(itemIds, targetMeta.parentId, targetIndex);
   };
 
-  moveItemsAfter = (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId): void => {
+  moveItemsAfter = (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId): void => {
     const targetMeta = selectors.itemMeta(this.store.state, referenceItemId);
     if (!targetMeta) {
       return;
@@ -156,7 +223,7 @@ export class TreeItemMutationPlugin {
   // Public — Disable
   // ---------------------------------------------------------------------------
 
-  setIsItemDisabled = (itemId: TreeItemId, isDisabled: boolean): void => {
+  setIsItemDisabled = (itemId: CollectionItemId, isDisabled: boolean): void => {
     const meta = selectors.itemMeta(this.store.state, itemId);
     if (!meta || meta.disabled === isDisabled) {
       return;
@@ -171,44 +238,334 @@ export class TreeItemMutationPlugin {
   };
 
   // ---------------------------------------------------------------------------
-  // Private — Tree mutation helpers
+  // Private — Apply mutation
   // ---------------------------------------------------------------------------
 
   /**
-   * Fire `onItemsChange`, check cancellation, update store state.
+   * Fire `onItemsChange`, check cancellation, update store state with items + lookup updates.
    */
-  private applyMutation(newItems: any[], reason: TreeRootItemsChangeEventReason): void {
+  private applyMutation(
+    newItems: TItem[],
+    reason: TreeRootItemsChangeEventReason,
+    changeInfo: TreeItemsChangeInfo,
+    lookupUpdates: Partial<TreeItemsState>,
+  ): void {
     if (newItems === this.store.state.items) {
       return;
     }
 
-    const details = createChangeEventDetails(reason);
+    const details = createChangeEventDetails(reason, undefined, undefined, changeInfo);
     this.store.context.onItemsChange(newItems, details);
     if (details.isCanceled) {
       return;
     }
 
-    this.store.set('items', newItems);
+    this.store.skipLookupRebuild = true;
+    this.store.update({
+      items: newItems,
+      ...lookupUpdates,
+    });
   }
+
+  // ---------------------------------------------------------------------------
+  // Private — Incremental lookup updates
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Collect an item and all its descendants from the current lookups.
+   */
+  private collectDescendantIds(itemId: CollectionItemId): CollectionItemId[] {
+    const { state } = this.store;
+    const result: CollectionItemId[] = [itemId];
+    const children = state.itemOrderedChildrenIdsLookup[itemId];
+    if (children) {
+      for (const childId of children) {
+        result.push(...this.collectDescendantIds(childId));
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Build a childrenIndexes record from an ordered children IDs array.
+   */
+  private buildChildrenIndexes(childrenIds: CollectionItemId[]): Record<CollectionItemId, number> {
+    const indexes: Record<CollectionItemId, number> = {};
+    for (let i = 0; i < childrenIds.length; i += 1) {
+      indexes[childrenIds[i]] = i;
+    }
+    return indexes;
+  }
+
+  /**
+   * Remove items and their descendants from all lookup tables.
+   */
+  private removeItemsFromLookups(itemIds: Set<CollectionItemId>): Partial<TreeItemsState> {
+    const { state } = this.store;
+
+    // Collect all IDs to remove (items + descendants)
+    const allIdsToRemove = new Set<CollectionItemId>();
+    // Track which parent's children arrays need updating
+    const affectedParentKeys = new Set<CollectionItemId>();
+
+    for (const itemId of itemIds) {
+      const meta = state.itemMetaLookup[itemId];
+      if (!meta) {
+        continue;
+      }
+      affectedParentKeys.add(meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID);
+      for (const id of this.collectDescendantIds(itemId)) {
+        allIdsToRemove.add(id);
+      }
+    }
+
+    // Clone and update lookups
+    const itemModelLookup = { ...state.itemModelLookup };
+    const itemMetaLookup = { ...state.itemMetaLookup };
+    const itemIdLookup = { ...state.itemIdLookup };
+    const itemOrderedChildrenIdsLookup = { ...state.itemOrderedChildrenIdsLookup };
+    const itemChildrenIndexesLookup = { ...state.itemChildrenIndexesLookup };
+
+    // Delete removed items from flat lookups
+    for (const id of allIdsToRemove) {
+      delete itemModelLookup[id];
+      delete itemMetaLookup[id];
+      delete itemIdLookup[id];
+      // Also clean up their children entries
+      delete itemOrderedChildrenIdsLookup[id];
+      delete itemChildrenIndexesLookup[id];
+    }
+
+    // Update affected parents' children arrays
+    for (const parentKey of affectedParentKeys) {
+      const oldChildren = state.itemOrderedChildrenIdsLookup[parentKey];
+      if (!oldChildren) {
+        continue;
+      }
+      const newChildren = oldChildren.filter((id) => !allIdsToRemove.has(id));
+      itemOrderedChildrenIdsLookup[parentKey] = newChildren;
+      itemChildrenIndexesLookup[parentKey] = this.buildChildrenIndexes(newChildren);
+    }
+
+    return {
+      itemModelLookup,
+      itemMetaLookup,
+      itemIdLookup,
+      itemOrderedChildrenIdsLookup,
+      itemChildrenIndexesLookup,
+    };
+  }
+
+  /**
+   * Add items and their descendants to all lookup tables.
+   */
+  private addItemsToLookups(
+    items: TItem[],
+    parentId: CollectionItemId | null,
+    insertIndex: number,
+    depth: number,
+  ): Partial<TreeItemsState> {
+    const { state } = this.store;
+    const parentKey = parentId ?? TREE_VIEW_ROOT_PARENT_ID;
+
+    // Clone the lookups we'll modify
+    const itemModelLookup = { ...state.itemModelLookup };
+    const itemMetaLookup = { ...state.itemMetaLookup };
+    const itemIdLookup = { ...state.itemIdLookup };
+    const itemOrderedChildrenIdsLookup = { ...state.itemOrderedChildrenIdsLookup };
+    const itemChildrenIndexesLookup = { ...state.itemChildrenIndexesLookup };
+
+    // Recursively add items to flat lookups
+    const newChildIds: CollectionItemId[] = [];
+
+    const processItems = (
+      siblings: TItem[],
+      siblingParentId: CollectionItemId | null,
+      siblingDepth: number,
+    ) => {
+      const siblingParentKey = siblingParentId ?? TREE_VIEW_ROOT_PARENT_ID;
+      const siblingIds: CollectionItemId[] = [];
+
+      for (let i = 0; i < siblings.length; i += 1) {
+        const item = siblings[i];
+        const itemId = state.itemToId(item);
+        const children = state.itemToChildren(item);
+
+        itemIdLookup[itemId] = itemId;
+        itemModelLookup[itemId] = item;
+        itemMetaLookup[itemId] = {
+          id: itemId,
+          parentId: siblingParentId,
+          depth: siblingDepth,
+          expandable: !!children,
+          disabled: state.isItemDisabled(item),
+          selectable: !state.isItemSelectionDisabled(item),
+          label: state.itemToStringLabel(item),
+        };
+        siblingIds.push(itemId);
+
+        if (children && children.length > 0) {
+          processItems(children, itemId, siblingDepth + 1);
+        }
+      }
+
+      // If these are nested children (not the top-level items being added),
+      // set their parent's children arrays directly
+      if (siblingParentId !== parentId) {
+        itemOrderedChildrenIdsLookup[siblingParentKey] = siblingIds;
+        itemChildrenIndexesLookup[siblingParentKey] = this.buildChildrenIndexes(siblingIds);
+      } else {
+        // For top-level items, collect IDs to splice into the parent
+        newChildIds.push(...siblingIds);
+      }
+    };
+
+    processItems(items, parentId, depth);
+
+    // Splice new IDs into parent's children array
+    const oldParentChildren = state.itemOrderedChildrenIdsLookup[parentKey] ?? [];
+    const newParentChildren = [...oldParentChildren];
+    newParentChildren.splice(insertIndex, 0, ...newChildIds);
+    itemOrderedChildrenIdsLookup[parentKey] = newParentChildren;
+    itemChildrenIndexesLookup[parentKey] = this.buildChildrenIndexes(newParentChildren);
+
+    // If the parent was previously not expandable, update its meta
+    if (parentId != null) {
+      const parentMetaEntry = itemMetaLookup[parentId];
+      if (parentMetaEntry && !parentMetaEntry.expandable) {
+        itemMetaLookup[parentId] = { ...parentMetaEntry, expandable: true };
+      }
+    }
+
+    return {
+      itemModelLookup,
+      itemMetaLookup,
+      itemIdLookup,
+      itemOrderedChildrenIdsLookup,
+      itemChildrenIndexesLookup,
+    };
+  }
+
+  /**
+   * Move items in the lookup tables: remove from old parents, add to new parent,
+   * and update parentId/depth for moved subtrees.
+   */
+  private moveItemsInLookups(
+    itemIds: CollectionItemId[],
+    newParentId: CollectionItemId | null,
+    newIndex: number,
+  ): Partial<TreeItemsState> {
+    const { state } = this.store;
+    const newParentKey = newParentId ?? TREE_VIEW_ROOT_PARENT_ID;
+    const newParentMeta = newParentId != null ? state.itemMetaLookup[newParentId] : null;
+    const newDepth = newParentMeta ? newParentMeta.depth + 1 : 0;
+
+    // Clone lookups
+    const itemMetaLookup = { ...state.itemMetaLookup };
+    const itemOrderedChildrenIdsLookup = { ...state.itemOrderedChildrenIdsLookup };
+    const itemChildrenIndexesLookup = { ...state.itemChildrenIndexesLookup };
+
+    // Track affected old parents
+    const affectedOldParentKeys = new Set<CollectionItemId>();
+    const itemIdSet = new Set(itemIds);
+
+    for (const id of itemIds) {
+      const meta = state.itemMetaLookup[id];
+      if (meta) {
+        affectedOldParentKeys.add(meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID);
+      }
+    }
+
+    // Remove from old parents' children arrays
+    for (const parentKey of affectedOldParentKeys) {
+      const oldChildren = itemOrderedChildrenIdsLookup[parentKey] ?? [];
+      const newChildren = oldChildren.filter((id) => !itemIdSet.has(id));
+      itemOrderedChildrenIdsLookup[parentKey] = newChildren;
+      itemChildrenIndexesLookup[parentKey] = this.buildChildrenIndexes(newChildren);
+    }
+
+    // Insert into new parent's children array
+    const currentNewParentChildren = itemOrderedChildrenIdsLookup[newParentKey] ?? [];
+    const updatedNewParentChildren = [...currentNewParentChildren];
+    updatedNewParentChildren.splice(newIndex, 0, ...itemIds);
+    itemOrderedChildrenIdsLookup[newParentKey] = updatedNewParentChildren;
+    itemChildrenIndexesLookup[newParentKey] = this.buildChildrenIndexes(updatedNewParentChildren);
+
+    // Update parentId and depth for moved items and their descendants
+    const updateDepths = (
+      id: CollectionItemId,
+      parentIdVal: CollectionItemId | null,
+      depth: number,
+    ) => {
+      const oldMeta = itemMetaLookup[id];
+      if (!oldMeta) {
+        return;
+      }
+      itemMetaLookup[id] = { ...oldMeta, parentId: parentIdVal, depth };
+      const children = itemOrderedChildrenIdsLookup[id];
+      if (children) {
+        for (const childId of children) {
+          updateDepths(childId, id, depth + 1);
+        }
+      }
+    };
+
+    for (const id of itemIds) {
+      updateDepths(id, newParentId, newDepth);
+    }
+
+    // If new parent was previously not expandable, update its meta
+    if (newParentId != null) {
+      const parentMetaEntry = itemMetaLookup[newParentId];
+      if (parentMetaEntry && !parentMetaEntry.expandable) {
+        itemMetaLookup[newParentId] = { ...parentMetaEntry, expandable: true };
+      }
+    }
+
+    // If old parents lost all children, update expandable
+    for (const parentKey of affectedOldParentKeys) {
+      if (parentKey === TREE_VIEW_ROOT_PARENT_ID) {
+        continue;
+      }
+      const remaining = itemOrderedChildrenIdsLookup[parentKey];
+      if (remaining && remaining.length === 0) {
+        const parentMetaEntry = itemMetaLookup[parentKey];
+        if (parentMetaEntry && parentMetaEntry.expandable) {
+          itemMetaLookup[parentKey] = { ...parentMetaEntry, expandable: false };
+        }
+      }
+    }
+
+    return {
+      itemMetaLookup,
+      itemOrderedChildrenIdsLookup,
+      itemChildrenIndexesLookup,
+      // itemModelLookup and itemIdLookup don't change for moves
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — Raw items tree manipulation
+  // ---------------------------------------------------------------------------
 
   /**
    * Remove multiple items from the raw items tree by ID.
    */
-  private removeItemModels(
-    items: readonly any[],
-    idsToRemove: Set<TreeItemId>,
-  ): any[] {
+  private removeItemModels(items: readonly TItem[], idsToRemove: Set<CollectionItemId>): TItem[] {
     const { state } = this.store;
-    const result: any[] = [];
+    let changed = false;
+    const result: TItem[] = [];
 
     for (const item of items) {
       if (idsToRemove.has(state.itemToId(item))) {
+        changed = true;
         continue;
       }
       const children = state.itemToChildren(item);
       if (children && children.length > 0) {
         const newChildren = this.removeItemModels(children, idsToRemove);
-        if (newChildren.length !== children.length) {
+        if (newChildren !== children) {
+          changed = true;
           result.push({ ...item, children: newChildren });
           continue;
         }
@@ -216,7 +573,7 @@ export class TreeItemMutationPlugin {
       result.push(item);
     }
 
-    return result;
+    return changed ? result : (items as TItem[]);
   }
 
   /**
@@ -224,11 +581,11 @@ export class TreeItemMutationPlugin {
    * Short-circuits recursion once the target parent is found.
    */
   private insertItemModels(
-    items: readonly any[],
-    newItems: any[],
-    parentId: TreeItemId | null,
+    items: readonly TItem[],
+    newItems: TItem[],
+    parentId: CollectionItemId | null,
     index: number,
-  ): any[] {
+  ): TItem[] {
     const { state } = this.store;
 
     if (parentId === null) {
@@ -259,6 +616,6 @@ export class TreeItemMutationPlugin {
       return current;
     });
 
-    return found ? result : (items as any[]);
+    return found ? result : (items as TItem[]);
   }
 }

@@ -1,15 +1,14 @@
 import { createSelector, createSelectorMemoized } from '@base-ui/utils/store';
 import { EMPTY_ARRAY } from '@base-ui/utils/empty';
+import type { CollectionItemId } from '../../types/collection';
 import type {
   TreeState,
-  TreeItemId,
   TreeItemMeta,
   TreeDefaultItemModel,
   TreeItemsState,
   FlatListEntry,
 } from './types';
 import { TREE_VIEW_ROOT_PARENT_ID, TREE_SELECTION_ALL } from './types';
-import { buildItemsState } from './buildItemsState';
 
 /**
  * Intermediate selector: bundles all accessor functions into a single memoized object.
@@ -31,21 +30,23 @@ const itemAccessorsSelector = createSelectorMemoized(
 );
 
 /**
- * Core computation: builds all 4 lookup tables from items + accessors.
- * Recomputed only when items or accessor functions change.
+ * Reads the raw lookup tables directly from the store state.
+ * The lookups are initialized by buildItemsState() and updated incrementally by mutations.
+ * Only creates a new object when any lookup reference changes.
  */
 const rawItemsStateSelector = createSelectorMemoized(
-  (state: TreeState) => state.items,
-  itemAccessorsSelector,
-  (items, acc): TreeItemsState =>
-    buildItemsState(
-      items,
-      acc.itemToId,
-      acc.itemToStringLabel,
-      acc.itemToChildren,
-      acc.isItemDisabled,
-      acc.isItemSelectionDisabled,
-    ),
+  (state: TreeState) => state.itemModelLookup,
+  (state: TreeState) => state.itemMetaLookup,
+  (state: TreeState) => state.itemOrderedChildrenIdsLookup,
+  (state: TreeState) => state.itemChildrenIndexesLookup,
+  (state: TreeState) => state.itemIdLookup,
+  (itemModelLookup, itemMetaLookup, itemOrderedChildrenIdsLookup, itemChildrenIndexesLookup, itemIdLookup): TreeItemsState => ({
+    itemModelLookup,
+    itemMetaLookup,
+    itemOrderedChildrenIdsLookup,
+    itemChildrenIndexesLookup,
+    itemIdLookup,
+  }),
 );
 
 /**
@@ -81,11 +82,11 @@ const resolvedItemsStateSelector = createSelectorMemoized(
     if (hasLazyChildren) {
       const processChildren = (
         children: TreeDefaultItemModel[],
-        parentId: TreeItemId,
+        parentId: CollectionItemId,
         parentDepth: number,
       ) => {
-        const ids: TreeItemId[] = [];
-        const indexes: Record<TreeItemId, number> = {};
+        const ids: CollectionItemId[] = [];
+        const indexes: Record<CollectionItemId, number> = {};
 
         for (let i = 0; i < children.length; i += 1) {
           const child = children[i];
@@ -176,11 +177,11 @@ const itemIdLookupSelector = createSelector(
 );
 
 const itemOrderedChildrenIdsSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId | null): TreeItemId[] =>
+  (state: TreeState, itemId: CollectionItemId | null): CollectionItemId[] =>
     itemOrderedChildrenIdsLookupSelector(state)[itemId ?? TREE_VIEW_ROOT_PARENT_ID] ?? EMPTY_ARRAY,
 );
 
-const isItemDisabledSelector = createSelector((state: TreeState, itemId: TreeItemId): boolean => {
+const isItemDisabledSelector = createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
   if (state.disabled) {
     return true;
   }
@@ -200,17 +201,17 @@ const isItemDisabledSelector = createSelector((state: TreeState, itemId: TreeIte
 
 const expandedItemsSetSelector = createSelectorMemoized(
   (state: TreeState) => state.expandedItems,
-  (expandedItems): Set<TreeItemId> => new Set(expandedItems),
+  (expandedItems): Set<CollectionItemId> => new Set(expandedItems),
 );
 
 const isItemExpandedSelector = createSelector(
   expandedItemsSetSelector,
-  (expandedSet, itemId: TreeItemId): boolean => expandedSet.has(itemId),
+  (expandedSet, itemId: CollectionItemId): boolean => expandedSet.has(itemId),
 );
 
 const selectedItemsSetSelector = createSelectorMemoized(
   (state: TreeState) => state.selectedItems,
-  (raw): Set<TreeItemId> | typeof TREE_SELECTION_ALL => {
+  (raw): Set<CollectionItemId> | typeof TREE_SELECTION_ALL => {
     if (raw === TREE_SELECTION_ALL) {
       return TREE_SELECTION_ALL;
     }
@@ -218,7 +219,7 @@ const selectedItemsSetSelector = createSelectorMemoized(
       return new Set(raw);
     }
     if (raw != null) {
-      return new Set([raw as TreeItemId]);
+      return new Set([raw as CollectionItemId]);
     }
     return new Set();
   },
@@ -229,7 +230,7 @@ const isSelectionDisabledSelector = createSelector(
 );
 
 const canItemBeSelectedSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId): boolean => {
+  (state: TreeState, itemId: CollectionItemId): boolean => {
     if (state.selectionMode === 'none') {
       return false;
     }
@@ -244,7 +245,7 @@ const canItemBeSelectedSelector = createSelector(
   },
 );
 
-const isItemSelectedSelector = createSelector((state: TreeState, itemId: TreeItemId): boolean => {
+const isItemSelectedSelector = createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
   const selectedSet = selectedItemsSetSelector(state);
   if (selectedSet === TREE_SELECTION_ALL) {
     return canItemBeSelectedSelector(state, itemId);
@@ -265,14 +266,14 @@ const descendantSelectionCountsSelector = createSelectorMemoized(
   (
     selectedSet,
     childrenLookup,
-  ): Record<TreeItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
+  ): Record<CollectionItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
     if (selectedSet === TREE_SELECTION_ALL) {
       return TREE_SELECTION_ALL;
     }
 
-    const counts: Record<TreeItemId, { selected: number; total: number }> = {};
+    const counts: Record<CollectionItemId, { selected: number; total: number }> = {};
 
-    const compute = (itemId: TreeItemId): { selected: number; total: number } => {
+    const compute = (itemId: CollectionItemId): { selected: number; total: number } => {
       const children = childrenLookup[itemId];
       if (!children || children.length === 0) {
         const result = { selected: 0, total: 0 };
@@ -304,7 +305,7 @@ const descendantSelectionCountsSelector = createSelectorMemoized(
 );
 
 const checkboxSelectionStatusSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId): CheckboxSelectionStatus => {
+  (state: TreeState, itemId: CollectionItemId): CheckboxSelectionStatus => {
     if (isItemSelectedSelector(state, itemId)) {
       return 'checked';
     }
@@ -341,7 +342,7 @@ const checkboxSelectionStatusSelector = createSelector(
 );
 
 const isItemFocusedSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId): boolean => state.focusedItemId === itemId,
+  (state: TreeState, itemId: CollectionItemId): boolean => state.focusedItemId === itemId,
 );
 
 const defaultFocusableItemIdSelector = createSelectorMemoized(
@@ -356,14 +357,14 @@ const defaultFocusableItemIdSelector = createSelectorMemoized(
     metaLookup,
     disabledFocusable,
     childrenLookup,
-  ): TreeItemId | null => {
+  ): CollectionItemId | null => {
     // When "all" or no explicit selection, skip to first root item
     if (selectedItems !== TREE_SELECTION_ALL) {
-      let normalized: readonly TreeItemId[];
+      let normalized: readonly CollectionItemId[];
       if (Array.isArray(selectedItems)) {
         normalized = selectedItems;
       } else if (selectedItems != null) {
-        normalized = [selectedItems as TreeItemId];
+        normalized = [selectedItems as CollectionItemId];
       } else {
         normalized = [];
       }
@@ -404,7 +405,7 @@ const defaultFocusableItemIdSelector = createSelectorMemoized(
 );
 
 const isItemDefaultFocusableSelector = createSelector(
-  (state: TreeState, itemId: TreeItemId): boolean => {
+  (state: TreeState, itemId: CollectionItemId): boolean => {
     const currentFocusedId = state.focusedItemId;
     if (currentFocusedId != null) {
       return currentFocusedId === itemId;
@@ -413,7 +414,7 @@ const isItemDefaultFocusableSelector = createSelector(
   },
 );
 
-const itemSiblingsCountSelector = createSelector((state: TreeState, itemId: TreeItemId): number => {
+const itemSiblingsCountSelector = createSelector((state: TreeState, itemId: CollectionItemId): number => {
   const meta = itemMetaLookupSelector(state)[itemId];
   if (!meta) {
     return 0;
@@ -422,7 +423,7 @@ const itemSiblingsCountSelector = createSelector((state: TreeState, itemId: Tree
   return itemOrderedChildrenIdsLookupSelector(state)[parentKey]?.length ?? 0;
 });
 
-const itemPositionInSetSelector = createSelector((state: TreeState, itemId: TreeItemId): number => {
+const itemPositionInSetSelector = createSelector((state: TreeState, itemId: CollectionItemId): number => {
   const meta = itemMetaLookupSelector(state)[itemId];
   if (!meta) {
     return 1;
@@ -434,10 +435,10 @@ const itemPositionInSetSelector = createSelector((state: TreeState, itemId: Tree
 const flatListSelector = createSelectorMemoized(
   itemOrderedChildrenIdsLookupSelector,
   expandedItemsSetSelector,
-  (childrenLookup, expandedSet): TreeItemId[] => {
-    const result: TreeItemId[] = [];
+  (childrenLookup, expandedSet): CollectionItemId[] => {
+    const result: CollectionItemId[] = [];
 
-    const appendChildren = (parentId: TreeItemId) => {
+    const appendChildren = (parentId: CollectionItemId) => {
       const children = childrenLookup[parentId];
       if (!children) {
         return;
@@ -458,16 +459,16 @@ const flatListSelector = createSelectorMemoized(
 const flatListWithGroupTransitionsSelector = createSelectorMemoized(
   flatListSelector,
   (state: TreeState) => state.animatingGroups,
-  (flatList, animatingGroups): TreeItemId[] | FlatListEntry[] => {
+  (flatList, animatingGroups): CollectionItemId[] | FlatListEntry[] => {
     const animatingGroupValues = Object.values(animatingGroups);
     if (animatingGroupValues.length === 0) {
       return flatList;
     }
 
     // Build a set of all childIds currently being animated
-    const animatingChildIds = new Set<TreeItemId>();
+    const animatingChildIds = new Set<CollectionItemId>();
     // Map childId -> parentId for items in expanding groups
-    const childToAnimatingParent = new Map<TreeItemId, TreeItemId>();
+    const childToAnimatingParent = new Map<CollectionItemId, CollectionItemId>();
     for (const group of animatingGroupValues) {
       for (const childId of group.childIds) {
         animatingChildIds.add(childId);
@@ -476,7 +477,7 @@ const flatListWithGroupTransitionsSelector = createSelectorMemoized(
     }
 
     const result: FlatListEntry[] = [];
-    const insertedGroups = new Set<TreeItemId>();
+    const insertedGroups = new Set<CollectionItemId>();
 
     for (const itemId of flatList) {
       // If this item is inside an expanding animation group, skip it
@@ -530,17 +531,18 @@ const labelMapSelector = createSelectorMemoized(
 );
 
 export const selectors = {
+  itemAccessors: itemAccessorsSelector,
   virtualized: createSelector((state: TreeState): boolean => state.virtualized),
   itemMetaLookup: itemMetaLookupSelector,
   itemMeta: createSelector(
-    (state: TreeState, itemId: TreeItemId | null): TreeItemMeta | null =>
+    (state: TreeState, itemId: CollectionItemId | null): TreeItemMeta | null =>
       itemMetaLookupSelector(state)[itemId ?? TREE_VIEW_ROOT_PARENT_ID] ?? null,
   ),
   itemModel: createSelector(
-    (state: TreeState, itemId: TreeItemId) => itemModelLookupSelector(state)[itemId],
+    (state: TreeState, itemId: CollectionItemId) => itemModelLookupSelector(state)[itemId],
   ),
   itemOrderedChildrenIds: itemOrderedChildrenIdsSelector,
-  itemIndex: createSelector((state: TreeState, itemId: TreeItemId): number => {
+  itemIndex: createSelector((state: TreeState, itemId: CollectionItemId): number => {
     const meta = itemMetaLookupSelector(state)[itemId];
     if (!meta) {
       return -1;
@@ -552,21 +554,21 @@ export const selectors = {
     );
   }),
   itemParentId: createSelector(
-    (state: TreeState, itemId: TreeItemId): TreeItemId | null =>
+    (state: TreeState, itemId: CollectionItemId): CollectionItemId | null =>
       itemMetaLookupSelector(state)[itemId]?.parentId ?? null,
   ),
   itemDepth: createSelector(
-    (state: TreeState, itemId: TreeItemId): number =>
+    (state: TreeState, itemId: CollectionItemId): number =>
       itemMetaLookupSelector(state)[itemId]?.depth ?? 0,
   ),
   isItemDisabled: isItemDisabledSelector,
   canItemBeFocused: createSelector(
-    (state: TreeState, itemId: TreeItemId): boolean =>
+    (state: TreeState, itemId: CollectionItemId): boolean =>
       state.itemFocusableWhenDisabled || !isItemDisabledSelector(state, itemId),
   ),
   isItemExpanded: isItemExpandedSelector,
   isItemExpandable: createSelector(
-    (state: TreeState, itemId: TreeItemId): boolean =>
+    (state: TreeState, itemId: CollectionItemId): boolean =>
       itemMetaLookupSelector(state)[itemId]?.expandable ?? false,
   ),
   flatList: flatListSelector,
@@ -581,22 +583,22 @@ export const selectors = {
   checkboxSelectionPropagation: createSelector(
     (state: TreeState) => state.checkboxSelectionPropagation,
   ),
-  focusedItemId: createSelector((state: TreeState): TreeItemId | null => state.focusedItemId),
+  focusedItemId: createSelector((state: TreeState): CollectionItemId | null => state.focusedItemId),
   isItemFocused: isItemFocusedSelector,
   defaultFocusableItemId: defaultFocusableItemIdSelector,
   isItemLoading: createSelector(
-    (state: TreeState, itemId: TreeItemId | null): boolean =>
+    (state: TreeState, itemId: CollectionItemId | null): boolean =>
       state.lazyItems?.loading[itemId ?? TREE_VIEW_ROOT_PARENT_ID] ?? false,
   ),
   itemError: createSelector(
-    (state: TreeState, itemId: TreeItemId | null): Error | undefined =>
+    (state: TreeState, itemId: CollectionItemId | null): Error | undefined =>
       state.lazyItems?.errors[itemId ?? TREE_VIEW_ROOT_PARENT_ID],
   ),
   isItemDefaultFocusable: isItemDefaultFocusableSelector,
   itemSiblingsCount: itemSiblingsCountSelector,
   itemPositionInSet: itemPositionInSetSelector,
   itemLabel: createSelector(
-    (state: TreeState, itemId: TreeItemId): string =>
+    (state: TreeState, itemId: CollectionItemId): string =>
       itemMetaLookupSelector(state)[itemId]?.label ?? '',
   ),
   itemIdLookup: itemIdLookupSelector,
@@ -607,23 +609,37 @@ export const selectors = {
     (state: TreeState): boolean => state.dragAndDrop != null,
   ),
   isItemDragged: createSelector(
-    (state: TreeState, itemId: TreeItemId): boolean =>
+    (state: TreeState, itemId: CollectionItemId): boolean =>
       state.dragAndDrop?.draggedItemIds.has(itemId) ?? false,
   ),
   isItemDropTarget: createSelector(
-    (state: TreeState, itemId: TreeItemId): boolean =>
+    (state: TreeState, itemId: CollectionItemId): boolean =>
       state.dragAndDrop?.dropTargetItemId === itemId,
   ),
   itemDropPosition: createSelector(
-    (state: TreeState, itemId: TreeItemId): 'before' | 'after' | 'on' | null =>
+    (state: TreeState, itemId: CollectionItemId): 'before' | 'after' | 'on' | null =>
       state.dragAndDrop?.dropTargetItemId === itemId
         ? (state.dragAndDrop?.dropPosition ?? null)
         : null,
   ),
   itemDropOperation: createSelector(
-    (state: TreeState, itemId: TreeItemId): 'move' | 'copy' | 'link' | 'cancel' | null =>
+    (state: TreeState, itemId: CollectionItemId): 'move' | 'copy' | 'link' | 'cancel' | null =>
       state.dragAndDrop?.dropTargetItemId === itemId
         ? (state.dragAndDrop?.dropOperation ?? null)
         : null,
+  ),
+  isItemInDropTargetGroup: createSelector(
+    (state: TreeState, itemId: CollectionItemId): boolean => {
+      const groupId = state.dropTargetGroupId;
+      if (groupId == null) return false;
+      if (itemId === groupId) return true;
+      const metaLookup = itemMetaLookupSelector(state);
+      let currentId: CollectionItemId | null = metaLookup[itemId]?.parentId ?? null;
+      while (currentId != null) {
+        if (currentId === groupId) return true;
+        currentId = metaLookup[currentId]?.parentId ?? null;
+      }
+      return false;
+    },
   ),
 };

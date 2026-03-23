@@ -6,7 +6,8 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { selectors } from '../store/selectors';
 import { TreeGroupTransitionContext } from '../group-transition/TreeGroupTransitionContext';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
-import type { TreeItemId, FlatListEntry } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type { FlatListEntry } from '../store/types';
 
 /**
  * Renders tree items with animated expand/collapse transitions.
@@ -30,7 +31,7 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
 
   const flatListEntries = useStore(store, selectors.flatListWithGroupTransitions);
 
-  // Fast path: no animations — flatListEntries is a plain TreeItemId[]
+  // Fast path: no animations — flatListEntries is a plain CollectionItemId[]
   const isPlainList =
     flatListEntries.length === 0 ||
     typeof flatListEntries[0] === 'string' ||
@@ -42,8 +43,8 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
       return null;
     }
     const map = new Map<
-      TreeItemId,
-      { childIds: TreeItemId[]; animation: 'expanding' | 'collapsing' }
+      CollectionItemId,
+      { childIds: CollectionItemId[]; animation: 'expanding' | 'collapsing' }
     >();
     for (const entry of flatListEntries as FlatListEntry[]) {
       if (entry.type === 'group-transition') {
@@ -57,7 +58,7 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
     // No animations: render items directly without wrapping overhead
     return (
       <React.Fragment>
-        {(flatListEntries as TreeItemId[]).map((itemId) => (
+        {(flatListEntries as CollectionItemId[]).map((itemId) => (
           <TreeGroupTransitionContext.Provider key={itemId} value={null}>
             <TreeItemModelProvider store={store} itemId={itemId}>
               {children}

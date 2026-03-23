@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import type { CollectionItemId } from '@base-ui/react/types';
 import styles from './tree.module.css';
 
 const initialItems: Tree.DefaultItemModel[] = [
@@ -28,12 +29,12 @@ const initialItems: Tree.DefaultItemModel[] = [
 ];
 
 const DeleteContext = React.createContext<{
-  deleteItem: (itemId: Tree.ItemId) => void;
+  deleteItem: (itemId: CollectionItemId) => void;
 }>({
   deleteItem: () => {},
 });
 
-function DeleteButton({ itemId }: { itemId: Tree.ItemId }) {
+function DeleteButton({ itemId }: { itemId: CollectionItemId }) {
   const { deleteItem } = React.useContext(DeleteContext);
 
   return (
@@ -53,12 +54,12 @@ function DeleteButton({ itemId }: { itemId: Tree.ItemId }) {
 }
 
 export default function DeleteItemTree() {
-  const [items, setItems] = React.useState(initialItems);
+  const actionsRef = React.useRef<Tree.Root.Actions>(null);
 
   const deleteContext = React.useMemo(
     () => ({
-      deleteItem: (itemId: Tree.ItemId) => {
-        setItems((prev) => removeItem(prev, itemId));
+      deleteItem: (itemId: CollectionItemId) => {
+        actionsRef.current?.removeItems(new Set([itemId]));
       },
     }),
     [],
@@ -75,7 +76,8 @@ export default function DeleteItemTree() {
       </div>
       <DeleteContext.Provider value={deleteContext}>
         <Tree.Root
-          items={items}
+          defaultItems={initialItems}
+          actionsRef={actionsRef}
           defaultExpandedItems={['groceries', 'tasks']}
           className={styles.tree}
         >
@@ -92,20 +94,6 @@ export default function DeleteItemTree() {
       </DeleteContext.Provider>
     </div>
   );
-}
-
-function removeItem(
-  items: Tree.DefaultItemModel[],
-  targetId: Tree.ItemId,
-): Tree.DefaultItemModel[] {
-  return items
-    .filter((item) => item.id !== targetId)
-    .map((item) => {
-      if (item.children) {
-        return { ...item, children: removeItem(item.children, targetId) };
-      }
-      return item;
-    });
 }
 
 function ChevronIcon(props: React.ComponentProps<'svg'>) {

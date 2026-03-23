@@ -31,7 +31,6 @@ const INITIAL_ITEMS: Tree.DefaultItemModel[] = [
 ];
 
 export default function ExampleTreeDragAndDrop() {
-  const [items, setItems] = React.useState(INITIAL_ITEMS);
   const actionsRef = React.useRef<Tree.Root.Actions>(null);
 
   const dragAndDrop = useDragAndDrop({
@@ -57,8 +56,7 @@ export default function ExampleTreeDragAndDrop() {
 
   return (
     <Tree.Root
-      items={items}
-      onItemsChange={setItems}
+      defaultItems={INITIAL_ITEMS}
       actionsRef={actionsRef}
       expandOnClick
       selectionMode="multiple"

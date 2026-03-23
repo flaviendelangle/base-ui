@@ -1,6 +1,7 @@
 export { useDragAndDrop } from './useDragAndDrop';
 export type {
   UseDragAndDropParameters,
-  UseDragAndDropComponentContext,
+  UseDragAndDropReturnValue,
+  DragAndDropAttachConfig,
   DragAndDropState,
 } from './useDragAndDrop';

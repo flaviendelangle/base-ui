@@ -1,33 +1,34 @@
-import type { TreeState, TreeItemId, TreeItemMeta } from './types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeState, TreeItemMeta } from './types';
 import { selectors } from './selectors';
 
 const isItemExpanded = selectors.isItemExpanded;
 
-function canItemBeFocused(state: TreeState, itemId: TreeItemId): boolean {
+function canItemBeFocused(state: TreeState, itemId: CollectionItemId): boolean {
   return selectors.canItemBeFocused(state, itemId);
 }
 
-function isItemExpandable(state: TreeState, itemId: TreeItemId): boolean {
+function isItemExpandable(state: TreeState, itemId: CollectionItemId): boolean {
   return selectors.itemMeta(state, itemId)?.expandable ?? false;
 }
 
-function itemOrderedChildrenIds(state: TreeState, itemId: TreeItemId | null): TreeItemId[] {
+function itemOrderedChildrenIds(state: TreeState, itemId: CollectionItemId | null): CollectionItemId[] {
   return selectors.itemOrderedChildrenIds(state, itemId);
 }
 
-function itemIndex(state: TreeState, itemId: TreeItemId): number {
+function itemIndex(state: TreeState, itemId: CollectionItemId): number {
   return selectors.itemIndex(state, itemId);
 }
 
-function itemMeta(state: TreeState, itemId: TreeItemId | null): TreeItemMeta | null {
+function itemMeta(state: TreeState, itemId: CollectionItemId | null): TreeItemMeta | null {
   return selectors.itemMeta(state, itemId);
 }
 
-function itemParentId(state: TreeState, itemId: TreeItemId): TreeItemId | null {
+function itemParentId(state: TreeState, itemId: CollectionItemId): CollectionItemId | null {
   return selectors.itemParentId(state, itemId);
 }
 
-const getLastNavigableItemInArray = (state: TreeState, items: TreeItemId[]) => {
+const getLastNavigableItemInArray = (state: TreeState, items: CollectionItemId[]) => {
   let idx = items.length - 1;
   while (idx >= 0 && !canItemBeFocused(state, items[idx])) {
     idx -= 1;
@@ -42,8 +43,8 @@ const getLastNavigableItemInArray = (state: TreeState, items: TreeItemId[]) => {
 
 export const getPreviousNavigableItem = (
   state: TreeState,
-  itemId: TreeItemId,
-): TreeItemId | null => {
+  itemId: CollectionItemId,
+): CollectionItemId | null => {
   const meta = itemMeta(state, itemId);
   if (!meta) {
     return null;
@@ -82,7 +83,7 @@ export const getPreviousNavigableItem = (
   }
 
   // Find the last navigable descendant of the previous navigable sibling.
-  let currentItemId: TreeItemId = siblings[previousNavigableSiblingIndex];
+  let currentItemId: CollectionItemId = siblings[previousNavigableSiblingIndex];
   let lastNavigableChild = getLastNavigableItemInArray(
     state,
     itemOrderedChildrenIds(state, currentItemId),
@@ -98,7 +99,7 @@ export const getPreviousNavigableItem = (
   return currentItemId;
 };
 
-export const getNextNavigableItem = (state: TreeState, itemId: TreeItemId): TreeItemId | null => {
+export const getNextNavigableItem = (state: TreeState, itemId: CollectionItemId): CollectionItemId | null => {
   // If the item is expanded and has some navigable children, return the first of them.
   if (isItemExpanded(state, itemId)) {
     const children = itemOrderedChildrenIds(state, itemId);
@@ -134,8 +135,8 @@ export const getNextNavigableItem = (state: TreeState, itemId: TreeItemId): Tree
   return null;
 };
 
-export const getLastNavigableItem = (state: TreeState): TreeItemId | null => {
-  let currentItemId: TreeItemId | null = null;
+export const getLastNavigableItem = (state: TreeState): CollectionItemId | null => {
+  let currentItemId: CollectionItemId | null = null;
   while (currentItemId == null || isItemExpanded(state, currentItemId)) {
     const children = itemOrderedChildrenIds(state, currentItemId);
     const lastNavigableChild = getLastNavigableItemInArray(state, children);
@@ -150,7 +151,7 @@ export const getLastNavigableItem = (state: TreeState): TreeItemId | null => {
   return currentItemId;
 };
 
-export const getFirstNavigableItem = (state: TreeState): TreeItemId | null => {
+export const getFirstNavigableItem = (state: TreeState): CollectionItemId | null => {
   const rootChildren = itemOrderedChildrenIds(state, null);
   for (let i = 0; i < rootChildren.length; i += 1) {
     if (canItemBeFocused(state, rootChildren[i])) {
@@ -166,9 +167,9 @@ export const getFirstNavigableItem = (state: TreeState): TreeItemId | null => {
  */
 export const findOrderInTremauxTree = (
   state: TreeState,
-  itemAId: TreeItemId,
-  itemBId: TreeItemId,
-): [TreeItemId, TreeItemId] => {
+  itemAId: CollectionItemId,
+  itemBId: CollectionItemId,
+): [CollectionItemId, CollectionItemId] => {
   if (itemAId === itemBId) {
     return [itemAId, itemBId];
   }
@@ -184,13 +185,13 @@ export const findOrderInTremauxTree = (
     return metaB.parentId === metaA.id ? [metaA.id, metaB.id] : [metaB.id, metaA.id];
   }
 
-  const aFamily: (TreeItemId | null)[] = [metaA.id];
-  const bFamily: (TreeItemId | null)[] = [metaB.id];
-  const aFamilySet = new Set<TreeItemId | null>([metaA.id]);
-  const bFamilySet = new Set<TreeItemId | null>([metaB.id]);
+  const aFamily: (CollectionItemId | null)[] = [metaA.id];
+  const bFamily: (CollectionItemId | null)[] = [metaB.id];
+  const aFamilySet = new Set<CollectionItemId | null>([metaA.id]);
+  const bFamilySet = new Set<CollectionItemId | null>([metaB.id]);
 
-  let aAncestor: TreeItemId | null = metaA.parentId;
-  let bAncestor: TreeItemId | null = metaB.parentId;
+  let aAncestor: CollectionItemId | null = metaA.parentId;
+  let bAncestor: CollectionItemId | null = metaB.parentId;
 
   let aAncestorIsCommon = bFamilySet.has(aAncestor);
   let bAncestorIsCommon = aFamilySet.has(bAncestor);
@@ -235,10 +236,10 @@ export const findOrderInTremauxTree = (
  */
 export const getNonDisabledItemsInRange = (
   state: TreeState,
-  itemAId: TreeItemId,
-  itemBId: TreeItemId,
-): TreeItemId[] => {
-  const getNextItem = (id: TreeItemId): TreeItemId => {
+  itemAId: CollectionItemId,
+  itemBId: CollectionItemId,
+): CollectionItemId[] => {
+  const getNextItem = (id: CollectionItemId): CollectionItemId => {
     if (isItemExpandable(state, id) && isItemExpanded(state, id)) {
       return itemOrderedChildrenIds(state, id)[0];
     }

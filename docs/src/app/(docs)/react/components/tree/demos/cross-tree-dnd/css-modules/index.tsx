@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import type { CollectionItemId } from '@base-ui/react/types';
 import { useDragAndDrop } from '@base-ui/react/use-drag-and-drop';
 import styles from './index.module.css';
 
@@ -28,8 +29,6 @@ const ARCHIVE_ITEMS: Tree.DefaultItemModel[] = [
 ];
 
 export default function ExampleTreeCrossTreeDnd() {
-  const [inboxItems, setInboxItems] = React.useState(INBOX_ITEMS);
-  const [archiveItems, setArchiveItems] = React.useState(ARCHIVE_ITEMS);
   const inboxActionsRef = React.useRef<Tree.Root.Actions>(null);
   const archiveActionsRef = React.useRef<Tree.Root.Actions>(null);
 
@@ -37,18 +36,14 @@ export default function ExampleTreeCrossTreeDnd() {
     <div className={styles.Layout}>
       <DndTree
         title="Inbox"
-        items={inboxItems}
-        onItemsChange={setInboxItems}
+        defaultItems={INBOX_ITEMS}
         actionsRef={inboxActionsRef}
-        otherActionsRef={archiveActionsRef}
         defaultExpandedItems={['urgent']}
       />
       <DndTree
         title="Archive"
-        items={archiveItems}
-        onItemsChange={setArchiveItems}
+        defaultItems={ARCHIVE_ITEMS}
         actionsRef={archiveActionsRef}
-        otherActionsRef={inboxActionsRef}
         defaultExpandedItems={['q1']}
       />
     </div>
@@ -57,18 +52,14 @@ export default function ExampleTreeCrossTreeDnd() {
 
 function DndTree({
   title,
-  items,
-  onItemsChange,
+  defaultItems,
   actionsRef,
-  otherActionsRef,
   defaultExpandedItems,
 }: {
   title: string;
-  items: Tree.DefaultItemModel[];
-  onItemsChange: (items: Tree.DefaultItemModel[]) => void;
+  defaultItems: Tree.DefaultItemModel[];
   actionsRef: React.RefObject<Tree.Root.Actions | null>;
-  otherActionsRef: React.RefObject<Tree.Root.Actions | null>;
-  defaultExpandedItems: Tree.ItemId[];
+  defaultExpandedItems: CollectionItemId[];
 }) {
   const dragAndDrop = useDragAndDrop({
     getAllowedDropOperations: () => ['move', 'copy'],
@@ -82,14 +73,8 @@ function DndTree({
         actionsRef.current?.moveItems(itemIds, target.itemId, 0);
       }
     },
-    onInsert: ({ itemIds, target }) => {
-      const models: Tree.DefaultItemModel[] = [];
-      for (const id of itemIds) {
-        const item = otherActionsRef.current?.getItemModel(id);
-        if (item) {
-          models.push(item);
-        }
-      }
+    onInsert: ({ items, target }) => {
+      const models = items as Tree.DefaultItemModel[];
       if (target.position === 'before') {
         actionsRef.current?.addItemsBefore(models, target.itemId);
       } else {
@@ -101,13 +86,9 @@ function DndTree({
         actionsRef.current?.removeItems(itemIds);
       }
     },
-    renderDragPreview: ({ draggedItemId }) => {
-      return (
-        <div className={styles.DragPreview}>
-          {actionsRef.current?.getItemModel(draggedItemId)?.label ??
-            otherActionsRef.current?.getItemModel(draggedItemId)?.label}
-        </div>
-      );
+    renderDragPreview: ({ draggedItem }) => {
+      const model = draggedItem as Tree.DefaultItemModel;
+      return <div className={styles.DragPreview}>{model.label}</div>;
     },
   });
 
@@ -115,27 +96,30 @@ function DndTree({
     <div className={styles.Column}>
       <h3 className={styles.Heading}>{title}</h3>
       <Tree.Root
-        items={items}
-        onItemsChange={onItemsChange}
+        defaultItems={defaultItems}
         actionsRef={actionsRef}
-        expandOnClick
+        selectionMode="multiple"
         defaultExpandedItems={defaultExpandedItems}
         dragAndDrop={dragAndDrop}
         className={styles.Tree}
       >
         {(item) => (
-          <Tree.Item itemId={item.id} className={styles.Item}>
+          <Tree.CheckboxItem itemId={item.id} className={styles.Item}>
             <Tree.ItemDragIndicator className={styles.DragHandle}>
               <GripIcon />
             </Tree.ItemDragIndicator>
             <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
               <ChevronIcon />
             </Tree.ItemExpansionTrigger>
+            <Tree.CheckboxItemIndicator className={styles.CheckboxIndicator} keepMounted>
+              <CheckIcon className={styles.CheckIcon} />
+              <MinusIcon className={styles.MinusIcon} />
+            </Tree.CheckboxItemIndicator>
             <Tree.ItemGroupIndicator className={styles.Icon}>
               <FolderIcon />
             </Tree.ItemGroupIndicator>
             <Tree.ItemLabel className={styles.Label} />
-          </Tree.Item>
+          </Tree.CheckboxItem>
         )}
       </Tree.Root>
     </div>
@@ -166,6 +150,22 @@ function ChevronIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function CheckIcon(props: React.ComponentProps<'svg'>) {
+  return (
+    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
+      <path d="M9.854 3.146a.5.5 0 010 .708l-4.5 4.5a.5.5 0 01-.708 0l-2-2a.5.5 0 01.708-.708L5 7.293l4.146-4.147a.5.5 0 01.708 0z" />
+    </svg>
+  );
+}
+
+function MinusIcon(props: React.ComponentProps<'svg'>) {
+  return (
+    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
+      <path d="M2.5 6a.5.5 0 01.5-.5h6a.5.5 0 010 1H3a.5.5 0 01-.5-.5z" />
     </svg>
   );
 }

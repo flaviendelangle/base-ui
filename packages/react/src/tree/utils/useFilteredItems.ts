@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
 import type { Filter } from '../../utils/filter';
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
-const defaultItemToId = (item: any): TreeItemId => item.id;
+const defaultItemToId = (item: any): CollectionItemId => item.id;
 const defaultItemToStringLabel = (item: any): string => item.label;
 const defaultItemToChildren = (item: any): any[] | undefined => item.children;
 
@@ -38,7 +38,7 @@ export interface UseTreeFilteredItemsOptions<TItem> {
    * Required when `autoExpand` is `true`.
    * @default (item) => item.id
    */
-  itemToId?: ((item: TItem) => TreeItemId) | undefined;
+  itemToId?: ((item: TItem) => CollectionItemId) | undefined;
   /**
    * Extracts the string label from an item for filtering.
    * @default (item) => item.label
@@ -61,7 +61,7 @@ export interface UseTreeFilteredItemsReturnValue<TItem> {
    * The IDs of items that should be expanded to reveal matching descendants.
    * Only populated when `autoExpand` is `true`.
    */
-  expandedItems: TreeItemId[];
+  expandedItems: CollectionItemId[];
 }
 
 /**
@@ -100,7 +100,7 @@ export function useTreeFilteredItems<TItem>(
       return items as TItem[];
     }
 
-    const expandedItems: TreeItemId[] = [];
+    const expandedItems: CollectionItemId[] = [];
 
     const filterTree = (nodes: readonly TItem[]): TItem[] => {
       const result: TItem[] = [];

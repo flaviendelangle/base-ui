@@ -6,10 +6,10 @@ import type { useDragAndDrop } from '../../use-drag-and-drop';
 import { TreeItemMutationPlugin } from '../plugins/TreeItemMutationPlugin';
 import { TreeSelectionPlugin } from '../plugins/TreeSelectionPlugin';
 import { TreeExpansionPlugin } from '../plugins/TreeExpansionPlugin';
+import type { CollectionItemId } from '../../types/collection';
 import type {
   TreeState,
   TreeStoreContext,
-  TreeItemId,
   TreeDefaultItemModel,
   TreeRootActions,
   TreeRootExpansionChangeEventReason,
@@ -26,6 +26,7 @@ import type {
   TreeRootItemsChangeEventDetails,
 } from './types';
 import { selectors } from './selectors';
+import { buildItemsState } from './buildItemsState';
 import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
 import {
@@ -49,21 +50,29 @@ export interface TreeStoreParameters<
   /**
    * The items to render.
    * Each item must have a unique identifier.
+   *
+   * To render an uncontrolled tree, use the `defaultItems` prop instead.
    */
-  items: readonly TItem[];
+  items?: readonly TItem[] | undefined;
+  /**
+   * The items that are initially rendered.
+   *
+   * To render a controlled tree, use the `items` prop instead.
+   */
+  defaultItems?: readonly TItem[] | undefined;
   /**
    * The expanded items.
    *
    * To render an uncontrolled tree, use the `defaultExpandedItems` prop instead.
    */
-  expandedItems?: readonly TreeItemId[] | undefined;
+  expandedItems?: readonly CollectionItemId[] | undefined;
   /**
    * The items that are initially expanded.
    *
    * To render a controlled tree, use the `expandedItems` prop instead.
    * @default []
    */
-  defaultExpandedItems?: readonly TreeItemId[] | undefined;
+  defaultExpandedItems?: readonly CollectionItemId[] | undefined;
   /**
    * Whether clicking anywhere on an item row toggles expansion.
    * When `false`, only `Tree.ItemExpansionTrigger` can expand items.
@@ -74,7 +83,10 @@ export interface TreeStoreParameters<
    * Event handler called when items are expanded or collapsed.
    */
   onExpandedItemsChange?:
-    | ((expandedItems: TreeItemId[], eventDetails: TreeRootExpansionChangeEventDetails) => void)
+    | ((
+        expandedItems: CollectionItemId[],
+        eventDetails: TreeRootExpansionChangeEventDetails,
+      ) => void)
     | undefined;
   /**
    * Event handler called when an item is expanded or collapsed.
@@ -152,12 +164,14 @@ export interface TreeStoreParameters<
   /**
    * Event handler called when an item is focused.
    */
-  onItemFocus?: ((itemId: TreeItemId, details: TreeItemFocusEventDetails) => void) | undefined;
+  onItemFocus?:
+    | ((itemId: CollectionItemId, details: TreeItemFocusEventDetails) => void)
+    | undefined;
   /**
    * Used to determine the id of a given item.
    * @default (item) => item.id
    */
-  itemToId?: ((item: TItem) => TreeItemId) | undefined;
+  itemToId?: ((item: TItem) => CollectionItemId) | undefined;
   /**
    * Used to determine the string label of a given item.
    * @default (item) => item.label
@@ -187,17 +201,26 @@ export interface TreeStoreParameters<
    */
   rootRef: React.RefObject<HTMLElement | null>;
   /**
-   * The lazy loading plugin instance, used to load items on demand when expanding a parent item.
+   * The lazy loading plugin instance returned by `Tree.useLazyLoading`.
+   * It is used to load items on demand when expanding a parent item.
    */
   lazyLoading?: TreeLazyLoading<TItem> | undefined;
   /**
-   * The drag-and-drop plugin instance, used to enable reordering and reparenting via drag.
+   * The drag-and-drop plugin instance returned by `useDragAndDrop`.
+   * It is used to enable drag-and-drop interactions on the tree.
    */
   dragAndDrop?: ReturnType<typeof useDragAndDrop> | undefined;
   /**
    * Event handler called when items are reordered or reparented.
    */
   onItemsChange?: ((items: TItem[], details: TreeRootItemsChangeEventDetails) => void) | undefined;
+  /**
+   * Maps a drop target item to its containing group (e.g., parent folder).
+   * When provided, items in the group receive `data-drop-target-group`.
+   */
+  resolveDropTargetGroup?:
+    | ((dropTargetItemId: CollectionItemId) => CollectionItemId | null)
+    | undefined;
 }
 
 function isPrintableKey(key: string): boolean {
@@ -207,18 +230,18 @@ function isPrintableKey(key: string): boolean {
 export interface TreeLazyLoading<TItem = TreeDefaultItemModel> {
   attach(store: TreeStore<any, TItem>): void;
   onBeforeExpand(
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
   ): Promise<void>;
-  refreshItemChildren(itemId: TreeItemId | null): Promise<void>;
+  refreshItemChildren(itemId: CollectionItemId | null): Promise<void>;
   destroy(): void;
 }
 
 export class TreeStore<
   Mode extends TreeSelectionMode | undefined = undefined,
   TItem = TreeDefaultItemModel,
-> extends ReactStore<TreeState<any>, TreeStoreContext, typeof selectors> {
+> extends ReactStore<TreeState<TItem>, TreeStoreContext, typeof selectors> {
   // Focus reason tracking — default to 'keyboard' since tab focus is keyboard-like
   private lastFocusReason: TreeItemFocusEventReason = REASONS.keyboard;
 
@@ -227,7 +250,7 @@ export class TreeStore<
 
   private timeoutManager = new TimeoutManager();
 
-  public itemMutation = new TreeItemMutationPlugin(this);
+  public itemMutation = new TreeItemMutationPlugin<TItem>(this);
 
   public selection = new TreeSelectionPlugin(this);
 
@@ -239,6 +262,16 @@ export class TreeStore<
 
   private dragAndDropCleanup: (() => void) | null = null;
 
+  public resolveDropTargetGroup:
+    | ((dropTargetItemId: CollectionItemId) => CollectionItemId | null)
+    | undefined;
+
+  /**
+   * When true, the observer that watches `state.items` skips rebuilding lookups.
+   * Set by mutations that already updated lookups incrementally.
+   */
+  public skipLookupRebuild = false;
+
   constructor(parameters: TreeStoreParameters<Mode, TItem>) {
     const selectionMode: TreeSelectionMode = parameters.selectionMode ?? 'single';
     const itemToId = parameters.itemToId ?? ((item: any) => item.id);
@@ -247,10 +280,21 @@ export class TreeStore<
     const isItemDisabled = parameters.isItemDisabled ?? ((item: any) => !!item.disabled);
     const isItemSelectionDisabled =
       parameters.isItemSelectionDisabled ?? ((item: any) => !!item.disabled);
+    const initialItems =
+      parameters.items ?? parameters.defaultItems ?? (EMPTY_ARRAY as readonly TItem[]);
+    const initialItemsState = buildItemsState(
+      initialItems,
+      itemToId,
+      itemToStringLabel,
+      itemToChildren,
+      isItemDisabled,
+      isItemSelectionDisabled,
+    );
     super(
       {
         disabled: parameters.disabled ?? false,
-        items: parameters.items,
+        items: initialItems,
+        ...initialItemsState,
         itemMetaPatches: {},
         lazyItems: undefined,
         expandedItems: parameters.expandedItems ?? parameters.defaultExpandedItems ?? EMPTY_ARRAY,
@@ -274,6 +318,7 @@ export class TreeStore<
         isItemSelectionDisabled,
         direction: parameters.direction,
         dragAndDrop: undefined,
+        dropTargetGroupId: null,
         virtualized: false,
         enableGroupTransition: false,
         animatingGroups: EMPTY_OBJECT,
@@ -295,6 +340,30 @@ export class TreeStore<
     // Wire plugins (attach is called in mountEffect)
     this.lazyLoading = parameters.lazyLoading;
     this.dragAndDrop = parameters.dragAndDrop;
+    this.resolveDropTargetGroup = parameters.resolveDropTargetGroup;
+
+    // Watch for external items/accessor changes and rebuild lookups.
+    // Mutations set `skipLookupRebuild` to avoid redundant rebuilds.
+    this.observe(
+      (state: TreeState<TItem>) => state.items,
+      (newItems, oldItems) => {
+        if (newItems === oldItems) {
+          return;
+        }
+        if (this.skipLookupRebuild) {
+          this.skipLookupRebuild = false;
+          return;
+        }
+        this.rebuildItemsState();
+      },
+    );
+
+    this.observe(selectors.itemAccessors, (newAcc, oldAcc) => {
+      if (newAcc === oldAcc) {
+        return;
+      }
+      this.rebuildItemsState();
+    });
 
     // Observe items changes to keep focus valid
     let previousState = this.state;
@@ -319,7 +388,7 @@ export class TreeStore<
         // nearest surviving neighbor. Multiple siblings may have been removed
         // in the same batch, so we keep walking until we find one that still
         // exists in the new state (or exhaust both directions).
-        let candidate: TreeItemId | null = null;
+        let candidate: CollectionItemId | null = null;
 
         let probe = getNextNavigableItem(previousState, focusedId);
         while (probe != null && !newMetaLookup[probe]) {
@@ -352,10 +421,31 @@ export class TreeStore<
   }
 
   // ===========================================================================
+  // Items state rebuild
+  // ===========================================================================
+
+  /**
+   * Rebuilds all 5 lookup tables from `state.items` + current accessors
+   * and updates the store state.
+   */
+  private rebuildItemsState(): void {
+    const { state } = this;
+    const lookups = buildItemsState(
+      state.items,
+      state.itemToId,
+      state.itemToStringLabel,
+      state.itemToChildren,
+      state.isItemDisabled,
+      state.isItemSelectionDisabled,
+    );
+    this.update(lookups);
+  }
+
+  // ===========================================================================
   // Focus
   // ===========================================================================
 
-  public focusItem(itemId: TreeItemId, reason: TreeItemFocusEventReason = REASONS.keyboard) {
+  public focusItem(itemId: CollectionItemId, reason: TreeItemFocusEventReason = REASONS.keyboard) {
     const meta = selectors.itemMeta(this.state, itemId);
     let isItemVisible = meta != null;
     if (isItemVisible) {
@@ -405,7 +495,7 @@ export class TreeStore<
   // Item DOM element
   // ===========================================================================
 
-  public getItemDOMElement(itemId: TreeItemId): HTMLElement | null {
+  public getItemDOMElement(itemId: CollectionItemId): HTMLElement | null {
     const rootElement = this.context.rootRef.current;
     if (!rootElement) {
       return null;
@@ -426,18 +516,18 @@ export class TreeStore<
   }
 
   private getFirstItemMatchingTypeaheadQuery(
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     newKey: string,
-  ): TreeItemId | null {
-    const getNextItem = (idToCheck: TreeItemId): TreeItemId => {
+  ): CollectionItemId | null {
+    const getNextItem = (idToCheck: CollectionItemId): CollectionItemId => {
       const nextId = getNextNavigableItem(this.state, idToCheck);
       return nextId ?? getFirstNavigableItem(this.state)!;
     };
 
-    const getNextMatchingItemId = (query: string): TreeItemId | null => {
-      let matchingItemId: TreeItemId | null = null;
-      const checkedItems: Record<TreeItemId, true> = {};
-      let currentItemId: TreeItemId = query.length > 1 ? itemId : getNextItem(itemId);
+    const getNextMatchingItemId = (query: string): CollectionItemId | null => {
+      let matchingItemId: CollectionItemId | null = null;
+      const checkedItems: Record<CollectionItemId, true> = {};
+      let currentItemId: CollectionItemId = query.length > 1 ? itemId : getNextItem(itemId);
       while (matchingItemId == null && !checkedItems[currentItemId]) {
         if (
           selectors.labelMap(this.state)[currentItemId]?.startsWith(query) &&
@@ -471,7 +561,7 @@ export class TreeStore<
     return null;
   }
 
-  private handleKeyDown(event: React.KeyboardEvent, itemId: TreeItemId) {
+  private handleKeyDown(event: React.KeyboardEvent, itemId: CollectionItemId) {
     if (event.altKey) {
       return;
     }
@@ -719,7 +809,7 @@ export class TreeStore<
     },
   };
 
-  private getItemIdFromEvent(event: React.SyntheticEvent): TreeItemId | null {
+  private getItemIdFromEvent(event: React.SyntheticEvent): CollectionItemId | null {
     const stringId = (event.currentTarget as HTMLElement).getAttribute('data-item-id');
     if (stringId == null) {
       return null;
@@ -888,7 +978,7 @@ export class TreeStore<
   };
 
   public readonly expansionTriggerEventHandlers = {
-    onClick: (event: React.MouseEvent, itemId: TreeItemId) => {
+    onClick: (event: React.MouseEvent, itemId: CollectionItemId) => {
       event.stopPropagation();
       this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
     },
@@ -898,19 +988,19 @@ export class TreeStore<
   // Lazy loading helpers (called by the plugin)
   // ===========================================================================
 
-  public setItemChildrenOverride(parentId: TreeItemId, children: TItem[]) {
+  public setItemChildrenOverride(parentId: CollectionItemId, children: TItem[]) {
     this.set('lazyItems', {
       ...this.state.lazyItems!,
       children: { ...this.state.lazyItems!.children, [parentId]: children },
     });
   }
 
-  public removeChildrenOverride(parentId: TreeItemId) {
+  public removeChildrenOverride(parentId: CollectionItemId) {
     const { [parentId]: removed, ...rest } = this.state.lazyItems!.children;
     this.set('lazyItems', { ...this.state.lazyItems!, children: rest });
   }
 
-  public setItemExpandableOverrides(overrides: Record<TreeItemId, boolean>) {
+  public setItemExpandableOverrides(overrides: Record<CollectionItemId, boolean>) {
     this.set('lazyItems', {
       ...this.state.lazyItems!,
       expandable: { ...this.state.lazyItems!.expandable, ...overrides },
@@ -928,27 +1018,62 @@ export class TreeStore<
     this.lazyLoading?.attach(this);
 
     if (this.dragAndDrop) {
-      const context: useDragAndDrop.ComponentContext = {
-        getParentId: (id) => selectors.itemParentId(this.state, id),
-        getChildrenIds: (id) => selectors.itemOrderedChildrenIds(this.state, id),
-        isDescendantOf: (id, ancestorId) => {
-          let currentId: TreeItemId | null = id;
-          while (currentId != null) {
-            currentId = selectors.itemParentId(this.state, currentId);
-            if (currentId === ancestorId) {
+      this.dragAndDropCleanup = this.dragAndDrop.attach(this.actions, {
+        onStateChange: (dndState) => {
+          const prevTargetId = this.state.dragAndDrop?.dropTargetItemId ?? null;
+          const newTargetId = dndState.dropTargetItemId;
+
+          this.set('dragAndDrop', dndState);
+
+          // Compute drop target group for folder subtree highlighting
+          if (this.resolveDropTargetGroup && dndState.dropTargetItemId != null) {
+            const groupId = this.resolveDropTargetGroup(dndState.dropTargetItemId);
+            if (this.state.dropTargetGroupId !== groupId) {
+              this.set('dropTargetGroupId', groupId);
+            }
+          } else if (this.state.dropTargetGroupId !== null) {
+            this.set('dropTargetGroupId', null);
+          }
+
+          // Auto-expand: when hovering a new expandable target, start a timer
+          if (newTargetId !== prevTargetId) {
+            this.timeoutManager.clearTimeout('autoExpand');
+            if (
+              newTargetId != null &&
+              selectors.isItemExpandable(this.state, newTargetId) &&
+              !selectors.isItemExpanded(this.state, newTargetId)
+            ) {
+              this.timeoutManager.startTimeout('autoExpand', 800, () => {
+                this.expansion.applyItemExpansion(newTargetId, true, REASONS.imperativeAction);
+              });
+            }
+          }
+        },
+        pruneDraggedItems: (itemIds) => {
+          const result = new Set<CollectionItemId>();
+          for (const id of itemIds) {
+            let isDescendant = false;
+            for (const otherId of itemIds) {
+              if (otherId !== id && this.actions.isDescendantOf(id, otherId)) {
+                isDescendant = true;
+                break;
+              }
+            }
+            if (!isDescendant) {
+              result.add(id);
+            }
+          }
+          return result;
+        },
+        isDropTargetInvalid: (dropTargetItemId, draggedItemIds) => {
+          for (const id of draggedItemIds) {
+            if (this.actions.isDescendantOf(dropTargetItemId, id)) {
               return true;
             }
           }
           return false;
         },
-        getItemIndex: (id) => selectors.itemIndex(this.state, id),
-        isItemExpandable: (id) => selectors.isItemExpandable(this.state, id),
-        expandItem: (id) => this.expansion.applyItemExpansion(id, true, REASONS.imperativeAction),
-        hasItem: (id) => selectors.itemMeta(this.state, id) != null,
-        getSelectedItemIds: () => this.selection.materializeSelectedItems(),
-        onStateChange: (dndState) => this.set('dragAndDrop', dndState),
-      };
-      this.dragAndDropCleanup = this.dragAndDrop.attach(context);
+      });
     }
 
     return () => {
@@ -962,12 +1087,39 @@ export class TreeStore<
   // ===========================================================================
   // Actions (exposed via actionsRef)
   // ===========================================================================
-  private actions: TreeRootActions = {
-    focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
-    getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
+  private actions: TreeRootActions<TItem> = {
+    // Collection actions
+    isDescendantOf: (itemId, ancestorId) => {
+      let currentId: CollectionItemId | null = itemId;
+      while (currentId != null) {
+        currentId = selectors.itemParentId(this.state, currentId);
+        if (currentId === ancestorId) {
+          return true;
+        }
+      }
+      return false;
+    },
+    getItemIndex: (itemId) => selectors.itemIndex(this.state, itemId),
+    hasItem: (itemId) => selectors.itemMeta(this.state, itemId) != null,
+    getSelectedItemIds: () => new Set(this.selection.materializeSelectedItems()),
     getItemModel: (itemId) => selectors.itemModel(this.state, itemId),
+    getItemModels: (itemIds) => {
+      const models: TItem[] = [];
+      for (const id of itemIds) {
+        const model = selectors.itemModel(this.state, id);
+        if (model != null) {
+          models.push(model);
+        }
+      }
+      return models;
+    },
+
+    // Tree-specific methods
+    focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
     getItemOrderedChildrenIds: (itemId) => selectors.itemOrderedChildrenIds(this.state, itemId),
+    getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
     getParentId: (itemId) => selectors.itemParentId(this.state, itemId),
+    isItemExpandable: (itemId) => selectors.isItemExpandable(this.state, itemId),
     isItemExpanded: (itemId) => selectors.isItemExpanded(this.state, itemId),
     isItemSelected: (itemId) => selectors.isItemSelected(this.state, itemId),
     setItemExpansion: (itemId, isExpanded) =>
@@ -1000,7 +1152,7 @@ export class TreeStore<
     },
   };
 
-  public getActions(): TreeRootActions {
+  public getActions(): TreeRootActions<TItem> {
     return this.actions;
   }
 }

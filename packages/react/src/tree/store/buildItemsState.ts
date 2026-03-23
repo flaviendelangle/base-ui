@@ -1,30 +1,34 @@
-import type { TreeItemId, TreeDefaultItemModel, TreeItemMeta, TreeItemsState } from './types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeDefaultItemModel, TreeItemMeta, TreeItemsState } from './types';
 import { TREE_SELECTION_ALL, TREE_VIEW_ROOT_PARENT_ID } from './types';
 
 export function buildItemsState<TItem = TreeDefaultItemModel>(
   items: readonly TItem[],
-  itemToId: (item: TItem) => TreeItemId,
+  itemToId: (item: TItem) => CollectionItemId,
   itemToStringLabel: (item: TItem) => string,
   itemToChildren: (item: TItem) => TItem[] | undefined,
   isItemDisabled: (item: TItem) => boolean,
   isItemSelectionDisabled: (item: TItem) => boolean,
 ): TreeItemsState<TItem> {
-  const itemMetaLookup: Record<TreeItemId, TreeItemMeta> = {};
-  const itemModelLookup: Record<TreeItemId, TItem> = {};
-  const itemOrderedChildrenIdsLookup: Record<TreeItemId, TreeItemId[]> = {};
-  const itemChildrenIndexesLookup: Record<TreeItemId, Record<TreeItemId, number>> = {};
-  const itemIdLookup: Record<string, TreeItemId> = {};
+  const itemMetaLookup: Record<CollectionItemId, TreeItemMeta> = {};
+  const itemModelLookup: Record<CollectionItemId, TItem> = {};
+  const itemOrderedChildrenIdsLookup: Record<CollectionItemId, CollectionItemId[]> = {};
+  const itemChildrenIndexesLookup: Record<CollectionItemId, Record<CollectionItemId, number>> = {};
+  const itemIdLookup: Record<string, CollectionItemId> = {};
 
-  function processSiblings(siblings: readonly TItem[], parentId: TreeItemId | null, depth: number) {
+  function processSiblings(
+    siblings: readonly TItem[],
+    parentId: CollectionItemId | null,
+    depth: number,
+  ) {
     const parentKey = parentId ?? TREE_VIEW_ROOT_PARENT_ID;
-    const orderedChildrenIds: TreeItemId[] = [];
-    const childrenIndexes: Record<TreeItemId, number> = {};
+    const orderedChildrenIds: CollectionItemId[] = [];
+    const childrenIndexes: Record<CollectionItemId, number> = {};
 
     for (let i = 0; i < siblings.length; i += 1) {
       const item = siblings[i];
       const itemId = itemToId(item);
       const children = itemToChildren(item);
-      const expandable = !!children && children.length > 0;
 
       if (process.env.NODE_ENV !== 'production') {
         if (itemMetaLookup[itemId] != null) {
@@ -52,7 +56,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
         id: itemId,
         parentId,
         depth,
-        expandable,
+        expandable: !!children,
         disabled: isItemDisabled(item),
         selectable: !isItemSelectionDisabled(item),
         label: itemToStringLabel(item),

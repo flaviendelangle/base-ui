@@ -1,10 +1,10 @@
 'use client';
 import * as React from 'react';
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
-export const TreeItemContext = React.createContext<TreeItemId | undefined>(undefined);
+export const TreeItemContext = React.createContext<CollectionItemId | undefined>(undefined);
 
-export function useTreeItemContext(): TreeItemId {
+export function useTreeItemContext(): CollectionItemId {
   const context = React.useContext(TreeItemContext);
   if (context === undefined) {
     throw new Error(

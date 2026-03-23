@@ -12,10 +12,10 @@ import { TreeGroupTransitionDataAttributes } from './TreeGroupTransitionDataAttr
 import { TreeGroupTransitionCssVars } from './TreeGroupTransitionCssVars';
 import { TreeGroupTransitionContext } from './TreeGroupTransitionContext';
 import type { TransitionStatus } from '../../utils/useTransitionStatus';
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
 interface TreeGroupTransitionInternalState extends TreeGroupTransitionState {
-  parentId: TreeItemId;
+  parentId: CollectionItemId;
   transitionStatus: TransitionStatus;
 }
 

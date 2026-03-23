@@ -1,17 +1,18 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import type { CollectionItemId } from '@base-ui/react/types';
 import styles from './tree.module.css';
 
 interface LazyItem {
-  id: Tree.ItemId;
+  id: CollectionItemId;
   label: string;
   childCount: number;
   children?: LazyItem[];
 }
 
 // Simulated server data
-const serverData: Record<Tree.ItemId, LazyItem[]> = {
+const serverData: Record<CollectionItemId, LazyItem[]> = {
   root: [
     { id: 'documents', label: 'Documents', childCount: 3 },
     { id: 'photos', label: 'Photos', childCount: 2 },
@@ -35,7 +36,7 @@ const serverData: Record<Tree.ItemId, LazyItem[]> = {
 // Mutable copy so edits persist across fetches
 const mutableServerData = JSON.parse(JSON.stringify(serverData)) as typeof serverData;
 
-async function fakeFetch(parentId?: Tree.ItemId): Promise<LazyItem[]> {
+async function fakeFetch(parentId?: CollectionItemId): Promise<LazyItem[]> {
   await new Promise((resolve) => {
     setTimeout(resolve, 300 + Math.random() * 200);
   });
@@ -44,10 +45,10 @@ async function fakeFetch(parentId?: Tree.ItemId): Promise<LazyItem[]> {
 }
 
 const EditingContext = React.createContext<{
-  editingItemId: Tree.ItemId | null;
-  startEditing: (itemId: Tree.ItemId) => void;
+  editingItemId: CollectionItemId | null;
+  startEditing: (itemId: CollectionItemId) => void;
   stopEditing: () => void;
-  saveEdit: (itemId: Tree.ItemId, newLabel: string) => void;
+  saveEdit: (itemId: CollectionItemId, newLabel: string) => void;
 }>({
   editingItemId: null,
   startEditing: () => {},
@@ -55,7 +56,7 @@ const EditingContext = React.createContext<{
   saveEdit: () => {},
 });
 
-function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }) {
+function EditableLabel({ itemId, label }: { itemId: CollectionItemId; label: string }) {
   const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
   const isEditing = editingItemId === itemId;
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -103,7 +104,7 @@ function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }
 }
 
 export default function LazyLoadingEditingTree() {
-  const [editingItemId, setEditingItemId] = React.useState<Tree.ItemId | null>(null);
+  const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
   const actionsRef = React.useRef<Tree.Root.Actions | null>(null);
 
   const lazyLoading = Tree.useLazyLoading<LazyItem>({
@@ -114,9 +115,9 @@ export default function LazyLoadingEditingTree() {
   const editingContext = React.useMemo(
     () => ({
       editingItemId,
-      startEditing: (itemId: Tree.ItemId) => setEditingItemId(itemId),
+      startEditing: (itemId: CollectionItemId) => setEditingItemId(itemId),
       stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: Tree.ItemId, newLabel: string) => {
+      saveEdit: (itemId: CollectionItemId, newLabel: string) => {
         // Update mutable server data so future fetches return the new label
         for (const items of Object.values(mutableServerData)) {
           const target = items.find((item) => item.id === itemId);

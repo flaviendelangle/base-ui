@@ -51,6 +51,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     // Data
     disabled,
     items,
+    defaultItems,
     children,
     // Expansion
     expandedItems,
@@ -82,6 +83,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     // Plugins
     lazyLoading,
     dragAndDrop,
+    resolveDropTargetGroup,
     // Props forwarded to the DOM element
     ...elementProps
   } = componentProps;
@@ -106,6 +108,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
       new TreeStore<Mode, TItem>({
         disabled,
         items,
+        defaultItems,
         expandedItems,
         defaultExpandedItems,
         expandOnClick,
@@ -130,6 +133,7 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         lazyLoading,
         dragAndDrop,
         onItemsChange,
+        resolveDropTargetGroup,
       }),
   ).current;
 
@@ -146,9 +150,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
   // Sync controlled props
   store.useControlledProp('expandedItems', expandedItems);
   store.useControlledProp('selectedItems', selectedItems as any);
+  store.useControlledProp('items', items);
   store.useSyncedValues({
     disabled: disabled ?? false,
-    items,
     expandOnClick: expandOnClick ?? false,
     selectionMode: selectionMode ?? 'single',
     disallowEmptySelection: disallowEmptySelection ?? false,
@@ -169,6 +173,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
   store.useContextCallback('onItemSelectionToggle', onItemSelectionToggle);
   store.useContextCallback('onItemFocus', onItemFocus);
   store.useContextCallback('onItemsChange', onItemsChange);
+
+  // Sync resolveDropTargetGroup so it can change over the component's lifetime
+  store.resolveDropTargetGroup = resolveDropTargetGroup;
 
   // Expose imperative actions
   React.useImperativeHandle(actionsRef, () => store.getActions(), [store]);
@@ -240,7 +247,7 @@ export interface TreeRootProps<
   /**
    * A ref to imperative actions on the tree.
    */
-  actionsRef?: React.RefObject<TreeRootActions | null> | undefined;
+  actionsRef?: React.RefObject<TreeRootActions<TItem> | null> | undefined;
 }
 
 export namespace TreeRoot {
@@ -249,7 +256,7 @@ export namespace TreeRoot {
     Mode extends TreeSelectionMode | undefined = undefined,
     TItem = TreeDefaultItemModel,
   > = TreeRootProps<Mode, TItem>;
-  export type Actions = TreeRootActions;
+  export type Actions<TItem = TreeDefaultItemModel> = TreeRootActions<TItem>;
   export type ExpansionChangeEventReason = TreeRootExpansionChangeEventReason;
   export type ExpansionChangeEventDetails = TreeRootExpansionChangeEventDetails;
   export type SelectionChangeEventReason = TreeRootSelectionChangeEventReason;

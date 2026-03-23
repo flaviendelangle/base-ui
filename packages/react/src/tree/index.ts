@@ -42,4 +42,8 @@ export type {
   TreeItemExpansionToggleValue,
   TreeItemSelectionToggleEventDetails,
   TreeItemSelectionToggleValue,
+  TreeRootItemsChangeEventReason,
+  TreeRootItemsChangeEventDetails,
+  TreeItemsChangeInfo,
+  TreeItemPosition,
 } from './store/types';

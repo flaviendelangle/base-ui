@@ -1,5 +1,6 @@
 import type { TreeStore } from '../store/TreeStore';
-import type { TreeItemId, TreeRootSelectionChangeEventReason } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeRootSelectionChangeEventReason } from '../store/types';
 import { TREE_SELECTION_ALL } from '../store/types';
 import { selectors } from '../store/selectors';
 import {
@@ -16,9 +17,9 @@ import {
 export class TreeSelectionPlugin {
   private store: TreeStore;
 
-  private lastSelectedItem: TreeItemId | null = null;
+  private lastSelectedItem: CollectionItemId | null = null;
 
-  private lastSelectedRange = new Set<TreeItemId>();
+  private lastSelectedRange = new Set<CollectionItemId>();
 
   constructor(store: TreeStore) {
     this.store = store;
@@ -29,21 +30,21 @@ export class TreeSelectionPlugin {
   // ---------------------------------------------------------------------------
 
   private setSelectedItems(
-    newModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL,
+    newModel: CollectionItemId[] | CollectionItemId | null | typeof TREE_SELECTION_ALL,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
-    additionalItemsToPropagate?: TreeItemId[],
+    additionalItemsToPropagate?: CollectionItemId[],
     shouldPropagate: boolean = true,
   ) {
     const oldModel = this.store.state.selectedItems;
-    let cleanModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL;
+    let cleanModel: CollectionItemId[] | CollectionItemId | null | typeof TREE_SELECTION_ALL;
     if (
       shouldPropagate &&
       this.store.state.selectionMode === 'multiple' &&
       newModel !== TREE_SELECTION_ALL
     ) {
       cleanModel = this.propagateSelection(
-        newModel as TreeItemId[],
+        newModel as CollectionItemId[],
         this.materializeSelectedItems(),
         additionalItemsToPropagate,
       );
@@ -92,10 +93,10 @@ export class TreeSelectionPlugin {
   // ---------------------------------------------------------------------------
 
   private propagateSelection(
-    newModel: TreeItemId[],
-    oldModel: TreeItemId[],
-    additionalItemsToPropagate?: TreeItemId[],
-  ): TreeItemId[] {
+    newModel: CollectionItemId[],
+    oldModel: CollectionItemId[],
+    additionalItemsToPropagate?: CollectionItemId[],
+  ): CollectionItemId[] {
     const checkboxSelectionPropagation = selectors.checkboxSelectionPropagation(this.store.state);
     if (!checkboxSelectionPropagation.descendants && !checkboxSelectionPropagation.parents) {
       return newModel;
@@ -120,7 +121,7 @@ export class TreeSelectionPlugin {
 
     for (const addedItemId of added) {
       if (checkboxSelectionPropagation.descendants) {
-        const selectDescendants = (itemId: TreeItemId) => {
+        const selectDescendants = (itemId: CollectionItemId) => {
           if (itemId !== addedItemId) {
             if (!selectors.canItemBeSelected(this.store.state, itemId)) {
               return;
@@ -137,7 +138,7 @@ export class TreeSelectionPlugin {
       }
 
       if (checkboxSelectionPropagation.parents) {
-        const checkAllDescendantsSelected = (itemId: TreeItemId): boolean => {
+        const checkAllDescendantsSelected = (itemId: CollectionItemId): boolean => {
           // Non-selectable items don't count toward the "all selected" check
           if (!selectors.canItemBeSelected(this.store.state, itemId)) {
             return true;
@@ -149,7 +150,7 @@ export class TreeSelectionPlugin {
           return children.every(checkAllDescendantsSelected);
         };
 
-        const selectParents = (itemId: TreeItemId) => {
+        const selectParents = (itemId: CollectionItemId) => {
           const parentId = selectors.itemParentId(this.store.state, itemId);
           if (parentId == null) {
             return;
@@ -180,7 +181,7 @@ export class TreeSelectionPlugin {
       }
 
       if (checkboxSelectionPropagation.descendants) {
-        const deSelectDescendants = (itemId: TreeItemId) => {
+        const deSelectDescendants = (itemId: CollectionItemId) => {
           if (itemId !== removedItemId) {
             flags.shouldRegenerateModel = true;
             newModelSet.delete(itemId);
@@ -209,7 +210,7 @@ export class TreeSelectionPlugin {
     reason,
     event,
   }: {
-    itemId: TreeItemId;
+    itemId: CollectionItemId;
     keepExistingSelection?: boolean | undefined;
     shouldBeSelected?: boolean | undefined;
     /**
@@ -225,7 +226,7 @@ export class TreeSelectionPlugin {
     }
 
     const isMulti = this.store.state.selectionMode === 'multiple';
-    let newSelected: TreeItemId[] | TreeItemId | null;
+    let newSelected: CollectionItemId[] | CollectionItemId | null;
 
     if (keepExistingSelection) {
       const oldSelected = this.materializeSelectedItems();
@@ -269,12 +270,12 @@ export class TreeSelectionPlugin {
    * Handles the "all" sentinel by expanding it into all selectable item IDs,
    * and normalizes single-item / null values into an array.
    */
-  materializeSelectedItems = (): TreeItemId[] => {
+  materializeSelectedItems = (): CollectionItemId[] => {
     if (this.store.state.selectedItems !== TREE_SELECTION_ALL) {
       return normalizeSelectedItems(this.store.state.selectedItems);
     }
-    const result: TreeItemId[] = [];
-    const traverse = (parentId: TreeItemId | null) => {
+    const result: CollectionItemId[] = [];
+    const traverse = (parentId: CollectionItemId | null) => {
       const children = selectors.itemOrderedChildrenIds(this.store.state, parentId);
       for (const childId of children) {
         if (selectors.canItemBeSelected(this.store.state, childId)) {
@@ -301,7 +302,7 @@ export class TreeSelectionPlugin {
   };
 
   expandSelectionRange = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) => {
@@ -312,7 +313,7 @@ export class TreeSelectionPlugin {
   };
 
   selectRangeFromStartToItem = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) => {
@@ -323,7 +324,7 @@ export class TreeSelectionPlugin {
   };
 
   selectRangeFromItemToEnd = (
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) => {
@@ -334,8 +335,8 @@ export class TreeSelectionPlugin {
   };
 
   selectItemFromArrowNavigation = (
-    currentItem: TreeItemId,
-    nextItem: TreeItemId,
+    currentItem: CollectionItemId,
+    nextItem: CollectionItemId,
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) => {
@@ -374,7 +375,7 @@ export class TreeSelectionPlugin {
   // ---------------------------------------------------------------------------
 
   private selectRange(
-    [start, end]: [TreeItemId, TreeItemId],
+    [start, end]: [CollectionItemId, CollectionItemId],
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) {
@@ -416,12 +417,12 @@ export class TreeSelectionPlugin {
  * Converts a raw selectedItems value to a plain array.
  * Does NOT handle the "all" sentinel — use `materializeSelectedItems()` for that.
  */
-function normalizeSelectedItems(raw: TreeItemId | null | readonly TreeItemId[]): TreeItemId[] {
+function normalizeSelectedItems(raw: CollectionItemId | null | readonly CollectionItemId[]): CollectionItemId[] {
   if (Array.isArray(raw)) {
-    return raw as TreeItemId[];
+    return raw as CollectionItemId[];
   }
   if (raw != null) {
-    return [raw as TreeItemId];
+    return [raw as CollectionItemId];
   }
   return [];
 }

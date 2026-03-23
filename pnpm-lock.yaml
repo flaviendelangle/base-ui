@@ -521,6 +521,9 @@ importers:
         specifier: ^1.6.0
         version: 1.6.0(react@19.2.4)
     devDependencies:
+      '@atlaskit/pragmatic-drag-and-drop-unit-testing':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@date-fns/tz':
         specifier: ^1.4.1
         version: 1.4.1
@@ -839,6 +842,9 @@ packages:
 
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
+
+  '@atlaskit/pragmatic-drag-and-drop-unit-testing@1.1.1':
+    resolution: {integrity: sha512-ZkJ0UuNzIbgvkmYYbgN8D7obv1yx7QzkpzBgrKrEYiZ2B9YTLY6kgRdoSI5REuY07/yzEtyFbYe+r8MvMe9Zsw==}
 
   '@atlaskit/pragmatic-drag-and-drop@1.7.9':
     resolution: {integrity: sha512-m/bcw5flyjfcF/rdX4JeomtIBrWuDNOwcQieiywHv7zkfIRmUC34Q9ZLeNGVoz73UiGsRqxysMuw4tC7lSJ89g==}
@@ -10733,6 +10739,10 @@ snapshots:
       lru-cache: 11.2.7
 
   '@asamuzakjp/nwsapi@2.3.9': {}
+
+  '@atlaskit/pragmatic-drag-and-drop-unit-testing@1.1.1':
+    dependencies:
+      '@babel/runtime': 7.28.6
 
   '@atlaskit/pragmatic-drag-and-drop@1.7.9':
     dependencies:

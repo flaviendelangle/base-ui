@@ -15,7 +15,6 @@ const INITIAL_ITEMS: Tree.DefaultItemModel[] = [
 ];
 
 export default function ExampleTreeReorderDnd() {
-  const [items, setItems] = React.useState(INITIAL_ITEMS);
   const actionsRef = React.useRef<Tree.Root.Actions>(null);
 
   const dragAndDrop = useDragAndDrop({
@@ -30,8 +29,7 @@ export default function ExampleTreeReorderDnd() {
 
   return (
     <Tree.Root
-      items={items}
-      onItemsChange={setItems}
+      defaultItems={INITIAL_ITEMS}
       actionsRef={actionsRef}
       dragAndDrop={dragAndDrop}
       className={styles.Tree}

@@ -1,4 +1,4 @@
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
 type DataSourceCacheDefaultConfig = {
   /**
@@ -15,13 +15,13 @@ export interface DataSourceCache<TItem = any> {
    * @param key The cache key (typically a parent item ID)
    * @param value The children items to cache
    */
-  set: (key: TreeItemId, value: TItem[]) => void;
+  set: (key: CollectionItemId, value: TItem[]) => void;
   /**
    * Get the cache entry for the given key.
    * @param key The cache key
    * @returns The cached items, `undefined` if not found, or `-1` if expired
    */
-  get: (key: TreeItemId) => TItem[] | undefined | -1;
+  get: (key: CollectionItemId) => TItem[] | undefined | -1;
   /**
    * Clear all cache entries.
    */
@@ -29,7 +29,7 @@ export interface DataSourceCache<TItem = any> {
 }
 
 export class DataSourceCacheDefault<TItem = any> implements DataSourceCache<TItem> {
-  private cache: Record<TreeItemId, { value: TItem[]; expiry: number }>;
+  private cache: Record<CollectionItemId, { value: TItem[]; expiry: number }>;
 
   private ttl: number;
 
@@ -38,12 +38,12 @@ export class DataSourceCacheDefault<TItem = any> implements DataSourceCache<TIte
     this.ttl = ttl;
   }
 
-  set(key: TreeItemId, value: TItem[]) {
+  set(key: CollectionItemId, value: TItem[]) {
     const expiry = Date.now() + this.ttl;
     this.cache[key] = { value, expiry };
   }
 
-  get(key: TreeItemId): TItem[] | undefined | -1 {
+  get(key: CollectionItemId): TItem[] | undefined | -1 {
     const entry = this.cache[key];
     if (!entry) {
       return undefined;

@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import type { CollectionItemId } from '@base-ui/react/types';
 import styles from './index.module.css';
 
 // Simulated server data
@@ -32,7 +33,7 @@ const INITIAL_ITEMS: Tree.DefaultItemModel[] = [
   { id: 'notes', label: 'Notes.txt' },
 ];
 
-function fetchChildren(parentId: Tree.ItemId | undefined): Promise<Tree.DefaultItemModel[]> {
+function fetchChildren(parentId: CollectionItemId | undefined): Promise<Tree.DefaultItemModel[]> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const children = parentId ? SERVER_DATA[parentId] : undefined;

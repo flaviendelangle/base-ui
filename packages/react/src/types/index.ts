@@ -1,5 +1,7 @@
 import type * as React from 'react';
 
+export type { CollectionItemId, CollectionActions } from './collection';
+
 export type {
   BaseUIChangeEventDetails,
   BaseUIGenericEventDetails,

@@ -2,7 +2,8 @@ import * as React from 'react';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { createRenderer } from '../../../test/createRenderer';
 import { Tree } from '../../tree';
-import type { TreeDefaultItemModel, TreeItemId, TreeRootActions } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeDefaultItemModel, TreeRootActions } from '../store/types';
 import { DataSourceCacheDefault } from '../utils/cache';
 import type { UseTreeLazyLoadingParameters } from '../utils/useTreeLazyLoading';
 
@@ -12,7 +13,7 @@ interface ItemType extends TreeDefaultItemModel {
 
 const { render } = createRenderer();
 
-const mockFetchChildren = async (parentId?: TreeItemId): Promise<ItemType[]> => {
+const mockFetchChildren = async (parentId?: CollectionItemId): Promise<ItemType[]> => {
   const items: ItemType[] = [
     {
       id: parentId == null ? '1' : `${parentId}-1`,
@@ -74,13 +75,13 @@ function TreeWithLazyLoading(
   );
 }
 
-function getAllTreeItemIds(container: HTMLElement): TreeItemId[] {
+function getAllCollectionItemIds(container: HTMLElement): CollectionItemId[] {
   return Array.from(container.querySelectorAll('[role="treeitem"]')).map(
     (item) => (item as HTMLElement).dataset.itemId!,
   );
 }
 
-function getItemRoot(container: HTMLElement, id: TreeItemId): HTMLElement {
+function getItemRoot(container: HTMLElement, id: CollectionItemId): HTMLElement {
   const item = container.querySelector(`[data-item-id="${CSS.escape(String(id))}"]`);
   if (!item) {
     throw new Error(`Could not find item with id "${id}"`);
@@ -88,7 +89,7 @@ function getItemRoot(container: HTMLElement, id: TreeItemId): HTMLElement {
   return item as HTMLElement;
 }
 
-function isItemExpanded(container: HTMLElement, id: TreeItemId): boolean {
+function isItemExpanded(container: HTMLElement, id: CollectionItemId): boolean {
   return getItemRoot(container, id).getAttribute('aria-expanded') === 'true';
 }
 
@@ -100,12 +101,12 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should not load children if item has no children (childrenCount: 0)', async () => {
@@ -114,12 +115,12 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
     });
 
     it('should load children if item has unknown children count (childrenCount: -1)', async () => {
@@ -128,12 +129,12 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should handle errors during fetching (item stays collapsed)', async () => {
@@ -153,12 +154,12 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(false);
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
     });
 
     it('should load expanded items on mount', async () => {
@@ -171,7 +172,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should load expanded items on mount (deeper items)', async () => {
@@ -192,7 +193,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       await awaitMockFetch();
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '1-1-1', '1-1-1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1', '1-1-1', '1-1-1-1']);
     });
 
     it('should use data from props.items on mount (no fetch needed)', async () => {
@@ -212,12 +213,12 @@ describe('TreeRoot - Lazy Loading', () => {
       );
 
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should allow mixing props.items and fetched items on mount', async () => {
       let resolveItem2: ((value: ItemType[]) => void) | null = null;
-      const controlledFetch = (_parentId?: TreeItemId): Promise<ItemType[]> =>
+      const controlledFetch = (_parentId?: CollectionItemId): Promise<ItemType[]> =>
         new Promise((resolve) => {
           resolveItem2 = resolve;
         });
@@ -242,7 +243,7 @@ describe('TreeRoot - Lazy Loading', () => {
       // Item 1 has inline children available immediately; item 2 is still loading
       expect(isItemExpanded(container, '1')).toBe(true);
       expect(isItemExpanded(container, '2')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '2']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1', '2']);
 
       // Resolve item 2's fetch
       await act(async () => {
@@ -250,7 +251,7 @@ describe('TreeRoot - Lazy Loading', () => {
       });
       expect(isItemExpanded(container, '1')).toBe(true);
       expect(isItemExpanded(container, '2')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1', '2', '2-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1', '2', '2-1']);
     });
   });
 
@@ -265,13 +266,13 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(getAllTreeItemIds(container)).toEqual(['initial']);
+      expect(getAllCollectionItemIds(container)).toEqual(['initial']);
 
       await act(async () => {
         await actionsRef.current!.refreshItemChildren(null);
       });
 
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
     });
 
     it('should refresh specific item children when called with an id', async () => {
@@ -284,7 +285,7 @@ describe('TreeRoot - Lazy Loading', () => {
         />,
       );
 
-      expect(getAllTreeItemIds(container)).toEqual(['1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1']);
 
       await act(async () => {
         await actionsRef.current!.refreshItemChildren('1');
@@ -293,7 +294,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       fireEvent.click(getItemRoot(container, '1'));
       await awaitMockFetch();
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
   });
 
@@ -372,7 +373,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
     it('should clear error indicator on successful retry', async () => {
       let shouldFail = true;
-      const conditionalFetchChildren = async (parentId?: TreeItemId): Promise<ItemType[]> => {
+      const conditionalFetchChildren = async (parentId?: CollectionItemId): Promise<ItemType[]> => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             if (shouldFail) {
@@ -505,7 +506,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
     it('should handle rapid expand/collapse without race conditions', async () => {
       let resolvePromise: ((value: ItemType[]) => void) | null = null;
-      const delayedFetchChildren = async (_parentId?: TreeItemId): Promise<ItemType[]> =>
+      const delayedFetchChildren = async (_parentId?: CollectionItemId): Promise<ItemType[]> =>
         new Promise((resolve) => {
           resolvePromise = resolve;
         });
@@ -527,7 +528,7 @@ describe('TreeRoot - Lazy Loading', () => {
 
       // Item should be expanded with children
       expect(isItemExpanded(container, '1')).toBe(true);
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
   });
 
@@ -557,7 +558,7 @@ describe('TreeRoot - Lazy Loading', () => {
       // Original items array should be unchanged
       expect(items).toEqual([{ id: '1', label: '1', childrenCount: 1 }]);
       // But the tree should show the fetched children
-      expect(getAllTreeItemIds(container)).toEqual(['1', '1-1']);
+      expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
     it('should correctly compute depth for lazily-loaded nested items', async () => {

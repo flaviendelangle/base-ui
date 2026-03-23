@@ -48,13 +48,13 @@ describeTree('TreeRoot - Items', ({ render }) => {
       expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1', '3']);
     });
 
-    it('should not mark an item as expandable if its children is an empty array', async () => {
+    it('should mark an item as expandable if its children is an empty array', async () => {
       const view = await render({
         items: [{ id: '1', children: [] }],
         defaultExpandedItems: ['1'],
       });
 
-      expect(view.getItemRoot('1')).not.toHaveAttribute('aria-expanded');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-expanded', 'true');
     });
 
     it('should use itemToStringLabel to render the label', async () => {

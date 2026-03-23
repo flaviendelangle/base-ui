@@ -2,10 +2,11 @@ import type {
   BaseUIChangeEventDetails,
   BaseUIGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import type { CollectionItemId, CollectionActions } from '../../types/collection';
 import type { DragAndDropState } from '../../use-drag-and-drop';
 import { REASONS } from '../../utils/reasons';
 
-export type TreeItemId = string | number;
+export type TreeItemId = CollectionItemId;
 
 /**
  * The selection mode of the tree.
@@ -29,18 +30,18 @@ export const TREE_SELECTION_ALL = 'all' as const;
 
 /**
  * Conditional type that narrows the selected items type based on the `selectionMode` prop.
- * When `Mode` is `'multiple'`, the type is `TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
- * Otherwise, the type is `TreeItemId`.
+ * When `Mode` is `'multiple'`, the type is `CollectionItemId[]` or `typeof TREE_SELECTION_ALL`.
+ * Otherwise, the type is `CollectionItemId`.
  */
 export type TreeSelectedItemsType<Mode extends TreeSelectionMode | undefined> =
-  Mode extends 'multiple' ? TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
+  Mode extends 'multiple' ? CollectionItemId[] | typeof TREE_SELECTION_ALL : CollectionItemId;
 
 /**
  * The shape of an item as provided by the user in the `items` prop.
  * Users can extend this with custom properties.
  */
 export interface TreeDefaultItemModel {
-  id: TreeItemId;
+  id: CollectionItemId;
   label: string;
   children?: TreeDefaultItemModel[] | undefined;
   [key: string]: any;
@@ -50,8 +51,8 @@ export interface TreeDefaultItemModel {
  * Internal metadata about an item, derived from the items prop processing.
  */
 export interface TreeItemMeta {
-  id: TreeItemId;
-  parentId: TreeItemId | null;
+  id: CollectionItemId;
+  parentId: CollectionItemId | null;
   depth: number;
   expandable: boolean;
   disabled: boolean;
@@ -73,7 +74,7 @@ export interface TreeCheckboxSelectionPropagation {
  * Sparse per-item metadata patches applied on top of computed metadata.
  * Only the fields that are actually overridden are present.
  */
-export type ItemMetaPatches = Record<TreeItemId, Partial<Pick<TreeItemMeta, 'disabled'>>>;
+export type ItemMetaPatches = Record<CollectionItemId, Partial<Pick<TreeItemMeta, 'disabled'>>>;
 
 /**
  * Lazy-loaded tree structure and loading state.
@@ -82,19 +83,19 @@ export interface TreeLazyItemsState<TItem = TreeDefaultItemModel> {
   /**
    * Lazily-fetched children arrays, keyed by parent item ID.
    */
-  children: Record<TreeItemId, TItem[]>;
+  children: Record<CollectionItemId, TItem[]>;
   /**
    * Whether each item should be treated as expandable (has children to load).
    */
-  expandable: Record<TreeItemId, boolean>;
+  expandable: Record<CollectionItemId, boolean>;
   /**
    * Whether each item's children are currently being fetched.
    */
-  loading: Record<TreeItemId, boolean>;
+  loading: Record<CollectionItemId, boolean>;
   /**
    * Error that occurred while fetching an item's children, if any.
    */
-  errors: Record<TreeItemId, Error | undefined>;
+  errors: Record<CollectionItemId, Error | undefined>;
 }
 
 /**
@@ -105,29 +106,29 @@ export const TREE_VIEW_ROOT_PARENT_ID = '__ROOT__';
 /**
  * The computed lookup tables derived from the items prop and accessor functions.
  */
-export interface TreeItemsState<TItem = TreeDefaultItemModel> {
+export interface TreeItemsState<TItem = any> {
   /**
    * Maps each item ID to its full item model.
    */
-  itemModelLookup: Record<TreeItemId, TItem>;
+  itemModelLookup: Record<CollectionItemId, TItem>;
   /**
    * Maps each item ID to its computed metadata (depth, parent, disabled, etc.).
    */
-  itemMetaLookup: Record<TreeItemId, TreeItemMeta>;
+  itemMetaLookup: Record<CollectionItemId, TreeItemMeta>;
   /**
    * Maps each item ID to the ordered list of its children's IDs.
    * The root's children are keyed by `TREE_VIEW_ROOT_PARENT_ID`.
    */
-  itemOrderedChildrenIdsLookup: Record<TreeItemId, TreeItemId[]>;
+  itemOrderedChildrenIdsLookup: Record<CollectionItemId, CollectionItemId[]>;
   /**
    * Maps each item ID to a record of its children's IDs to their index among siblings.
    */
-  itemChildrenIndexesLookup: Record<TreeItemId, Record<TreeItemId, number>>;
+  itemChildrenIndexesLookup: Record<CollectionItemId, Record<CollectionItemId, number>>;
   /**
    * Maps the stringified ID back to the original ID.
    * Used to recover the original type (string vs number) when reading IDs from DOM attributes.
    */
-  itemIdLookup: Record<string, TreeItemId>;
+  itemIdLookup: Record<string, CollectionItemId>;
 }
 
 export type TreeRootExpansionChangeEventReason =
@@ -159,27 +160,49 @@ export type TreeItemExpansionToggleEventDetails =
 export type TreeItemSelectionToggleEventDetails =
   BaseUIGenericEventDetails<TreeRootSelectionChangeEventReason>;
 
-export type TreeRootItemsChangeEventReason =
-  | typeof REASONS.imperativeAction
-  | typeof REASONS.drag;
+export type TreeRootItemsChangeEventReason = typeof REASONS.imperativeAction | typeof REASONS.drag;
 
-export type TreeRootItemsChangeEventDetails =
-  BaseUIChangeEventDetails<TreeRootItemsChangeEventReason>;
+/**
+ * Position of an item in the tree (parent + sibling index).
+ */
+export interface TreeItemPosition {
+  parentId: CollectionItemId | null;
+  index: number;
+}
+
+/**
+ * Per-item change info attached to `TreeRootItemsChangeEventDetails`.
+ * All three arrays are always present (empty when no changes of that type).
+ */
+export interface TreeItemsChangeInfo {
+  added: { item: any; parentId: CollectionItemId | null; index: number }[];
+  removed: { itemId: CollectionItemId; parentId: CollectionItemId | null }[];
+  moved: {
+    itemId: CollectionItemId;
+    oldPosition: TreeItemPosition;
+    newPosition: TreeItemPosition;
+  }[];
+}
+
+export type TreeRootItemsChangeEventDetails = BaseUIChangeEventDetails<
+  TreeRootItemsChangeEventReason,
+  TreeItemsChangeInfo
+>;
 
 export interface TreeItemExpansionToggleValue {
-  itemId: TreeItemId;
+  itemId: CollectionItemId;
   isExpanded: boolean;
 }
 
 export interface TreeItemSelectionToggleValue {
-  itemId: TreeItemId;
+  itemId: CollectionItemId;
   isSelected: boolean;
 }
 
 /**
  * The full store state for the Tree component.
  */
-export interface TreeState<TItem = TreeDefaultItemModel> {
+export interface TreeState<TItem = any> {
   /**
    * Whether the entire tree is disabled
    */
@@ -189,6 +212,32 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
    */
   items: readonly TItem[];
   /**
+   * Maps each item ID to its full item model.
+   * Updated incrementally by mutations.
+   */
+  itemModelLookup: Record<CollectionItemId, TItem>;
+  /**
+   * Maps each item ID to its computed metadata (depth, parent, disabled, etc.).
+   * Updated incrementally by mutations.
+   */
+  itemMetaLookup: Record<CollectionItemId, TreeItemMeta>;
+  /**
+   * Maps each parent item ID to the ordered list of its children's IDs.
+   * Root children are keyed by `TREE_VIEW_ROOT_PARENT_ID`.
+   * Updated incrementally by mutations.
+   */
+  itemOrderedChildrenIdsLookup: Record<CollectionItemId, CollectionItemId[]>;
+  /**
+   * Maps each parent item ID to a record of its children's IDs to their index among siblings.
+   * Updated incrementally by mutations.
+   */
+  itemChildrenIndexesLookup: Record<CollectionItemId, Record<CollectionItemId, number>>;
+  /**
+   * Maps the stringified ID back to the original ID.
+   * Updated incrementally by mutations.
+   */
+  itemIdLookup: Record<string, CollectionItemId>;
+  /**
    * Sparse per-item metadata patches (imperative disabled).
    * Applied on top of the computed items state in selectors.
    */
@@ -196,7 +245,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
   /**
    * IDs of currently expanded items
    */
-  expandedItems: readonly TreeItemId[];
+  expandedItems: readonly CollectionItemId[];
   /**
    * Whether clicking anywhere on an item row toggles expansion
    */
@@ -207,7 +256,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
    * - string[] or 'all' when selectionMode is 'multiple'
    * - null when selectionMode is 'none'
    */
-  selectedItems: TreeItemId | null | readonly TreeItemId[] | typeof TREE_SELECTION_ALL;
+  selectedItems: CollectionItemId | null | readonly CollectionItemId[] | typeof TREE_SELECTION_ALL;
   /**
    * The selection mode of the tree
    */
@@ -225,7 +274,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
   /**
    * The currently focused item ID, or null
    */
-  focusedItemId: TreeItemId | null;
+  focusedItemId: CollectionItemId | null;
   /**
    * Whether disabled items can receive focus
    */
@@ -238,7 +287,7 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
   /**
    * Extracts the ID from an item model
    */
-  itemToId: (item: TItem) => TreeItemId;
+  itemToId: (item: TItem) => CollectionItemId;
   /**
    * Extracts the label from an item model
    */
@@ -273,15 +322,21 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
    */
   dragAndDrop: DragAndDropState | undefined;
   /**
+   * The ID of the group (folder) containing the current drop target.
+   * Computed by `resolveDropTargetGroup` when provided on `Tree.Root`.
+   * `null` when the feature is not enabled or nothing is being hovered.
+   */
+  dropTargetGroupId: CollectionItemId | null;
+  /**
    * Map of item IDs that are currently animating their children group.
    * Key: parent item ID, Value: animation direction and affected children.
    */
   animatingGroups: Record<
-    TreeItemId,
+    CollectionItemId,
     {
-      parentId: TreeItemId;
+      parentId: CollectionItemId;
       type: 'expanding' | 'collapsing';
-      childIds: TreeItemId[];
+      childIds: CollectionItemId[];
     }
   >;
 }
@@ -292,11 +347,11 @@ export interface TreeState<TItem = TreeDefaultItemModel> {
 export interface TreeStoreContext {
   rootRef: React.RefObject<HTMLElement | null>;
   onExpandedItemsChange: (
-    expandedItems: TreeItemId[],
+    expandedItems: CollectionItemId[],
     details: TreeRootExpansionChangeEventDetails,
   ) => void;
   onSelectedItemsChange: (
-    selectedItems: TreeItemId | null | TreeItemId[] | typeof TREE_SELECTION_ALL,
+    selectedItems: CollectionItemId | null | CollectionItemId[] | typeof TREE_SELECTION_ALL,
     details: TreeRootSelectionChangeEventDetails,
   ) => void;
   onItemExpansionToggle: (
@@ -307,72 +362,86 @@ export interface TreeStoreContext {
     value: TreeItemSelectionToggleValue,
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
-  onItemFocus: (itemId: TreeItemId, details: TreeItemFocusEventDetails) => void;
+  onItemFocus: (itemId: CollectionItemId, details: TreeItemFocusEventDetails) => void;
   onItemsChange: (items: any[], details: TreeRootItemsChangeEventDetails) => void;
 }
 
 /**
  * Actions that can be performed imperatively on a tree via actionsRef.
  */
-export interface TreeRootActions<TItem = TreeDefaultItemModel> {
-  focusItem: (itemId: TreeItemId) => void;
-  getItemDOMElement: (itemId: TreeItemId) => HTMLElement | null;
+export interface TreeRootActions<TItem = TreeDefaultItemModel> extends CollectionActions<TItem> {
   /**
-   * Get the full item model for a given item ID.
-   * Returns `undefined` if the item does not exist.
+   * Returns whether an item is a descendant of another item.
+   * Traverses up the parent chain from `itemId` looking for `ancestorId`.
    */
-  getItemModel: (itemId: TreeItemId) => TItem | undefined;
-  getItemOrderedChildrenIds: (itemId: TreeItemId | null) => TreeItemId[];
-  getParentId: (itemId: TreeItemId) => TreeItemId | null;
-  isItemExpanded: (itemId: TreeItemId) => boolean;
-  isItemSelected: (itemId: TreeItemId) => boolean;
-  setItemExpansion: (itemId: TreeItemId, isExpanded: boolean) => void;
-  setItemSelection: (itemId: TreeItemId, isSelected: boolean) => void;
-  setIsItemDisabled: (itemId: TreeItemId, isDisabled: boolean) => void;
-  refreshItemChildren: (itemId: TreeItemId | null) => Promise<void>;
+  isDescendantOf(itemId: CollectionItemId, ancestorId: CollectionItemId): boolean;
+  /**
+   * Returns the parent ID of the given item, or `null` if it is a root item.
+   */
+  getParentId(itemId: CollectionItemId): CollectionItemId | null;
+  focusItem: (itemId: CollectionItemId) => void;
+  getItemDOMElement: (itemId: CollectionItemId) => HTMLElement | null;
+  getItemOrderedChildrenIds: (itemId: CollectionItemId | null) => CollectionItemId[];
+  isItemExpanded: (itemId: CollectionItemId) => boolean;
+  isItemSelected: (itemId: CollectionItemId) => boolean;
+  setItemSelection: (itemId: CollectionItemId, isSelected: boolean) => void;
+  setIsItemDisabled: (itemId: CollectionItemId, isDisabled: boolean) => void;
+  refreshItemChildren: (itemId: CollectionItemId | null) => Promise<void>;
+  /**
+   * Returns whether an item can be expanded (i.e., has or can have children).
+   */
+  isItemExpandable(itemId: CollectionItemId): boolean;
+  /**
+   * Sets the expansion state of an item.
+   */
+  setItemExpansion(itemId: CollectionItemId, isExpanded: boolean): void;
   expandAll: () => void;
   collapseAll: () => void;
   /**
    * Move one or more items to a new position.
    * Prunes descendants automatically and preserves relative order.
    */
-  moveItems: (itemIds: Set<TreeItemId>, newParentId: TreeItemId | null, newIndex: number) => void;
+  moveItems: (
+    itemIds: Set<CollectionItemId>,
+    newParentId: CollectionItemId | null,
+    newIndex: number,
+  ) => void;
   /**
    * Move one or more items directly before another item.
    */
-  moveItemsBefore: (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId) => void;
+  moveItemsBefore: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
   /**
    * Move one or more items directly after another item.
    */
-  moveItemsAfter: (itemIds: Set<TreeItemId>, referenceItemId: TreeItemId) => void;
+  moveItemsAfter: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
   /**
    * Remove items by ID. Descendants are removed along with their parent.
    */
-  removeItems: (itemIds: Set<TreeItemId>) => void;
+  removeItems: (itemIds: Set<CollectionItemId>) => void;
   /**
    * Add item models at a specific position.
    * If `parentId` is `null`, adds at root level.
    * Descendants included in the item models are added along with their parent.
    */
-  addItems: (items: TItem[], parentId: TreeItemId | null, index: number) => void;
+  addItems: (items: TItem[], parentId: CollectionItemId | null, index: number) => void;
   /**
    * Add item models directly before a reference item.
    */
-  addItemsBefore: (items: TItem[], referenceItemId: TreeItemId) => void;
+  addItemsBefore: (items: TItem[], referenceItemId: CollectionItemId) => void;
   /**
    * Add item models directly after a reference item.
    */
-  addItemsAfter: (items: TItem[], referenceItemId: TreeItemId) => void;
+  addItemsAfter: (items: TItem[], referenceItemId: CollectionItemId) => void;
 }
 
 /**
  * An entry in the flat list that can be either a regular item or a group transition wrapper.
  */
 export type FlatListEntry =
-  | { type: 'item'; itemId: TreeItemId }
+  | { type: 'item'; itemId: CollectionItemId }
   | {
       type: 'group-transition';
-      parentId: TreeItemId;
-      childIds: TreeItemId[];
+      parentId: CollectionItemId;
+      childIds: CollectionItemId[];
       animation: 'expanding' | 'collapsing';
     };

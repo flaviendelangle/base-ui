@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
-import type { TreeItemId, TreeDefaultItemModel } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
+import type { TreeDefaultItemModel } from '../store/types';
 import { TREE_VIEW_ROOT_PARENT_ID } from '../store/types';
 import type { TreeLazyLoading, TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
@@ -12,7 +13,7 @@ export interface UseTreeLazyLoadingParameters<TItem = TreeDefaultItemModel> {
    * Fetches children for a given parent item.
    * Called with `undefined` to fetch root items.
    */
-  fetchChildren: (parentId?: TreeItemId) => Promise<TItem[]>;
+  fetchChildren: (parentId?: CollectionItemId) => Promise<TItem[]>;
   /**
    * Returns the number of children an item has.
    * - `0` means the item is a leaf (not expandable).
@@ -71,7 +72,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     }
 
     const { getChildrenCount } = this.config;
-    const overrides: Record<TreeItemId, boolean> = {};
+    const overrides: Record<CollectionItemId, boolean> = {};
     const metaLookup = selectors.itemMetaLookup(this.store.state);
 
     for (const [id, meta] of Object.entries(metaLookup)) {
@@ -96,7 +97,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
       return;
     }
 
-    const fetchChildrenIfExpanded = async (parentIds: TreeItemId[]): Promise<void> => {
+    const fetchChildrenIfExpanded = async (parentIds: CollectionItemId[]): Promise<void> => {
       if (!this.store) {
         return;
       }
@@ -125,7 +126,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
   }
 
   async onBeforeExpand(
-    itemId: TreeItemId,
+    itemId: CollectionItemId,
     reason: Parameters<TreeLazyLoading['onBeforeExpand']>[1],
     event?: Event,
   ): Promise<void> {
@@ -141,7 +142,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     }
   }
 
-  private setItemLoading(itemId: TreeItemId | null, isLoading: boolean): void {
+  private setItemLoading(itemId: CollectionItemId | null, isLoading: boolean): void {
     if (!this.store?.state.lazyItems) {
       return;
     }
@@ -161,7 +162,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     this.store.set('lazyItems', { ...this.store.state.lazyItems, loading });
   }
 
-  private setItemError(itemId: TreeItemId | null, error: Error | null): void {
+  private setItemError(itemId: CollectionItemId | null, error: Error | null): void {
     if (!this.store?.state.lazyItems) {
       return;
     }
@@ -182,17 +183,17 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     this.store.set('lazyItems', { ...this.store.state.lazyItems, errors });
   }
 
-  public fetchItems = (parentIds: TreeItemId[]): Promise<void> =>
+  public fetchItems = (parentIds: CollectionItemId[]): Promise<void> =>
     this.nestedDataManager.queue(parentIds);
 
-  public refreshItemChildren = (itemId: TreeItemId | null): Promise<void> =>
+  public refreshItemChildren = (itemId: CollectionItemId | null): Promise<void> =>
     this.fetchItemChildren({ itemId, forceRefresh: true });
 
   public fetchItemChildren = async ({
     itemId,
     forceRefresh,
   }: {
-    itemId: TreeItemId | null;
+    itemId: CollectionItemId | null;
     forceRefresh?: boolean | undefined;
   }): Promise<void> => {
     if (!this.store) {
@@ -278,7 +279,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
 
     const { getChildrenCount } = this.config;
     const itemToId = this.store.state.itemToId;
-    const overrides: Record<TreeItemId, boolean> = {};
+    const overrides: Record<CollectionItemId, boolean> = {};
 
     for (const item of items) {
       const id = itemToId(item);

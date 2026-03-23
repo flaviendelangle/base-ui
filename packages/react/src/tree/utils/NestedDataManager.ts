@@ -1,4 +1,4 @@
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
 const MAX_CONCURRENT_REQUESTS = Infinity;
 
@@ -10,7 +10,7 @@ export enum RequestStatus {
 }
 
 export interface NestedDataManagerDelegate {
-  fetchItemChildren(params: { itemId: TreeItemId | null }): Promise<void>;
+  fetchItemChildren(params: { itemId: CollectionItemId | null }): Promise<void>;
 }
 
 /**
@@ -19,11 +19,11 @@ export interface NestedDataManagerDelegate {
  * and limits concurrency to prevent overwhelming the server.
  */
 export class NestedDataManager {
-  private pendingRequests: Set<TreeItemId> = new Set();
+  private pendingRequests: Set<CollectionItemId> = new Set();
 
-  private queuedRequests: Set<TreeItemId> = new Set();
+  private queuedRequests: Set<CollectionItemId> = new Set();
 
-  private settledRequests: Set<TreeItemId> = new Set();
+  private settledRequests: Set<CollectionItemId> = new Set();
 
   private delegate: NestedDataManagerDelegate;
 
@@ -60,7 +60,7 @@ export class NestedDataManager {
     await Promise.all(fetchPromises);
   };
 
-  public queue = async (ids: TreeItemId[]) => {
+  public queue = async (ids: CollectionItemId[]) => {
     for (const id of ids) {
       if (!this.pendingRequests.has(id)) {
         this.queuedRequests.add(id);
@@ -69,7 +69,7 @@ export class NestedDataManager {
     await this.processQueue();
   };
 
-  public setRequestSettled = async (id: TreeItemId) => {
+  public setRequestSettled = async (id: CollectionItemId) => {
     this.pendingRequests.delete(id);
     this.settledRequests.add(id);
     await this.processQueue();
@@ -82,12 +82,12 @@ export class NestedDataManager {
     }
   };
 
-  public clearPendingRequest = async (id: TreeItemId) => {
+  public clearPendingRequest = async (id: CollectionItemId) => {
     this.pendingRequests.delete(id);
     await this.processQueue();
   };
 
-  public getRequestStatus = (id: TreeItemId) => {
+  public getRequestStatus = (id: CollectionItemId) => {
     if (this.pendingRequests.has(id)) {
       return RequestStatus.PENDING;
     }

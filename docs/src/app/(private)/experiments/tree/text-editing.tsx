@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
+import type { CollectionItemId } from '@base-ui/react/types';
 import styles from './tree.module.css';
 
 const initialItems: Tree.DefaultItemModel[] = [
@@ -28,10 +29,10 @@ const initialItems: Tree.DefaultItemModel[] = [
 ];
 
 const EditingContext = React.createContext<{
-  editingItemId: Tree.ItemId | null;
-  startEditing: (itemId: Tree.ItemId) => void;
+  editingItemId: CollectionItemId | null;
+  startEditing: (itemId: CollectionItemId) => void;
   stopEditing: () => void;
-  saveEdit: (itemId: Tree.ItemId, newLabel: string) => void;
+  saveEdit: (itemId: CollectionItemId, newLabel: string) => void;
 }>({
   editingItemId: null,
   startEditing: () => {},
@@ -39,7 +40,7 @@ const EditingContext = React.createContext<{
   saveEdit: () => {},
 });
 
-function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }) {
+function EditableLabel({ itemId, label }: { itemId: CollectionItemId; label: string }) {
   const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
   const isEditing = editingItemId === itemId;
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -88,14 +89,14 @@ function EditableLabel({ itemId, label }: { itemId: Tree.ItemId; label: string }
 
 export default function TextEditingTree() {
   const [items, setItems] = React.useState(initialItems);
-  const [editingItemId, setEditingItemId] = React.useState<Tree.ItemId | null>(null);
+  const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
 
   const editingContext = React.useMemo(
     () => ({
       editingItemId,
-      startEditing: (itemId: Tree.ItemId) => setEditingItemId(itemId),
+      startEditing: (itemId: CollectionItemId) => setEditingItemId(itemId),
       stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: Tree.ItemId, newLabel: string) => {
+      saveEdit: (itemId: CollectionItemId, newLabel: string) => {
         setItems((prev) => updateLabel(prev, itemId, newLabel));
         setEditingItemId(null);
       },
@@ -142,7 +143,7 @@ export default function TextEditingTree() {
 
 function updateLabel(
   items: Tree.DefaultItemModel[],
-  targetId: Tree.ItemId,
+  targetId: CollectionItemId,
   newLabel: string,
 ): Tree.DefaultItemModel[] {
   return items.map((item) => {

@@ -8,15 +8,16 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { TreeItemContext } from './TreeItemContext';
 import { TreeItemDataAttributes } from './TreeItemDataAttributes';
 import { TreeItemCssVars } from './TreeItemCssVars';
-import type { TreeItemId } from '../store/types';
+import type { CollectionItemId } from '../../types/collection';
 
 const EXPANDED_HOOK = { [TreeItemDataAttributes.expanded]: '' };
 const COLLAPSED_HOOK = { [TreeItemDataAttributes.collapsed]: '' };
 const DRAGGED_HOOK = { [TreeItemDataAttributes.dragged]: '' };
 const DROP_TARGET_HOOK = { [TreeItemDataAttributes.dropTarget]: '' };
+const DROP_TARGET_GROUP_HOOK = { [TreeItemDataAttributes.dropTargetGroup]: '' };
 
 const stateAttributesMapping = {
-  itemId(v: TreeItemId) {
+  itemId(v: CollectionItemId) {
     return { [TreeItemDataAttributes.itemId]: String(v) };
   },
   expanded(v: boolean) {
@@ -33,6 +34,9 @@ const stateAttributesMapping = {
   },
   dropOperation(v: 'move' | 'copy' | 'link' | 'cancel' | null) {
     return v ? { [TreeItemDataAttributes.dropOperation]: v } : null;
+  },
+  inDropTargetGroup(v: boolean) {
+    return v ? DROP_TARGET_GROUP_HOOK : null;
   },
 } satisfies StateAttributesMapping<TreeItem.State>;
 
@@ -70,6 +74,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
   const dropTarget = store.useState('isItemDropTarget', itemId);
   const dropPosition = store.useState('itemDropPosition', itemId);
   const dropOperation = store.useState('itemDropOperation', itemId);
+  const inDropTargetGroup = store.useState('isItemInDropTargetGroup', itemId);
 
   const state: TreeItem.State = {
     itemId,
@@ -83,6 +88,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
     dropTarget,
     dropPosition,
     dropOperation,
+    inDropTargetGroup,
   };
 
   // In virtualized mode, auto-focus when this item mounts and it's the focused item.
@@ -137,7 +143,7 @@ export interface TreeItemState {
   /**
    * The id of the item.
    */
-  itemId: TreeItemId;
+  itemId: CollectionItemId;
   /**
    * Whether the item is currently expanded.
    */
@@ -178,13 +184,17 @@ export interface TreeItemState {
    * The drop operation for this item when it is a drop target, or `null`.
    */
   dropOperation: 'move' | 'copy' | 'link' | 'cancel' | null;
+  /**
+   * Whether the item belongs to the drop target's group (folder subtree).
+   */
+  inDropTargetGroup: boolean;
 }
 
 export interface TreeItemProps extends BaseUIComponentProps<'div', TreeItemState> {
   /**
    * The id of the item.
    */
-  itemId: TreeItemId;
+  itemId: CollectionItemId;
 }
 
 export namespace TreeItem {
