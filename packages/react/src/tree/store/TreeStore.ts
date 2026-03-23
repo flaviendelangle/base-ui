@@ -223,9 +223,7 @@ export interface TreeStoreParameters<
   /**
    * Event handler called when items are reordered or reparented.
    */
-  onItemsChange?:
-    | ((items: readonly TItem[], details: TreeRootItemsChangeEventDetails) => void)
-    | undefined;
+  onItemsChange?: ((items: TItem[], details: TreeRootItemsChangeEventDetails) => void) | undefined;
   /**
    * Maps a drop target item to its containing group (e.g., parent folder).
    * When provided, items in the group receive `data-drop-target-group`.
@@ -604,216 +602,201 @@ export class TreeStore<
     const ctrlPressed = event.ctrlKey || event.metaKey;
     const key = event.key;
     const isMulti = this.state.selectionMode === 'multiple';
+    const isRtl = this.state.direction === 'rtl';
+    const expandKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
+    const collapseKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
 
-    switch (true) {
-      // Select the item when pressing "Space"
-      case key === ' ' && selectors.canItemBeSelected(this.state, itemId): {
-        event.preventDefault();
-        const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
-        if (isMulti && event.shiftKey) {
-          this.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
-        } else {
+    // Select the item when pressing "Space"
+    if (key === ' ' && selectors.canItemBeSelected(this.state, itemId)) {
+      event.preventDefault();
+      const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
+      if (isMulti && event.shiftKey) {
+        this.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
+      } else {
+        this.selection.setItemSelection({
+          itemId,
+          keepExistingSelection: isMulti,
+          shouldBeSelected: undefined,
+          shouldPropagate: isCheckbox,
+          reason: REASONS.keyboard,
+          event: event.nativeEvent,
+        });
+      }
+    }
+
+    // Enter: for link items, let the browser handle native navigation.
+    // For other items, expand/collapse or select.
+    else if (key === 'Enter') {
+      const isLink = (event.target as HTMLElement).hasAttribute('data-link');
+      if (isLink) {
+        // Let the browser follow the link natively (no preventDefault).
+        // Still handle selection so the item becomes selected on navigation.
+        if (selectors.canItemBeSelected(this.state, itemId)) {
           this.selection.setItemSelection({
             itemId,
-            keepExistingSelection: isMulti,
-            shouldBeSelected: undefined,
-            shouldPropagate: isCheckbox,
+            shouldBeSelected: true,
             reason: REASONS.keyboard,
             event: event.nativeEvent,
           });
         }
-        break;
+        return;
       }
-
-      // Enter: for link items, let the browser handle native navigation.
-      // For other items, expand/collapse or select.
-      case key === 'Enter': {
-        const isLink = (event.target as HTMLElement).hasAttribute('data-link');
-        if (isLink) {
-          // Let the browser follow the link natively (no preventDefault).
-          // Still handle selection so the item becomes selected on navigation.
-          if (selectors.canItemBeSelected(this.state, itemId)) {
-            this.selection.setItemSelection({
-              itemId,
-              shouldBeSelected: true,
-              reason: REASONS.keyboard,
-              event: event.nativeEvent,
-            });
-          }
-          break;
-        }
-        if (this.expansion.canToggleItemExpansion(itemId)) {
-          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-          event.preventDefault();
-        } else if (selectors.canItemBeSelected(this.state, itemId)) {
-          if (isMulti) {
-            event.preventDefault();
-            this.selection.setItemSelection({
-              itemId,
-              keepExistingSelection: true,
-              shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
-              reason: REASONS.keyboard,
-              event: event.nativeEvent,
-            });
-          } else if (!selectors.isItemSelected(this.state, itemId)) {
-            this.selection.setItemSelection({
-              itemId,
-              reason: REASONS.keyboard,
-              event: event.nativeEvent,
-            });
-            event.preventDefault();
-          }
-        }
-        break;
-      }
-
-      // Focus next item
-      case key === 'ArrowDown': {
-        const nextItem = getNextNavigableItem(this.state, itemId);
-        if (nextItem) {
-          event.preventDefault();
-          this.focusItem(nextItem);
-          if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, nextItem)) {
-            this.selection.selectItemFromArrowNavigation(
-              itemId,
-              nextItem,
-              REASONS.keyboard,
-              event.nativeEvent,
-            );
-          }
-        }
-        break;
-      }
-
-      // Focus previous item
-      case key === 'ArrowUp': {
-        const prevItem = getPreviousNavigableItem(this.state, itemId);
-        if (prevItem) {
-          event.preventDefault();
-          this.focusItem(prevItem);
-          if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, prevItem)) {
-            this.selection.selectItemFromArrowNavigation(
-              itemId,
-              prevItem,
-              REASONS.keyboard,
-              event.nativeEvent,
-            );
-          }
-        }
-        break;
-      }
-
-      // ArrowRight: expand or focus first child
-      case (key === 'ArrowRight' && this.state.direction !== 'rtl') ||
-        (key === 'ArrowLeft' && this.state.direction === 'rtl'): {
-        if (ctrlPressed) {
-          return;
-        }
-        if (selectors.isItemExpanded(this.state, itemId)) {
-          const nextItemId = getNextNavigableItem(this.state, itemId);
-          if (nextItemId) {
-            this.focusItem(nextItemId);
-            event.preventDefault();
-          }
-        } else if (this.expansion.canToggleItemExpansion(itemId)) {
-          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-          event.preventDefault();
-        }
-        break;
-      }
-
-      // ArrowLeft: collapse or focus parent
-      case (key === 'ArrowLeft' && this.state.direction !== 'rtl') ||
-        (key === 'ArrowRight' && this.state.direction === 'rtl'): {
-        if (ctrlPressed) {
-          return;
-        }
-        if (
-          this.expansion.canToggleItemExpansion(itemId) &&
-          selectors.isItemExpanded(this.state, itemId)
-        ) {
-          this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-          event.preventDefault();
-        } else {
-          const parent = selectors.itemParentId(this.state, itemId);
-          if (parent) {
-            this.focusItem(parent);
-            event.preventDefault();
-          }
-        }
-        break;
-      }
-
-      // Home: focus first item
-      case key === 'Home': {
-        if (
-          selectors.canItemBeSelected(this.state, itemId) &&
-          isMulti &&
-          ctrlPressed &&
-          event.shiftKey
-        ) {
-          this.selection.selectRangeFromStartToItem(itemId, REASONS.keyboard, event.nativeEvent);
-        } else {
-          const firstItem = getFirstNavigableItem(this.state);
-          if (firstItem) {
-            this.focusItem(firstItem);
-          }
-        }
+      if (this.expansion.canToggleItemExpansion(itemId)) {
+        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
         event.preventDefault();
-        break;
-      }
-
-      // End: focus last item
-      case key === 'End': {
-        if (
-          selectors.canItemBeSelected(this.state, itemId) &&
-          isMulti &&
-          ctrlPressed &&
-          event.shiftKey
-        ) {
-          this.selection.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
-        } else {
-          const lastItem = getLastNavigableItem(this.state);
-          if (lastItem) {
-            this.focusItem(lastItem);
-          }
-        }
-        event.preventDefault();
-        break;
-      }
-
-      // Expand all siblings
-      case key === '*': {
-        this.expansion.expandAllSiblings(itemId, REASONS.keyboard, event.nativeEvent);
-        event.preventDefault();
-        break;
-      }
-
-      // Ctrl+A: select all
-      case event.key.toUpperCase() === 'A' && ctrlPressed && isMulti: {
-        this.selection.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
-        event.preventDefault();
-        break;
-      }
-
-      // Type-ahead
-      case !ctrlPressed && !event.shiftKey && isPrintableKey(key): {
-        const matchingItem = this.getFirstItemMatchingTypeaheadQuery(itemId, key);
-        if (matchingItem != null) {
-          this.focusItem(matchingItem);
+      } else if (selectors.canItemBeSelected(this.state, itemId)) {
+        if (isMulti) {
           event.preventDefault();
-        } else {
-          this.typeaheadQuery = '';
+          this.selection.setItemSelection({
+            itemId,
+            keepExistingSelection: true,
+            shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
+            reason: REASONS.keyboard,
+            event: event.nativeEvent,
+          });
+        } else if (!selectors.isItemSelected(this.state, itemId)) {
+          this.selection.setItemSelection({
+            itemId,
+            reason: REASONS.keyboard,
+            event: event.nativeEvent,
+          });
+          event.preventDefault();
         }
+      }
+    }
 
-        this.timeoutManager.startTimeout('typeahead', TYPEAHEAD_TIMEOUT, () => {
-          this.typeaheadQuery = '';
-        });
-        break;
+    // Focus next item
+    else if (key === 'ArrowDown') {
+      const nextItem = getNextNavigableItem(this.state, itemId);
+      if (nextItem) {
+        event.preventDefault();
+        this.focusItem(nextItem);
+        if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, nextItem)) {
+          this.selection.selectItemFromArrowNavigation(
+            itemId,
+            nextItem,
+            REASONS.keyboard,
+            event.nativeEvent,
+          );
+        }
+      }
+    }
+
+    // Focus previous item
+    else if (key === 'ArrowUp') {
+      const prevItem = getPreviousNavigableItem(this.state, itemId);
+      if (prevItem) {
+        event.preventDefault();
+        this.focusItem(prevItem);
+        if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, prevItem)) {
+          this.selection.selectItemFromArrowNavigation(
+            itemId,
+            prevItem,
+            REASONS.keyboard,
+            event.nativeEvent,
+          );
+        }
+      }
+    }
+
+    // Expand or focus first child
+    else if (key === expandKey) {
+      if (ctrlPressed) {
+        return;
+      }
+      if (selectors.isItemExpanded(this.state, itemId)) {
+        const nextItemId = getNextNavigableItem(this.state, itemId);
+        if (nextItemId) {
+          this.focusItem(nextItemId);
+          event.preventDefault();
+        }
+      } else if (this.expansion.canToggleItemExpansion(itemId)) {
+        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
+        event.preventDefault();
+      }
+    }
+
+    // Collapse or focus parent
+    else if (key === collapseKey) {
+      if (ctrlPressed) {
+        return;
+      }
+      if (
+        this.expansion.canToggleItemExpansion(itemId) &&
+        selectors.isItemExpanded(this.state, itemId)
+      ) {
+        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
+        event.preventDefault();
+      } else {
+        const parent = selectors.itemParentId(this.state, itemId);
+        if (parent) {
+          this.focusItem(parent);
+          event.preventDefault();
+        }
+      }
+    }
+
+    // Home: focus first item
+    else if (key === 'Home') {
+      if (
+        selectors.canItemBeSelected(this.state, itemId) &&
+        isMulti &&
+        ctrlPressed &&
+        event.shiftKey
+      ) {
+        this.selection.selectRangeFromStartToItem(itemId, REASONS.keyboard, event.nativeEvent);
+      } else {
+        const firstItem = getFirstNavigableItem(this.state);
+        if (firstItem) {
+          this.focusItem(firstItem);
+        }
+      }
+      event.preventDefault();
+    }
+
+    // End: focus last item
+    else if (key === 'End') {
+      if (
+        selectors.canItemBeSelected(this.state, itemId) &&
+        isMulti &&
+        ctrlPressed &&
+        event.shiftKey
+      ) {
+        this.selection.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
+      } else {
+        const lastItem = getLastNavigableItem(this.state);
+        if (lastItem) {
+          this.focusItem(lastItem);
+        }
+      }
+      event.preventDefault();
+    }
+
+    // Expand all siblings
+    else if (key === '*') {
+      this.expansion.expandAllSiblings(itemId, REASONS.keyboard, event.nativeEvent);
+      event.preventDefault();
+    }
+
+    // Ctrl+A: select all
+    else if (event.key.toUpperCase() === 'A' && ctrlPressed && isMulti) {
+      this.selection.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
+      event.preventDefault();
+    }
+
+    // Type-ahead
+    else if (!ctrlPressed && !event.shiftKey && isPrintableKey(key)) {
+      const matchingItem = this.getFirstItemMatchingTypeaheadQuery(itemId, key);
+      if (matchingItem != null) {
+        this.focusItem(matchingItem);
+        event.preventDefault();
+      } else {
+        this.typeaheadQuery = '';
       }
 
-      default:
-        break;
+      this.timeoutManager.startTimeout('typeahead', TYPEAHEAD_TIMEOUT, () => {
+        this.typeaheadQuery = '';
+      });
     }
   }
 

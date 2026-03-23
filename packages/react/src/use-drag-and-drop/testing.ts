@@ -6,6 +6,7 @@
  */
 import '@atlaskit/pragmatic-drag-and-drop-unit-testing/drag-event-polyfill';
 import '@atlaskit/pragmatic-drag-and-drop-unit-testing/dom-rect-polyfill';
+import { vi } from 'vitest';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { renderHook } from '@testing-library/react';
 import type { CollectionActions, CollectionItemId } from '../types/collection';
@@ -22,15 +23,17 @@ import type {
 
 interface MockContextOptions {
   /** Item ids that exist in this collection. */
-  knownItemIds?: Array<string | number>;
+  knownItemIds?: Array<string | number> | undefined;
   /** Map of parentId → childIds. `null` key = root children. */
-  childrenMap?: Record<string, Array<string | number>>;
+  childrenMap?: Record<string, Array<string | number>> | undefined;
   /** Map of itemId → parentId. */
-  parentMap?: Record<string, string | number | null>;
+  parentMap?: Record<string, string | number | null> | undefined;
   /** Currently selected item ids. */
-  selectedItemIds?: Set<string | number>;
+  selectedItemIds?: Set<string | number> | undefined;
+  /** Item ids that are expandable. */
+  expandableItemIds?: Set<string | number> | undefined;
   /** Overrides for individual context methods. */
-  overrides?: Partial<CollectionActions>;
+  overrides?: Partial<CollectionActions> | undefined;
 }
 
 export interface MockContextResult {
@@ -132,7 +135,7 @@ const createdElements: HTMLElement[] = [];
  * All created elements are automatically removed by `cleanupElements()`.
  */
 export function createElement(
-  rect: { top: number; height: number; left?: number; width?: number } = {
+  rect: { top: number; height: number; left?: number | undefined; width?: number | undefined } = {
     top: 0,
     height: 100,
   },
@@ -157,12 +160,12 @@ export function cleanupElements(): void {
 // ---------------------------------------------------------------------------
 
 interface InputOverrides {
-  altKey?: boolean;
-  ctrlKey?: boolean;
-  shiftKey?: boolean;
-  metaKey?: boolean;
-  clientX?: number;
-  clientY?: number;
+  altKey?: boolean | undefined;
+  ctrlKey?: boolean | undefined;
+  shiftKey?: boolean | undefined;
+  metaKey?: boolean | undefined;
+  clientX?: number | undefined;
+  clientY?: number | undefined;
 }
 
 function getDefaultInput(overrides: InputOverrides = {}): InputOverrides {

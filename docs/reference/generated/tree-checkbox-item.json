@@ -3,7 +3,7 @@
   "description": "A tree item that uses toggle selection behavior with checkbox semantics.\nClicking toggles the item's selection without affecting other items.\nRenders a `<div>` element.",
   "props": {
     "itemId": {
-      "type": "Tree.Item.Id",
+      "type": "CollectionItemId",
       "required": true,
       "description": "The id of the item.",
       "detailedType": "string | number"
@@ -35,6 +35,21 @@
     },
     "data-collapsed": {
       "description": "Present when the item is collapsed."
+    },
+    "data-dragged": {
+      "description": "Present when the item is being dragged."
+    },
+    "data-drop-operation": {
+      "description": "The drop operation for the item: 'move', 'copy', or 'link'."
+    },
+    "data-drop-position": {
+      "description": "The drop position relative to the item: 'before', 'after', or 'child'."
+    },
+    "data-drop-target": {
+      "description": "Present when the item is a drop target."
+    },
+    "data-drop-target-group": {
+      "description": "Present when the item belongs to the drop target's group (folder subtree)."
     },
     "data-expandable": {
       "description": "Present when the item has children and can be expanded."

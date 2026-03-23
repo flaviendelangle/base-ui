@@ -259,7 +259,7 @@ export class TreeItemMutationPlugin<TItem> {
     }
 
     const details = createChangeEventDetails(reason, undefined, undefined, changeInfo);
-    this.store.context.onItemsChange(newItems, details);
+    this.store.context.onItemsChange(newItems as TItem[], details);
     if (details.isCanceled) {
       return;
     }

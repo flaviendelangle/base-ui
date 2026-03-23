@@ -502,15 +502,31 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       expect(view.isItemExpanded(1)).toBe(true);
     });
 
+    it('should handle rapid expand and collapse of the same item', async () => {
+      const view = await render({
+        items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
+      });
+
+      // Rapidly toggle expansion
+      act(() => {
+        view.actionsRef.current!.setItemExpansion('1', true);
+      });
+      act(() => {
+        view.actionsRef.current!.setItemExpansion('1', false);
+      });
+      act(() => {
+        view.actionsRef.current!.setItemExpansion('1', true);
+      });
+
+      expect(view.isItemExpanded('1')).toBe(true);
+      expect(view.getAllTreeItemIds()).toEqual(['1', '1.1', '2']);
+    });
+
     it('should support expandAll with numeric ids', async () => {
       const onExpandedItemsChange = vi.fn();
 
       const view = await render({
-        items: [
-          { id: 1, children: [{ id: 11 }] },
-          { id: 2, children: [{ id: 21 }] },
-          { id: 3 },
-        ],
+        items: [{ id: 1, children: [{ id: 11 }] }, { id: 2, children: [{ id: 21 }] }, { id: 3 }],
         onExpandedItemsChange,
       });
 

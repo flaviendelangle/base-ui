@@ -9,7 +9,7 @@
       "detailedType": "boolean | undefined"
     },
     "itemId": {
-      "type": "Tree.Item.Id",
+      "type": "CollectionItemId",
       "required": true,
       "description": "The id of the item.",
       "detailedType": "string | number"

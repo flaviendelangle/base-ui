@@ -31,7 +31,10 @@ const defaultItemToStringLabel = (item: any) => item.label;
 const defaultItemToChildren = (item: any) => item.children;
 const defaultSetItemChildren = (item: any, children: any) => ({ ...item, children });
 const defaultIsItemDisabled = (item: any) => !!item.disabled;
-const defaultSetIsItemDisabled = (item: any, isDisabled: boolean) => ({ ...item, disabled: isDisabled });
+const defaultSetIsItemDisabled = (item: any, isDisabled: boolean) => ({
+  ...item,
+  disabled: isDisabled,
+});
 const defaultIsItemSelectionDisabled = (item: any) => !!item.disabled;
 
 const DEFAULT_CHECKBOX_SELECTION_PROPAGATION = { parents: true, descendants: true } as const;

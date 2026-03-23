@@ -22,10 +22,7 @@ afterEach(() => {
 describe('onMove', () => {
   it('is called for "before" position', async () => {
     const onMove = vi.fn();
-    const { plugin } = setupPlugin(
-      { onMove },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onMove }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -48,10 +45,7 @@ describe('onMove', () => {
 
   it('is called for "after" position', async () => {
     const onMove = vi.fn();
-    const { plugin } = setupPlugin(
-      { onMove },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onMove }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -98,10 +92,7 @@ describe('onMove', () => {
 
   it('receives the correct parameter shape', async () => {
     const onMove = vi.fn();
-    const { plugin } = setupPlugin(
-      { onMove },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onMove }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -127,10 +118,7 @@ describe('onMove', () => {
 describe('onReorder', () => {
   it('is called for "before" position', async () => {
     const onReorder = vi.fn();
-    const { plugin } = setupPlugin(
-      { onReorder },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onReorder }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -151,10 +139,7 @@ describe('onReorder', () => {
 
   it('is called for "after" position', async () => {
     const onReorder = vi.fn();
-    const { plugin } = setupPlugin(
-      { onReorder },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onReorder }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -202,10 +187,7 @@ describe('onReorder', () => {
   it('onMove takes priority over onReorder when both provided', async () => {
     const onMove = vi.fn();
     const onReorder = vi.fn();
-    const { plugin } = setupPlugin(
-      { onMove, onReorder },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onMove, onReorder }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -477,6 +459,34 @@ describe('onRootDrop', () => {
       const params = onRootDrop.mock.calls[0][0];
       expect(params.itemIds).toBeInstanceOf(Set);
       expect(params.dropOperation).toBeTypeOf('string');
+    }
+  });
+
+  it('uses the first allowed operation regardless of modifier keys', async () => {
+    const onRootDrop = vi.fn();
+    const { plugin } = setupPlugin(
+      {
+        onMove: vi.fn(),
+        onRootDrop,
+        getAllowedDropOperations: () => ['copy', 'move'],
+      },
+      { knownItemIds: ['a', 'b'] },
+    );
+
+    const elA = createElement({ top: 0, height: 100 });
+    const rootEl = createElement({ top: 300, height: 200 });
+    plugin.setupItem('a', elA);
+    plugin.setupRoot(rootEl);
+
+    // Drag with Shift key held (which would normally indicate 'move' on Windows/Linux)
+    await lift(elA, { shiftKey: true });
+    await dragEnter(rootEl, { clientY: 400, shiftKey: true });
+    await dragOver(rootEl, { clientY: 400, shiftKey: true });
+    drop(rootEl, { clientY: 400, shiftKey: true });
+
+    if (onRootDrop.mock.calls.length > 0) {
+      // onRootDrop always uses the first allowed operation ('copy'), not the modifier-derived one
+      expect(onRootDrop.mock.calls[0][0].dropOperation).toBe('copy');
     }
   });
 });

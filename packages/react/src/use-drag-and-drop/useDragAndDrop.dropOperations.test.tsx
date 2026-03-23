@@ -22,10 +22,7 @@ afterEach(() => {
 describe('getAllowedDropOperations', () => {
   it('defaults to ["move"] when not provided', async () => {
     const onMove = vi.fn();
-    const { plugin, lastState } = setupPlugin(
-      { onMove },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin, lastState } = setupPlugin({ onMove }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -156,9 +153,7 @@ describe('getDropOperation', () => {
     // No new state update with a drop target should have been emitted
     // (the cancel makes it not droppable)
     const statesAfterDrag = states.slice(stateCountAfterLift);
-    const dropTargetStates = statesAfterDrag.filter(
-      (s) => s.dropTargetItemId != null,
-    );
+    const dropTargetStates = statesAfterDrag.filter((s) => s.dropTargetItemId != null);
     expect(dropTargetStates).toHaveLength(0);
   });
 
@@ -180,9 +175,7 @@ describe('getDropOperation', () => {
     await dragEnter(elB, { clientY: 175 });
     await dragOver(elB, { clientY: 175 });
 
-    expect(getDropOperation).toHaveBeenCalledWith(
-      expect.objectContaining({ isInternal: true }),
-    );
+    expect(getDropOperation).toHaveBeenCalledWith(expect.objectContaining({ isInternal: true }));
   });
 
   it('passes isInternal=false when items are external', async () => {
@@ -210,9 +203,7 @@ describe('getDropOperation', () => {
     await dragEnter(targetEl, { clientY: 275 });
     await dragOver(targetEl, { clientY: 275 });
 
-    expect(getDropOperation).toHaveBeenCalledWith(
-      expect.objectContaining({ isInternal: false }),
-    );
+    expect(getDropOperation).toHaveBeenCalledWith(expect.objectContaining({ isInternal: false }));
   });
 });
 
@@ -242,9 +233,7 @@ describe('canDrop', () => {
 
     // No state with a drop target should have been emitted
     const statesAfterDrag = states.slice(stateCountAfterLift);
-    const dropTargetStates = statesAfterDrag.filter(
-      (s) => s.dropTargetItemId != null,
-    );
+    const dropTargetStates = statesAfterDrag.filter((s) => s.dropTargetItemId != null);
     expect(dropTargetStates).toHaveLength(0);
   });
 
@@ -292,10 +281,7 @@ describe('canDrop', () => {
 
   it('receives the correct parameters', async () => {
     const canDrop = vi.fn().mockReturnValue(true);
-    const { plugin } = setupPlugin(
-      { onMove: vi.fn(), canDrop },
-      { knownItemIds: ['a', 'b'] },
-    );
+    const { plugin } = setupPlugin({ onMove: vi.fn(), canDrop }, { knownItemIds: ['a', 'b'] });
     const elA = createElement({ top: 0, height: 100 });
     const elB = createElement({ top: 100, height: 100 });
     plugin.setupItem('a', elA);
@@ -322,10 +308,7 @@ describe('canDrop', () => {
 describe('drop target validation', () => {
   it('cannot drop on the dragged item itself', async () => {
     const onMove = vi.fn();
-    const { plugin } = setupPlugin(
-      { onMove },
-      { knownItemIds: ['a'] },
-    );
+    const { plugin } = setupPlugin({ onMove }, { knownItemIds: ['a'] });
     const elA = createElement({ top: 0, height: 100 });
     plugin.setupItem('a', elA);
 
@@ -475,9 +458,7 @@ describe('modifier keys', () => {
 
     // No valid drop target state should have been set (cancel = not droppable)
     const statesAfterDrag = states.slice(stateCountAfterLift);
-    const dropTargetStates = statesAfterDrag.filter(
-      (s) => s.dropTargetItemId != null,
-    );
+    const dropTargetStates = statesAfterDrag.filter((s) => s.dropTargetItemId != null);
     expect(dropTargetStates).toHaveLength(0);
   });
 });

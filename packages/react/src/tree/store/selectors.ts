@@ -43,7 +43,13 @@ const rawItemsStateSelector = createSelectorMemoized(
   (state: TreeState) => state.itemOrderedChildrenIdsLookup,
   (state: TreeState) => state.itemChildrenIndexesLookup,
   (state: TreeState) => state.itemIdLookup,
-  (itemModelLookup, itemMetaLookup, itemOrderedChildrenIdsLookup, itemChildrenIndexesLookup, itemIdLookup): TreeItemsState => ({
+  (
+    itemModelLookup,
+    itemMetaLookup,
+    itemOrderedChildrenIdsLookup,
+    itemChildrenIndexesLookup,
+    itemIdLookup,
+  ): TreeItemsState => ({
     itemModelLookup,
     itemMetaLookup,
     itemOrderedChildrenIdsLookup,
@@ -82,7 +88,7 @@ const resolvedItemsStateSelector = createSelectorMemoized(
     // Phase 1: Apply lazy-loaded children (tree structure mutations)
     if (hasLazyChildren) {
       const processChildren = (
-        children: TreeDefaultItemModel[],
+        children: readonly TreeDefaultItemModel[],
         parentId: CollectionItemId,
         parentDepth: number,
       ) => {
@@ -173,23 +179,25 @@ const itemOrderedChildrenIdsSelector = createSelector(
     itemOrderedChildrenIdsLookupSelector(state)[itemId ?? TREE_VIEW_ROOT_PARENT_ID] ?? EMPTY_ARRAY,
 );
 
-const isItemDisabledSelector = createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
-  if (state.disabled) {
-    return true;
-  }
-  const metaLookup = itemMetaLookupSelector(state);
-  const meta = metaLookup[itemId];
-  if (!meta) {
+const isItemDisabledSelector = createSelector(
+  (state: TreeState, itemId: CollectionItemId): boolean => {
+    if (state.disabled) {
+      return true;
+    }
+    const metaLookup = itemMetaLookupSelector(state);
+    const meta = metaLookup[itemId];
+    if (!meta) {
+      return false;
+    }
+    if (meta.disabled) {
+      return true;
+    }
+    if (meta.parentId != null) {
+      return isItemDisabledSelector(state, meta.parentId);
+    }
     return false;
-  }
-  if (meta.disabled) {
-    return true;
-  }
-  if (meta.parentId != null) {
-    return isItemDisabledSelector(state, meta.parentId);
-  }
-  return false;
-});
+  },
+);
 
 const expandedItemsSetSelector = createSelectorMemoized(
   (state: TreeState) => state.expandedItems,
@@ -237,13 +245,15 @@ const canItemBeSelectedSelector = createSelector(
   },
 );
 
-const isItemSelectedSelector = createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
-  const selectedSet = selectedItemsSetSelector(state);
-  if (selectedSet === TREE_SELECTION_ALL) {
-    return canItemBeSelectedSelector(state, itemId);
-  }
-  return selectedSet.has(itemId);
-});
+const isItemSelectedSelector = createSelector(
+  (state: TreeState, itemId: CollectionItemId): boolean => {
+    const selectedSet = selectedItemsSetSelector(state);
+    if (selectedSet === TREE_SELECTION_ALL) {
+      return canItemBeSelectedSelector(state, itemId);
+    }
+    return selectedSet.has(itemId);
+  },
+);
 
 export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 
@@ -255,9 +265,13 @@ export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 const descendantSelectionCountsSelector = createSelectorMemoized(
   selectedItemsSetSelector,
   itemOrderedChildrenIdsLookupSelector,
+  itemMetaLookupSelector,
+  (state: TreeState) => state.disabled,
   (
     selectedSet,
     childrenLookup,
+    metaLookup,
+    treeDisabled,
   ): Record<CollectionItemId, { selected: number; total: number }> | typeof TREE_SELECTION_ALL => {
     if (selectedSet === TREE_SELECTION_ALL) {
       return TREE_SELECTION_ALL;
@@ -265,7 +279,10 @@ const descendantSelectionCountsSelector = createSelectorMemoized(
 
     const counts: Record<CollectionItemId, { selected: number; total: number }> = {};
 
-    const compute = (itemId: CollectionItemId): { selected: number; total: number } => {
+    const compute = (
+      itemId: CollectionItemId,
+      parentDisabled: boolean,
+    ): { selected: number; total: number } => {
       const children = childrenLookup[itemId];
       if (!children || children.length === 0) {
         const result = { selected: 0, total: 0 };
@@ -277,11 +294,16 @@ const descendantSelectionCountsSelector = createSelectorMemoized(
       let total = 0;
 
       for (const childId of children) {
-        total += 1;
-        if (selectedSet.has(childId)) {
-          selected += 1;
+        const meta = metaLookup[childId];
+        const isDisabled = parentDisabled || (meta?.disabled ?? false);
+        const canBeSelected = (meta?.selectable ?? true) && !isDisabled;
+        if (canBeSelected) {
+          total += 1;
+          if (selectedSet.has(childId)) {
+            selected += 1;
+          }
         }
-        const childCounts = compute(childId);
+        const childCounts = compute(childId, isDisabled);
         selected += childCounts.selected;
         total += childCounts.total;
       }
@@ -291,7 +313,7 @@ const descendantSelectionCountsSelector = createSelectorMemoized(
       return result;
     };
 
-    compute(TREE_VIEW_ROOT_PARENT_ID);
+    compute(TREE_VIEW_ROOT_PARENT_ID, treeDisabled ?? false);
     return counts;
   },
 );
@@ -406,23 +428,27 @@ const isItemDefaultFocusableSelector = createSelector(
   },
 );
 
-const itemSiblingsCountSelector = createSelector((state: TreeState, itemId: CollectionItemId): number => {
-  const meta = itemMetaLookupSelector(state)[itemId];
-  if (!meta) {
-    return 0;
-  }
-  const parentKey = meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID;
-  return itemOrderedChildrenIdsLookupSelector(state)[parentKey]?.length ?? 0;
-});
+const itemSiblingsCountSelector = createSelector(
+  (state: TreeState, itemId: CollectionItemId): number => {
+    const meta = itemMetaLookupSelector(state)[itemId];
+    if (!meta) {
+      return 0;
+    }
+    const parentKey = meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID;
+    return itemOrderedChildrenIdsLookupSelector(state)[parentKey]?.length ?? 0;
+  },
+);
 
-const itemPositionInSetSelector = createSelector((state: TreeState, itemId: CollectionItemId): number => {
-  const meta = itemMetaLookupSelector(state)[itemId];
-  if (!meta) {
-    return 1;
-  }
-  const parentKey = meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID;
-  return (itemChildrenIndexesLookupSelector(state)[parentKey]?.[itemId] ?? 0) + 1;
-});
+const itemPositionInSetSelector = createSelector(
+  (state: TreeState, itemId: CollectionItemId): number => {
+    const meta = itemMetaLookupSelector(state)[itemId];
+    if (!meta) {
+      return 1;
+    }
+    const parentKey = meta.parentId ?? TREE_VIEW_ROOT_PARENT_ID;
+    return (itemChildrenIndexesLookupSelector(state)[parentKey]?.[itemId] ?? 0) + 1;
+  },
+);
 
 const flatListSelector = createSelectorMemoized(
   itemOrderedChildrenIdsLookupSelector,
@@ -597,9 +623,7 @@ export const selectors = {
   expandedItemsSet: expandedItemsSetSelector,
   labelMap: labelMapSelector,
   // Drag-and-drop selectors
-  isDragAndDropEnabled: createSelector(
-    (state: TreeState): boolean => state.dragAndDrop != null,
-  ),
+  isDragAndDropEnabled: createSelector((state: TreeState): boolean => state.dragAndDrop != null),
   isItemDragged: createSelector(
     (state: TreeState, itemId: CollectionItemId): boolean =>
       state.dragAndDrop?.draggedItemIds.has(itemId) ?? false,
@@ -620,18 +644,22 @@ export const selectors = {
         ? (state.dragAndDrop?.dropOperation ?? null)
         : null,
   ),
-  isItemInDropTargetGroup: createSelector(
-    (state: TreeState, itemId: CollectionItemId): boolean => {
-      const groupId = state.dropTargetGroupId;
-      if (groupId == null) return false;
-      if (itemId === groupId) return true;
-      const metaLookup = itemMetaLookupSelector(state);
-      let currentId: CollectionItemId | null = metaLookup[itemId]?.parentId ?? null;
-      while (currentId != null) {
-        if (currentId === groupId) return true;
-        currentId = metaLookup[currentId]?.parentId ?? null;
-      }
+  isItemInDropTargetGroup: createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
+    const groupId = state.dropTargetGroupId;
+    if (groupId == null) {
       return false;
-    },
-  ),
+    }
+    if (itemId === groupId) {
+      return true;
+    }
+    const metaLookup = itemMetaLookupSelector(state);
+    let currentId: CollectionItemId | null = metaLookup[itemId]?.parentId ?? null;
+    while (currentId != null) {
+      if (currentId === groupId) {
+        return true;
+      }
+      currentId = metaLookup[currentId]?.parentId ?? null;
+    }
+    return false;
+  }),
 };

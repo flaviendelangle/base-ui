@@ -54,7 +54,7 @@ function TestTree({
   onItemsChange,
 }: {
   initialItems: Item[];
-  actionsRef: React.RefObject<Tree.Root.Actions | null>;
+  actionsRef: React.RefObject<Tree.Root.Actions<Item> | null>;
   onItemsChange: (items: Item[]) => void;
 }) {
   return (
@@ -75,7 +75,7 @@ function TestTree({
 
 describe('actionsRef.moveItems', () => {
   it('moves a single item to a different parent', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -87,7 +87,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('moves a single item within the same parent (forward)', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -98,7 +98,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('moves a single item within the same parent (backward)', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -109,7 +109,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('moves a single item to root level', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -121,7 +121,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('moves a root item within root (reorder)', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -132,7 +132,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('moves multiple items to a different parent', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -144,7 +144,7 @@ describe('actionsRef.moveItems', () => {
   });
 
   it('prunes descendants when parent and child are both selected', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -158,7 +158,7 @@ describe('actionsRef.moveItems', () => {
 
 describe('actionsRef.moveItemsBefore', () => {
   it('moves a single item before a target', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -170,7 +170,7 @@ describe('actionsRef.moveItemsBefore', () => {
   });
 
   it('moves multiple items before a target', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -184,7 +184,7 @@ describe('actionsRef.moveItemsBefore', () => {
 
 describe('actionsRef.moveItemsAfter', () => {
   it('moves a single item after a target', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 
@@ -196,7 +196,7 @@ describe('actionsRef.moveItemsAfter', () => {
   });
 
   it('moves a single item after the last root item', () => {
-    const actionsRef = React.createRef<Tree.Root.Actions>();
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
     const onItemsChange = vi.fn();
     render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
 

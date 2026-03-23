@@ -430,7 +430,9 @@ export class TreeSelectionPlugin {
  * Converts a raw selectedItems value to a plain array.
  * Does NOT handle the "all" sentinel — use `materializeSelectedItems()` for that.
  */
-function normalizeSelectedItems(raw: CollectionItemId | null | readonly CollectionItemId[]): CollectionItemId[] {
+function normalizeSelectedItems(
+  raw: CollectionItemId | null | readonly CollectionItemId[],
+): CollectionItemId[] {
   if (Array.isArray(raw)) {
     return raw as CollectionItemId[];
   }

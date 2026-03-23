@@ -8,7 +8,6 @@ import { useTreeRootContext } from '../root/TreeRootContext';
 import { useTreeItemContext } from '../item/TreeItemContext';
 import { TreeItemDragIndicatorDataAttributes } from './TreeItemDragIndicatorDataAttributes';
 
-const DRAGGABLE_HOOK = { [TreeItemDragIndicatorDataAttributes.draggable]: '' };
 const DRAGGING_HOOK = { [TreeItemDragIndicatorDataAttributes.dragging]: '' };
 
 const stateAttributesMapping = {
@@ -63,8 +62,10 @@ export interface TreeItemDragIndicatorState {
   dragging: boolean;
 }
 
-export interface TreeItemDragIndicatorProps
-  extends BaseUIComponentProps<'span', TreeItemDragIndicatorState> {}
+export interface TreeItemDragIndicatorProps extends BaseUIComponentProps<
+  'span',
+  TreeItemDragIndicatorState
+> {}
 
 export namespace TreeItemDragIndicator {
   export type State = TreeItemDragIndicatorState;

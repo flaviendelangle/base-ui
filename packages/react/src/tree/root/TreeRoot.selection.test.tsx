@@ -1192,6 +1192,72 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'mixed');
     });
 
+    it('should not show indeterminate when all selectable descendants are selected and some are disabled', async () => {
+      const view = await render({
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        items: [
+          {
+            id: '1',
+            children: [{ id: '1.1' }, { id: '1.2', disabled: true }, { id: '1.3' }],
+          },
+        ],
+        defaultSelectedItems: ['1.1', '1.3'],
+        defaultExpandedItems: ['1'],
+        checkboxSelectionPropagation: { parents: true },
+      });
+
+      // All selectable descendants are selected, so parent should show checked (not mixed)
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('should not show indeterminate when all selectable descendants are selected via isItemSelectionDisabled', async () => {
+      const view = await render({
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        items: [
+          {
+            id: '1',
+            children: [{ id: '1.1' }, { id: '1.2' }, { id: '1.3' }],
+          },
+        ],
+        defaultSelectedItems: ['1.1', '1.3'],
+        defaultExpandedItems: ['1'],
+        checkboxSelectionPropagation: { parents: true },
+        isItemSelectionDisabled: (item: any) => item.id === '1.2',
+      });
+
+      // '1.2' is not selectable, '1.1' and '1.3' are selected — parent should show checked
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('should correctly handle checkbox status with deeply nested disabled items', async () => {
+      const view = await render({
+        selectionMode: 'multiple',
+        checkboxSelection: true,
+        items: [
+          {
+            id: '1',
+            children: [
+              {
+                id: '1.1',
+                disabled: true,
+                children: [{ id: '1.1.1' }],
+              },
+              { id: '1.2' },
+            ],
+          },
+        ],
+        defaultSelectedItems: ['1.2'],
+        defaultExpandedItems: ['1', '1.1'],
+        checkboxSelectionPropagation: { parents: true },
+      });
+
+      // '1.1' and its child '1.1.1' are disabled, so only '1.2' is selectable
+      // Since '1.2' is selected, the parent should show checked
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'true');
+    });
+
     it('should not have `aria-checked` if selectionMode is none', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],

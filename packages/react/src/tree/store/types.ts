@@ -360,7 +360,7 @@ export interface TreeStoreContext<TItem> {
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
   onItemFocus: (itemId: CollectionItemId, details: TreeItemFocusEventDetails) => void;
-  onItemsChange: (items: readonly TItem[], details: TreeRootItemsChangeEventDetails) => void;
+  onItemsChange: (items: TItem[], details: TreeRootItemsChangeEventDetails) => void;
 }
 
 /**

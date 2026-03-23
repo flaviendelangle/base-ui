@@ -1589,11 +1589,11 @@ A tree component for displaying hierarchical data.
     - Return value
 - Exports:
   - Tree - Root
-    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultSelectedItems, disabled, disallowEmptySelection, dragAndDrop, expandOnClick, expandedItems, isItemDisabled, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onSelectedItemsChange, render, selectedItems, selectionMode, style
+    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultItems, defaultSelectedItems, disabled, disallowEmptySelection, dragAndDrop, expandOnClick, expandedItems, isItemDisabled, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, render, resolveDropTargetGroup, selectedItems, selectionMode, setIsItemDisabled, setItemChildren, style
     - Data Attributes: data-disabled
   - Tree - Item
     - Props: className, itemId, render, style
-    - Data Attributes: data-collapsed, data-disabled, data-dragged, data-drop-position, data-drop-target, data-expandable, data-expanded, data-focused, data-item-id, data-selected
+    - Data Attributes: data-collapsed, data-disabled, data-dragged, data-drop-operation, data-drop-position, data-drop-target, data-drop-target-group, data-expandable, data-expanded, data-focused, data-item-id, data-selected
     - CSS Variables: --depth
   - Tree - LinkItem
     - Props: active, className, itemId, render, style
@@ -1603,7 +1603,7 @@ A tree component for displaying hierarchical data.
     - Data Attributes: data-collapsed, data-expandable, data-expanded
   - Tree - CheckboxItem
     - Props: className, itemId, render, style
-    - Data Attributes: data-checked, data-collapsed, data-disabled, data-expandable, data-expanded, data-focused, data-indeterminate, data-item-id, data-unchecked
+    - Data Attributes: data-checked, data-collapsed, data-disabled, data-dragged, data-drop-operation, data-drop-position, data-drop-target, data-drop-target-group, data-expandable, data-expanded, data-focused, data-indeterminate, data-item-id, data-unchecked
   - Tree - CheckboxItemIndicator
     - Props: className, keepMounted, render, style
     - Data Attributes: data-checked, data-disabled, data-indeterminate, data-unchecked

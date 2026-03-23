@@ -105,7 +105,7 @@ function EditableLabel({ itemId, label }: { itemId: CollectionItemId; label: str
 
 export default function LazyLoadingEditingTree() {
   const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
-  const actionsRef = React.useRef<Tree.Root.Actions | null>(null);
+  const actionsRef = React.useRef<Tree.Root.Actions<LazyItem> | null>(null);
 
   const lazyLoading = Tree.useLazyLoading<LazyItem>({
     fetchChildren: fakeFetch,

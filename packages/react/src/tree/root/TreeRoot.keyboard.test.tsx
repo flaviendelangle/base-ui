@@ -1,5 +1,9 @@
+import * as React from 'react';
 import { act, fireEvent } from '@mui/internal-test-utils';
+import { render as rtlRender } from '@testing-library/react';
 import { describeTree } from '../../../test/describeTree';
+import { Tree } from '..';
+import { DirectionProvider } from '../../direction-provider';
 
 describeTree('TreeRoot - Keyboard', ({ render }) => {
   describe('Navigation (focus and expansion)', () => {
@@ -1517,5 +1521,94 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       expect(view.getSelectedTreeItems()).toEqual(['3']);
       expect(view.getFocusedItemId()).toBe('2');
     });
+  });
+});
+
+// RTL tests require DirectionProvider, which is not available via describeTree
+describe('TreeRoot - Keyboard (RTL)', () => {
+  function RTLTree(props: { items: any[]; defaultExpandedItems?: string[] }) {
+    return (
+      <DirectionProvider direction="rtl">
+        <Tree.Root items={props.items} defaultExpandedItems={props.defaultExpandedItems}>
+          {(item: any) => (
+            <Tree.Item key={item.id} itemId={item.id} data-testid={`item-${item.id}`}>
+              <Tree.ItemExpansionTrigger />
+              <Tree.ItemLabel />
+            </Tree.Item>
+          )}
+        </Tree.Root>
+      </DirectionProvider>
+    );
+  }
+
+  function getItemRoot(id: string) {
+    return document.querySelector(`[data-item-id="${id}"]`) as HTMLElement;
+  }
+
+  function isItemExpanded(id: string) {
+    return getItemRoot(id).getAttribute('aria-expanded') === 'true';
+  }
+
+  function getFocusedItemId() {
+    const focused = document.querySelector('[role="treeitem"][data-focused]');
+    return focused ? (focused as HTMLElement).dataset.itemId : null;
+  }
+
+  it('should expand a collapsed item on ArrowLeft in RTL', () => {
+    rtlRender(
+      <RTLTree items={[{ id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] }]} />,
+    );
+
+    act(() => {
+      getItemRoot('1').focus();
+    });
+    expect(isItemExpanded('1')).toBe(false);
+    fireEvent.keyDown(getItemRoot('1'), { key: 'ArrowLeft' });
+    expect(isItemExpanded('1')).toBe(true);
+  });
+
+  it('should focus first child on ArrowLeft when item is expanded in RTL', () => {
+    rtlRender(
+      <RTLTree
+        items={[{ id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] }]}
+        defaultExpandedItems={['1']}
+      />,
+    );
+
+    act(() => {
+      getItemRoot('1').focus();
+    });
+    fireEvent.keyDown(getItemRoot('1'), { key: 'ArrowLeft' });
+    expect(getFocusedItemId()).toBe('1.1');
+  });
+
+  it('should collapse an expanded item on ArrowRight in RTL', () => {
+    rtlRender(
+      <RTLTree
+        items={[{ id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] }]}
+        defaultExpandedItems={['1']}
+      />,
+    );
+
+    act(() => {
+      getItemRoot('1').focus();
+    });
+    fireEvent.keyDown(getItemRoot('1'), { key: 'ArrowRight' });
+    expect(isItemExpanded('1')).toBe(false);
+  });
+
+  it('should focus parent on ArrowRight when item is collapsed in RTL', () => {
+    rtlRender(
+      <RTLTree
+        items={[{ id: '1', label: '1', children: [{ id: '1.1', label: '1.1' }] }]}
+        defaultExpandedItems={['1']}
+      />,
+    );
+
+    act(() => {
+      getItemRoot('1.1').focus();
+    });
+    fireEvent.keyDown(getItemRoot('1.1'), { key: 'ArrowRight' });
+    expect(getFocusedItemId()).toBe('1');
   });
 });

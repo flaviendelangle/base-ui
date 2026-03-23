@@ -3,7 +3,7 @@
   "description": "An individual tree item that uses replace selection behavior.\nClicking selects the item and deselects others.\nUse modifier keys (Ctrl/Cmd, Shift) for multi-select operations.\nRenders a `<div>` element.",
   "props": {
     "itemId": {
-      "type": "Tree.Item.Id",
+      "type": "CollectionItemId",
       "required": true,
       "description": "The id of the item.",
       "detailedType": "string | number"
@@ -36,11 +36,17 @@
     "data-dragged": {
       "description": "Present when the item is being dragged."
     },
+    "data-drop-operation": {
+      "description": "The drop operation for the item: 'move', 'copy', or 'link'."
+    },
     "data-drop-position": {
       "description": "The drop position relative to the item: 'before', 'after', or 'child'."
     },
     "data-drop-target": {
       "description": "Present when the item is a drop target."
+    },
+    "data-drop-target-group": {
+      "description": "Present when the item belongs to the drop target's group (folder subtree)."
     },
     "data-expandable": {
       "description": "Present when the item has children and can be expanded."

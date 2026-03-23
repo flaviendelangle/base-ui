@@ -6,7 +6,7 @@
       "detailedType": "React.ReactNode"
     },
     "itemId": {
-      "type": "Tree.Item.Id",
+      "type": "CollectionItemId",
       "required": true,
       "detailedType": "string | number"
     },

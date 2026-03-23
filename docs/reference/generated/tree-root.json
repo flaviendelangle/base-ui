@@ -3,9 +3,9 @@
   "description": "Groups all parts of the tree.\nRenders a `<div>` element.",
   "props": {
     "actionsRef": {
-      "type": "RefObject<Tree.Root.Actions | null>",
+      "type": "RefObject<Tree.Root.Actions<TItem> | null>",
       "description": "A ref to imperative actions on the tree.",
-      "detailedType": "React.RefObject<Tree.Root.Actions | null> | undefined"
+      "detailedType": "| React.RefObject<Tree.Root.Actions<TItem> | null>\n| undefined"
     },
     "checkboxSelectionPropagation": {
       "type": "{ parents?: boolean, descendants?: boolean }",
@@ -14,16 +14,21 @@
       "detailedType": "| { parents?: boolean; descendants?: boolean }\n| undefined"
     },
     "defaultExpandedItems": {
-      "type": "Tree.Item.Id[]",
+      "type": "CollectionItemId[]",
       "default": "[]",
       "description": "The items that are initially expanded.\n\nTo render a controlled tree, use the `expandedItems` prop instead.",
-      "detailedType": "Tree.Item.Id[] | undefined"
+      "detailedType": "CollectionItemId[] | undefined"
+    },
+    "defaultItems": {
+      "type": "TItem[]",
+      "description": "The items that are initially rendered.\n\nTo render a controlled tree, use the `items` prop instead.",
+      "detailedType": "TItem[] | undefined"
     },
     "defaultSelectedItems": {
-      "type": "'all' | Tree.Item.Id[] | Tree.Item.Id | any | null",
+      "type": "'all' | CollectionItemId[] | CollectionItemId | any | null",
       "default": "[]",
       "description": "The items that are initially selected.\n\nTo render a controlled tree, use the `selectedItems` prop instead.",
-      "detailedType": "| 'all'\n| Tree.Item.Id[]\n| string\n| number\n| any\n| null\n| undefined"
+      "detailedType": "| 'all'\n| CollectionItemId[]\n| string\n| number\n| any\n| null\n| undefined"
     },
     "disallowEmptySelection": {
       "type": "boolean",
@@ -32,9 +37,9 @@
       "detailedType": "boolean | undefined"
     },
     "dragAndDrop": {
-      "type": "DragAndDrop",
-      "description": "The drag-and-drop plugin instance, used to enable reordering and reparenting via drag.",
-      "detailedType": "| {\n    attach: attach\n    setupItem: setupItem\n    canDragItem: canDragItem\n  }\n| undefined"
+      "type": "ReturnType<unknown>",
+      "description": "The drag-and-drop plugin instance returned by `useDragAndDrop`.\nIt is used to enable drag-and-drop interactions on the tree.",
+      "detailedType": "{} | undefined"
     },
     "expandOnClick": {
       "type": "boolean",
@@ -43,9 +48,9 @@
       "detailedType": "boolean | undefined"
     },
     "expandedItems": {
-      "type": "Tree.Item.Id[]",
+      "type": "CollectionItemId[]",
       "description": "The expanded items.\n\nTo render an uncontrolled tree, use the `defaultExpandedItems` prop instead.",
-      "detailedType": "Tree.Item.Id[] | undefined"
+      "detailedType": "CollectionItemId[] | undefined"
     },
     "isItemDisabled": {
       "type": "((item: TItem) => boolean)",
@@ -72,10 +77,10 @@
       "detailedType": "((item: TItem) => TItem[] | undefined) | undefined"
     },
     "itemToId": {
-      "type": "((item: TItem) => Tree.Item.Id)",
+      "type": "((item: TItem) => CollectionItemId)",
       "default": "(item) => item.id",
       "description": "Used to determine the id of a given item.",
-      "detailedType": "((item: TItem) => Tree.Item.Id) | undefined"
+      "detailedType": "((item: TItem) => CollectionItemId) | undefined"
     },
     "itemToStringLabel": {
       "type": "((item: TItem) => string)",
@@ -85,18 +90,18 @@
     },
     "items": {
       "type": "TItem[]",
-      "required": true,
-      "description": "The items to render.\nEach item must have a unique identifier."
+      "description": "The items to render.\nEach item must have a unique identifier.\n\nTo render an uncontrolled tree, use the `defaultItems` prop instead.",
+      "detailedType": "TItem[] | undefined"
     },
     "lazyLoading": {
       "type": "TreeLazyLoading<TItem>",
-      "description": "The lazy loading plugin instance, used to load items on demand when expanding a parent item.",
+      "description": "The lazy loading plugin instance returned by `Tree.useLazyLoading`.\nIt is used to load items on demand when expanding a parent item.",
       "detailedType": "| {\n    attach: attach\n    onBeforeExpand: onBeforeExpand\n    refreshItemChildren: refreshItemChildren\n    destroy: destroy\n  }\n| undefined"
     },
     "onExpandedItemsChange": {
-      "type": "((expandedItems: Tree.Item.Id[], eventDetails: Tree.Root.ExpansionChangeEventDetails) => void)",
+      "type": "((expandedItems: CollectionItemId[], eventDetails: Tree.Root.ExpansionChangeEventDetails) => void)",
       "description": "Event handler called when items are expanded or collapsed.",
-      "detailedType": "| ((\n    expandedItems: Tree.Item.Id[],\n    eventDetails: Tree.Root.ExpansionChangeEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    expandedItems: CollectionItemId[],\n    eventDetails: Tree.Root.ExpansionChangeEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemExpansionToggle": {
       "type": "((value: Tree.Item.ExpansionToggleValue, details: Tree.Item.ExpansionToggleEventDetails) => void)",
@@ -104,29 +109,51 @@
       "detailedType": "| ((\n    value: Tree.Item.ExpansionToggleValue,\n    details: Tree.Item.ExpansionToggleEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemFocus": {
-      "type": "((itemId: Tree.Item.Id, details: Tree.Item.FocusEventDetails) => void)",
+      "type": "((itemId: CollectionItemId, details: Tree.Item.FocusEventDetails) => void)",
       "description": "Event handler called when an item is focused.",
-      "detailedType": "| ((\n    itemId: Tree.Item.Id,\n    details: Tree.Item.FocusEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    itemId: CollectionItemId,\n    details: Tree.Item.FocusEventDetails,\n  ) => void)\n| undefined"
     },
     "onItemSelectionToggle": {
       "type": "((value: Tree.Item.SelectionToggleValue, details: Tree.Item.SelectionToggleEventDetails) => void)",
       "description": "Event handler called when an item is selected or deselected.",
       "detailedType": "| ((\n    value: Tree.Item.SelectionToggleValue,\n    details: Tree.Item.SelectionToggleEventDetails,\n  ) => void)\n| undefined"
     },
+    "onItemsChange": {
+      "type": "((items: TItem[], details: Tree.Root.ItemsChangeEventDetails) => void)",
+      "description": "Event handler called when items are reordered or reparented.",
+      "detailedType": "| ((\n    items: TItem[],\n    details: Tree.Root.ItemsChangeEventDetails,\n  ) => void)\n| undefined"
+    },
     "onSelectedItemsChange": {
-      "type": "((selectedItems: 'all' | Tree.Item.Id[] | Tree.Item.Id | any | null, eventDetails: Tree.Root.SelectionChangeEventDetails) => void)",
+      "type": "((selectedItems: 'all' | CollectionItemId[] | CollectionItemId | any | null, eventDetails: Tree.Root.SelectionChangeEventDetails) => void)",
       "description": "Event handler called when the selected items change.",
-      "detailedType": "| ((\n    selectedItems:\n      | 'all'\n      | Tree.Item.Id[]\n      | Tree.Item.Id\n      | any\n      | null,\n    eventDetails: Tree.Root.SelectionChangeEventDetails,\n  ) => void)\n| undefined"
+      "detailedType": "| ((\n    selectedItems:\n      | 'all'\n      | CollectionItemId[]\n      | CollectionItemId\n      | any\n      | null,\n    eventDetails: Tree.Root.SelectionChangeEventDetails,\n  ) => void)\n| undefined"
+    },
+    "resolveDropTargetGroup": {
+      "type": "((dropTargetItemId: CollectionItemId) => CollectionItemId | null)",
+      "description": "Maps a drop target item to its containing group (e.g., parent folder).\nWhen provided, items in the group receive `data-drop-target-group`.",
+      "detailedType": "| ((\n    dropTargetItemId: CollectionItemId,\n  ) => CollectionItemId | null)\n| undefined"
     },
     "selectedItems": {
-      "type": "'all' | Tree.Item.Id[] | Tree.Item.Id | any | null",
+      "type": "'all' | CollectionItemId[] | CollectionItemId | any | null",
       "description": "The selected items.\n\nTo render an uncontrolled tree, use the `defaultSelectedItems` prop instead.",
-      "detailedType": "| 'all'\n| Tree.Item.Id[]\n| string\n| number\n| any\n| null\n| undefined"
+      "detailedType": "| 'all'\n| CollectionItemId[]\n| string\n| number\n| any\n| null\n| undefined"
     },
     "selectionMode": {
       "type": "TreeSelectionMode | undefined",
       "description": "The selection mode of the tree.\nUse `'single'` for single selection, `'multiple'` for multiple selection.",
       "detailedType": "TreeSelectionMode | undefined"
+    },
+    "setIsItemDisabled": {
+      "type": "((item: TItem, isDisabled: boolean) => TItem)",
+      "default": "(item, isDisabled) => ({ ...item, disabled: isDisabled })",
+      "description": "Returns a new item with the given disabled state set.",
+      "detailedType": "| ((item: TItem, isDisabled: boolean) => TItem)\n| undefined"
+    },
+    "setItemChildren": {
+      "type": "((item: TItem, children: TItem[]) => TItem)",
+      "default": "(item, children) => ({ ...item, children })",
+      "description": "Returns a new item with the given children set.",
+      "detailedType": "| ((item: TItem, children: TItem[]) => TItem)\n| undefined"
     },
     "disabled": {
       "type": "boolean",

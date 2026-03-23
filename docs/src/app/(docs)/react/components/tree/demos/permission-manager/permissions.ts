@@ -130,9 +130,7 @@ export const PERMISSIONS: Permission[] = [
 /**
  * Counts leaf permissions that are not disabled (i.e. selectable).
  */
-export function countSelectableLeafPermissions(
-  permissions: readonly Permission[],
-): number {
+export function countSelectableLeafPermissions(permissions: readonly Permission[]): number {
   let count = 0;
   for (const permission of permissions) {
     if (permission.children && permission.children.length > 0) {
@@ -147,9 +145,7 @@ export function countSelectableLeafPermissions(
 /**
  * Returns the set of all leaf permission IDs (non-disabled).
  */
-export function getSelectableLeafIds(
-  permissions: readonly Permission[],
-): Set<CollectionItemId> {
+export function getSelectableLeafIds(permissions: readonly Permission[]): Set<CollectionItemId> {
   const ids = new Set<CollectionItemId>();
   for (const permission of permissions) {
     if (permission.children && permission.children.length > 0) {

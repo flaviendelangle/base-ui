@@ -62,10 +62,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('cleanup function clears the monitor', () => {
-      const { cleanup, states } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a'] },
-      );
+      const { cleanup, states } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a'] });
 
       // After cleanup, new drag events should not trigger state updates
       cleanup();
@@ -102,10 +99,7 @@ describe('useDragAndDrop', () => {
 
   describe('setupItem', () => {
     it('registers element as draggable when canDrag returns true', () => {
-      const { plugin } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a'] },
-      );
+      const { plugin } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a'] });
       const el = createElement();
       plugin.setupItem('a', el);
 
@@ -124,10 +118,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('cleanup function deregisters the element', () => {
-      const { plugin } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a'] },
-      );
+      const { plugin } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a'] });
       const el = createElement();
       const cleanupItem = plugin.setupItem('a', el);
 
@@ -142,10 +133,7 @@ describe('useDragAndDrop', () => {
 
   describe('state management during drag', () => {
     it('sets draggedItemIds on drag start', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement();
       plugin.setupItem('a', elA);
 
@@ -155,10 +143,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('sets dropTarget, dropPosition, dropOperation on drag enter', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -176,10 +161,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('clears dropTarget on drag leave but keeps draggedItemIds', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -199,10 +181,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('resets to initial state on drop', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -225,10 +204,7 @@ describe('useDragAndDrop', () => {
 
   describe('drag type filtering', () => {
     it('accepts own dragType by default', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement();
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -279,10 +255,7 @@ describe('useDragAndDrop', () => {
 
     it('fires onDragEnd with isInternal=true for same-collection drop', async () => {
       const onDragEnd = vi.fn();
-      const { plugin } = setupPlugin(
-        { onMove: vi.fn(), onDragEnd },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin } = setupPlugin({ onMove: vi.fn(), onDragEnd }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -301,10 +274,7 @@ describe('useDragAndDrop', () => {
 
     it('fires onDragEnd with dropOperation="cancel" when drag is cancelled', async () => {
       const onDragEnd = vi.fn();
-      const { plugin } = setupPlugin(
-        { onMove: vi.fn(), onDragEnd },
-        { knownItemIds: ['a'] },
-      );
+      const { plugin } = setupPlugin({ onMove: vi.fn(), onDragEnd }, { knownItemIds: ['a'] });
       const elA = createElement();
       plugin.setupItem('a', elA);
 
@@ -383,10 +353,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('returns "before" when cursor is in top 25% (3-zone item with onMove)', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -401,10 +368,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('returns "on" when cursor is in middle 50% (3-zone item with onMove)', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);
@@ -419,10 +383,7 @@ describe('useDragAndDrop', () => {
     });
 
     it('returns "after" when cursor is in bottom 25% (3-zone item with onMove)', async () => {
-      const { plugin, lastState } = setupPlugin(
-        { onMove: vi.fn() },
-        { knownItemIds: ['a', 'b'] },
-      );
+      const { plugin, lastState } = setupPlugin({ onMove: vi.fn() }, { knownItemIds: ['a', 'b'] });
       const elA = createElement({ top: 0, height: 100 });
       const elB = createElement({ top: 100, height: 100 });
       plugin.setupItem('a', elA);

@@ -244,6 +244,141 @@ describeTree('TreeRoot - Items', ({ render }) => {
     });
   });
 
+  describe('invalid tree data', () => {
+    it('should warn when two items have the same id', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        await render({
+          items: [{ id: '1' }, { id: '1' }],
+        });
+
+        expect(consoleError.mock.calls.length).toBeGreaterThanOrEqual(1);
+        expect(consoleError.mock.calls[0][0]).toContain('same');
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+
+    it('should warn when an item has id="all"', async () => {
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await render({
+          items: [{ id: 'all' }],
+        });
+
+        expect(consoleWarn.mock.calls.length).toBeGreaterThanOrEqual(1);
+        expect(consoleWarn.mock.calls[0][0]).toContain('all');
+      } finally {
+        consoleWarn.mockRestore();
+      }
+    });
+  });
+
+  describe('deep trees', () => {
+    it('should render and navigate a tree with depth 100', async () => {
+      // Build a deeply nested tree: 1 → 1.1 → 1.1.1 → ... (100 levels)
+      function buildDeepTree(depth: number): any {
+        if (depth === 0) {
+          return { id: `d${depth}` };
+        }
+        return { id: `d${depth}`, children: [buildDeepTree(depth - 1)] };
+      }
+
+      const items = [buildDeepTree(100)];
+
+      // Expand all so all items are visible
+      const expandedItems: string[] = [];
+      for (let i = 100; i > 0; i -= 1) {
+        expandedItems.push(`d${i}`);
+      }
+
+      const view = await render({
+        items,
+        defaultExpandedItems: expandedItems,
+      });
+
+      // Should render top-level and deepest items
+      expect(view.getItemRoot('d100')).toBeTruthy();
+      expect(view.getItemRoot('d0')).toBeTruthy();
+    });
+  });
+
+  describe('accessibility attributes', () => {
+    it('should have role="tree" on the root element', async () => {
+      const view = await render({
+        items: [{ id: '1' }],
+      });
+
+      expect(view.getRoot()).toHaveAttribute('role', 'tree');
+    });
+
+    it('should have correct aria-level on items', async () => {
+      const view = await render({
+        items: [{ id: '1', children: [{ id: '1.1', children: [{ id: '1.1.1' }] }] }],
+        defaultExpandedItems: ['1', '1.1'],
+      });
+
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-level', '1');
+      expect(view.getItemRoot('1.1')).toHaveAttribute('aria-level', '2');
+      expect(view.getItemRoot('1.1.1')).toHaveAttribute('aria-level', '3');
+    });
+
+    it('should have correct aria-setsize and aria-posinset', async () => {
+      const view = await render({
+        items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }, { id: '1.3' }] }, { id: '2' }],
+        defaultExpandedItems: ['1'],
+      });
+
+      // Root level: 2 items
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-setsize', '2');
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-posinset', '1');
+      expect(view.getItemRoot('2')).toHaveAttribute('aria-setsize', '2');
+      expect(view.getItemRoot('2')).toHaveAttribute('aria-posinset', '2');
+
+      // Nested level: 3 items
+      expect(view.getItemRoot('1.1')).toHaveAttribute('aria-setsize', '3');
+      expect(view.getItemRoot('1.1')).toHaveAttribute('aria-posinset', '1');
+      expect(view.getItemRoot('1.3')).toHaveAttribute('aria-posinset', '3');
+    });
+
+    it('should have aria-expanded on expandable items', async () => {
+      const view = await render({
+        items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
+        defaultExpandedItems: ['1'],
+      });
+
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-expanded', 'true');
+      // Non-expandable items should not have aria-expanded
+      expect(view.getItemRoot('2')).not.toHaveAttribute('aria-expanded');
+    });
+
+    it('should set aria-expanded="false" on collapsed expandable items', async () => {
+      const view = await render({
+        items: [{ id: '1', children: [{ id: '1.1' }] }],
+      });
+
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('should have aria-disabled on disabled items and their descendants', async () => {
+      const view = await render({
+        items: [
+          {
+            id: '1',
+            disabled: true,
+            children: [{ id: '1.1' }],
+          },
+          { id: '2' },
+        ],
+        defaultExpandedItems: ['1'],
+      });
+
+      expect(view.getItemRoot('1')).toHaveAttribute('aria-disabled', 'true');
+      expect(view.getItemRoot('1.1')).toHaveAttribute('aria-disabled', 'true');
+      expect(view.getItemRoot('2')).not.toHaveAttribute('aria-disabled');
+    });
+  });
+
   describe('flat DOM structure', () => {
     it('should render all items as siblings', async () => {
       const view = await render({

@@ -12,7 +12,10 @@ function isItemExpandable(state: TreeState, itemId: CollectionItemId): boolean {
   return selectors.itemMeta(state, itemId)?.expandable ?? false;
 }
 
-function itemOrderedChildrenIds(state: TreeState, itemId: CollectionItemId | null): CollectionItemId[] {
+function itemOrderedChildrenIds(
+  state: TreeState,
+  itemId: CollectionItemId | null,
+): CollectionItemId[] {
   return selectors.itemOrderedChildrenIds(state, itemId);
 }
 
@@ -99,7 +102,10 @@ export const getPreviousNavigableItem = (
   return currentItemId;
 };
 
-export const getNextNavigableItem = (state: TreeState, itemId: CollectionItemId): CollectionItemId | null => {
+export const getNextNavigableItem = (
+  state: TreeState,
+  itemId: CollectionItemId,
+): CollectionItemId | null => {
   // If the item is expanded and has some navigable children, return the first of them.
   if (isItemExpanded(state, itemId)) {
     const children = itemOrderedChildrenIds(state, itemId);

@@ -137,18 +137,21 @@ export default function ExampleFileExplorer() {
   ]);
   const [contextMenuItemId, setContextMenuItemId] = React.useState<CollectionItemId | null>(null);
   const [clipboard, setClipboard] = React.useState<ClipboardState | null>(null);
-  const actionsRef = React.useRef<Tree.Root.Actions>(null);
+  const actionsRef = React.useRef<Tree.Root.Actions<FileItem>>(null);
 
-  const getTargetFolderId = React.useCallback((itemId: CollectionItemId): CollectionItemId | null => {
-    const actions = actionsRef.current;
-    if (!actions) {
-      return null;
-    }
-    if (actions.isItemExpandable(itemId)) {
-      return itemId;
-    }
-    return actions.getParentId(itemId);
-  }, []);
+  const getTargetFolderId = React.useCallback(
+    (itemId: CollectionItemId): CollectionItemId | null => {
+      const actions = actionsRef.current;
+      if (!actions) {
+        return null;
+      }
+      if (actions.isItemExpandable(itemId)) {
+        return itemId;
+      }
+      return actions.getParentId(itemId);
+    },
+    [],
+  );
 
   const dragAndDrop = useDragAndDrop<FileItem>({
     getAllowedDropOperations: () => ['move', 'copy'],
