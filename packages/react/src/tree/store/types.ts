@@ -160,21 +160,22 @@ export interface TreeItemPosition {
 
 /**
  * Per-item change info attached to `TreeRootItemsChangeEventDetails`.
- * All three arrays are always present (empty when no changes of that type).
+ * All four arrays are always present (empty when no changes of that type).
  */
-export interface TreeItemsChangeInfo {
-  added: { item: any; parentId: CollectionItemId | null; index: number }[];
+export interface TreeItemsChangeInfo<TItem> {
+  added: { item: TItem; parentId: CollectionItemId | null; index: number }[];
   removed: { itemId: CollectionItemId; parentId: CollectionItemId | null }[];
   moved: {
     itemId: CollectionItemId;
     oldPosition: TreeItemPosition;
     newPosition: TreeItemPosition;
   }[];
+  updated: { itemId: CollectionItemId; newItem: TItem }[];
 }
 
-export type TreeRootItemsChangeEventDetails = BaseUIChangeEventDetails<
+export type TreeRootItemsChangeEventDetails<TItem> = BaseUIChangeEventDetails<
   TreeRootItemsChangeEventReason,
-  TreeItemsChangeInfo
+  TreeItemsChangeInfo<TItem>
 >;
 
 export interface TreeItemExpansionToggleValue {
@@ -368,7 +369,7 @@ export interface TreeStoreContext<TItem> {
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
   onItemFocus: (itemId: CollectionItemId, details: TreeItemFocusEventDetails) => void;
-  onItemsChange: (items: TItem[], details: TreeRootItemsChangeEventDetails) => void;
+  onItemsChange: (items: TItem[], details: TreeRootItemsChangeEventDetails<TItem>) => void;
 }
 
 export interface TreeStoreParameters<
@@ -549,7 +550,9 @@ export interface TreeStoreParameters<
   /**
    * Event handler called when items are reordered or reparented.
    */
-  onItemsChange?: ((items: TItem[], details: TreeRootItemsChangeEventDetails) => void) | undefined;
+  onItemsChange?:
+    | ((items: TItem[], details: TreeRootItemsChangeEventDetails<TItem>) => void)
+    | undefined;
   /**
    * Maps a drop target item to its containing group (e.g., parent folder).
    * When provided, items in the group receive `data-drop-target-group`.

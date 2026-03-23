@@ -5,6 +5,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useTreeRootContext } from '../root/TreeRootContext';
 import { selectors } from '../store/selectors';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
+import { TreeDefaultItemModel } from '../store/types';
 
 /**
  * Renders tree items from a render function.
@@ -32,16 +33,14 @@ export function TreeItemList(componentProps: TreeItemList.Props) {
 
 export interface TreeItemListState {}
 
-export interface TreeItemListProps extends Omit<
+export interface TreeItemListProps<TItem = TreeDefaultItemModel> extends Omit<
   BaseUIComponentProps<'div', TreeItemListState>,
   'children'
 > {
   /**
    * The render function for each tree item.
-   *
-   * @param item - The tree item model.
    */
-  children: (item: any) => React.ReactNode;
+  children: (item: TItem) => React.ReactNode;
 }
 
 export namespace TreeItemList {

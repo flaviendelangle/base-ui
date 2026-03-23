@@ -7,7 +7,7 @@ import { selectors } from '../store/selectors';
 import { TreeGroupTransitionContext } from '../group-transition/TreeGroupTransitionContext';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
 import type { CollectionItemId } from '../../types/collection';
-import type { FlatListEntry } from '../store/types';
+import type { FlatListEntry, TreeDefaultItemModel } from '../store/types';
 
 /**
  * Renders tree items with animated expand/collapse transitions.
@@ -112,20 +112,15 @@ export function TreeAnimatedItemList(componentProps: TreeAnimatedItemList.Props)
 
 export interface TreeAnimatedItemListState {}
 
-export interface TreeAnimatedItemListProps extends Omit<
+export interface TreeAnimatedItemListProps<TItem = TreeDefaultItemModel> extends Omit<
   BaseUIComponentProps<'div', TreeAnimatedItemListState>,
   'children'
 > {
   /**
    * The render function for each tree item.
-   * Called with the item model and any animated children for expand/collapse transitions.
-   *
-   * @param item - The tree item model.
-   * @param animatedChildren - Pre-rendered child items currently animating (expanding/collapsing).
-   *   `null` when no animation is in progress for this item's children.
-   *   Pass as children of `Tree.GroupTransition` to enable animated transitions.
+   * Called with the item model and any children currently animating for expand/collapse transitions.
    */
-  children: (item: any, animatedChildren: React.ReactNode) => React.ReactNode;
+  children: (item: TItem, animatedChildren: React.ReactNode) => React.ReactNode;
 }
 
 export namespace TreeAnimatedItemList {

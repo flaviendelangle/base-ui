@@ -2,11 +2,12 @@
 import * as React from 'react';
 import type { Filter } from '../../utils/filter';
 import type { CollectionItemId } from '../../types/collection';
-
-const defaultItemToId = (item: any): CollectionItemId => item.id;
-const defaultItemToStringLabel = (item: any): string => item.label;
-const defaultItemToChildren = (item: any): any[] | undefined => item.children;
-const defaultSetItemChildren = (item: any, children: any): any => ({ ...item, children });
+import {
+  defaultItemToId,
+  defaultItemToStringLabel,
+  defaultItemToChildren,
+  defaultSetItemChildren,
+} from './defaultItemAccessors';
 
 export interface UseTreeFilteredItemsOptions<TItem> {
   /**

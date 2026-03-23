@@ -48,6 +48,7 @@ export class TreeItemMutationPlugin<TItem> {
         added: [],
         removed,
         moved: [],
+        updated: [],
       },
       lookupUpdates,
     );
@@ -86,6 +87,7 @@ export class TreeItemMutationPlugin<TItem> {
         added,
         removed: [],
         moved: [],
+        updated: [],
       },
       lookupUpdates,
     );
@@ -215,6 +217,7 @@ export class TreeItemMutationPlugin<TItem> {
         added: [],
         removed: [],
         moved,
+        updated: [],
       },
       lookupUpdates,
     );
@@ -295,7 +298,7 @@ export class TreeItemMutationPlugin<TItem> {
     this.applyMutation(
       newItems,
       REASONS.imperativeAction,
-      { added: [], removed: [], moved: [] },
+      { added: [], removed: [], moved: [], updated: [] },
       addUpdates,
     );
   };
@@ -325,7 +328,7 @@ export class TreeItemMutationPlugin<TItem> {
     this.applyMutation(
       newItems,
       REASONS.imperativeAction,
-      { added: [], removed: [], moved: [] },
+      { added: [], removed: [], moved: [], updated: [] },
       lookupUpdates,
     );
   };
@@ -376,7 +379,7 @@ export class TreeItemMutationPlugin<TItem> {
     this.applyMutation(
       newItems,
       REASONS.imperativeAction,
-      { added: [], removed: [], moved: [] },
+      { added: [], removed: [], moved: [], updated: [{ itemId, newItem }] },
       { itemMetaLookup, itemModelLookup },
     );
   };
@@ -405,7 +408,7 @@ export class TreeItemMutationPlugin<TItem> {
     this.applyMutation(
       newItems,
       REASONS.imperativeAction,
-      { added: [], removed: [], moved: [] },
+      { added: [], removed: [], moved: [], updated: [{ itemId, newItem }] },
       { itemMetaLookup, itemModelLookup },
     );
   };

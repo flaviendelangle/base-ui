@@ -27,18 +27,16 @@ import type {
   TreeItemSelectionToggleValue,
 } from '../store/types';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
-
-const defaultItemToId = (item: any) => item.id;
-const defaultItemToStringLabel = (item: any) => item.label;
-const defaultItemToChildren = (item: any) => item.children;
-const defaultSetItemChildren = (item: any, children: any) => ({ ...item, children });
-const defaultIsItemDisabled = (item: any) => !!item.disabled;
-const defaultSetIsItemDisabled = (item: any, isDisabled: boolean) => ({
-  ...item,
-  disabled: isDisabled,
-});
-const defaultIsItemSelectionDisabled = (item: any) => !!item.disabled;
-const defaultSetItemLabel = (item: any, label: string) => ({ ...item, label });
+import {
+  defaultItemToId,
+  defaultItemToStringLabel,
+  defaultItemToChildren,
+  defaultSetItemChildren,
+  defaultIsItemDisabled,
+  defaultSetIsItemDisabled,
+  defaultIsItemSelectionDisabled,
+  defaultSetItemLabel,
+} from '../utils/defaultItemAccessors';
 
 const DEFAULT_CHECKBOX_SELECTION_PROPAGATION = { parents: true, descendants: true } as const;
 

@@ -8,6 +8,7 @@ import type { BaseUIComponentProps } from '../../utils/types';
 import { useTreeRootContext } from '../root/TreeRootContext';
 import { selectors } from '../store/selectors';
 import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
+import { TreeDefaultItemModel } from '../store/types';
 
 const VirtualizerContext = React.createContext<Virtualizer | null>(null);
 
@@ -142,16 +143,14 @@ export function TreeVirtualizedItemList(componentProps: TreeVirtualizedItemList.
 
 export interface TreeVirtualizedItemListState {}
 
-export interface TreeVirtualizedItemListProps extends Omit<
+export interface TreeVirtualizedItemListProps<TItem = TreeDefaultItemModel> extends Omit<
   BaseUIComponentProps<'div', TreeVirtualizedItemListState>,
   'children'
 > {
   /**
    * The render function for each tree item.
-   *
-   * @param item - The tree item model.
    */
-  children: (item: any) => React.ReactNode;
+  children: (item: TItem) => React.ReactNode;
   /**
    * The fixed height (in pixels) of each item row.
    * Required for virtualization calculations.

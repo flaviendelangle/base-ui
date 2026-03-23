@@ -55,7 +55,7 @@ function TestTree({
 }: {
   initialItems: Item[];
   actionsRef: React.RefObject<Tree.Root.Actions<Item> | null>;
-  onItemsChange: (items: Item[]) => void;
+  onItemsChange: (...args: any[]) => void;
 }) {
   return (
     <Tree.Root
@@ -204,5 +204,76 @@ describe('actionsRef.moveItemsAfter', () => {
 
     const result = onItemsChange.mock.calls[0][0] as Item[];
     expect(childIds(result)).toEqual(['a', 'b', 'c', 'a1']);
+  });
+});
+
+describe('actionsRef.setIsItemDisabled', () => {
+  it('populates the updated field in details', () => {
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
+    const onItemsChange = vi.fn();
+    render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
+
+    act(() => actionsRef.current!.setIsItemDisabled('a1', true));
+
+    const details = onItemsChange.mock.calls[0][1];
+    expect(details.updated).toEqual([
+      { itemId: 'a1', newItem: { id: 'a1', label: 'A1', disabled: true } },
+    ]);
+    expect(details.added).toEqual([]);
+    expect(details.removed).toEqual([]);
+    expect(details.moved).toEqual([]);
+  });
+});
+
+describe('actionsRef.setItemLabel', () => {
+  it('populates the updated field in details', () => {
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
+    const onItemsChange = vi.fn();
+    render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
+
+    act(() => actionsRef.current!.setItemLabel('a1', 'New A1'));
+
+    const details = onItemsChange.mock.calls[0][1];
+    expect(details.updated).toEqual([
+      { itemId: 'a1', newItem: { id: 'a1', label: 'New A1' } },
+    ]);
+    expect(details.added).toEqual([]);
+    expect(details.removed).toEqual([]);
+    expect(details.moved).toEqual([]);
+  });
+});
+
+describe('details.updated for structural mutations', () => {
+  it('is empty when moving items', () => {
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
+    const onItemsChange = vi.fn();
+    render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
+
+    act(() => actionsRef.current!.moveItems(new Set(['a1']), 'b', 0));
+
+    const details = onItemsChange.mock.calls[0][1];
+    expect(details.updated).toEqual([]);
+  });
+
+  it('is empty when adding items', () => {
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
+    const onItemsChange = vi.fn();
+    render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
+
+    act(() => actionsRef.current!.addItems([{ id: 'd', label: 'D' }], null, 0));
+
+    const details = onItemsChange.mock.calls[0][1];
+    expect(details.updated).toEqual([]);
+  });
+
+  it('is empty when removing items', () => {
+    const actionsRef = React.createRef<Tree.Root.Actions<Item>>();
+    const onItemsChange = vi.fn();
+    render(<TestTree initialItems={ITEMS} actionsRef={actionsRef} onItemsChange={onItemsChange} />);
+
+    act(() => actionsRef.current!.removeItems(new Set(['c'])));
+
+    const details = onItemsChange.mock.calls[0][1];
+    expect(details.updated).toEqual([]);
   });
 });
