@@ -1,7 +1,7 @@
 import { createSelector, createSelectorMemoized } from '@base-ui/utils/store';
 import { EMPTY_ARRAY } from '@base-ui/utils/empty';
 import type { CollectionItemId } from '../../types/collection';
-import type { TreeState, FlatListEntry } from './types';
+import type { TreeState, FlatListEntry, TreeItemMeta } from './types';
 import { TREE_VIEW_ROOT_PARENT_ID, TREE_SELECTION_ALL } from './types';
 
 /**

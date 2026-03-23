@@ -7,7 +7,8 @@ import { useRenderElement } from '../../utils/useRenderElement';
 import { useDirection } from '../../direction-provider/DirectionContext';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { TreeRootContext } from './TreeRootContext';
-import { TreeStore, type TreeStoreParameters } from '../store/TreeStore';
+import { TreeStore } from '../store/TreeStore';
+import { TreeStoreParameters } from '../store/types';
 import { selectors } from '../store/selectors';
 import type {
   TreeDefaultItemModel,

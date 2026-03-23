@@ -1,9 +1,10 @@
 'use client';
 import * as React from 'react';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import type { CollectionItemId } from '../../types/collection';
-import type { TreeDefaultItemModel, TreeSelectionMode } from '../store/types';
+import type { TreeDefaultItemModel, TreeLazyLoading, TreeSelectionMode } from '../store/types';
 import { TREE_VIEW_ROOT_PARENT_ID } from '../store/types';
-import type { TreeLazyLoading, TreeStore } from '../store/TreeStore';
+import type { TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
 import { NestedDataManager } from './NestedDataManager';
 import type { DataSourceCache } from './cache';
@@ -29,7 +30,7 @@ export interface UseTreeLazyLoadingParameters<TItem = TreeDefaultItemModel> {
   cache?: DataSourceCache<TItem> | undefined;
 }
 
-class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading<TItem> {
+class TreeLazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading<TItem> {
   private store: TreeStore<TreeSelectionMode | undefined, TItem> | null = null;
 
   private nestedDataManager = new NestedDataManager(this);
@@ -302,15 +303,14 @@ export function useLazyLoading<TItem = TreeDefaultItemModel>(
   const configRef = React.useRef(config);
   configRef.current = config;
 
-  const pluginRef = React.useRef<LazyLoadingPlugin<TItem> | null>(null);
-  if (pluginRef.current === null) {
-    pluginRef.current = new LazyLoadingPlugin<TItem>(configRef);
-  }
-
+  const plugin = useRefWithInit(() => new TreeLazyLoadingPlugin(configRef)).current;
   // Keep cache in sync
-  pluginRef.current.cache = config.cache;
 
-  return pluginRef.current;
+  React.useEffect(() => {
+    plugin.cache = config.cache;
+  });
+
+  return plugin;
 }
 
 export namespace useLazyLoading {

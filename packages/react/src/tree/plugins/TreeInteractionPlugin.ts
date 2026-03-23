@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
 import type { TreeStore } from '../store/TreeStore';
 import type { CollectionItemId } from '../../types/collection';
 import type { TreeItemFocusEventReason } from '../store/types';
@@ -25,24 +24,17 @@ export class TreeInteractionPlugin {
   // Focus reason tracking — default to 'keyboard' since tab focus is keyboard-like
   private lastFocusReason: TreeItemFocusEventReason = REASONS.keyboard;
 
-  // Typeahead
   private typeaheadQuery = '';
-
-  private timeoutManager = new TimeoutManager();
 
   constructor(store: TreeStore) {
     this.store = store;
   }
 
-  // ===========================================================================
-  // Setup — called once from TreeStore constructor
-  // ===========================================================================
-
   /**
    * Sets up store subscriptions for focus recovery when items are removed.
    * Must be called from the TreeStore constructor after the plugin is created.
    */
-  setupFocusRecovery = () => {
+  public setupFocusRecovery = () => {
     let previousState = this.store.state;
     let previousMetaLookup = selectors.itemMetaLookup(this.store.state);
 
@@ -102,22 +94,7 @@ export class TreeInteractionPlugin {
     });
   };
 
-  // ===========================================================================
-  // Lifecycle
-  // ===========================================================================
-
-  /**
-   * Returns a cleanup function that clears all pending timeouts (e.g. typeahead).
-   */
-  dispose = () => {
-    this.timeoutManager.clearAll();
-  };
-
-  // ===========================================================================
-  // Focus
-  // ===========================================================================
-
-  focusItem = (
+  public focusItem = (
     itemId: CollectionItemId,
     reason: TreeItemFocusEventReason = REASONS.keyboard,
   ) => {
@@ -152,7 +129,7 @@ export class TreeInteractionPlugin {
     }
   };
 
-  removeFocusedItem = () => {
+  public removeFocusedItem = () => {
     const focusedId = this.store.state.focusedItemId;
     if (focusedId == null) {
       return;
@@ -165,10 +142,6 @@ export class TreeInteractionPlugin {
 
     this.store.set('focusedItemId', null);
   };
-
-  // ===========================================================================
-  // Keyboard navigation
-  // ===========================================================================
 
   private isCheckboxItem(element: HTMLElement): boolean {
     return (
@@ -411,11 +384,7 @@ export class TreeInteractionPlugin {
         ctrlPressed &&
         event.shiftKey
       ) {
-        this.store.selection.selectRangeFromItemToEnd(
-          itemId,
-          REASONS.keyboard,
-          event.nativeEvent,
-        );
+        this.store.selection.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
       } else {
         const lastItem = getLastNavigableItem(this.store.state);
         if (lastItem) {
@@ -447,15 +416,11 @@ export class TreeInteractionPlugin {
         this.typeaheadQuery = '';
       }
 
-      this.timeoutManager.startTimeout('typeahead', TYPEAHEAD_TIMEOUT, () => {
+      this.store.timeoutManager.startTimeout('typeahead', TYPEAHEAD_TIMEOUT, () => {
         this.typeaheadQuery = '';
       });
     }
   }
-
-  // ===========================================================================
-  // Event handler helpers
-  // ===========================================================================
 
   private getItemIdFromEvent(event: React.SyntheticEvent): CollectionItemId | null {
     const stringId = (event.currentTarget as HTMLElement).getAttribute('data-item-id');
@@ -470,7 +435,10 @@ export class TreeInteractionPlugin {
     if (!itemId) {
       return;
     }
-    if (selectors.canItemBeFocused(this.store.state, itemId) && this.store.state.focusedItemId !== itemId) {
+    if (
+      selectors.canItemBeFocused(this.store.state, itemId) &&
+      this.store.state.focusedItemId !== itemId
+    ) {
       this.store.set('focusedItemId', itemId);
       this.store.context.onItemFocus(
         itemId,
@@ -496,10 +464,6 @@ export class TreeInteractionPlugin {
       event.preventDefault();
     }
   };
-
-  // ===========================================================================
-  // Static event handler objects
-  // ===========================================================================
 
   public readonly rootEventHandlers = {
     onFocus: (event: React.FocusEvent) => {
@@ -539,7 +503,10 @@ export class TreeInteractionPlugin {
       }
 
       // Handle selection
-      if (this.store.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.store.state, itemId)) {
+      if (
+        this.store.state.selectionMode !== 'none' &&
+        selectors.canItemBeSelected(this.store.state, itemId)
+      ) {
         const isMulti = this.store.state.selectionMode === 'multiple';
         if (isMulti && (event.ctrlKey || event.metaKey)) {
           this.store.selection.setItemSelection({
@@ -564,7 +531,12 @@ export class TreeInteractionPlugin {
 
       // Handle expansion (skipped for multi-select modifier clicks via early return above)
       if (this.store.state.expandOnClick && this.store.expansion.canToggleItemExpansion(itemId)) {
-        this.store.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+        this.store.expansion.setItemExpansion(
+          itemId,
+          undefined,
+          REASONS.itemPress,
+          event.nativeEvent,
+        );
       }
     },
     onFocus: this.handleItemFocus,
@@ -604,7 +576,12 @@ export class TreeInteractionPlugin {
 
       // Handle expansion
       if (this.store.state.expandOnClick && this.store.expansion.canToggleItemExpansion(itemId)) {
-        this.store.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+        this.store.expansion.setItemExpansion(
+          itemId,
+          undefined,
+          REASONS.itemPress,
+          event.nativeEvent,
+        );
       }
     },
     onFocus: this.handleItemFocus,
@@ -636,7 +613,10 @@ export class TreeInteractionPlugin {
       }
 
       // Handle selection (same as Tree.Item: replace semantics)
-      if (this.store.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.store.state, itemId)) {
+      if (
+        this.store.state.selectionMode !== 'none' &&
+        selectors.canItemBeSelected(this.store.state, itemId)
+      ) {
         this.store.selection.setItemSelection({
           itemId,
           shouldBeSelected: true,
@@ -655,7 +635,12 @@ export class TreeInteractionPlugin {
   public readonly expansionTriggerEventHandlers = {
     onClick: (event: React.MouseEvent, itemId: CollectionItemId) => {
       event.stopPropagation();
-      this.store.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
+      this.store.expansion.setItemExpansion(
+        itemId,
+        undefined,
+        REASONS.itemPress,
+        event.nativeEvent,
+      );
     },
   };
 }

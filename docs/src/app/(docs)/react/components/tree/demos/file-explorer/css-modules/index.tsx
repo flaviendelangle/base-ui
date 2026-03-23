@@ -180,8 +180,8 @@ export default function ExampleFileExplorer() {
         const childIds = actions.getItemOrderedChildrenIds(folderId);
         const firstDragged = actions.getItemModel([...itemIds][0]!) as FileItem | undefined;
         const label = firstDragged?.label ?? '';
-        const filteredChildIds = childIds.filter((id) => !itemIds.has(id));
-        const sortedIndex = filteredChildIds.findIndex((id) => {
+        const filteredChildIds = childIds.filter((id: CollectionItemId) => !itemIds.has(id));
+        const sortedIndex = filteredChildIds.findIndex((id: CollectionItemId) => {
           const child = actions.getItemModel(id) as FileItem | undefined;
           return (child?.label ?? '').localeCompare(label) > 0;
         });
