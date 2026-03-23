@@ -16,4 +16,7 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
 
+patchedDependencies:
+  '@atlaskit/pragmatic-drag-and-drop@1.7.9': patches/@atlaskit__pragmatic-drag-and-drop@1.7.9.patch
+
 engineStrict: true

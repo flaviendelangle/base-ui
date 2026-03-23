@@ -232,12 +232,13 @@ export function resetDrag(): void {
 
 /**
  * Flush one requestAnimationFrame tick.
- * In base-ui's JSDOM setup, rAF is mapped to `setTimeout(cb, 0)`.
+ * Uses rAF directly so it works both in JSDOM (where rAF is mapped to
+ * setTimeout) and in real browsers (where rAF runs on the next paint frame).
  */
 export async function flushRaf(): Promise<void> {
   await act(async () => {
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
+      requestAnimationFrame(() => resolve());
     });
   });
 }

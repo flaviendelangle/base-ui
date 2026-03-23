@@ -158,7 +158,7 @@ import { DemoTreeCrossTreeDnd } from './demos/cross-tree-dnd';
 
 ### File explorer
 
-A VSCode-like file explorer with virtualization, editing, drag-and-drop and context menu.
+A VS Code-like file explorer with virtualization, editing, drag-and-drop and context menu.
 
 import { DemoTreeFileExplorer } from './demos/file-explorer';
 
@@ -176,7 +176,7 @@ import { DemoTreePermissionManager } from './demos/permission-manager';
 
 - **`"all"` is a reserved item ID**: When `selectionMode="multiple"`, the string `"all"` can be used as a special value for `selectedItems` or `defaultSelectedItems` to represent "every selectable item is selected." This includes items that are lazy-loaded after the value is set. Avoid using `"all"` as an item `id` in your data.
 - **Pressing Ctrl+A / Cmd+A sets the selection to `"all"`** rather than materializing every item ID into an array. The `onSelectedItemsChange` callback receives the string `"all"` in this case.
-- **Deselecting an item from `"all"` materializes the selection**: when the user deselects a single item (e.g. via Ctrl+click), the selection state transitions from `"all"` to an explicit array containing every selectable item ID except the deselected one.
+- **Deselecting an item from `"all"` materializes the selection**: when the user deselects a single item (for example, via Ctrl+click), the selection state transitions from `"all"` to an explicit array containing every selectable item ID except the deselected one.
 
 ## API reference
 

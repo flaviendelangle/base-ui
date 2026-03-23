@@ -1,0 +1,101 @@
+diff --git a/package.json b/package.json
+index 8d1ab02a4274f9c8c5263cfeca34b4b0ff6b8fa2..a2c30b8598b9ecca1fbc98bcb3405de01767fcdb 100644
+--- a/package.json
++++ b/package.json
+@@ -18,6 +18,96 @@
+ 		}
+ 	},
+ 	"sideEffects": true,
++	"exports": {
++		".": {
++			"types": "./dist/types/index.d.ts",
++			"default": "./dist/cjs/index.js"
++		},
++		"./combine": {
++			"types": "./dist/types/entry-point/combine.d.ts",
++			"default": "./dist/cjs/entry-point/combine.js"
++		},
++		"./element/adapter": {
++			"types": "./dist/types/entry-point/element/adapter.d.ts",
++			"default": "./dist/cjs/entry-point/element/adapter.js"
++		},
++		"./element/block-dragging-to-iframes": {
++			"types": "./dist/types/entry-point/element/block-dragging-to-iframes.d.ts",
++			"default": "./dist/cjs/entry-point/element/block-dragging-to-iframes.js"
++		},
++		"./element/center-under-pointer": {
++			"types": "./dist/types/entry-point/element/center-under-pointer.d.ts",
++			"default": "./dist/cjs/entry-point/element/center-under-pointer.js"
++		},
++		"./element/disable-native-drag-preview": {
++			"types": "./dist/types/entry-point/element/disable-native-drag-preview.d.ts",
++			"default": "./dist/cjs/entry-point/element/disable-native-drag-preview.js"
++		},
++		"./element/format-urls-for-external": {
++			"types": "./dist/types/entry-point/element/format-urls-for-external.d.ts",
++			"default": "./dist/cjs/entry-point/element/format-urls-for-external.js"
++		},
++		"./element/pointer-outside-of-preview": {
++			"types": "./dist/types/entry-point/element/pointer-outside-of-preview.d.ts",
++			"default": "./dist/cjs/entry-point/element/pointer-outside-of-preview.js"
++		},
++		"./element/preserve-offset-on-source": {
++			"types": "./dist/types/entry-point/element/preserve-offset-on-source.d.ts",
++			"default": "./dist/cjs/entry-point/element/preserve-offset-on-source.js"
++		},
++		"./element/scroll-just-enough-into-view": {
++			"types": "./dist/types/entry-point/element/scroll-just-enough-into-view.d.ts",
++			"default": "./dist/cjs/entry-point/element/scroll-just-enough-into-view.js"
++		},
++		"./element/set-custom-native-drag-preview": {
++			"types": "./dist/types/entry-point/element/set-custom-native-drag-preview.d.ts",
++			"default": "./dist/cjs/entry-point/element/set-custom-native-drag-preview.js"
++		},
++		"./external/adapter": {
++			"types": "./dist/types/entry-point/external/adapter.d.ts",
++			"default": "./dist/cjs/entry-point/external/adapter.js"
++		},
++		"./external/file": {
++			"types": "./dist/types/entry-point/external/file.d.ts",
++			"default": "./dist/cjs/entry-point/external/file.js"
++		},
++		"./external/html": {
++			"types": "./dist/types/entry-point/external/html.d.ts",
++			"default": "./dist/cjs/entry-point/external/html.js"
++		},
++		"./external/some": {
++			"types": "./dist/types/entry-point/external/some.d.ts",
++			"default": "./dist/cjs/entry-point/external/some.js"
++		},
++		"./external/text": {
++			"types": "./dist/types/entry-point/external/text.d.ts",
++			"default": "./dist/cjs/entry-point/external/text.js"
++		},
++		"./external/url": {
++			"types": "./dist/types/entry-point/external/url.d.ts",
++			"default": "./dist/cjs/entry-point/external/url.js"
++		},
++		"./once": {
++			"types": "./dist/types/entry-point/once.d.ts",
++			"default": "./dist/cjs/entry-point/once.js"
++		},
++		"./prevent-unhandled": {
++			"types": "./dist/types/entry-point/prevent-unhandled.d.ts",
++			"default": "./dist/cjs/entry-point/prevent-unhandled.js"
++		},
++		"./reorder": {
++			"types": "./dist/types/entry-point/reorder.d.ts",
++			"default": "./dist/cjs/entry-point/reorder.js"
++		},
++		"./text-selection/adapter": {
++			"types": "./dist/types/entry-point/text-selection/adapter.d.ts",
++			"default": "./dist/cjs/entry-point/text-selection/adapter.js"
++		},
++		"./types": {
++			"types": "./dist/types/entry-point/types.d.ts",
++			"default": "./dist/cjs/entry-point/types.js"
++		}
++	},
+ 	"publishConfig": {
+ 		"registry": "https://registry.npmjs.org/"
+ 	},
