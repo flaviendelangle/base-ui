@@ -26,6 +26,9 @@ const itemAccessorsSelector = createSelectorMemoized(
     itemToChildren,
     isItemDisabled,
     isItemSelectionDisabled,
+    // Note: setItemChildren is intentionally not included here because
+    // this selector is used only for reading item properties (building lookups).
+    // Mutations access setItemChildren directly from store state.
   }),
 );
 
@@ -56,14 +59,12 @@ const rawItemsStateSelector = createSelectorMemoized(
 const resolvedItemsStateSelector = createSelectorMemoized(
   rawItemsStateSelector,
   (state: TreeState) => state.lazyItems,
-  (state: TreeState) => state.itemMetaPatches,
   itemAccessorsSelector,
-  (raw, lazyItems, metaPatches, acc): TreeItemsState => {
+  (raw, lazyItems, acc): TreeItemsState => {
     const hasLazyChildren = lazyItems != null && Object.keys(lazyItems.children).length > 0;
     const hasLazyExpandable = lazyItems != null && Object.keys(lazyItems.expandable).length > 0;
-    const hasPatches = Object.keys(metaPatches).length > 0;
 
-    if (!hasLazyChildren && !hasLazyExpandable && !hasPatches) {
+    if (!hasLazyChildren && !hasLazyExpandable) {
       return raw;
     }
 
@@ -133,15 +134,6 @@ const resolvedItemsStateSelector = createSelectorMemoized(
       for (const [id, expandable] of Object.entries(lazyItems!.expandable)) {
         if (metaLookup[id] && metaLookup[id].expandable !== expandable) {
           metaLookup[id] = { ...metaLookup[id], expandable };
-        }
-      }
-    }
-
-    // Phase 3: Apply meta patches (disabled)
-    if (hasPatches) {
-      for (const [id, patch] of Object.entries(metaPatches)) {
-        if (metaLookup[id]) {
-          metaLookup[id] = { ...metaLookup[id], ...patch };
         }
       }
     }

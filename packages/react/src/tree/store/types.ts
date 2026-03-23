@@ -71,12 +71,6 @@ export interface TreeCheckboxSelectionPropagation {
 }
 
 /**
- * Sparse per-item metadata patches applied on top of computed metadata.
- * Only the fields that are actually overridden are present.
- */
-export type ItemMetaPatches = Record<CollectionItemId, Partial<Pick<TreeItemMeta, 'disabled'>>>;
-
-/**
  * Lazy-loaded tree structure and loading state.
  */
 export interface TreeLazyItemsState<TItem = TreeDefaultItemModel> {
@@ -238,10 +232,9 @@ export interface TreeState<TItem = any> {
    */
   itemIdLookup: Record<string, CollectionItemId>;
   /**
-   * Sparse per-item metadata patches (imperative disabled).
-   * Applied on top of the computed items state in selectors.
+   * Returns a new item with the given disabled state set.
    */
-  itemMetaPatches: ItemMetaPatches;
+  setIsItemDisabled: (item: TItem, isDisabled: boolean) => TItem;
   /**
    * IDs of currently expanded items
    */
@@ -295,7 +288,11 @@ export interface TreeState<TItem = any> {
   /**
    * Extracts the children from an item model
    */
-  itemToChildren: (item: TItem) => TItem[] | undefined;
+  itemToChildren: (item: TItem) => readonly TItem[] | undefined;
+  /**
+   * Returns a new item with the given children set
+   */
+  setItemChildren: (item: TItem, children: readonly TItem[]) => TItem;
   /**
    * Whether an item is disabled
    */
@@ -344,7 +341,7 @@ export interface TreeState<TItem = any> {
 /**
  * Non-reactive context values stored alongside state in the TreeStore.
  */
-export interface TreeStoreContext {
+export interface TreeStoreContext<TItem> {
   rootRef: React.RefObject<HTMLElement | null>;
   onExpandedItemsChange: (
     expandedItems: CollectionItemId[],
@@ -363,7 +360,7 @@ export interface TreeStoreContext {
     details: TreeItemSelectionToggleEventDetails,
   ) => void;
   onItemFocus: (itemId: CollectionItemId, details: TreeItemFocusEventDetails) => void;
-  onItemsChange: (items: any[], details: TreeRootItemsChangeEventDetails) => void;
+  onItemsChange: (items: readonly TItem[], details: TreeRootItemsChangeEventDetails) => void;
 }
 
 /**
@@ -385,6 +382,11 @@ export interface TreeRootActions<TItem = TreeDefaultItemModel> extends Collectio
   isItemExpanded: (itemId: CollectionItemId) => boolean;
   isItemSelected: (itemId: CollectionItemId) => boolean;
   setItemSelection: (itemId: CollectionItemId, isSelected: boolean) => void;
+  /**
+   * Sets the disabled state of an item.
+   * When using controlled items with a custom item model,
+   * provide the `setIsItemDisabled` prop so the tree can produce updated items.
+   */
   setIsItemDisabled: (itemId: CollectionItemId, isDisabled: boolean) => void;
   refreshItemChildren: (itemId: CollectionItemId | null) => Promise<void>;
   /**
@@ -400,6 +402,8 @@ export interface TreeRootActions<TItem = TreeDefaultItemModel> extends Collectio
   /**
    * Move one or more items to a new position.
    * Prunes descendants automatically and preserves relative order.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
   moveItems: (
     itemIds: Set<CollectionItemId>,
@@ -408,30 +412,42 @@ export interface TreeRootActions<TItem = TreeDefaultItemModel> extends Collectio
   ) => void;
   /**
    * Move one or more items directly before another item.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
   moveItemsBefore: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
   /**
    * Move one or more items directly after another item.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
   moveItemsAfter: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
   /**
    * Remove items by ID. Descendants are removed along with their parent.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
   removeItems: (itemIds: Set<CollectionItemId>) => void;
   /**
    * Add item models at a specific position.
    * If `parentId` is `null`, adds at root level.
    * Descendants included in the item models are added along with their parent.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
-  addItems: (items: TItem[], parentId: CollectionItemId | null, index: number) => void;
+  addItems: (items: readonly TItem[], parentId: CollectionItemId | null, index: number) => void;
   /**
    * Add item models directly before a reference item.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
-  addItemsBefore: (items: TItem[], referenceItemId: CollectionItemId) => void;
+  addItemsBefore: (items: readonly TItem[], referenceItemId: CollectionItemId) => void;
   /**
    * Add item models directly after a reference item.
+   * When using controlled items with a custom item model,
+   * provide the `setItemChildren` prop so the tree can produce updated items.
    */
-  addItemsAfter: (items: TItem[], referenceItemId: CollectionItemId) => void;
+  addItemsAfter: (items: readonly TItem[], referenceItemId: CollectionItemId) => void;
 }
 
 /**

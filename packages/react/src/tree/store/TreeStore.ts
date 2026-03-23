@@ -181,12 +181,22 @@ export interface TreeStoreParameters<
    * Used to determine the children of a given item.
    * @default (item) => item.children
    */
-  itemToChildren?: ((item: TItem) => TItem[] | undefined) | undefined;
+  itemToChildren?: ((item: TItem) => readonly TItem[] | undefined) | undefined;
+  /**
+   * Returns a new item with the given children set.
+   * @default (item, children) => ({ ...item, children })
+   */
+  setItemChildren?: ((item: TItem, children: readonly TItem[]) => TItem) | undefined;
   /**
    * Used to determine if a given item should be disabled.
    * @default (item) => !!item.disabled
    */
   isItemDisabled?: ((item: TItem) => boolean) | undefined;
+  /**
+   * Returns a new item with the given disabled state set.
+   * @default (item, isDisabled) => ({ ...item, disabled: isDisabled })
+   */
+  setIsItemDisabled?: ((item: TItem, isDisabled: boolean) => TItem) | undefined;
   /**
    * Used to determine if a given item should have selection disabled.
    * @default (item) => !!item.disabled
@@ -213,7 +223,9 @@ export interface TreeStoreParameters<
   /**
    * Event handler called when items are reordered or reparented.
    */
-  onItemsChange?: ((items: TItem[], details: TreeRootItemsChangeEventDetails) => void) | undefined;
+  onItemsChange?:
+    | ((items: readonly TItem[], details: TreeRootItemsChangeEventDetails) => void)
+    | undefined;
   /**
    * Maps a drop target item to its containing group (e.g., parent folder).
    * When provided, items in the group receive `data-drop-target-group`.
@@ -241,7 +253,7 @@ export interface TreeLazyLoading<TItem = TreeDefaultItemModel> {
 export class TreeStore<
   Mode extends TreeSelectionMode | undefined = undefined,
   TItem = TreeDefaultItemModel,
-> extends ReactStore<TreeState<TItem>, TreeStoreContext, typeof selectors> {
+> extends ReactStore<TreeState<TItem>, TreeStoreContext<TItem>, typeof selectors> {
   // Focus reason tracking — default to 'keyboard' since tab focus is keyboard-like
   private lastFocusReason: TreeItemFocusEventReason = REASONS.keyboard;
 
@@ -267,19 +279,35 @@ export class TreeStore<
     | undefined;
 
   /**
-   * When true, the observer that watches `state.items` skips rebuilding lookups.
-   * Set by mutations that already updated lookups incrementally.
+   * Holds the items reference from the last mutation that already updated
+   * lookups incrementally. The items observer compares against this to skip
+   * redundant rebuilds, then clears it.
    */
-  public skipLookupRebuild = false;
+  public lastMutationItems: readonly TItem[] | null = null;
 
   constructor(parameters: TreeStoreParameters<Mode, TItem>) {
     const selectionMode: TreeSelectionMode = parameters.selectionMode ?? 'single';
-    const itemToId = parameters.itemToId ?? ((item: any) => item.id);
-    const itemToStringLabel = parameters.itemToStringLabel ?? ((item: any) => item.label);
-    const itemToChildren = parameters.itemToChildren ?? ((item: any) => item.children);
-    const isItemDisabled = parameters.isItemDisabled ?? ((item: any) => !!item.disabled);
+    // Default accessors assume TreeDefaultItemModel shape.
+    // The cast is safe: users with custom TItem must provide their own accessors.
+    const itemToId =
+      parameters.itemToId ??
+      ((item: TItem) => (item as TreeDefaultItemModel).id as CollectionItemId);
+    const itemToStringLabel =
+      parameters.itemToStringLabel ?? ((item: TItem) => (item as TreeDefaultItemModel).label);
+    const itemToChildren =
+      parameters.itemToChildren ??
+      ((item: TItem) => (item as TreeDefaultItemModel).children as TItem[] | undefined);
+    const setItemChildren =
+      parameters.setItemChildren ??
+      ((item: TItem, children: readonly TItem[]) => ({ ...item, children }) as TItem);
+    const isItemDisabled =
+      parameters.isItemDisabled ?? ((item: TItem) => !!(item as TreeDefaultItemModel).disabled);
+    const setIsItemDisabled =
+      parameters.setIsItemDisabled ??
+      ((item: TItem, disabled: boolean) => ({ ...item, disabled }) as TItem);
     const isItemSelectionDisabled =
-      parameters.isItemSelectionDisabled ?? ((item: any) => !!item.disabled);
+      parameters.isItemSelectionDisabled ??
+      ((item: TItem) => !!(item as TreeDefaultItemModel).disabled);
     const initialItems =
       parameters.items ?? parameters.defaultItems ?? (EMPTY_ARRAY as readonly TItem[]);
     const initialItemsState = buildItemsState(
@@ -295,7 +323,6 @@ export class TreeStore<
         disabled: parameters.disabled ?? false,
         items: initialItems,
         ...initialItemsState,
-        itemMetaPatches: {},
         lazyItems: undefined,
         expandedItems: parameters.expandedItems ?? parameters.defaultExpandedItems ?? EMPTY_ARRAY,
         expandOnClick: parameters.expandOnClick ?? false,
@@ -314,7 +341,9 @@ export class TreeStore<
         itemToId,
         itemToStringLabel,
         itemToChildren,
+        setItemChildren,
         isItemDisabled,
+        setIsItemDisabled,
         isItemSelectionDisabled,
         direction: parameters.direction,
         dragAndDrop: undefined,
@@ -326,7 +355,7 @@ export class TreeStore<
       {
         onExpandedItemsChange: parameters.onExpandedItemsChange ?? (() => {}),
         onSelectedItemsChange:
-          (parameters.onSelectedItemsChange as TreeStoreContext['onSelectedItemsChange']) ??
+          (parameters.onSelectedItemsChange as TreeStoreContext<TItem>['onSelectedItemsChange']) ??
           (() => {}),
         onItemExpansionToggle: parameters.onItemExpansionToggle ?? (() => {}),
         onItemSelectionToggle: parameters.onItemSelectionToggle ?? (() => {}),
@@ -343,15 +372,17 @@ export class TreeStore<
     this.resolveDropTargetGroup = parameters.resolveDropTargetGroup;
 
     // Watch for external items/accessor changes and rebuild lookups.
-    // Mutations set `skipLookupRebuild` to avoid redundant rebuilds.
+    // Mutations set `lastMutationItems` to the new reference so we can
+    // distinguish mutation-driven updates (lookups already current) from
+    // external/controlled prop updates (need full rebuild).
     this.observe(
       (state: TreeState<TItem>) => state.items,
       (newItems, oldItems) => {
         if (newItems === oldItems) {
           return;
         }
-        if (this.skipLookupRebuild) {
-          this.skipLookupRebuild = false;
+        if (newItems === this.lastMutationItems) {
+          this.lastMutationItems = null;
           return;
         }
         this.rebuildItemsState();
@@ -410,7 +441,11 @@ export class TreeStore<
           this.set('focusedItemId', null);
         } else {
           requestAnimationFrame(() => {
-            this.focusItem(itemToFocusId);
+            // Verify the item still exists before focusing — another state
+            // change may have removed it between scheduling and execution.
+            if (selectors.itemMeta(this.state, itemToFocusId) != null) {
+              this.focusItem(itemToFocusId);
+            }
           });
         }
       }

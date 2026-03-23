@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import type { CollectionItemId } from '../../types/collection';
-import type { TreeDefaultItemModel } from '../store/types';
+import type { TreeDefaultItemModel, TreeSelectionMode } from '../store/types';
 import { TREE_VIEW_ROOT_PARENT_ID } from '../store/types';
 import type { TreeLazyLoading, TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
@@ -30,13 +30,13 @@ export interface UseTreeLazyLoadingParameters<TItem = TreeDefaultItemModel> {
 }
 
 class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading<TItem> {
-  private store: TreeStore<any, TItem> | null = null;
+  private store: TreeStore<TreeSelectionMode | undefined, TItem> | null = null;
 
   private nestedDataManager = new NestedDataManager(this);
 
   private configRef: React.RefObject<UseTreeLazyLoadingParameters<TItem>>;
 
-  private cache: DataSourceCache<TItem> | undefined;
+  public cache: DataSourceCache<TItem> | undefined;
 
   constructor(configRef: React.RefObject<UseTreeLazyLoadingParameters<TItem>>) {
     this.configRef = configRef;
@@ -326,8 +326,7 @@ export function useLazyLoading<TItem = TreeDefaultItemModel>(
   }
 
   // Keep cache in sync
-  // eslint-disable-next-line dot-notation
-  pluginRef.current['cache'] = config.cache;
+  pluginRef.current.cache = config.cache;
 
   return pluginRef.current;
 }

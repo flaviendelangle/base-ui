@@ -6,6 +6,7 @@ import type { CollectionItemId } from '../../types/collection';
 const defaultItemToId = (item: any): CollectionItemId => item.id;
 const defaultItemToStringLabel = (item: any): string => item.label;
 const defaultItemToChildren = (item: any): any[] | undefined => item.children;
+const defaultSetItemChildren = (item: any, children: any): any => ({ ...item, children });
 
 export interface UseTreeFilteredItemsOptions<TItem> {
   /**
@@ -49,6 +50,11 @@ export interface UseTreeFilteredItemsOptions<TItem> {
    * @default (item) => item.children
    */
   itemToChildren?: ((item: TItem) => TItem[] | undefined) | undefined;
+  /**
+   * Returns a new item with the given children set.
+   * @default (item, children) => ({ ...item, children })
+   */
+  setItemChildren?: ((item: TItem, children: TItem[]) => TItem) | undefined;
 }
 
 export interface UseTreeFilteredItemsReturnValue<TItem> {
@@ -88,6 +94,7 @@ export function useTreeFilteredItems<TItem>(
     itemToId = defaultItemToId,
     itemToStringLabel = defaultItemToStringLabel,
     itemToChildren = defaultItemToChildren,
+    setItemChildren = defaultSetItemChildren,
   } = options;
 
   return React.useMemo(() => {
@@ -114,9 +121,7 @@ export function useTreeFilteredItems<TItem>(
         if (matches || filteredChildren.length > 0) {
           const hasFilteredChildren = filteredChildren.length > 0;
           const newNode =
-            hasFilteredChildren && children
-              ? ({ ...node, children: filteredChildren } as TItem)
-              : node;
+            hasFilteredChildren && children ? setItemChildren(node, filteredChildren) : node;
 
           result.push(newNode);
 
@@ -135,5 +140,15 @@ export function useTreeFilteredItems<TItem>(
       return { items: filteredItems, expandedItems };
     }
     return filteredItems;
-  }, [items, filterText, filter, method, autoExpand, itemToId, itemToStringLabel, itemToChildren]);
+  }, [
+    items,
+    filterText,
+    filter,
+    method,
+    autoExpand,
+    itemToId,
+    itemToStringLabel,
+    itemToChildren,
+    setItemChildren,
+  ]);
 }

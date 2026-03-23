@@ -29,7 +29,9 @@ import { TreeItemModelProvider } from '../utils/TreeItemModelProvider';
 const defaultItemToId = (item: any) => item.id;
 const defaultItemToStringLabel = (item: any) => item.label;
 const defaultItemToChildren = (item: any) => item.children;
+const defaultSetItemChildren = (item: any, children: any) => ({ ...item, children });
 const defaultIsItemDisabled = (item: any) => !!item.disabled;
+const defaultSetIsItemDisabled = (item: any, isDisabled: boolean) => ({ ...item, disabled: isDisabled });
 const defaultIsItemSelectionDisabled = (item: any) => !!item.disabled;
 
 const DEFAULT_CHECKBOX_SELECTION_PROPAGATION = { parents: true, descendants: true } as const;
@@ -71,7 +73,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     itemToId = defaultItemToId,
     itemToStringLabel = defaultItemToStringLabel,
     itemToChildren = defaultItemToChildren,
+    setItemChildren = defaultSetItemChildren,
     isItemDisabled = defaultIsItemDisabled,
+    setIsItemDisabled = defaultSetIsItemDisabled,
     isItemSelectionDisabled = defaultIsItemSelectionDisabled,
     // Focus
     itemFocusableWhenDisabled,
@@ -124,7 +128,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         itemToId,
         itemToStringLabel,
         itemToChildren,
+        setItemChildren,
         isItemDisabled,
+        setIsItemDisabled,
         isItemSelectionDisabled,
         itemFocusableWhenDisabled,
         onItemFocus,
@@ -162,7 +168,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     itemToId,
     itemToStringLabel,
     itemToChildren,
+    setItemChildren,
     isItemDisabled,
+    setIsItemDisabled,
     isItemSelectionDisabled,
     direction,
   });

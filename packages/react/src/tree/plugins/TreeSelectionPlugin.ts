@@ -119,6 +119,11 @@ export class TreeSelectionPlugin {
       }
     });
 
+    // Cache for checkAllDescendantsSelected: only `true` results are cached
+    // because newModelSet only grows during the added phase, so a `true` result
+    // (item + all descendants selected) can never become `false`.
+    const fullySelectedCache = new Set<CollectionItemId>();
+
     for (const addedItemId of added) {
       if (checkboxSelectionPropagation.descendants) {
         const selectDescendants = (itemId: CollectionItemId) => {
@@ -139,15 +144,23 @@ export class TreeSelectionPlugin {
 
       if (checkboxSelectionPropagation.parents) {
         const checkAllDescendantsSelected = (itemId: CollectionItemId): boolean => {
+          if (fullySelectedCache.has(itemId)) {
+            return true;
+          }
           // Non-selectable items don't count toward the "all selected" check
           if (!selectors.canItemBeSelected(this.store.state, itemId)) {
+            fullySelectedCache.add(itemId);
             return true;
           }
           if (!newModelSet.has(itemId)) {
             return false;
           }
           const children = selectors.itemOrderedChildrenIds(this.store.state, itemId);
-          return children.every(checkAllDescendantsSelected);
+          const result = children.every(checkAllDescendantsSelected);
+          if (result) {
+            fullySelectedCache.add(itemId);
+          }
+          return result;
         };
 
         const selectParents = (itemId: CollectionItemId) => {

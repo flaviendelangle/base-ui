@@ -6,7 +6,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
   items: readonly TItem[],
   itemToId: (item: TItem) => CollectionItemId,
   itemToStringLabel: (item: TItem) => string,
-  itemToChildren: (item: TItem) => TItem[] | undefined,
+  itemToChildren: (item: TItem) => readonly TItem[] | undefined,
   isItemDisabled: (item: TItem) => boolean,
   isItemSelectionDisabled: (item: TItem) => boolean,
 ): TreeItemsState<TItem> {
