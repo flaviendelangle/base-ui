@@ -230,6 +230,10 @@ export interface TreeState<TItem = any> {
    */
   setIsItemDisabled: (item: TItem, isDisabled: boolean) => TItem;
   /**
+   * Returns a new item with the given label set.
+   */
+  setItemLabel: (item: TItem, label: string) => TItem;
+  /**
    * IDs of currently expanded items
    */
   expandedItems: readonly CollectionItemId[];
@@ -330,6 +334,16 @@ export interface TreeState<TItem = any> {
       childIds: CollectionItemId[];
     }
   >;
+  /**
+   * The ID of the item currently being edited, or `null` when no item is being edited.
+   */
+  editingItemId: CollectionItemId | null;
+  /**
+   * Whether items can be edited inline.
+   * When `true`, all items are editable.
+   * When a function, it receives the item model and returns whether that item is editable.
+   */
+  isItemEditable: boolean | ((item: any) => boolean);
 }
 
 /**
@@ -488,39 +502,32 @@ export interface TreeStoreParameters<
     | undefined;
   /**
    * Used to determine the id of a given item.
-   * @default (item) => item.id
    */
-  itemToId?: ((item: TItem) => CollectionItemId) | undefined;
+  itemToId: (item: TItem) => CollectionItemId;
   /**
    * Used to determine the string label of a given item.
-   * @default (item) => item.label
    */
-  itemToStringLabel?: ((item: TItem) => string) | undefined;
+  itemToStringLabel: (item: TItem) => string;
   /**
    * Used to determine the children of a given item.
-   * @default (item) => item.children
    */
-  itemToChildren?: ((item: TItem) => readonly TItem[] | undefined) | undefined;
+  itemToChildren: (item: TItem) => readonly TItem[] | undefined;
   /**
    * Returns a new item with the given children set.
-   * @default (item, children) => ({ ...item, children })
    */
-  setItemChildren?: ((item: TItem, children: readonly TItem[]) => TItem) | undefined;
+  setItemChildren: (item: TItem, children: readonly TItem[]) => TItem;
   /**
    * Used to determine if a given item should be disabled.
-   * @default (item) => !!item.disabled
    */
-  isItemDisabled?: ((item: TItem) => boolean) | undefined;
+  isItemDisabled: (item: TItem) => boolean;
   /**
    * Returns a new item with the given disabled state set.
-   * @default (item, isDisabled) => ({ ...item, disabled: isDisabled })
    */
-  setIsItemDisabled?: ((item: TItem, isDisabled: boolean) => TItem) | undefined;
+  setIsItemDisabled: (item: TItem, isDisabled: boolean) => TItem;
   /**
    * Used to determine if a given item should have selection disabled.
-   * @default (item) => !!item.disabled
    */
-  isItemSelectionDisabled?: ((item: TItem) => boolean) | undefined;
+  isItemSelectionDisabled: (item: TItem) => boolean;
   /**
    * The direction of the tree layout.
    */
@@ -550,6 +557,18 @@ export interface TreeStoreParameters<
   resolveDropTargetGroup?:
     | ((dropTargetItemId: CollectionItemId) => CollectionItemId | null)
     | undefined;
+  /**
+   * Whether items can be edited inline.
+   * When set to `true`, all items are editable.
+   * When set to a function, it receives the item model and returns whether the item is editable.
+   * @default false
+   */
+  isItemEditable?: boolean | ((item: TItem) => boolean) | undefined;
+  /**
+   * Returns a new item with the given label set.
+   * Used by inline editing to update the item model after the user commits a label change.
+   */
+  setItemLabel: (item: TItem, label: string) => TItem;
 }
 
 export interface TreeLazyLoading<TItem = TreeDefaultItemModel> {

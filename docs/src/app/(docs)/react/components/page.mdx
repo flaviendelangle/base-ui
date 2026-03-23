@@ -1566,6 +1566,7 @@ A tree component for displaying hierarchical data.
 
 <summary>Outline</summary>
 
+- Keywords: React Tree, Tree Component, Tree View, Hierarchical Data, File Explorer, Accessible Tree, Drag and Drop Tree, Virtualized Tree, Lazy Loading Tree, Checkbox Tree, Headless React Components, Base UI
 - Sections:
   - Anatomy
   - Examples
@@ -1590,11 +1591,11 @@ A tree component for displaying hierarchical data.
     - Return value
 - Exports:
   - Tree - Root
-    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultItems, defaultSelectedItems, disabled, disallowEmptySelection, dragAndDrop, expandOnClick, expandedItems, isItemDisabled, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, render, resolveDropTargetGroup, selectedItems, selectionMode, setIsItemDisabled, setItemChildren, style
+    - Props: actionsRef, checkboxSelectionPropagation, children, className, defaultExpandedItems, defaultItems, defaultSelectedItems, disabled, disallowEmptySelection, dragAndDrop, expandOnClick, expandedItems, isItemDisabled, isItemEditable, isItemSelectionDisabled, itemFocusableWhenDisabled, itemToChildren, itemToId, itemToStringLabel, items, lazyLoading, onExpandedItemsChange, onItemExpansionToggle, onItemFocus, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, render, resolveDropTargetGroup, selectedItems, selectionMode, setIsItemDisabled, setItemChildren, setItemLabel, style
     - Data Attributes: data-disabled
   - Tree - Item
     - Props: className, itemId, render, style
-    - Data Attributes: data-collapsed, data-disabled, data-dragged, data-drop-operation, data-drop-position, data-drop-target, data-drop-target-group, data-expandable, data-expanded, data-focused, data-item-id, data-selected
+    - Data Attributes: data-collapsed, data-disabled, data-dragged, data-drop-operation, data-drop-position, data-drop-target, data-drop-target-group, data-editing, data-expandable, data-expanded, data-focused, data-item-id, data-selected
     - CSS Variables: --level
   - Tree - LinkItem
     - Props: active, className, itemId, render, style
@@ -1609,6 +1610,12 @@ A tree component for displaying hierarchical data.
     - Props: className, keepMounted, render, style
     - Data Attributes: data-checked, data-disabled, data-indeterminate, data-unchecked
   - Tree - ItemLabel
+    - Props: className, render, style
+    - Data Attributes: data-editable
+  - Tree - ItemLabelEditing
+    - Props: children, className, render, style
+    - Data Attributes: data-editing
+  - Tree - ItemLabelEditingInput
     - Props: className, render, style
   - Tree - ItemGroupIndicator
     - Props: className, render, style

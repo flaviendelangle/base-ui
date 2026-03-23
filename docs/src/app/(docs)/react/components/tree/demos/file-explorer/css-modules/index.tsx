@@ -17,11 +17,7 @@ interface ClipboardState {
 }
 
 interface FileExplorerContextValue {
-  editingItemId: CollectionItemId | null;
   clipboard: ClipboardState | null;
-  startEditing: (itemId: CollectionItemId) => void;
-  stopEditing: () => void;
-  saveEdit: (itemId: CollectionItemId, newLabel: string) => void;
   deleteItem: (itemId: CollectionItemId) => void;
   addItem: (parentId: CollectionItemId, type: 'file' | 'folder') => void;
   cutItem: (itemId: CollectionItemId) => void;
@@ -30,11 +26,7 @@ interface FileExplorerContextValue {
 }
 
 const FileExplorerContext = React.createContext<FileExplorerContextValue>({
-  editingItemId: null,
   clipboard: null,
-  startEditing: () => {},
-  stopEditing: () => {},
-  saveEdit: () => {},
   deleteItem: () => {},
   addItem: () => {},
   cutItem: () => {},
@@ -43,73 +35,8 @@ const FileExplorerContext = React.createContext<FileExplorerContextValue>({
 });
 
 // ---------------------------------------------------------------------------
-// Editable label
-// ---------------------------------------------------------------------------
-
-function EditableLabel({ itemId, label }: { itemId: string; label: string }) {
-  const { editingItemId, stopEditing, saveEdit } = React.useContext(FileExplorerContext);
-  const isEditing = editingItemId === itemId;
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const wasEditingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-      wasEditingRef.current = true;
-    } else if (wasEditingRef.current) {
-      wasEditingRef.current = false;
-      document.querySelector<HTMLElement>(`[data-item-id="${itemId}"]`)?.focus();
-    }
-  }, [isEditing, itemId]);
-
-  return (
-    <Tree.ItemLabel className={styles.Label}>
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          className={styles.LabelInput}
-          defaultValue={label}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Enter') {
-              saveEdit(itemId, event.currentTarget.value);
-            } else if (event.key === 'Escape') {
-              stopEditing();
-            }
-          }}
-          onBlur={(event) => {
-            if (event.currentTarget.value) {
-              saveEdit(itemId, event.currentTarget.value);
-            } else {
-              stopEditing();
-            }
-          }}
-          onClick={(event) => event.stopPropagation()}
-        />
-      ) : undefined}
-    </Tree.ItemLabel>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Tree mutation helpers
 // ---------------------------------------------------------------------------
-
-function updateLabel(items: FileItem[], targetId: CollectionItemId, newLabel: string): FileItem[] {
-  return items.map((item) => {
-    if (item.id === targetId) {
-      return { ...item, label: newLabel };
-    }
-    if (item.children) {
-      return {
-        ...item,
-        children: updateLabel(item.children as FileItem[], targetId, newLabel),
-      };
-    }
-    return item;
-  });
-}
 
 let nextId = 0;
 
@@ -129,7 +56,6 @@ function cloneItemWithNewIds(item: FileItem): FileItem {
 
 export default function ExampleFileExplorer() {
   const [items, setItems] = React.useState<FileItem[]>(BASE_UI_FILES);
-  const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
   const [expandedItems, setExpandedItems] = React.useState<CollectionItemId[]>([
     'packages',
     'packages/react',
@@ -204,16 +130,7 @@ export default function ExampleFileExplorer() {
 
   const explorerContext = React.useMemo<FileExplorerContextValue>(
     () => ({
-      editingItemId,
       clipboard,
-      startEditing: (itemId: CollectionItemId) => setEditingItemId(itemId),
-      stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: CollectionItemId, newLabel: string) => {
-        if (newLabel.trim()) {
-          setItems((prev) => updateLabel(prev, itemId, newLabel.trim()));
-        }
-        setEditingItemId(null);
-      },
       deleteItem: (itemId: CollectionItemId) => {
         actionsRef.current?.removeItems(new Set([itemId]));
         if (clipboard?.itemId === itemId) {
@@ -230,7 +147,7 @@ export default function ExampleFileExplorer() {
         const childCount = actionsRef.current?.getItemOrderedChildrenIds(parentId).length ?? 0;
         actionsRef.current?.addItems([newItem], parentId, childCount);
         actionsRef.current?.setItemExpansion(parentId, true);
-        setEditingItemId(newId);
+        actionsRef.current?.startEditing(newId);
       },
       cutItem: (itemId: CollectionItemId) => {
         setClipboard({ itemId, operation: 'cut' });
@@ -265,7 +182,7 @@ export default function ExampleFileExplorer() {
         actions.setItemExpansion(folderId, true);
       },
     }),
-    [editingItemId, clipboard, getTargetFolderId],
+    [clipboard, getTargetFolderId],
   );
 
   return (
@@ -275,6 +192,7 @@ export default function ExampleFileExplorer() {
           <Tree.Root
             items={items}
             onItemsChange={setItems}
+            isItemEditable
             actionsRef={actionsRef}
             expandedItems={expandedItems}
             onExpandedItemsChange={(newExpanded) => setExpandedItems(newExpanded)}
@@ -288,13 +206,10 @@ export default function ExampleFileExplorer() {
                 '[data-focused]',
               );
               const itemId = focused?.getAttribute('data-item-id');
-              if (!itemId || editingItemId) {
+              if (!itemId) {
                 return;
               }
-              if (event.key === 'F2') {
-                event.preventDefault();
-                setEditingItemId(itemId);
-              } else if (event.key === 'Delete') {
+              if (event.key === 'Delete') {
                 event.preventDefault();
                 explorerContext.deleteItem(itemId);
               }
@@ -305,13 +220,11 @@ export default function ExampleFileExplorer() {
                 const fileItem = item as FileItem;
                 const isFolder = fileItem.children !== undefined;
                 const isCut = clipboard?.itemId === fileItem.id && clipboard?.operation === 'cut';
-                const isEditing = editingItemId === fileItem.id;
 
                 return (
                   <Tree.Item
                     itemId={fileItem.id}
                     className={styles.Item}
-                    data-editing={isEditing || undefined}
                     style={isCut ? { opacity: 0.4 } : undefined}
                     onContextMenu={() => setContextMenuItemId(fileItem.id)}
                   >
@@ -319,7 +232,10 @@ export default function ExampleFileExplorer() {
                       <ChevronIcon />
                     </Tree.ItemExpansionTrigger>
                     {!isFolder && <FileIcon fileType={fileItem.fileType} />}
-                    <EditableLabel itemId={fileItem.id} label={fileItem.label} />
+                    <Tree.ItemLabel className={styles.Label} />
+                    <Tree.ItemLabelEditing>
+                      <Tree.ItemLabelEditingInput className={styles.LabelInput} />
+                    </Tree.ItemLabelEditing>
                   </Tree.Item>
                 );
               }}
@@ -382,7 +298,9 @@ export default function ExampleFileExplorer() {
               <ContextMenu.Separator className={styles.ContextMenuSeparator} />
               <ContextMenu.Item
                 className={styles.ContextMenuItem}
-                onClick={() => contextMenuItemId && explorerContext.startEditing(contextMenuItemId)}
+                onClick={() =>
+                  contextMenuItemId && actionsRef.current?.startEditing(contextMenuItemId)
+                }
               >
                 <RenameIcon />
                 Rename

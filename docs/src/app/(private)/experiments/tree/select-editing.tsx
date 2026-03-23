@@ -39,121 +39,6 @@ const initialItems: CategoryItem[] = [
 
 const CATEGORIES = ['stable', 'beta', 'alpha'] as const;
 
-const EditingContext = React.createContext<{
-  editingItemId: string | null;
-  startEditing: (itemId: string) => void;
-  stopEditing: () => void;
-  saveCategory: (itemId: string, category: CategoryItem['category']) => void;
-}>({
-  editingItemId: null,
-  startEditing: () => {},
-  stopEditing: () => {},
-  saveCategory: () => {},
-});
-
-function EditableCategoryLabel({ item }: { item: CategoryItem }) {
-  const { editingItemId, startEditing, stopEditing, saveCategory } =
-    React.useContext(EditingContext);
-  const isEditing = editingItemId === item.id;
-  const selectRef = React.useRef<HTMLSelectElement>(null);
-  const wasEditingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isEditing) {
-      selectRef.current?.focus();
-      wasEditingRef.current = true;
-    } else if (wasEditingRef.current) {
-      wasEditingRef.current = false;
-      document.querySelector<HTMLElement>(`[data-item-id="${item.id}"]`)?.focus();
-    }
-  }, [isEditing, item.id]);
-
-  return (
-    <Tree.ItemLabel
-      className={styles.label}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        startEditing(item.id);
-      }}
-    >
-      {isEditing ? (
-        <select
-          ref={selectRef}
-          defaultValue={item.category}
-          onChange={(event) => {
-            saveCategory(item.id, event.currentTarget.value as CategoryItem['category']);
-          }}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Escape') {
-              stopEditing();
-            }
-          }}
-          onBlur={() => stopEditing()}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      ) : undefined}
-    </Tree.ItemLabel>
-  );
-}
-
-export default function SelectEditingTree() {
-  const [items, setItems] = React.useState(initialItems);
-  const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
-
-  const editingContext = React.useMemo(
-    () => ({
-      editingItemId,
-      startEditing: (itemId: string) => setEditingItemId(itemId),
-      stopEditing: () => setEditingItemId(null),
-      saveCategory: (itemId: string, category: CategoryItem['category']) => {
-        setItems((prev) => updateCategory(prev, itemId, category));
-        setEditingItemId(null);
-      },
-    }),
-    [editingItemId],
-  );
-
-  const itemToStringLabel = React.useCallback(
-    (item: CategoryItem) => `${item.label} (${item.category})`,
-    [],
-  );
-
-  return (
-    <div className={styles.wrapper}>
-      <div>
-        <h3 className={styles.heading}>Select dropdown editing</h3>
-        <p className={styles.description}>
-          Double-click a label to change its category via a dropdown. Selection saves immediately.
-        </p>
-      </div>
-      <EditingContext.Provider value={editingContext}>
-        <Tree.Root
-          items={items}
-          defaultExpandedItems={['components', 'hooks']}
-          className={styles.tree}
-          itemToStringLabel={itemToStringLabel}
-        >
-          {(item) => (
-            <Tree.Item itemId={item.id} className={styles.item}>
-              <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
-                <ChevronIcon />
-              </Tree.ItemExpansionTrigger>
-              <EditableCategoryLabel item={item as CategoryItem} />
-            </Tree.Item>
-          )}
-        </Tree.Root>
-      </EditingContext.Provider>
-    </div>
-  );
-}
-
 function updateCategory(
   items: CategoryItem[],
   targetId: string,
@@ -168,6 +53,75 @@ function updateCategory(
     }
     return item;
   });
+}
+
+export default function SelectEditingTree() {
+  const [items, setItems] = React.useState(initialItems);
+  const actionsRef = React.useRef<Tree.Root.Actions<CategoryItem>>(null);
+
+  const itemToStringLabel = React.useCallback(
+    (item: CategoryItem) => `${item.label} (${item.category})`,
+    [],
+  );
+
+  return (
+    <div className={styles.wrapper}>
+      <div>
+        <h3 className={styles.heading}>Select dropdown editing</h3>
+        <p className={styles.description}>
+          Double-click a label to change its category via a dropdown. Selection saves immediately.
+        </p>
+      </div>
+      <Tree.Root
+        items={items}
+        onItemsChange={setItems}
+        isItemEditable
+        defaultExpandedItems={['components', 'hooks']}
+        className={styles.tree}
+        itemToStringLabel={itemToStringLabel}
+        actionsRef={actionsRef}
+      >
+        {(item) => (
+          <Tree.Item itemId={item.id} className={styles.item}>
+            <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
+              <ChevronIcon />
+            </Tree.ItemExpansionTrigger>
+            <Tree.ItemLabel className={styles.label} />
+            <Tree.ItemLabelEditing>
+              {({ cancel }) => (
+                <select
+                  autoFocus
+                  defaultValue={item.category}
+                  onChange={(event) => {
+                    setItems((prev) =>
+                      updateCategory(
+                        prev,
+                        item.id,
+                        event.currentTarget.value as CategoryItem['category'],
+                      ),
+                    );
+                    actionsRef.current?.cancelEditing();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      cancel();
+                    }
+                  }}
+                  onBlur={() => cancel()}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Tree.ItemLabelEditing>
+          </Tree.Item>
+        )}
+      </Tree.Root>
+    </div>
+  );
 }
 
 function ChevronIcon(props: React.ComponentProps<'svg'>) {

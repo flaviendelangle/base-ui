@@ -175,6 +175,9 @@ export function describeTree(
               <Tree.Item key={item.id} itemId={item.id}>
                 <Tree.ItemExpansionTrigger />
                 <Tree.ItemLabel />
+                <Tree.ItemLabelEditing>
+                  <Tree.ItemLabelEditingInput />
+                </Tree.ItemLabelEditing>
               </Tree.Item>
             )
           }

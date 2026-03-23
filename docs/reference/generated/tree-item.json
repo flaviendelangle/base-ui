@@ -48,6 +48,9 @@
     "data-drop-target-group": {
       "description": "Present when the item belongs to the drop target's group (folder subtree)."
     },
+    "data-editing": {
+      "description": "Present when the item is being edited inline."
+    },
     "data-expandable": {
       "description": "Present when the item has children and can be expanded."
     },

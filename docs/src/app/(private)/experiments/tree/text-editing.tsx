@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import { Tree } from '@base-ui/react/tree';
-import type { CollectionItemId } from '@base-ui/react/types';
 import styles from './tree.module.css';
 
 const initialItems: Tree.DefaultItemModel[] = [
@@ -28,81 +27,8 @@ const initialItems: Tree.DefaultItemModel[] = [
   },
 ];
 
-const EditingContext = React.createContext<{
-  editingItemId: CollectionItemId | null;
-  startEditing: (itemId: CollectionItemId) => void;
-  stopEditing: () => void;
-  saveEdit: (itemId: CollectionItemId, newLabel: string) => void;
-}>({
-  editingItemId: null,
-  startEditing: () => {},
-  stopEditing: () => {},
-  saveEdit: () => {},
-});
-
-function EditableLabel({ itemId, label }: { itemId: CollectionItemId; label: string }) {
-  const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
-  const isEditing = editingItemId === itemId;
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const wasEditingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-      wasEditingRef.current = true;
-    } else if (wasEditingRef.current) {
-      wasEditingRef.current = false;
-      document.querySelector<HTMLElement>(`[data-item-id="${itemId}"]`)?.focus();
-    }
-  }, [isEditing, itemId]);
-
-  return (
-    <Tree.ItemLabel
-      className={styles.label}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        startEditing(itemId);
-      }}
-    >
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          defaultValue={label}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Enter') {
-              saveEdit(itemId, event.currentTarget.value);
-            } else if (event.key === 'Escape') {
-              stopEditing();
-            }
-          }}
-          onBlur={(event) => {
-            saveEdit(itemId, event.currentTarget.value);
-          }}
-          onClick={(event) => event.stopPropagation()}
-        />
-      ) : undefined}
-    </Tree.ItemLabel>
-  );
-}
-
 export default function TextEditingTree() {
   const [items, setItems] = React.useState(initialItems);
-  const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
-
-  const editingContext = React.useMemo(
-    () => ({
-      editingItemId,
-      startEditing: (itemId: CollectionItemId) => setEditingItemId(itemId),
-      stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: CollectionItemId, newLabel: string) => {
-        setItems((prev) => updateLabel(prev, itemId, newLabel));
-        setEditingItemId(null);
-      },
-    }),
-    [editingItemId],
-  );
 
   return (
     <div className={styles.wrapper}>
@@ -113,48 +39,27 @@ export default function TextEditingTree() {
           item.
         </p>
       </div>
-      <EditingContext.Provider value={editingContext}>
-        <Tree.Root
-          items={items}
-          defaultExpandedItems={['groceries', 'tasks']}
-          className={styles.tree}
-          onKeyDown={(event) => {
-            const focused = (event.currentTarget as HTMLElement).querySelector('[data-focused]');
-            const itemId = focused?.getAttribute('data-item-id');
-            if (event.key === 'F2' && itemId && !editingItemId) {
-              event.preventDefault();
-              setEditingItemId(itemId);
-            }
-          }}
-        >
-          {(_item) => (
-            <Tree.Item itemId={_item.id} className={styles.item}>
-              <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
-                <ChevronIcon />
-              </Tree.ItemExpansionTrigger>
-              <EditableLabel itemId={_item.id} label={_item.label} />
-            </Tree.Item>
-          )}
-        </Tree.Root>
-      </EditingContext.Provider>
+      <Tree.Root
+        items={items}
+        onItemsChange={setItems}
+        isItemEditable
+        defaultExpandedItems={['groceries', 'tasks']}
+        className={styles.tree}
+      >
+        {(_item) => (
+          <Tree.Item itemId={_item.id} className={styles.item}>
+            <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
+              <ChevronIcon />
+            </Tree.ItemExpansionTrigger>
+            <Tree.ItemLabel className={styles.label} />
+            <Tree.ItemLabelEditing>
+              <Tree.ItemLabelEditingInput />
+            </Tree.ItemLabelEditing>
+          </Tree.Item>
+        )}
+      </Tree.Root>
     </div>
   );
-}
-
-function updateLabel(
-  items: Tree.DefaultItemModel[],
-  targetId: CollectionItemId,
-  newLabel: string,
-): Tree.DefaultItemModel[] {
-  return items.map((item) => {
-    if (item.id === targetId) {
-      return { ...item, label: newLabel };
-    }
-    if (item.children) {
-      return { ...item, children: updateLabel(item.children, targetId, newLabel) };
-    }
-    return item;
-  });
 }
 
 function ChevronIcon(props: React.ComponentProps<'svg'>) {

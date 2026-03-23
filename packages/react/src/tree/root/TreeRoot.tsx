@@ -8,6 +8,7 @@ import { useDirection } from '../../direction-provider/DirectionContext';
 import type { BaseUIComponentProps } from '../../utils/types';
 import { TreeRootContext } from './TreeRootContext';
 import { TreeStore } from '../store/TreeStore';
+import type { CollectionItemId } from '../../types/collection';
 import { TreeStoreParameters } from '../store/types';
 import { selectors } from '../store/selectors';
 import type {
@@ -37,6 +38,7 @@ const defaultSetIsItemDisabled = (item: any, isDisabled: boolean) => ({
   disabled: isDisabled,
 });
 const defaultIsItemSelectionDisabled = (item: any) => !!item.disabled;
+const defaultSetItemLabel = (item: any, label: string) => ({ ...item, label });
 
 const DEFAULT_CHECKBOX_SELECTION_PROPAGATION = { parents: true, descendants: true } as const;
 
@@ -88,6 +90,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     actionsRef,
     // Items mutation
     onItemsChange,
+    // Editing
+    isItemEditable,
+    setItemLabel = defaultSetItemLabel,
     // Plugins
     lazyLoading,
     dragAndDrop,
@@ -140,6 +145,8 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         onItemFocus,
         direction,
         rootRef,
+        isItemEditable,
+        setItemLabel,
         lazyLoading,
         dragAndDrop,
         onItemsChange,
@@ -176,7 +183,9 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
     isItemDisabled,
     setIsItemDisabled,
     isItemSelectionDisabled,
+    setItemLabel,
     direction,
+    isItemEditable: isItemEditable ?? false,
   });
 
   store.useContextCallback('onExpandedItemsChange', onExpandedItemsChange);
@@ -242,13 +251,27 @@ export interface TreeRootState {
   disabled: boolean;
 }
 
+/**
+ * Accessor keys that are required on TreeStoreParameters but optional on
+ * TreeRootProps because TreeRoot provides defaults.
+ */
+type TreeRootOptionalAccessors =
+  | 'itemToId'
+  | 'itemToStringLabel'
+  | 'itemToChildren'
+  | 'setItemChildren'
+  | 'isItemDisabled'
+  | 'setIsItemDisabled'
+  | 'isItemSelectionDisabled'
+  | 'setItemLabel';
+
 export interface TreeRootProps<
   Mode extends TreeSelectionMode | undefined = undefined,
   TItem = TreeDefaultItemModel,
 >
   extends
     Omit<BaseUIComponentProps<'div', TreeRootState>, 'children'>,
-    Omit<TreeStoreParameters<Mode, TItem>, 'rootRef' | 'direction'> {
+    Omit<TreeStoreParameters<Mode, TItem>, 'rootRef' | 'direction' | TreeRootOptionalAccessors> {
   /**
    * The render function for each tree item, or a `Tree.ItemList` / `Tree.AnimatedItemList`
    * element for more control over item rendering.
@@ -258,6 +281,47 @@ export interface TreeRootProps<
    * A ref to imperative actions on the tree.
    */
   actionsRef?: React.RefObject<TreeRootActions<TItem> | null> | undefined;
+  /**
+   * Used to determine the id of a given item.
+   * @default (item) => item.id
+   */
+  itemToId?: ((item: TItem) => CollectionItemId) | undefined;
+  /**
+   * Used to determine the string label of a given item.
+   * @default (item) => item.label
+   */
+  itemToStringLabel?: ((item: TItem) => string) | undefined;
+  /**
+   * Used to determine the children of a given item.
+   * @default (item) => item.children
+   */
+  itemToChildren?: ((item: TItem) => readonly TItem[] | undefined) | undefined;
+  /**
+   * Returns a new item with the given children set.
+   * @default (item, children) => ({ ...item, children })
+   */
+  setItemChildren?: ((item: TItem, children: readonly TItem[]) => TItem) | undefined;
+  /**
+   * Used to determine if a given item should be disabled.
+   * @default (item) => !!item.disabled
+   */
+  isItemDisabled?: ((item: TItem) => boolean) | undefined;
+  /**
+   * Returns a new item with the given disabled state set.
+   * @default (item, isDisabled) => ({ ...item, disabled: isDisabled })
+   */
+  setIsItemDisabled?: ((item: TItem, isDisabled: boolean) => TItem) | undefined;
+  /**
+   * Used to determine if a given item should have selection disabled.
+   * @default (item) => !!item.disabled
+   */
+  isItemSelectionDisabled?: ((item: TItem) => boolean) | undefined;
+  /**
+   * Returns a new item with the given label set.
+   * Used by inline editing to update the item model after the user commits a label change.
+   * @default (item, label) => ({ ...item, label })
+   */
+  setItemLabel?: ((item: TItem, label: string) => TItem) | undefined;
 }
 
 export namespace TreeRoot {

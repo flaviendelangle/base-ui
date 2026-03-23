@@ -47,4 +47,8 @@ export enum TreeItemDataAttributes {
    * Present when the item belongs to the drop target's group (folder subtree).
    */
   dropTargetGroup = 'data-drop-target-group',
+  /**
+   * Present when the item is being edited inline.
+   */
+  editing = 'data-editing',
 }

@@ -44,67 +44,7 @@ async function fakeFetch(parentId?: CollectionItemId): Promise<LazyItem[]> {
   return mutableServerData[key] ?? [];
 }
 
-const EditingContext = React.createContext<{
-  editingItemId: CollectionItemId | null;
-  startEditing: (itemId: CollectionItemId) => void;
-  stopEditing: () => void;
-  saveEdit: (itemId: CollectionItemId, newLabel: string) => void;
-}>({
-  editingItemId: null,
-  startEditing: () => {},
-  stopEditing: () => {},
-  saveEdit: () => {},
-});
-
-function EditableLabel({ itemId, label }: { itemId: CollectionItemId; label: string }) {
-  const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
-  const isEditing = editingItemId === itemId;
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const wasEditingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-      wasEditingRef.current = true;
-    } else if (wasEditingRef.current) {
-      wasEditingRef.current = false;
-      document.querySelector<HTMLElement>(`[data-item-id="${itemId}"]`)?.focus();
-    }
-  }, [isEditing, itemId]);
-
-  return (
-    <Tree.ItemLabel
-      className={styles.label}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        startEditing(itemId);
-      }}
-    >
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          defaultValue={label}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Enter') {
-              saveEdit(itemId, event.currentTarget.value);
-            } else if (event.key === 'Escape') {
-              stopEditing();
-            }
-          }}
-          onBlur={(event) => {
-            saveEdit(itemId, event.currentTarget.value);
-          }}
-          onClick={(event) => event.stopPropagation()}
-        />
-      ) : undefined}
-    </Tree.ItemLabel>
-  );
-}
-
 export default function LazyLoadingEditingTree() {
-  const [editingItemId, setEditingItemId] = React.useState<CollectionItemId | null>(null);
   const actionsRef = React.useRef<Tree.Root.Actions<LazyItem> | null>(null);
 
   const lazyLoading = Tree.useLazyLoading<LazyItem>({
@@ -112,35 +52,32 @@ export default function LazyLoadingEditingTree() {
     getChildrenCount: (item) => item.childCount,
   });
 
-  const editingContext = React.useMemo(
-    () => ({
-      editingItemId,
-      startEditing: (itemId: CollectionItemId) => setEditingItemId(itemId),
-      stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: CollectionItemId, newLabel: string) => {
-        // Update mutable server data so future fetches return the new label
-        for (const items of Object.values(mutableServerData)) {
-          const target = items.find((item) => item.id === itemId);
-          if (target) {
-            target.label = newLabel;
-            break;
+  const handleItemsChange = React.useCallback((newItems: LazyItem[]) => {
+    // Sync label changes back to the mutable server data
+    for (const items of Object.values(mutableServerData)) {
+      for (const item of items) {
+        // Find matching item in new items and update server data
+        const findItem = (searchItems: LazyItem[]): LazyItem | undefined => {
+          for (const searchItem of searchItems) {
+            if (searchItem.id === item.id) {
+              return searchItem;
+            }
+            if (searchItem.children) {
+              const found = findItem(searchItem.children);
+              if (found) {
+                return found;
+              }
+            }
           }
+          return undefined;
+        };
+        const updated = findItem(newItems);
+        if (updated && updated.label !== item.label) {
+          item.label = updated.label;
         }
-
-        // Find the parent that contains this item and refresh its children
-        for (const [parentKey, items] of Object.entries(mutableServerData)) {
-          if (items.some((item) => item.id === itemId)) {
-            const parentId = parentKey === 'root' ? undefined : parentKey;
-            actionsRef.current?.refreshItemChildren(parentId ?? null);
-            break;
-          }
-        }
-
-        setEditingItemId(null);
-      },
-    }),
-    [editingItemId],
-  );
+      }
+    }
+  }, []);
 
   const itemToStringLabel = React.useCallback((item: LazyItem) => item.label, []);
 
@@ -153,27 +90,30 @@ export default function LazyLoadingEditingTree() {
           refresh the cache.
         </p>
       </div>
-      <EditingContext.Provider value={editingContext}>
-        <Tree.Root<undefined, LazyItem>
-          items={[]}
-          className={styles.tree}
-          lazyLoading={lazyLoading}
-          actionsRef={actionsRef}
-          itemToStringLabel={itemToStringLabel}
-        >
-          {(item) => (
-            <Tree.Item itemId={item.id} className={styles.item}>
-              <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
-                <ChevronIcon />
-              </Tree.ItemExpansionTrigger>
-              <Tree.ItemLoadingIndicator className={styles.loadingIndicator}>
-                <span className={styles.spinner} />
-              </Tree.ItemLoadingIndicator>
-              <EditableLabel itemId={(item as LazyItem).id} label={(item as LazyItem).label} />
-            </Tree.Item>
-          )}
-        </Tree.Root>
-      </EditingContext.Provider>
+      <Tree.Root<undefined, LazyItem>
+        items={[]}
+        onItemsChange={handleItemsChange}
+        isItemEditable
+        className={styles.tree}
+        lazyLoading={lazyLoading}
+        actionsRef={actionsRef}
+        itemToStringLabel={itemToStringLabel}
+      >
+        {(item) => (
+          <Tree.Item itemId={item.id} className={styles.item}>
+            <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
+              <ChevronIcon />
+            </Tree.ItemExpansionTrigger>
+            <Tree.ItemLoadingIndicator className={styles.loadingIndicator}>
+              <span className={styles.spinner} />
+            </Tree.ItemLoadingIndicator>
+            <Tree.ItemLabel className={styles.label} />
+            <Tree.ItemLabelEditing>
+              <Tree.ItemLabelEditingInput />
+            </Tree.ItemLabelEditing>
+          </Tree.Item>
+        )}
+      </Tree.Root>
     </div>
   );
 }

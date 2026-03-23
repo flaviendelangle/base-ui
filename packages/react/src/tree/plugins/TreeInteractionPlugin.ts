@@ -203,6 +203,12 @@ export class TreeInteractionPlugin {
       return;
     }
 
+    // When an item is being edited, skip all tree keyboard handling.
+    // The editing components handle their own keyboard events.
+    if (this.store.state.editingItemId != null) {
+      return;
+    }
+
     const ctrlPressed = event.ctrlKey || event.metaKey;
     const key = event.key;
     const isMulti = this.store.state.selectionMode === 'multiple';
@@ -404,6 +410,12 @@ export class TreeInteractionPlugin {
     // Ctrl+A: select all
     else if (event.key.toUpperCase() === 'A' && ctrlPressed && isMulti) {
       this.store.selection.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
+      event.preventDefault();
+    }
+
+    // F2: enter edit mode
+    else if (key === 'F2') {
+      this.store.editing.startEditing(itemId);
       event.preventDefault();
     }
 

@@ -58,6 +58,12 @@
       "description": "Used to determine if a given item should be disabled.",
       "detailedType": "((item: TItem) => boolean) | undefined"
     },
+    "isItemEditable": {
+      "type": "boolean | ((item: TItem) => boolean)",
+      "default": "false",
+      "description": "Whether items can be edited inline.\nWhen set to `true`, all items are editable.\nWhen set to a function, it receives the item model and returns whether the item is editable.",
+      "detailedType": "boolean | ((item: TItem) => boolean) | undefined"
+    },
     "isItemSelectionDisabled": {
       "type": "((item: TItem) => boolean)",
       "default": "(item) => !!item.disabled",
@@ -154,6 +160,12 @@
       "default": "(item, children) => ({ ...item, children })",
       "description": "Returns a new item with the given children set.",
       "detailedType": "| ((item: TItem, children: TItem[]) => TItem)\n| undefined"
+    },
+    "setItemLabel": {
+      "type": "((item: TItem, label: string) => TItem)",
+      "default": "(item, label) => ({ ...item, label })",
+      "description": "Returns a new item with the given label set.\nUsed by inline editing to update the item model after the user commits a label change.",
+      "detailedType": "((item: TItem, label: string) => TItem) | undefined"
     },
     "disabled": {
       "type": "boolean",

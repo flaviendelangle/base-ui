@@ -15,6 +15,7 @@ const COLLAPSED_HOOK = { [TreeItemDataAttributes.collapsed]: '' };
 const DRAGGED_HOOK = { [TreeItemDataAttributes.dragged]: '' };
 const DROP_TARGET_HOOK = { [TreeItemDataAttributes.dropTarget]: '' };
 const DROP_TARGET_GROUP_HOOK = { [TreeItemDataAttributes.dropTargetGroup]: '' };
+const EDITING_HOOK = { [TreeItemDataAttributes.editing]: '' };
 
 const stateAttributesMapping = {
   itemId(v: CollectionItemId) {
@@ -37,6 +38,9 @@ const stateAttributesMapping = {
   },
   inDropTargetGroup(v: boolean) {
     return v ? DROP_TARGET_GROUP_HOOK : null;
+  },
+  editing(v: boolean) {
+    return v ? EDITING_HOOK : null;
   },
 } satisfies StateAttributesMapping<TreeItem.State>;
 
@@ -75,6 +79,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
   const dropPosition = store.useState('itemDropPosition', itemId);
   const dropOperation = store.useState('itemDropOperation', itemId);
   const inDropTargetGroup = store.useState('isItemInDropTargetGroup', itemId);
+  const editing = store.useState('isItemEditing', itemId);
 
   const state: TreeItem.State = {
     itemId,
@@ -89,6 +94,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
     dropPosition,
     dropOperation,
     inDropTargetGroup,
+    editing,
   };
 
   // In virtualized mode, auto-focus when this item mounts and it's the focused item.
@@ -188,6 +194,10 @@ export interface TreeItemState {
    * Whether the item belongs to the drop target's group (folder subtree).
    */
   inDropTargetGroup: boolean;
+  /**
+   * Whether the item is currently being edited inline.
+   */
+  editing: boolean;
 }
 
 export interface TreeItemProps extends BaseUIComponentProps<'div', TreeItemState> {

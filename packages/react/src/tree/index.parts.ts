@@ -5,6 +5,8 @@ export { TreeItemExpansionTrigger as ItemExpansionTrigger } from './item-expansi
 export { TreeCheckboxItem as CheckboxItem } from './checkbox-item/TreeCheckboxItem';
 export { TreeCheckboxItemIndicator as CheckboxItemIndicator } from './checkbox-item-indicator/TreeCheckboxItemIndicator';
 export { TreeItemLabel as ItemLabel } from './item-label/TreeItemLabel';
+export { TreeItemLabelEditing as ItemLabelEditing } from './item-label-editing/TreeItemLabelEditing';
+export { TreeItemLabelEditingInput as ItemLabelEditingInput } from './item-label-editing-input/TreeItemLabelEditingInput';
 export { TreeItemGroupIndicator as ItemGroupIndicator } from './item-group-indicator/TreeItemGroupIndicator';
 export { TreeItemLoadingIndicator as ItemLoadingIndicator } from './item-loading-indicator/TreeItemLoadingIndicator';
 export { TreeItemErrorIndicator as ItemErrorIndicator } from './item-error-indicator/TreeItemErrorIndicator';

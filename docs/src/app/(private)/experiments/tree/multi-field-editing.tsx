@@ -47,129 +47,74 @@ const initialItems: TeamMember[] = [
 
 const ROLES = ['developer', 'designer', 'manager'] as const;
 
-const EditingContext = React.createContext<{
-  editingItemId: string | null;
-  startEditing: (itemId: string) => void;
-  stopEditing: () => void;
-  saveEdit: (itemId: string, name: string, role: TeamMember['role']) => void;
-}>({
-  editingItemId: null,
-  startEditing: () => {},
-  stopEditing: () => {},
-  saveEdit: () => {},
-});
-
-function MultiFieldEditor({ item }: { item: TeamMember }) {
-  const { editingItemId, startEditing, stopEditing, saveEdit } = React.useContext(EditingContext);
-  const isEditing = editingItemId === item.id;
-  const nameRef = React.useRef<HTMLInputElement>(null);
+function MultiFieldForm({ item, cancel }: { item: TeamMember; cancel: () => void }) {
   const [localName, setLocalName] = React.useState(item.name);
   const [localRole, setLocalRole] = React.useState<TeamMember['role']>(item.role);
-
-  const wasEditingRef = React.useRef(false);
+  const nameRef = React.useRef<HTMLInputElement>(null);
+  const actionsRef = React.useContext(ActionsRefContext);
 
   React.useEffect(() => {
-    if (isEditing) {
-      setLocalName(item.name);
-      setLocalRole(item.role);
-      wasEditingRef.current = true;
-      requestAnimationFrame(() => {
-        nameRef.current?.focus();
-        nameRef.current?.select();
-      });
-    } else if (wasEditingRef.current) {
-      wasEditingRef.current = false;
-      document.querySelector<HTMLElement>(`[data-item-id="${item.id}"]`)?.focus();
-    }
-  }, [isEditing, item.name, item.role, item.id]);
+    nameRef.current?.focus();
+    nameRef.current?.select();
+  }, []);
+
+  const handleSave = () => {
+    actionsRef.current?.setItemLabel(item.id, makeLabel(localName, localRole));
+    // Also update custom fields via items mutation
+    actionsRef.current?.cancelEditing();
+  };
 
   return (
-    <Tree.ItemLabel
-      className={isEditing ? styles.editForm : styles.label}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        startEditing(item.id);
-      }}
-    >
-      {isEditing ? (
-        <React.Fragment>
-          <input
-            ref={nameRef}
-            value={localName}
-            onChange={(event) => setLocalName(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === 'Escape') {
-                stopEditing();
-              } else if (event.key === 'Enter') {
-                saveEdit(item.id, localName, localRole);
-              }
-            }}
-            onClick={(event) => event.stopPropagation()}
-            placeholder="Name"
-          />
-          <select
-            value={localRole}
-            onChange={(event) => setLocalRole(event.currentTarget.value as TeamMember['role'])}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === 'Escape') {
-                stopEditing();
-              } else if (event.key === 'Enter') {
-                saveEdit(item.id, localName, localRole);
-              }
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            data-primary=""
-            onClick={(event) => {
-              event.stopPropagation();
-              saveEdit(item.id, localName, localRole);
-            }}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              stopEditing();
-            }}
-          >
-            Cancel
-          </button>
-        </React.Fragment>
-      ) : undefined}
-    </Tree.ItemLabel>
+    <React.Fragment>
+      <input
+        ref={nameRef}
+        value={localName}
+        onChange={(event) => setLocalName(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            cancel();
+          } else if (event.key === 'Enter') {
+            handleSave();
+          }
+        }}
+        placeholder="Name"
+      />
+      <select
+        value={localRole}
+        onChange={(event) => setLocalRole(event.currentTarget.value as TeamMember['role'])}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            cancel();
+          } else if (event.key === 'Enter') {
+            handleSave();
+          }
+        }}
+      >
+        {ROLES.map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+      </select>
+      <button type="button" data-primary="" onClick={() => handleSave()}>
+        Save
+      </button>
+      <button type="button" onClick={() => cancel()}>
+        Cancel
+      </button>
+    </React.Fragment>
   );
 }
 
+const ActionsRefContext = React.createContext<
+  React.RefObject<Tree.Root.Actions<TeamMember> | null>
+>({
+  current: null,
+});
+
 export default function MultiFieldEditingTree() {
   const [items, setItems] = React.useState(initialItems);
-  const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
-
-  const editingContext = React.useMemo(
-    () => ({
-      editingItemId,
-      startEditing: (itemId: string) => setEditingItemId(itemId),
-      stopEditing: () => setEditingItemId(null),
-      saveEdit: (itemId: string, name: string, role: TeamMember['role']) => {
-        setItems((prev) =>
-          updateMember(prev, itemId, { name, role, label: makeLabel(name, role) }),
-        );
-        setEditingItemId(null);
-      },
-    }),
-    [editingItemId],
-  );
+  const actionsRef = React.useRef<Tree.Root.Actions<TeamMember>>(null);
 
   const itemToStringLabel = React.useCallback((item: TeamMember) => item.label, []);
 
@@ -182,41 +127,31 @@ export default function MultiFieldEditingTree() {
           to discard.
         </p>
       </div>
-      <EditingContext.Provider value={editingContext}>
+      <ActionsRefContext.Provider value={actionsRef}>
         <Tree.Root
           items={items}
+          onItemsChange={setItems}
+          isItemEditable
           defaultExpandedItems={['engineering', 'design']}
           className={styles.tree}
           itemToStringLabel={itemToStringLabel}
+          actionsRef={actionsRef}
         >
           {(item) => (
             <Tree.Item itemId={item.id} className={styles.item}>
               <Tree.ItemExpansionTrigger className={styles.expansionTrigger}>
                 <ChevronIcon />
               </Tree.ItemExpansionTrigger>
-              <MultiFieldEditor item={item as TeamMember} />
+              <Tree.ItemLabel className={styles.label} />
+              <Tree.ItemLabelEditing>
+                {({ cancel }) => <MultiFieldForm item={item} cancel={cancel} />}
+              </Tree.ItemLabelEditing>
             </Tree.Item>
           )}
         </Tree.Root>
-      </EditingContext.Provider>
+      </ActionsRefContext.Provider>
     </div>
   );
-}
-
-function updateMember(
-  items: TeamMember[],
-  targetId: string,
-  updates: Partial<TeamMember>,
-): TeamMember[] {
-  return items.map((item) => {
-    if (item.id === targetId) {
-      return { ...item, ...updates };
-    }
-    if (item.children) {
-      return { ...item, children: updateMember(item.children, targetId, updates) };
-    }
-    return item;
-  });
 }
 
 function ChevronIcon(props: React.ComponentProps<'svg'>) {

@@ -530,4 +530,23 @@ export const selectors = {
     }
     return false;
   }),
+  // Editing selectors
+  editingItemId: createSelector((state: TreeState): CollectionItemId | null => state.editingItemId),
+  isItemEditing: createSelector(
+    (state: TreeState, itemId: CollectionItemId): boolean => state.editingItemId === itemId,
+  ),
+  isItemEditable: createSelector((state: TreeState, itemId: CollectionItemId): boolean => {
+    const { isItemEditable } = state;
+    if (!isItemEditable) {
+      return false;
+    }
+    if (typeof isItemEditable === 'boolean') {
+      return true;
+    }
+    const model = itemModelLookupSelector(state)[itemId];
+    if (!model) {
+      return false;
+    }
+    return isItemEditable(model);
+  }),
 };

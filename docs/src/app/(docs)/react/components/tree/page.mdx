@@ -20,6 +20,9 @@ import { Tree } from '@base-ui/react/tree';
     <Tree.ItemExpansionTrigger />
     <Tree.ItemGroupIndicator />
     <Tree.ItemLabel />
+    <Tree.ItemLabelEditing>
+      <Tree.ItemLabelEditingInput />
+    </Tree.ItemLabelEditing>
     <Tree.ItemLoadingIndicator />
     <Tree.ItemErrorIndicator />
   </Tree.Item>
@@ -182,7 +185,7 @@ import { DemoTreePermissionManager } from './demos/permission-manager';
 
 <Reference
   component="Tree"
-  parts="Root, ItemList, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemExpansionTrigger, ItemGroupIndicator, ItemDragIndicator, ItemLoadingIndicator, ItemErrorIndicator"
+  parts="Root, ItemList, AnimatedItemList, VirtualizedItemList, GroupTransition, Item, LinkItem, CheckboxItem, CheckboxItemIndicator, ItemLabel, ItemLabelEditing, ItemLabelEditingInput, ItemExpansionTrigger, ItemGroupIndicator, ItemDragIndicator, ItemLoadingIndicator, ItemErrorIndicator"
 />
 
 ## useFilteredItems

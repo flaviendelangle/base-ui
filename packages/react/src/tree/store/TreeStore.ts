@@ -6,6 +6,7 @@ import { TreeItemMutationPlugin } from '../plugins/TreeItemMutationPlugin';
 import { TreeSelectionPlugin } from '../plugins/TreeSelectionPlugin';
 import { TreeExpansionPlugin } from '../plugins/TreeExpansionPlugin';
 import { TreeInteractionPlugin } from '../plugins/TreeInteractionPlugin';
+import { TreeEditingPlugin } from '../plugins/TreeEditingPlugin';
 import type { CollectionActions, CollectionItemId } from '../../types/collection';
 import type {
   TreeState,
@@ -32,6 +33,8 @@ export class TreeStore<
 
   public interaction = new TreeInteractionPlugin(this);
 
+  public editing = new TreeEditingPlugin(this);
+
   public lazyLoading: TreeLazyLoading<TItem> | undefined;
 
   public timeoutManager = new TimeoutManager();
@@ -53,27 +56,17 @@ export class TreeStore<
 
   constructor(parameters: TreeStoreParameters<Mode, TItem>) {
     const selectionMode: TreeSelectionMode = parameters.selectionMode ?? 'single';
-    // Default accessors assume TreeDefaultItemModel shape.
-    // The cast is safe: users with custom TItem must provide their own accessors.
-    const itemToId =
-      parameters.itemToId ??
-      ((item: TItem) => (item as TreeDefaultItemModel).id as CollectionItemId);
-    const itemToStringLabel =
-      parameters.itemToStringLabel ?? ((item: TItem) => (item as TreeDefaultItemModel).label);
-    const itemToChildren =
-      parameters.itemToChildren ??
-      ((item: TItem) => (item as TreeDefaultItemModel).children as TItem[] | undefined);
-    const setItemChildren =
-      parameters.setItemChildren ??
-      ((item: TItem, children: readonly TItem[]) => ({ ...item, children }) as TItem);
-    const isItemDisabled =
-      parameters.isItemDisabled ?? ((item: TItem) => !!(item as TreeDefaultItemModel).disabled);
-    const setIsItemDisabled =
-      parameters.setIsItemDisabled ??
-      ((item: TItem, disabled: boolean) => ({ ...item, disabled }) as TItem);
-    const isItemSelectionDisabled =
-      parameters.isItemSelectionDisabled ??
-      ((item: TItem) => !!(item as TreeDefaultItemModel).disabled);
+    // These accessors are always provided by TreeRoot with defaults.
+    const {
+      itemToId,
+      itemToStringLabel,
+      itemToChildren,
+      setItemChildren,
+      isItemDisabled,
+      setIsItemDisabled,
+      isItemSelectionDisabled,
+      setItemLabel,
+    } = parameters;
     const initialItems =
       parameters.items ?? parameters.defaultItems ?? (EMPTY_ARRAY as readonly TItem[]);
     const initialItemsState = buildItemsState(
@@ -111,12 +104,15 @@ export class TreeStore<
         isItemDisabled,
         setIsItemDisabled,
         isItemSelectionDisabled,
+        setItemLabel,
         direction: parameters.direction,
         dragAndDrop: undefined,
         dropTargetGroupId: null,
         virtualized: false,
         enableGroupTransition: false,
         animatingGroups: EMPTY_OBJECT,
+        editingItemId: null,
+        isItemEditable: parameters.isItemEditable ?? false,
       },
       {
         onExpandedItemsChange: parameters.onExpandedItemsChange ?? (() => {}),
@@ -297,6 +293,7 @@ export class TreeStore<
     ...this.itemMutation.actions,
     ...this.expansion.actions,
     ...this.selection.actions,
+    ...this.editing.actions,
     isDescendantOf: (itemId: CollectionItemId, ancestorId: CollectionItemId) => {
       let currentId: CollectionItemId | null = itemId;
       while (currentId != null) {

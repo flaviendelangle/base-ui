@@ -381,6 +381,35 @@ export class TreeItemMutationPlugin<TItem> {
     );
   };
 
+  public setItemLabel = (itemId: CollectionItemId, label: string): void => {
+    const { state } = this.store;
+    const meta = selectors.itemMeta(state, itemId);
+    if (!meta || meta.label === label) {
+      return;
+    }
+
+    const currentItem = state.itemModelLookup[itemId];
+    if (!currentItem) {
+      return;
+    }
+
+    const newItem = state.setItemLabel(currentItem, label);
+    const newItems = this.replaceItemModel(state.items, itemId, newItem);
+
+    const itemMetaLookup = { ...state.itemMetaLookup };
+    itemMetaLookup[itemId] = { ...itemMetaLookup[itemId], label };
+
+    const itemModelLookup = { ...state.itemModelLookup };
+    itemModelLookup[itemId] = newItem;
+
+    this.applyMutation(
+      newItems,
+      REASONS.imperativeAction,
+      { added: [], removed: [], moved: [] },
+      { itemMetaLookup, itemModelLookup },
+    );
+  };
+
   public actions = {
     moveItems: this.moveItems,
     moveItemsBefore: this.moveItemsBefore,
@@ -390,6 +419,7 @@ export class TreeItemMutationPlugin<TItem> {
     addItemsBefore: this.addItemsBefore,
     addItemsAfter: this.addItemsAfter,
     setIsItemDisabled: this.setIsItemDisabled,
+    setItemLabel: this.setItemLabel,
   };
 
   /**
