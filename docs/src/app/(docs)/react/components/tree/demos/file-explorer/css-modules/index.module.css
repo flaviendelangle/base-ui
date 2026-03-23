@@ -20,7 +20,7 @@
   align-items: center;
   gap: 0.25rem;
   height: 22px;
-  padding-inline-start: calc(0.5rem + var(--depth) * 1rem);
+  padding-inline-start: calc(0.5rem + (var(--level) - 1) * 1rem);
   padding-inline-end: 0.5rem;
   cursor: pointer;
   user-select: none;
@@ -29,7 +29,7 @@
   box-sizing: border-box;
 
   &:not([data-expandable]) {
-    padding-inline-start: calc(0.5rem + var(--depth) * 1rem + var(--trigger-width));
+    padding-inline-start: calc(0.5rem + (var(--level) - 1) * 1rem + var(--trigger-width));
   }
 
   @media (hover: hover) {

@@ -443,9 +443,9 @@ export const selectors = {
     (state: TreeState, itemId: CollectionItemId): CollectionItemId | null =>
       itemMetaLookupSelector(state)[itemId]?.parentId ?? null,
   ),
-  itemDepth: createSelector(
+  itemLevel: createSelector(
     (state: TreeState, itemId: CollectionItemId): number =>
-      itemMetaLookupSelector(state)[itemId]?.depth ?? 0,
+      itemMetaLookupSelector(state)[itemId]?.level ?? 1,
   ),
   isItemDisabled: isItemDisabledSelector,
   canItemBeFocused: createSelector(

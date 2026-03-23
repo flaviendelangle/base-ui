@@ -19,7 +19,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
   function processSiblings(
     siblings: readonly TItem[],
     parentId: CollectionItemId | null,
-    depth: number,
+    level: number,
   ) {
     const parentKey = parentId ?? TREE_VIEW_ROOT_PARENT_ID;
     const orderedChildrenIds: CollectionItemId[] = [];
@@ -55,7 +55,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
       itemMetaLookup[itemId] = {
         id: itemId,
         parentId,
-        depth,
+        level,
         expandable: !!children,
         disabled: isItemDisabled(item),
         selectable: !isItemSelectionDisabled(item),
@@ -63,7 +63,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
       };
 
       if (children && children.length > 0) {
-        processSiblings(children, itemId, depth + 1);
+        processSiblings(children, itemId, level + 1);
       }
     }
 
@@ -71,7 +71,7 @@ export function buildItemsState<TItem = TreeDefaultItemModel>(
     itemChildrenIndexesLookup[parentKey] = childrenIndexes;
   }
 
-  processSiblings(items, null, 0);
+  processSiblings(items, null, 1);
 
   return {
     itemMetaLookup,

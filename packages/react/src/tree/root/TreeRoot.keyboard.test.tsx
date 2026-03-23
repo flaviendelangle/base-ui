@@ -440,7 +440,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
     });
 
     describe('key: * (asterisk)', () => {
-      it('should expand all items that are at the same depth as the current item (depth = 0)', async () => {
+      it('should expand all items that are at the same level as the current item (level = 1)', async () => {
         const view = await render({
           items: [
             { id: '1', children: [{ id: '1.1' }] },
@@ -465,7 +465,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         expect(view.isItemExpanded('3.1')).toBe(false);
       });
 
-      it('should expand all items that are at the same depth as the current item (depth = 1)', async () => {
+      it('should expand all items that are at the same level as the current item (level = 2)', async () => {
         const view = await render({
           items: [
             { id: '1', children: [{ id: '1.1' }] },

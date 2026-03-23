@@ -27,10 +27,10 @@
   color: var(--color-gray-900);
   text-decoration: none;
 
-  padding-left: calc(0.5rem + var(--indent) * var(--depth));
+  padding-left: calc(0.5rem + var(--indent) * (var(--level) - 1));
 
   &:not([data-expandable]) {
-    padding-left: calc(0.5rem + var(--indent) * var(--depth) + var(--trigger-width));
+    padding-left: calc(0.5rem + var(--indent) * (var(--level) - 1) + var(--trigger-width));
   }
 
   @media (hover: hover) {

@@ -53,7 +53,7 @@ export const TreeLinkItem = fastComponentRef(function TreeLinkItem(
   const siblingsCount = store.useState('itemSiblingsCount', itemId);
   const posInSet = store.useState('itemPositionInSet', itemId);
   const loading = store.useState('isItemLoading', itemId);
-  const depth = store.useState('itemDepth', itemId);
+  const level = store.useState('itemLevel', itemId);
   const virtualized = store.useState('virtualized');
 
   const state: TreeLinkItem.State = {
@@ -63,7 +63,7 @@ export const TreeLinkItem = fastComponentRef(function TreeLinkItem(
     selected,
     focused,
     disabled,
-    depth,
+    level,
     active,
   };
 
@@ -88,7 +88,7 @@ export const TreeLinkItem = fastComponentRef(function TreeLinkItem(
         // must have aria-selected set to true or false.
         // Only omit it entirely when the tree doesn't support selection at all.
         'aria-selected': selectionDisabled || !canBeSelected ? undefined : selected,
-        'aria-level': depth + 1,
+        'aria-level': level,
         'aria-setsize': siblingsCount,
         'aria-posinset': posInSet,
         'aria-disabled': disabled || undefined,
@@ -99,7 +99,7 @@ export const TreeLinkItem = fastComponentRef(function TreeLinkItem(
       },
       LINK_HOOK,
       store.interaction.linkItemEventHandlers,
-      { style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties },
+      { style: { [TreeItemCssVars.level]: level } as React.CSSProperties },
       elementProps,
     ],
     stateAttributesMapping,
@@ -134,9 +134,9 @@ export interface TreeLinkItemState {
    */
   disabled: boolean;
   /**
-   * The depth of the item in the tree hierarchy.
+   * The level of the item in the tree hierarchy (1-based, matches aria-level).
    */
-  depth: number;
+  level: number;
   /**
    * Whether the link represents the current page.
    */

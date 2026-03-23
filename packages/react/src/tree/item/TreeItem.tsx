@@ -67,7 +67,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
   const siblingsCount = store.useState('itemSiblingsCount', itemId);
   const posInSet = store.useState('itemPositionInSet', itemId);
   const loading = store.useState('isItemLoading', itemId);
-  const depth = store.useState('itemDepth', itemId);
+  const level = store.useState('itemLevel', itemId);
   const virtualized = store.useState('virtualized');
   const dragAndDropEnabled = store.useState('isDragAndDropEnabled');
   const dragged = store.useState('isItemDragged', itemId);
@@ -83,7 +83,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
     selected,
     focused,
     disabled,
-    depth,
+    level,
     dragged,
     dropTarget,
     dropPosition,
@@ -121,14 +121,14 @@ export const TreeItem = fastComponentRef(function TreeItem(
         // must have aria-selected set to true or false.
         // Only omit it entirely when the tree doesn't support selection at all.
         'aria-selected': selectionDisabled || !canBeSelected ? undefined : selected,
-        'aria-level': depth + 1,
+        'aria-level': level,
         'aria-setsize': siblingsCount,
         'aria-posinset': posInSet,
         'aria-disabled': disabled || undefined,
         'aria-busy': loading || undefined,
         'aria-grabbed': dragAndDropEnabled ? dragged : undefined,
         tabIndex: isDefaultFocusable ? 0 : -1,
-        style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties,
+        style: { [TreeItemCssVars.level]: level } as React.CSSProperties,
       },
       store.interaction.itemEventHandlers,
       elementProps,
@@ -165,9 +165,9 @@ export interface TreeItemState {
    */
   disabled: boolean;
   /**
-   * The depth of the item in the tree hierarchy.
+   * The level of the item in the tree hierarchy (1-based, matches aria-level).
    */
-  depth: number;
+  level: number;
   /**
    * Whether the item is currently being dragged.
    */

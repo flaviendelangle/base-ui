@@ -31,7 +31,7 @@
   line-height: 1.5;
   color: var(--color-gray-900);
 
-  padding-left: calc(8px + 20px * var(--depth));
+  padding-left: calc(8px + 20px * (var(--level) - 1));
 
   &:hover {
     background: var(--color-gray-100);

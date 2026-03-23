@@ -54,7 +54,7 @@ export interface TreeDefaultItemModel {
 export interface TreeItemMeta {
   id: CollectionItemId;
   parentId: CollectionItemId | null;
-  depth: number;
+  level: number;
   expandable: boolean;
   disabled: boolean;
   selectable: boolean;
@@ -100,7 +100,7 @@ export interface TreeItemsState<TItem = any> {
    */
   itemModelLookup: Record<CollectionItemId, TItem>;
   /**
-   * Maps each item ID to its computed metadata (depth, parent, disabled, etc.).
+   * Maps each item ID to its computed metadata (level, parent, disabled, etc.).
    */
   itemMetaLookup: Record<CollectionItemId, TreeItemMeta>;
   /**
@@ -205,7 +205,7 @@ export interface TreeState<TItem = any> {
    */
   itemModelLookup: Record<CollectionItemId, TItem>;
   /**
-   * Maps each item ID to its computed metadata (depth, parent, disabled, etc.).
+   * Maps each item ID to its computed metadata (level, parent, disabled, etc.).
    * Updated incrementally by mutations.
    */
   itemMetaLookup: Record<CollectionItemId, TreeItemMeta>;

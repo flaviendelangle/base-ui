@@ -561,7 +561,7 @@ describe('TreeRoot - Lazy Loading', () => {
       expect(getAllCollectionItemIds(container)).toEqual(['1', '1-1']);
     });
 
-    it('should correctly compute depth for lazily-loaded nested items', async () => {
+    it('should correctly compute level for lazily-loaded nested items', async () => {
       const { container } = await render(
         <TreeWithLazyLoading items={[{ id: '1', label: '1', childrenCount: 1 }]} />,
       );
@@ -570,7 +570,7 @@ describe('TreeRoot - Lazy Loading', () => {
       await awaitMockFetch();
 
       const childItem = getItemRoot(container, '1-1');
-      expect(childItem.style.getPropertyValue('--depth')).toBe('1');
+      expect(childItem.style.getPropertyValue('--level')).toBe('2');
     });
   });
 });

@@ -62,8 +62,8 @@
     }
   },
   "cssVariables": {
-    "--depth": {
-      "description": "The depth of the item in the tree hierarchy.",
+    "--level": {
+      "description": "The level of the item in the tree hierarchy (1-based, matches aria-level).",
       "type": "number"
     }
   }

@@ -1,7 +1,7 @@
 export enum TreeItemCssVars {
   /**
-   * The depth of the item in the tree hierarchy.
+   * The level of the item in the tree hierarchy (1-based, matches aria-level).
    * @type {number}
    */
-  depth = '--depth',
+  level = '--level',
 }

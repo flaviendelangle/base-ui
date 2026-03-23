@@ -516,7 +516,7 @@ export class TreeItemMutationPlugin<TItem> {
     const { state } = this.store;
     const parentKey = parentId ?? TREE_VIEW_ROOT_PARENT_ID;
     const parentMeta = parentId != null ? state.itemMetaLookup[parentId] : null;
-    const depth = parentMeta ? parentMeta.depth + 1 : 0;
+    const level = parentMeta ? parentMeta.level + 1 : 1;
 
     // Start from baseLookups (if provided) or clone from state
     const itemModelLookup = baseLookups?.itemModelLookup ?? { ...state.itemModelLookup };
@@ -535,7 +535,7 @@ export class TreeItemMutationPlugin<TItem> {
     const processItems = (
       siblings: readonly TItem[],
       siblingParentId: CollectionItemId | null,
-      siblingDepth: number,
+      siblingLevel: number,
     ) => {
       const siblingParentKey = siblingParentId ?? TREE_VIEW_ROOT_PARENT_ID;
       const siblingIds: CollectionItemId[] = [];
@@ -551,7 +551,7 @@ export class TreeItemMutationPlugin<TItem> {
         itemMetaLookup[itemId] = {
           id: itemId,
           parentId: siblingParentId,
-          depth: siblingDepth,
+          level: siblingLevel,
           expandable: hasInlineChildren || (isItemExpandable ? isItemExpandable(item) : false),
           disabled: state.isItemDisabled(item),
           selectable: !state.isItemSelectionDisabled(item),
@@ -560,7 +560,7 @@ export class TreeItemMutationPlugin<TItem> {
         siblingIds.push(itemId);
 
         if (hasInlineChildren) {
-          processItems(children, itemId, siblingDepth + 1);
+          processItems(children, itemId, siblingLevel + 1);
         }
       }
 
@@ -575,7 +575,7 @@ export class TreeItemMutationPlugin<TItem> {
       }
     };
 
-    processItems(items, parentId, depth);
+    processItems(items, parentId, level);
 
     // Splice new IDs into parent's children array
     const oldParentChildren = itemOrderedChildrenIdsLookup[parentKey] ?? [];
@@ -603,7 +603,7 @@ export class TreeItemMutationPlugin<TItem> {
 
   /**
    * Move items in the lookup tables: remove from old parents, add to new parent,
-   * and update parentId/depth for moved subtrees.
+   * and update parentId/level for moved subtrees.
    */
   private moveItemsInLookups(
     itemIds: CollectionItemId[],
@@ -613,7 +613,7 @@ export class TreeItemMutationPlugin<TItem> {
     const { state } = this.store;
     const newParentKey = newParentId ?? TREE_VIEW_ROOT_PARENT_ID;
     const newParentMeta = newParentId != null ? state.itemMetaLookup[newParentId] : null;
-    const newDepth = newParentMeta ? newParentMeta.depth + 1 : 0;
+    const newLevel = newParentMeta ? newParentMeta.level + 1 : 1;
 
     // Clone lookups
     const itemMetaLookup = { ...state.itemMetaLookup };
@@ -646,27 +646,27 @@ export class TreeItemMutationPlugin<TItem> {
     itemOrderedChildrenIdsLookup[newParentKey] = updatedNewParentChildren;
     itemChildrenIndexesLookup[newParentKey] = this.buildChildrenIndexes(updatedNewParentChildren);
 
-    // Update parentId and depth for moved items and their descendants
-    const updateDepths = (
+    // Update parentId and level for moved items and their descendants
+    const updateLevels = (
       id: CollectionItemId,
       parentIdVal: CollectionItemId | null,
-      depth: number,
+      level: number,
     ) => {
       const oldMeta = itemMetaLookup[id];
       if (!oldMeta) {
         return;
       }
-      itemMetaLookup[id] = { ...oldMeta, parentId: parentIdVal, depth };
+      itemMetaLookup[id] = { ...oldMeta, parentId: parentIdVal, level };
       const children = itemOrderedChildrenIdsLookup[id];
       if (children) {
         for (const childId of children) {
-          updateDepths(childId, id, depth + 1);
+          updateLevels(childId, id, level + 1);
         }
       }
     };
 
     for (const id of itemIds) {
-      updateDepths(id, newParentId, newDepth);
+      updateLevels(id, newParentId, newLevel);
     }
 
     // If new parent was previously not expandable, update its meta

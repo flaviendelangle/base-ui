@@ -78,7 +78,7 @@ export const TreeCheckboxItem = fastComponentRef(function TreeCheckboxItem(
   const siblingsCount = store.useState('itemSiblingsCount', itemId);
   const posInSet = store.useState('itemPositionInSet', itemId);
   const loading = store.useState('isItemLoading', itemId);
-  const depth = store.useState('itemDepth', itemId);
+  const level = store.useState('itemLevel', itemId);
   const virtualized = store.useState('virtualized');
   const dragAndDropEnabled = store.useState('isDragAndDropEnabled');
   const dragged = store.useState('isItemDragged', itemId);
@@ -110,7 +110,7 @@ export const TreeCheckboxItem = fastComponentRef(function TreeCheckboxItem(
     indeterminate,
     focused,
     disabled,
-    depth,
+    level,
     dragged,
     dropTarget,
     dropPosition,
@@ -154,14 +154,14 @@ export const TreeCheckboxItem = fastComponentRef(function TreeCheckboxItem(
         role: 'treeitem',
         'aria-expanded': expandable ? expanded : undefined,
         'aria-checked': ariaChecked,
-        'aria-level': depth + 1,
+        'aria-level': level,
         'aria-setsize': siblingsCount,
         'aria-posinset': posInSet,
         'aria-disabled': disabled || undefined,
         'aria-busy': loading || undefined,
         'aria-grabbed': dragAndDropEnabled ? dragged : undefined,
         tabIndex: isDefaultFocusable ? 0 : -1,
-        style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties,
+        style: { [TreeItemCssVars.level]: level } as React.CSSProperties,
       },
       store.interaction.checkboxItemEventHandlers,
       elementProps,
@@ -212,9 +212,9 @@ export interface TreeCheckboxItemState {
    */
   disabled: boolean;
   /**
-   * The depth of the item in the tree hierarchy.
+   * The level of the item in the tree hierarchy (1-based, matches aria-level).
    */
-  depth: number;
+  level: number;
   /**
    * Whether the item is currently being dragged.
    */
