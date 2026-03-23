@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { ReactStore } from '@base-ui/utils/store';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { TimeoutManager } from '@base-ui/utils/TimeoutManager';
@@ -6,7 +5,8 @@ import type { useDragAndDrop } from '../../use-drag-and-drop';
 import { TreeItemMutationPlugin } from '../plugins/TreeItemMutationPlugin';
 import { TreeSelectionPlugin } from '../plugins/TreeSelectionPlugin';
 import { TreeExpansionPlugin } from '../plugins/TreeExpansionPlugin';
-import type { CollectionItemId } from '../../types/collection';
+import { TreeInteractionPlugin } from '../plugins/TreeInteractionPlugin';
+import type { CollectionActions, CollectionItemId } from '../../types/collection';
 import type {
   TreeState,
   TreeStoreContext,
@@ -17,7 +17,6 @@ import type {
   TreeRootSelectionChangeEventDetails,
   TreeSelectedItemsType,
   TreeSelectionMode,
-  TreeItemFocusEventReason,
   TreeItemExpansionToggleEventDetails,
   TreeItemExpansionToggleValue,
   TreeItemSelectionToggleEventDetails,
@@ -27,16 +26,7 @@ import type {
 } from './types';
 import { selectors } from './selectors';
 import { buildItemsState } from './buildItemsState';
-import { createGenericEventDetails } from '../../utils/createBaseUIEventDetails';
 import { REASONS } from '../../utils/reasons';
-import {
-  getFirstNavigableItem,
-  getLastNavigableItem,
-  getNextNavigableItem,
-  getPreviousNavigableItem,
-} from './treeNavigation';
-
-const TYPEAHEAD_TIMEOUT = 500;
 
 export interface TreeStoreParameters<
   Mode extends TreeSelectionMode | undefined = undefined,
@@ -233,10 +223,6 @@ export interface TreeStoreParameters<
     | undefined;
 }
 
-function isPrintableKey(key: string): boolean {
-  return key.length === 1 && !!key.match(/\S/);
-}
-
 export interface TreeLazyLoading<TItem = TreeDefaultItemModel> {
   attach(store: TreeStore<any, TItem>): void;
   onBeforeExpand(
@@ -252,25 +238,21 @@ export class TreeStore<
   Mode extends TreeSelectionMode | undefined = undefined,
   TItem = TreeDefaultItemModel,
 > extends ReactStore<TreeState<TItem>, TreeStoreContext<TItem>, typeof selectors> {
-  // Focus reason tracking — default to 'keyboard' since tab focus is keyboard-like
-  private lastFocusReason: TreeItemFocusEventReason = REASONS.keyboard;
-
-  // Typeahead
-  private typeaheadQuery = '';
-
-  private timeoutManager = new TimeoutManager();
-
   public itemMutation = new TreeItemMutationPlugin<TItem>(this);
 
   public selection = new TreeSelectionPlugin(this);
 
   public expansion = new TreeExpansionPlugin(this);
 
+  public interaction = new TreeInteractionPlugin(this);
+
   public lazyLoading: TreeLazyLoading<TItem> | undefined;
 
   public dragAndDrop: ReturnType<typeof useDragAndDrop> | undefined;
 
   private dragAndDropCleanup: (() => void) | null = null;
+
+  private timeoutManager = new TimeoutManager();
 
   public resolveDropTargetGroup:
     | ((dropTargetItemId: CollectionItemId) => CollectionItemId | null)
@@ -394,63 +376,7 @@ export class TreeStore<
       this.rebuildItemsState();
     });
 
-    // Observe items changes to keep focus valid
-    let previousState = this.state;
-    let previousMetaLookup = selectors.itemMetaLookup(this.state);
-    this.subscribe((newState) => {
-      const newMetaLookup = selectors.itemMetaLookup(newState);
-      if (newMetaLookup === previousMetaLookup) {
-        previousState = newState;
-        return;
-      }
-
-      // If focused item was removed, focus the closest neighbor.
-      // The focus call is deferred with requestAnimationFrame because this
-      // subscription fires synchronously on state change, before React has
-      // committed the new DOM. Calling .focus() immediately could target an
-      // element that hasn't been inserted yet, silently losing focus.
-      const focusedId = newState.focusedItemId;
-      if (focusedId != null && !newMetaLookup[focusedId]) {
-        // Use previousState for navigation since the focused item still exists there.
-        // Then verify the candidate still exists in the new state.
-        // Walk forward then backward through the previous state to find the
-        // nearest surviving neighbor. Multiple siblings may have been removed
-        // in the same batch, so we keep walking until we find one that still
-        // exists in the new state (or exhaust both directions).
-        let candidate: CollectionItemId | null = null;
-
-        let probe = getNextNavigableItem(previousState, focusedId);
-        while (probe != null && !newMetaLookup[probe]) {
-          probe = getNextNavigableItem(previousState, probe);
-        }
-        candidate = probe;
-
-        if (candidate == null) {
-          probe = getPreviousNavigableItem(previousState, focusedId);
-          while (probe != null && !newMetaLookup[probe]) {
-            probe = getPreviousNavigableItem(previousState, probe);
-          }
-          candidate = probe;
-        }
-
-        const itemToFocusId = candidate ?? getFirstNavigableItem(newState);
-
-        if (itemToFocusId == null) {
-          this.set('focusedItemId', null);
-        } else {
-          requestAnimationFrame(() => {
-            // Verify the item still exists before focusing — another state
-            // change may have removed it between scheduling and execution.
-            if (selectors.itemMeta(this.state, itemToFocusId) != null) {
-              this.focusItem(itemToFocusId);
-            }
-          });
-        }
-      }
-
-      previousState = newState;
-      previousMetaLookup = newMetaLookup;
-    });
+    this.interaction.setupFocusRecovery();
   }
 
   // ===========================================================================
@@ -475,56 +401,6 @@ export class TreeStore<
   }
 
   // ===========================================================================
-  // Focus
-  // ===========================================================================
-
-  public focusItem(itemId: CollectionItemId, reason: TreeItemFocusEventReason = REASONS.keyboard) {
-    const meta = selectors.itemMeta(this.state, itemId);
-    let isItemVisible = meta != null;
-    if (isItemVisible) {
-      let parentId = meta!.parentId;
-      while (parentId != null) {
-        if (!selectors.isItemExpanded(this.state, parentId)) {
-          isItemVisible = false;
-          break;
-        }
-        parentId = selectors.itemMeta(this.state, parentId)?.parentId ?? null;
-      }
-    }
-
-    if (isItemVisible) {
-      const element = this.getItemDOMElement(itemId);
-      if (element) {
-        // Calling .focus() synchronously triggers the onFocus handler,
-        // which already updates focusedItemId and calls onItemFocus.
-        // Set lastFocusReason so the onFocus handler picks up the correct reason.
-        this.lastFocusReason = reason;
-        element.focus();
-      } else if (this.state.virtualized) {
-        // In virtualized mode, the item may not be in the DOM yet.
-        // Update state so the consumer can scroll the virtualizer to this item.
-        // The item will auto-focus when it mounts (see TreeItem).
-        this.set('focusedItemId', itemId);
-        this.context.onItemFocus(itemId, createGenericEventDetails(reason));
-      }
-    }
-  }
-
-  public removeFocusedItem() {
-    const focusedId = this.state.focusedItemId;
-    if (focusedId == null) {
-      return;
-    }
-
-    const element = this.getItemDOMElement(focusedId);
-    if (element) {
-      element.blur();
-    }
-
-    this.set('focusedItemId', null);
-  }
-
-  // ===========================================================================
   // Item DOM element
   // ===========================================================================
 
@@ -534,495 +410,6 @@ export class TreeStore<
       return null;
     }
     return rootElement.querySelector(`[data-item-id="${CSS.escape(String(itemId))}"]`);
-  }
-
-  // ===========================================================================
-  // Keyboard navigation
-  // ===========================================================================
-
-  private isCheckboxItem(element: HTMLElement): boolean {
-    return (
-      element.hasAttribute('data-checked') ||
-      element.hasAttribute('data-unchecked') ||
-      element.hasAttribute('data-indeterminate')
-    );
-  }
-
-  private getFirstItemMatchingTypeaheadQuery(
-    itemId: CollectionItemId,
-    newKey: string,
-  ): CollectionItemId | null {
-    const getNextItem = (idToCheck: CollectionItemId): CollectionItemId => {
-      const nextId = getNextNavigableItem(this.state, idToCheck);
-      return nextId ?? getFirstNavigableItem(this.state)!;
-    };
-
-    const getNextMatchingItemId = (query: string): CollectionItemId | null => {
-      let matchingItemId: CollectionItemId | null = null;
-      const checkedItems: Record<CollectionItemId, true> = {};
-      let currentItemId: CollectionItemId = query.length > 1 ? itemId : getNextItem(itemId);
-      while (matchingItemId == null && !checkedItems[currentItemId]) {
-        if (
-          selectors.labelMap(this.state)[currentItemId]?.startsWith(query) &&
-          selectors.canItemBeFocused(this.state, currentItemId)
-        ) {
-          matchingItemId = currentItemId;
-        } else {
-          checkedItems[currentItemId] = true;
-          currentItemId = getNextItem(currentItemId);
-        }
-      }
-      return matchingItemId;
-    };
-
-    const cleanNewKey = newKey.toLowerCase();
-    const concatenatedQuery = `${this.typeaheadQuery}${cleanNewKey}`;
-
-    const concatenatedMatch = getNextMatchingItemId(concatenatedQuery);
-    if (concatenatedMatch != null) {
-      this.typeaheadQuery = concatenatedQuery;
-      return concatenatedMatch;
-    }
-
-    const singleKeyMatch = getNextMatchingItemId(cleanNewKey);
-    if (singleKeyMatch != null) {
-      this.typeaheadQuery = cleanNewKey;
-      return singleKeyMatch;
-    }
-
-    this.typeaheadQuery = '';
-    return null;
-  }
-
-  private handleKeyDown(event: React.KeyboardEvent, itemId: CollectionItemId) {
-    if (event.altKey) {
-      return;
-    }
-
-    const ctrlPressed = event.ctrlKey || event.metaKey;
-    const key = event.key;
-    const isMulti = this.state.selectionMode === 'multiple';
-    const isRtl = this.state.direction === 'rtl';
-    const expandKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
-    const collapseKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
-
-    // Select the item when pressing "Space"
-    if (key === ' ' && selectors.canItemBeSelected(this.state, itemId)) {
-      event.preventDefault();
-      const isCheckbox = this.isCheckboxItem(event.target as HTMLElement);
-      if (isMulti && event.shiftKey) {
-        this.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
-      } else {
-        this.selection.setItemSelection({
-          itemId,
-          keepExistingSelection: isMulti,
-          shouldBeSelected: undefined,
-          shouldPropagate: isCheckbox,
-          reason: REASONS.keyboard,
-          event: event.nativeEvent,
-        });
-      }
-    }
-
-    // Enter: for link items, let the browser handle native navigation.
-    // For other items, expand/collapse or select.
-    else if (key === 'Enter') {
-      const isLink = (event.target as HTMLElement).hasAttribute('data-link');
-      if (isLink) {
-        // Let the browser follow the link natively (no preventDefault).
-        // Still handle selection so the item becomes selected on navigation.
-        if (selectors.canItemBeSelected(this.state, itemId)) {
-          this.selection.setItemSelection({
-            itemId,
-            shouldBeSelected: true,
-            reason: REASONS.keyboard,
-            event: event.nativeEvent,
-          });
-        }
-        return;
-      }
-      if (this.expansion.canToggleItemExpansion(itemId)) {
-        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-        event.preventDefault();
-      } else if (selectors.canItemBeSelected(this.state, itemId)) {
-        if (isMulti) {
-          event.preventDefault();
-          this.selection.setItemSelection({
-            itemId,
-            keepExistingSelection: true,
-            shouldPropagate: this.isCheckboxItem(event.target as HTMLElement),
-            reason: REASONS.keyboard,
-            event: event.nativeEvent,
-          });
-        } else if (!selectors.isItemSelected(this.state, itemId)) {
-          this.selection.setItemSelection({
-            itemId,
-            reason: REASONS.keyboard,
-            event: event.nativeEvent,
-          });
-          event.preventDefault();
-        }
-      }
-    }
-
-    // Focus next item
-    else if (key === 'ArrowDown') {
-      const nextItem = getNextNavigableItem(this.state, itemId);
-      if (nextItem) {
-        event.preventDefault();
-        this.focusItem(nextItem);
-        if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, nextItem)) {
-          this.selection.selectItemFromArrowNavigation(
-            itemId,
-            nextItem,
-            REASONS.keyboard,
-            event.nativeEvent,
-          );
-        }
-      }
-    }
-
-    // Focus previous item
-    else if (key === 'ArrowUp') {
-      const prevItem = getPreviousNavigableItem(this.state, itemId);
-      if (prevItem) {
-        event.preventDefault();
-        this.focusItem(prevItem);
-        if (isMulti && event.shiftKey && selectors.canItemBeSelected(this.state, prevItem)) {
-          this.selection.selectItemFromArrowNavigation(
-            itemId,
-            prevItem,
-            REASONS.keyboard,
-            event.nativeEvent,
-          );
-        }
-      }
-    }
-
-    // Expand or focus first child
-    else if (key === expandKey) {
-      if (ctrlPressed) {
-        return;
-      }
-      if (selectors.isItemExpanded(this.state, itemId)) {
-        const nextItemId = getNextNavigableItem(this.state, itemId);
-        if (nextItemId) {
-          this.focusItem(nextItemId);
-          event.preventDefault();
-        }
-      } else if (this.expansion.canToggleItemExpansion(itemId)) {
-        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-        event.preventDefault();
-      }
-    }
-
-    // Collapse or focus parent
-    else if (key === collapseKey) {
-      if (ctrlPressed) {
-        return;
-      }
-      if (
-        this.expansion.canToggleItemExpansion(itemId) &&
-        selectors.isItemExpanded(this.state, itemId)
-      ) {
-        this.expansion.setItemExpansion(itemId, undefined, REASONS.keyboard, event.nativeEvent);
-        event.preventDefault();
-      } else {
-        const parent = selectors.itemParentId(this.state, itemId);
-        if (parent) {
-          this.focusItem(parent);
-          event.preventDefault();
-        }
-      }
-    }
-
-    // Home: focus first item
-    else if (key === 'Home') {
-      if (
-        selectors.canItemBeSelected(this.state, itemId) &&
-        isMulti &&
-        ctrlPressed &&
-        event.shiftKey
-      ) {
-        this.selection.selectRangeFromStartToItem(itemId, REASONS.keyboard, event.nativeEvent);
-      } else {
-        const firstItem = getFirstNavigableItem(this.state);
-        if (firstItem) {
-          this.focusItem(firstItem);
-        }
-      }
-      event.preventDefault();
-    }
-
-    // End: focus last item
-    else if (key === 'End') {
-      if (
-        selectors.canItemBeSelected(this.state, itemId) &&
-        isMulti &&
-        ctrlPressed &&
-        event.shiftKey
-      ) {
-        this.selection.selectRangeFromItemToEnd(itemId, REASONS.keyboard, event.nativeEvent);
-      } else {
-        const lastItem = getLastNavigableItem(this.state);
-        if (lastItem) {
-          this.focusItem(lastItem);
-        }
-      }
-      event.preventDefault();
-    }
-
-    // Expand all siblings
-    else if (key === '*') {
-      this.expansion.expandAllSiblings(itemId, REASONS.keyboard, event.nativeEvent);
-      event.preventDefault();
-    }
-
-    // Ctrl+A: select all
-    else if (event.key.toUpperCase() === 'A' && ctrlPressed && isMulti) {
-      this.selection.selectAllNavigableItems(REASONS.keyboard, event.nativeEvent);
-      event.preventDefault();
-    }
-
-    // Type-ahead
-    else if (!ctrlPressed && !event.shiftKey && isPrintableKey(key)) {
-      const matchingItem = this.getFirstItemMatchingTypeaheadQuery(itemId, key);
-      if (matchingItem != null) {
-        this.focusItem(matchingItem);
-        event.preventDefault();
-      } else {
-        this.typeaheadQuery = '';
-      }
-
-      this.timeoutManager.startTimeout('typeahead', TYPEAHEAD_TIMEOUT, () => {
-        this.typeaheadQuery = '';
-      });
-    }
-  }
-
-  // ===========================================================================
-  // Static event handler objects (following TemporalFieldStore pattern)
-  // ===========================================================================
-
-  public readonly rootEventHandlers = {
-    onFocus: (event: React.FocusEvent) => {
-      // Only handle focus if it's on the root element itself (not bubbled from children)
-      const defaultFocusableId = selectors.defaultFocusableItemId(this.state);
-      if (event.target === event.currentTarget && defaultFocusableId != null) {
-        this.focusItem(defaultFocusableId);
-      }
-    },
-    onBlur: (event: React.FocusEvent) => {
-      // Check if focus moved outside the tree entirely
-      const rootElement = this.context.rootRef.current;
-      if (rootElement && !rootElement.contains(event.relatedTarget as Node)) {
-        this.set('focusedItemId', null);
-      }
-    },
-    onKeyDown: (event: React.KeyboardEvent) => {
-      const focusedId = this.state.focusedItemId;
-      if (focusedId != null) {
-        this.handleKeyDown(event, focusedId);
-      }
-    },
-  };
-
-  private getItemIdFromEvent(event: React.SyntheticEvent): CollectionItemId | null {
-    const stringId = (event.currentTarget as HTMLElement).getAttribute('data-item-id');
-    if (stringId == null) {
-      return null;
-    }
-    return selectors.itemIdLookup(this.state)[stringId] ?? null;
-  }
-
-  private readonly handleItemFocus = (event: React.FocusEvent) => {
-    const itemId = this.getItemIdFromEvent(event);
-    if (!itemId) {
-      return;
-    }
-    if (selectors.canItemBeFocused(this.state, itemId) && this.state.focusedItemId !== itemId) {
-      this.set('focusedItemId', itemId);
-      this.context.onItemFocus(
-        itemId,
-        createGenericEventDetails(this.lastFocusReason, event.nativeEvent),
-      );
-      this.lastFocusReason = REASONS.keyboard;
-    }
-  };
-
-  private readonly handleItemMouseDown = (event: React.MouseEvent) => {
-    const itemId = this.getItemIdFromEvent(event);
-    if (!itemId) {
-      return;
-    }
-    // Prevent text selection when using modifier keys for multi-select.
-    // Also prevent default for disabled items to avoid browser focus.
-    if (
-      event.shiftKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      selectors.isItemDisabled(this.state, itemId)
-    ) {
-      event.preventDefault();
-    }
-  };
-
-  public readonly itemEventHandlers = {
-    onMouseDown: this.handleItemMouseDown,
-    onClick: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Handle focus - disabled items are never focused by mouse click,
-      // even when itemFocusableWhenDisabled is true (that only affects keyboard focus).
-      if (!selectors.isItemDisabled(this.state, itemId)) {
-        this.lastFocusReason = REASONS.itemPress;
-        this.set('focusedItemId', itemId);
-      }
-
-      // Handle selection
-      if (this.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.state, itemId)) {
-        const isMulti = this.state.selectionMode === 'multiple';
-        if (isMulti && (event.ctrlKey || event.metaKey)) {
-          this.selection.setItemSelection({
-            itemId,
-            keepExistingSelection: true,
-            reason: REASONS.itemPress,
-            event: event.nativeEvent,
-          });
-          return;
-        }
-        if (isMulti && event.shiftKey) {
-          this.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
-          return;
-        }
-        this.selection.setItemSelection({
-          itemId,
-          shouldBeSelected: true,
-          reason: REASONS.itemPress,
-          event: event.nativeEvent,
-        });
-      }
-
-      // Handle expansion (skipped for multi-select modifier clicks via early return above)
-      if (this.state.expandOnClick && this.expansion.canToggleItemExpansion(itemId)) {
-        this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
-      }
-    },
-    onFocus: this.handleItemFocus,
-  };
-
-  public readonly checkboxItemEventHandlers = {
-    onMouseDown: this.handleItemMouseDown,
-    onClick: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Handle focus - disabled items are never focused by mouse click,
-      // even when itemFocusableWhenDisabled is true (that only affects keyboard focus).
-      if (!selectors.isItemDisabled(this.state, itemId)) {
-        this.lastFocusReason = REASONS.itemPress;
-        this.set('focusedItemId', itemId);
-      }
-
-      // Handle selection (checkbox behavior: always toggle, keep existing in multi)
-      if (selectors.canItemBeSelected(this.state, itemId)) {
-        const isMulti = this.state.selectionMode === 'multiple';
-
-        if (isMulti && event.shiftKey) {
-          this.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
-          return;
-        }
-
-        this.selection.setItemSelection({
-          itemId,
-          keepExistingSelection: isMulti,
-          shouldPropagate: true,
-          reason: REASONS.itemPress,
-          event: event.nativeEvent,
-        });
-      }
-
-      // Handle expansion
-      if (this.state.expandOnClick && this.expansion.canToggleItemExpansion(itemId)) {
-        this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
-      }
-    },
-    onFocus: this.handleItemFocus,
-  };
-
-  public readonly linkItemEventHandlers = {
-    onMouseDown: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Prevent default for disabled items to avoid browser focus.
-      // Unlike regular items, we don't prevent default for modifier keys
-      // so that Ctrl+click (open in new tab) and Shift+click (open in new window) work.
-      if (selectors.isItemDisabled(this.state, itemId)) {
-        event.preventDefault();
-      }
-    },
-    onClick: (event: React.MouseEvent) => {
-      const itemId = this.getItemIdFromEvent(event);
-      if (!itemId) {
-        return;
-      }
-      // Handle focus - disabled items are never focused by mouse click,
-      // even when itemFocusableWhenDisabled is true (that only affects keyboard focus).
-      if (!selectors.isItemDisabled(this.state, itemId)) {
-        this.lastFocusReason = REASONS.itemPress;
-        this.set('focusedItemId', itemId);
-      }
-
-      // Handle selection (same as Tree.Item: replace semantics)
-      if (this.state.selectionMode !== 'none' && selectors.canItemBeSelected(this.state, itemId)) {
-        this.selection.setItemSelection({
-          itemId,
-          shouldBeSelected: true,
-          reason: REASONS.itemPress,
-          event: event.nativeEvent,
-        });
-      }
-
-      // expandOnClick is intentionally NOT handled for link items.
-      // The primary action of a link is navigation, not expansion.
-      // Expansion is done via ItemExpansionTrigger or ArrowRight/Left keys.
-    },
-    onFocus: this.handleItemFocus,
-  };
-
-  public readonly expansionTriggerEventHandlers = {
-    onClick: (event: React.MouseEvent, itemId: CollectionItemId) => {
-      event.stopPropagation();
-      this.expansion.setItemExpansion(itemId, undefined, REASONS.itemPress, event.nativeEvent);
-    },
-  };
-
-  // ===========================================================================
-  // Lazy loading helpers (called by the plugin)
-  // ===========================================================================
-
-  public setItemChildrenOverride(parentId: CollectionItemId, children: TItem[]) {
-    this.set('lazyItems', {
-      ...this.state.lazyItems!,
-      children: { ...this.state.lazyItems!.children, [parentId]: children },
-    });
-  }
-
-  public removeChildrenOverride(parentId: CollectionItemId) {
-    const { [parentId]: removed, ...rest } = this.state.lazyItems!.children;
-    this.set('lazyItems', { ...this.state.lazyItems!, children: rest });
-  }
-
-  public setItemExpandableOverrides(overrides: Record<CollectionItemId, boolean>) {
-    this.set('lazyItems', {
-      ...this.state.lazyItems!,
-      expandable: { ...this.state.lazyItems!.expandable, ...overrides },
-    });
   }
 
   // ===========================================================================
@@ -1095,6 +482,7 @@ export class TreeStore<
     }
 
     return () => {
+      this.interaction.dispose();
       this.timeoutManager.clearAll();
       this.lazyLoading?.destroy();
       this.dragAndDropCleanup?.();
@@ -1102,21 +490,7 @@ export class TreeStore<
     };
   };
 
-  // ===========================================================================
-  // Actions (exposed via actionsRef)
-  // ===========================================================================
-  private actions: TreeRootActions<TItem> = {
-    // Collection actions
-    isDescendantOf: (itemId, ancestorId) => {
-      let currentId: CollectionItemId | null = itemId;
-      while (currentId != null) {
-        currentId = selectors.itemParentId(this.state, currentId);
-        if (currentId === ancestorId) {
-          return true;
-        }
-      }
-      return false;
-    },
+  private collectionActions: CollectionActions<TItem> = {
     getItemIndex: (itemId) => selectors.itemIndex(this.state, itemId),
     hasItem: (itemId) => selectors.itemMeta(this.state, itemId) != null,
     getSelectedItemIds: () => new Set(this.selection.materializeSelectedItems()),
@@ -1131,35 +505,30 @@ export class TreeStore<
       }
       return models;
     },
+  };
 
-    // Tree-specific methods
-    focusItem: (itemId) => this.focusItem(itemId, REASONS.imperativeAction),
-    getItemOrderedChildrenIds: (itemId) => selectors.itemOrderedChildrenIds(this.state, itemId),
-    getItemDOMElement: (itemId) => this.getItemDOMElement(itemId),
-    getParentId: (itemId) => selectors.itemParentId(this.state, itemId),
-    isItemExpandable: (itemId) => selectors.isItemExpandable(this.state, itemId),
-    isItemExpanded: (itemId) => selectors.isItemExpanded(this.state, itemId),
-    isItemSelected: (itemId) => selectors.isItemSelected(this.state, itemId),
-    setItemExpansion: (itemId, isExpanded) =>
-      this.expansion.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
-    setItemSelection: (itemId, isSelected) =>
-      this.selection.setItemSelection({
-        itemId,
-        shouldBeSelected: isSelected,
-        shouldPropagate: true,
-        reason: REASONS.imperativeAction,
-      }),
-    setIsItemDisabled: this.itemMutation.setIsItemDisabled,
-    expandAll: () => this.expansion.expandAll(REASONS.imperativeAction),
-    collapseAll: () => this.expansion.collapseAll(REASONS.imperativeAction),
-    moveItems: this.itemMutation.moveItems,
-    moveItemsBefore: this.itemMutation.moveItemsBefore,
-    moveItemsAfter: this.itemMutation.moveItemsAfter,
-    removeItems: this.itemMutation.removeItems,
-    addItems: this.itemMutation.addItems,
-    addItemsBefore: this.itemMutation.addItemsBefore,
-    addItemsAfter: this.itemMutation.addItemsAfter,
-    refreshItemChildren: (itemId) => {
+  private actions = {
+    ...this.collectionActions,
+    ...this.itemMutation.actions,
+    ...this.expansion.actions,
+    ...this.selection.actions,
+    isDescendantOf: (itemId: CollectionItemId, ancestorId: CollectionItemId) => {
+      let currentId: CollectionItemId | null = itemId;
+      while (currentId != null) {
+        currentId = selectors.itemParentId(this.state, currentId);
+        if (currentId === ancestorId) {
+          return true;
+        }
+      }
+      return false;
+    },
+    focusItem: (itemId: CollectionItemId) =>
+      this.interaction.focusItem(itemId, REASONS.imperativeAction),
+    getItemOrderedChildrenIds: (itemId: CollectionItemId | null) =>
+      selectors.itemOrderedChildrenIds(this.state, itemId),
+    getItemDOMElement: (itemId: CollectionItemId) => this.getItemDOMElement(itemId),
+    getParentId: (itemId: CollectionItemId) => selectors.itemParentId(this.state, itemId),
+    refreshItemChildren: (itemId: CollectionItemId | null) => {
       if (!this.lazyLoading) {
         throw new Error(
           'Base UI Tree: refreshItemChildren requires a lazyLoading plugin. ' +

@@ -6,6 +6,7 @@ import {
   createChangeEventDetails,
   createGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
+import { REASONS } from '../../utils/reasons';
 
 export class TreeExpansionPlugin {
   private store: TreeStore;
@@ -14,52 +15,14 @@ export class TreeExpansionPlugin {
     this.store = store;
   }
 
-  // ---------------------------------------------------------------------------
-  // Private helpers
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Collects visible descendants of an item given a specific set of expanded items.
-   * Used to determine which items will appear/disappear during expand/collapse.
-   */
-  private getVisibleDescendants(
-    itemId: CollectionItemId,
-    expandedItems: readonly CollectionItemId[],
-  ): CollectionItemId[] {
-    const expandedSet = new Set(expandedItems);
-    const childrenLookup = selectors.itemOrderedChildrenIds;
-    const result: CollectionItemId[] = [];
-
-    const walk = (parentId: CollectionItemId) => {
-      const children = childrenLookup(this.store.state, parentId) ?? [];
-      for (const childId of children) {
-        result.push(childId);
-        if (expandedSet.has(childId)) {
-          walk(childId);
-        }
-      }
-    };
-
-    walk(itemId);
-    return result;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Public — Query
-  // ---------------------------------------------------------------------------
-
-  canToggleItemExpansion = (itemId: CollectionItemId): boolean => {
+  public canToggleItemExpansion = (itemId: CollectionItemId): boolean => {
     return (
       !selectors.isItemDisabled(this.store.state, itemId) &&
       selectors.isItemExpandable(this.store.state, itemId)
     );
   };
 
-  // ---------------------------------------------------------------------------
-  // Public — Single item expansion
-  // ---------------------------------------------------------------------------
-
-  setItemExpansion = (
+  public setItemExpansion = (
     itemId: CollectionItemId,
     shouldBeExpanded: boolean | undefined,
     reason: TreeRootExpansionChangeEventReason,
@@ -86,7 +49,7 @@ export class TreeExpansionPlugin {
     this.applyItemExpansion(itemId, cleanShouldBeExpanded, reason, event);
   };
 
-  applyItemExpansion = (
+  public applyItemExpansion = (
     itemId: CollectionItemId,
     shouldBeExpanded: boolean,
     reason: TreeRootExpansionChangeEventReason,
@@ -132,24 +95,16 @@ export class TreeExpansionPlugin {
     );
   };
 
-  // ---------------------------------------------------------------------------
-  // Public — Group transition animation
-  // ---------------------------------------------------------------------------
-
   /**
    * Called when a group transition animation completes.
    * Removes the animating group entry, causing the wrapper to be removed from the DOM.
    */
-  completeGroupTransition = (parentId: CollectionItemId) => {
+  public completeGroupTransition = (parentId: CollectionItemId) => {
     const { [parentId]: removedGroup, ...rest } = this.store.state.animatingGroups;
     this.store.set('animatingGroups', rest);
   };
 
-  // ---------------------------------------------------------------------------
-  // Public — Bulk expansion
-  // ---------------------------------------------------------------------------
-
-  expandAllSiblings = (
+  public expandAllSiblings = (
     itemId: CollectionItemId,
     reason: TreeRootExpansionChangeEventReason,
     event?: Event,
@@ -183,7 +138,7 @@ export class TreeExpansionPlugin {
     }
   };
 
-  expandAll = (reason: TreeRootExpansionChangeEventReason) => {
+  public expandAll = (reason: TreeRootExpansionChangeEventReason) => {
     const metaLookup = selectors.itemMetaLookup(this.store.state);
     const expandedSet = selectors.expandedItemsSet(this.store.state);
     const diff: CollectionItemId[] = [];
@@ -212,7 +167,7 @@ export class TreeExpansionPlugin {
     }
   };
 
-  collapseAll = (reason: TreeRootExpansionChangeEventReason) => {
+  public collapseAll = (reason: TreeRootExpansionChangeEventReason) => {
     const oldExpanded = this.store.state.expandedItems;
     if (oldExpanded.length === 0) {
       return;
@@ -231,4 +186,41 @@ export class TreeExpansionPlugin {
       );
     }
   };
+
+  public actions = {
+    expandAll: () => this.expandAll(REASONS.imperativeAction),
+    collapseAll: () => this.collapseAll(REASONS.imperativeAction),
+    setItemExpansion: (itemId: CollectionItemId, isExpanded: boolean) =>
+      this.setItemExpansion(itemId, isExpanded, REASONS.imperativeAction),
+    isItemExpanded: (itemId: CollectionItemId) =>
+      selectors.isItemExpanded(this.store.state, itemId),
+    isItemExpandable: (itemId: CollectionItemId) =>
+      selectors.isItemExpandable(this.store.state, itemId),
+  };
+
+  /**
+   * Collects visible descendants of an item given a specific set of expanded items.
+   * Used to determine which items will appear/disappear during expand/collapse.
+   */
+  private getVisibleDescendants(
+    itemId: CollectionItemId,
+    expandedItems: readonly CollectionItemId[],
+  ): CollectionItemId[] {
+    const expandedSet = new Set(expandedItems);
+    const childrenLookup = selectors.itemOrderedChildrenIds;
+    const result: CollectionItemId[] = [];
+
+    const walk = (parentId: CollectionItemId) => {
+      const children = childrenLookup(this.store.state, parentId) ?? [];
+      for (const childId of children) {
+        result.push(childId);
+        if (expandedSet.has(childId)) {
+          walk(childId);
+        }
+      }
+    };
+
+    walk(itemId);
+    return result;
+  }
 }

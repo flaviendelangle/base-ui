@@ -221,10 +221,8 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
         role: 'tree',
         'aria-multiselectable': selectionMode === 'multiple' || undefined,
         children: renderChildren,
-        onFocus: store.rootEventHandlers.onFocus,
-        onBlur: store.rootEventHandlers.onBlur,
-        onKeyDown: store.rootEventHandlers.onKeyDown,
       },
+      store.interaction.rootEventHandlers,
       elementProps,
     ],
   });

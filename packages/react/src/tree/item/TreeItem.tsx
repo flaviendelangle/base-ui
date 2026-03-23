@@ -130,7 +130,7 @@ export const TreeItem = fastComponentRef(function TreeItem(
         tabIndex: isDefaultFocusable ? 0 : -1,
         style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties,
       },
-      store.itemEventHandlers,
+      store.interaction.itemEventHandlers,
       elementProps,
     ],
     stateAttributesMapping,

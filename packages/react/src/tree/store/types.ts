@@ -2,9 +2,10 @@ import type {
   BaseUIChangeEventDetails,
   BaseUIGenericEventDetails,
 } from '../../utils/createBaseUIEventDetails';
-import type { CollectionItemId, CollectionActions } from '../../types/collection';
+import type { CollectionItemId } from '../../types/collection';
 import type { DragAndDropState } from '../../use-drag-and-drop';
 import { REASONS } from '../../utils/reasons';
+import { TreeStore } from './TreeStore';
 
 export type TreeItemId = CollectionItemId;
 
@@ -71,17 +72,10 @@ export interface TreeCheckboxSelectionPropagation {
 }
 
 /**
- * Lazy-loaded tree structure and loading state.
+ * Lazy loading status (loading indicators and errors).
+ * Children and expandable state are stored directly in the generic lookups.
  */
-export interface TreeLazyItemsState<TItem = TreeDefaultItemModel> {
-  /**
-   * Lazily-fetched children arrays, keyed by parent item ID.
-   */
-  children: Record<CollectionItemId, TItem[]>;
-  /**
-   * Whether each item should be treated as expandable (has children to load).
-   */
-  expandable: Record<CollectionItemId, boolean>;
+export interface TreeLazyItemsState {
   /**
    * Whether each item's children are currently being fetched.
    */
@@ -273,10 +267,10 @@ export interface TreeState<TItem = any> {
    */
   itemFocusableWhenDisabled: boolean;
   /**
-   * Lazy-loaded tree structure and loading state.
+   * Lazy loading status (loading indicators and errors).
    * `undefined` when lazy loading is not enabled.
    */
-  lazyItems: TreeLazyItemsState<TItem> | undefined;
+  lazyItems: TreeLazyItemsState | undefined;
   /**
    * Extracts the ID from an item model
    */
@@ -366,89 +360,7 @@ export interface TreeStoreContext<TItem> {
 /**
  * Actions that can be performed imperatively on a tree via actionsRef.
  */
-export interface TreeRootActions<TItem = TreeDefaultItemModel> extends CollectionActions<TItem> {
-  /**
-   * Returns whether an item is a descendant of another item.
-   * Traverses up the parent chain from `itemId` looking for `ancestorId`.
-   */
-  isDescendantOf(itemId: CollectionItemId, ancestorId: CollectionItemId): boolean;
-  /**
-   * Returns the parent ID of the given item, or `null` if it is a root item.
-   */
-  getParentId(itemId: CollectionItemId): CollectionItemId | null;
-  focusItem: (itemId: CollectionItemId) => void;
-  getItemDOMElement: (itemId: CollectionItemId) => HTMLElement | null;
-  getItemOrderedChildrenIds: (itemId: CollectionItemId | null) => CollectionItemId[];
-  isItemExpanded: (itemId: CollectionItemId) => boolean;
-  isItemSelected: (itemId: CollectionItemId) => boolean;
-  setItemSelection: (itemId: CollectionItemId, isSelected: boolean) => void;
-  /**
-   * Sets the disabled state of an item.
-   * When using controlled items with a custom item model,
-   * provide the `setIsItemDisabled` prop so the tree can produce updated items.
-   */
-  setIsItemDisabled: (itemId: CollectionItemId, isDisabled: boolean) => void;
-  refreshItemChildren: (itemId: CollectionItemId | null) => Promise<void>;
-  /**
-   * Returns whether an item can be expanded (i.e., has or can have children).
-   */
-  isItemExpandable(itemId: CollectionItemId): boolean;
-  /**
-   * Sets the expansion state of an item.
-   */
-  setItemExpansion(itemId: CollectionItemId, isExpanded: boolean): void;
-  expandAll: () => void;
-  collapseAll: () => void;
-  /**
-   * Move one or more items to a new position.
-   * Prunes descendants automatically and preserves relative order.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  moveItems: (
-    itemIds: Set<CollectionItemId>,
-    newParentId: CollectionItemId | null,
-    newIndex: number,
-  ) => void;
-  /**
-   * Move one or more items directly before another item.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  moveItemsBefore: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
-  /**
-   * Move one or more items directly after another item.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  moveItemsAfter: (itemIds: Set<CollectionItemId>, referenceItemId: CollectionItemId) => void;
-  /**
-   * Remove items by ID. Descendants are removed along with their parent.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  removeItems: (itemIds: Set<CollectionItemId>) => void;
-  /**
-   * Add item models at a specific position.
-   * If `parentId` is `null`, adds at root level.
-   * Descendants included in the item models are added along with their parent.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  addItems: (items: readonly TItem[], parentId: CollectionItemId | null, index: number) => void;
-  /**
-   * Add item models directly before a reference item.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  addItemsBefore: (items: readonly TItem[], referenceItemId: CollectionItemId) => void;
-  /**
-   * Add item models directly after a reference item.
-   * When using controlled items with a custom item model,
-   * provide the `setItemChildren` prop so the tree can produce updated items.
-   */
-  addItemsAfter: (items: readonly TItem[], referenceItemId: CollectionItemId) => void;
-}
+export type TreeRootActions<TItem = TreeDefaultItemModel> = TreeStore<any, TItem>['actions'];
 
 /**
  * An entry in the flat list that can be either a regular item or a group transition wrapper.

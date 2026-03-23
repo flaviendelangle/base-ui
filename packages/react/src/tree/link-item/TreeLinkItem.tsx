@@ -98,7 +98,7 @@ export const TreeLinkItem = fastComponentRef(function TreeLinkItem(
         tabIndex: isDefaultFocusable ? 0 : -1,
       },
       LINK_HOOK,
-      store.linkItemEventHandlers,
+      store.interaction.linkItemEventHandlers,
       { style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties },
       elementProps,
     ],

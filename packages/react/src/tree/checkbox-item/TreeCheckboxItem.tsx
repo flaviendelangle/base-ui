@@ -163,7 +163,7 @@ export const TreeCheckboxItem = fastComponentRef(function TreeCheckboxItem(
         tabIndex: isDefaultFocusable ? 0 : -1,
         style: { [TreeItemCssVars.depth]: depth } as React.CSSProperties,
       },
-      store.checkboxItemEventHandlers,
+      store.interaction.checkboxItemEventHandlers,
       elementProps,
     ],
     stateAttributesMapping,

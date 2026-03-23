@@ -13,6 +13,7 @@ import {
   getLastNavigableItem,
   getNonDisabledItemsInRange,
 } from '../store/treeNavigation';
+import { REASONS } from '../../utils/reasons';
 
 export class TreeSelectionPlugin {
   private store: TreeStore;
@@ -25,9 +26,177 @@ export class TreeSelectionPlugin {
     this.store = store;
   }
 
-  // ---------------------------------------------------------------------------
-  // Private — Core state setter
-  // ---------------------------------------------------------------------------
+  public setItemSelection = ({
+    itemId,
+    keepExistingSelection = false,
+    shouldBeSelected,
+    shouldPropagate,
+    reason,
+    event,
+  }: {
+    itemId: CollectionItemId;
+    keepExistingSelection?: boolean | undefined;
+    shouldBeSelected?: boolean | undefined;
+    /**
+     * Whether to propagate the selection change through the tree hierarchy.
+     * Defaults to the value of `keepExistingSelection` (toggle semantics propagate, replace semantics don't).
+     */
+    shouldPropagate?: boolean | undefined;
+    reason: TreeRootSelectionChangeEventReason;
+    event?: Event | undefined;
+  }) => {
+    if (this.store.state.selectionMode === 'none') {
+      return;
+    }
+
+    const isMulti = this.store.state.selectionMode === 'multiple';
+    let newSelected: CollectionItemId[] | CollectionItemId | null;
+
+    if (keepExistingSelection) {
+      const oldSelected = this.materializeSelectedItems();
+      const isSelectedBefore = selectors.isItemSelected(this.store.state, itemId);
+
+      if (isSelectedBefore && (shouldBeSelected === false || shouldBeSelected == null)) {
+        newSelected = oldSelected.filter((id) => id !== itemId);
+      } else if (!isSelectedBefore && (shouldBeSelected === true || shouldBeSelected == null)) {
+        newSelected = [itemId, ...oldSelected];
+      } else {
+        newSelected = oldSelected;
+      }
+    } else if (
+      shouldBeSelected === false ||
+      (shouldBeSelected == null && selectors.isItemSelected(this.store.state, itemId))
+    ) {
+      newSelected = isMulti ? [] : null;
+    } else {
+      newSelected = isMulti ? [itemId] : itemId;
+    }
+
+    // Prevent empty selection when disallowEmptySelection is true
+    if (this.store.state.disallowEmptySelection) {
+      const normalizedNew = normalizeSelectedItems(newSelected);
+      if (normalizedNew.length === 0) {
+        return;
+      }
+    }
+
+    this.setSelectedItems(newSelected, reason, event, [itemId], shouldPropagate ?? false);
+    this.lastSelectedItem = itemId;
+    this.lastSelectedRange = new Set();
+  };
+
+  /**
+   * Returns the selected items as a plain array.
+   * Handles the "all" sentinel by expanding it into all selectable item IDs,
+   * and normalizes single-item / null values into an array.
+   */
+  public materializeSelectedItems = (): CollectionItemId[] => {
+    if (this.store.state.selectedItems !== TREE_SELECTION_ALL) {
+      return normalizeSelectedItems(this.store.state.selectedItems);
+    }
+    const result: CollectionItemId[] = [];
+    const traverse = (parentId: CollectionItemId | null) => {
+      const children = selectors.itemOrderedChildrenIds(this.store.state, parentId);
+      for (const childId of children) {
+        if (selectors.canItemBeSelected(this.store.state, childId)) {
+          result.push(childId);
+        }
+        traverse(childId);
+      }
+    };
+    traverse(null);
+    return result;
+  };
+
+  public selectAllNavigableItems = (reason: TreeRootSelectionChangeEventReason, event?: Event) => {
+    if (this.store.state.selectionMode !== 'multiple') {
+      return;
+    }
+
+    this.setSelectedItems(TREE_SELECTION_ALL, reason, event);
+    this.lastSelectedRange = new Set();
+  };
+
+  public expandSelectionRange = (
+    itemId: CollectionItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event?: Event,
+  ) => {
+    if (this.lastSelectedItem != null) {
+      const [start, end] = findOrderInTremauxTree(this.store.state, itemId, this.lastSelectedItem);
+      this.selectRange([start, end], reason, event);
+    }
+  };
+
+  public selectRangeFromStartToItem = (
+    itemId: CollectionItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event?: Event,
+  ) => {
+    const firstItem = getFirstNavigableItem(this.store.state);
+    if (firstItem != null) {
+      this.selectRange([firstItem, itemId], reason, event);
+    }
+  };
+
+  public selectRangeFromItemToEnd = (
+    itemId: CollectionItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event?: Event,
+  ) => {
+    const lastItem = getLastNavigableItem(this.store.state);
+    if (lastItem != null) {
+      this.selectRange([itemId, lastItem], reason, event);
+    }
+  };
+
+  public selectItemFromArrowNavigation = (
+    currentItem: CollectionItemId,
+    nextItem: CollectionItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event?: Event,
+  ) => {
+    if (this.store.state.selectionMode !== 'multiple') {
+      return;
+    }
+
+    const currentSelectedItems =
+      this.store.state.selectedItems === TREE_SELECTION_ALL
+        ? this.materializeSelectedItems()
+        : normalizeSelectedItems(this.store.state.selectedItems);
+    let newSelectedItems = currentSelectedItems.slice();
+
+    if (this.lastSelectedRange.size === 0) {
+      newSelectedItems.push(nextItem);
+      this.lastSelectedRange = new Set([currentItem, nextItem]);
+    } else {
+      if (!this.lastSelectedRange.has(currentItem)) {
+        this.lastSelectedRange = new Set();
+      }
+
+      if (this.lastSelectedRange.has(nextItem)) {
+        newSelectedItems = newSelectedItems.filter((id) => id !== currentItem);
+        this.lastSelectedRange.delete(currentItem);
+      } else {
+        newSelectedItems.push(nextItem);
+        this.lastSelectedRange.add(nextItem);
+      }
+    }
+
+    this.setSelectedItems(newSelectedItems, reason, event);
+  };
+
+  public actions = {
+    isItemSelected: (itemId: CollectionItemId) =>
+      selectors.isItemSelected(this.store.state, itemId),
+    setItemSelection: (itemId: CollectionItemId, isSelected: boolean) =>
+      this.setItemSelection({
+        itemId,
+        shouldBeSelected: isSelected,
+        shouldPropagate: true,
+        reason: REASONS.imperativeAction,
+      }),
+  };
 
   private setSelectedItems(
     newModel: CollectionItemId[] | CollectionItemId | null | typeof TREE_SELECTION_ALL,
@@ -87,10 +256,6 @@ export class TreeSelectionPlugin {
       }
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Private — Checkbox selection propagation
-  // ---------------------------------------------------------------------------
 
   private propagateSelection(
     newModel: CollectionItemId[],
@@ -210,182 +375,6 @@ export class TreeSelectionPlugin {
 
     return flags.shouldRegenerateModel ? Array.from(newModelSet) : newModel;
   }
-
-  // ---------------------------------------------------------------------------
-  // Public — Single item selection
-  // ---------------------------------------------------------------------------
-
-  setItemSelection = ({
-    itemId,
-    keepExistingSelection = false,
-    shouldBeSelected,
-    shouldPropagate,
-    reason,
-    event,
-  }: {
-    itemId: CollectionItemId;
-    keepExistingSelection?: boolean | undefined;
-    shouldBeSelected?: boolean | undefined;
-    /**
-     * Whether to propagate the selection change through the tree hierarchy.
-     * Defaults to the value of `keepExistingSelection` (toggle semantics propagate, replace semantics don't).
-     */
-    shouldPropagate?: boolean | undefined;
-    reason: TreeRootSelectionChangeEventReason;
-    event?: Event | undefined;
-  }) => {
-    if (this.store.state.selectionMode === 'none') {
-      return;
-    }
-
-    const isMulti = this.store.state.selectionMode === 'multiple';
-    let newSelected: CollectionItemId[] | CollectionItemId | null;
-
-    if (keepExistingSelection) {
-      const oldSelected = this.materializeSelectedItems();
-      const isSelectedBefore = selectors.isItemSelected(this.store.state, itemId);
-
-      if (isSelectedBefore && (shouldBeSelected === false || shouldBeSelected == null)) {
-        newSelected = oldSelected.filter((id) => id !== itemId);
-      } else if (!isSelectedBefore && (shouldBeSelected === true || shouldBeSelected == null)) {
-        newSelected = [itemId, ...oldSelected];
-      } else {
-        newSelected = oldSelected;
-      }
-    } else if (
-      shouldBeSelected === false ||
-      (shouldBeSelected == null && selectors.isItemSelected(this.store.state, itemId))
-    ) {
-      newSelected = isMulti ? [] : null;
-    } else {
-      newSelected = isMulti ? [itemId] : itemId;
-    }
-
-    // Prevent empty selection when disallowEmptySelection is true
-    if (this.store.state.disallowEmptySelection) {
-      const normalizedNew = normalizeSelectedItems(newSelected);
-      if (normalizedNew.length === 0) {
-        return;
-      }
-    }
-
-    this.setSelectedItems(newSelected, reason, event, [itemId], shouldPropagate ?? false);
-    this.lastSelectedItem = itemId;
-    this.lastSelectedRange = new Set();
-  };
-
-  // ---------------------------------------------------------------------------
-  // Public — Materialize
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Returns the selected items as a plain array.
-   * Handles the "all" sentinel by expanding it into all selectable item IDs,
-   * and normalizes single-item / null values into an array.
-   */
-  materializeSelectedItems = (): CollectionItemId[] => {
-    if (this.store.state.selectedItems !== TREE_SELECTION_ALL) {
-      return normalizeSelectedItems(this.store.state.selectedItems);
-    }
-    const result: CollectionItemId[] = [];
-    const traverse = (parentId: CollectionItemId | null) => {
-      const children = selectors.itemOrderedChildrenIds(this.store.state, parentId);
-      for (const childId of children) {
-        if (selectors.canItemBeSelected(this.store.state, childId)) {
-          result.push(childId);
-        }
-        traverse(childId);
-      }
-    };
-    traverse(null);
-    return result;
-  };
-
-  // ---------------------------------------------------------------------------
-  // Public — Bulk / range selection
-  // ---------------------------------------------------------------------------
-
-  selectAllNavigableItems = (reason: TreeRootSelectionChangeEventReason, event?: Event) => {
-    if (this.store.state.selectionMode !== 'multiple') {
-      return;
-    }
-
-    this.setSelectedItems(TREE_SELECTION_ALL, reason, event);
-    this.lastSelectedRange = new Set();
-  };
-
-  expandSelectionRange = (
-    itemId: CollectionItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) => {
-    if (this.lastSelectedItem != null) {
-      const [start, end] = findOrderInTremauxTree(this.store.state, itemId, this.lastSelectedItem);
-      this.selectRange([start, end], reason, event);
-    }
-  };
-
-  selectRangeFromStartToItem = (
-    itemId: CollectionItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) => {
-    const firstItem = getFirstNavigableItem(this.store.state);
-    if (firstItem != null) {
-      this.selectRange([firstItem, itemId], reason, event);
-    }
-  };
-
-  selectRangeFromItemToEnd = (
-    itemId: CollectionItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) => {
-    const lastItem = getLastNavigableItem(this.store.state);
-    if (lastItem != null) {
-      this.selectRange([itemId, lastItem], reason, event);
-    }
-  };
-
-  selectItemFromArrowNavigation = (
-    currentItem: CollectionItemId,
-    nextItem: CollectionItemId,
-    reason: TreeRootSelectionChangeEventReason,
-    event?: Event,
-  ) => {
-    if (this.store.state.selectionMode !== 'multiple') {
-      return;
-    }
-
-    const currentSelectedItems =
-      this.store.state.selectedItems === TREE_SELECTION_ALL
-        ? this.materializeSelectedItems()
-        : normalizeSelectedItems(this.store.state.selectedItems);
-    let newSelectedItems = currentSelectedItems.slice();
-
-    if (this.lastSelectedRange.size === 0) {
-      newSelectedItems.push(nextItem);
-      this.lastSelectedRange = new Set([currentItem, nextItem]);
-    } else {
-      if (!this.lastSelectedRange.has(currentItem)) {
-        this.lastSelectedRange = new Set();
-      }
-
-      if (this.lastSelectedRange.has(nextItem)) {
-        newSelectedItems = newSelectedItems.filter((id) => id !== currentItem);
-        this.lastSelectedRange.delete(currentItem);
-      } else {
-        newSelectedItems.push(nextItem);
-        this.lastSelectedRange.add(nextItem);
-      }
-    }
-
-    this.setSelectedItems(newSelectedItems, reason, event);
-  };
-
-  // ---------------------------------------------------------------------------
-  // Private — Range selection implementation
-  // ---------------------------------------------------------------------------
 
   private selectRange(
     [start, end]: [CollectionItemId, CollectionItemId],

@@ -52,7 +52,7 @@ export const TreeItemExpansionTrigger = fastComponentRef(function TreeItemExpans
         'aria-hidden': true,
         tabIndex: -1,
         onClick: (event: React.MouseEvent) => {
-          store.expansionTriggerEventHandlers.onClick(event, itemId);
+          store.interaction.expansionTriggerEventHandlers.onClick(event, itemId);
         },
       }),
       elementProps,

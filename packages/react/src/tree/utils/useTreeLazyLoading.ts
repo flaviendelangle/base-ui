@@ -51,8 +51,8 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     this.store = store;
     this.cache = this.config.cache;
 
-    // Initialize lazy loading state
-    store.set('lazyItems', { children: {}, expandable: {}, loading: {}, errors: {} });
+    // Initialize lazy loading state (only loading/errors — children go into the generic lookups)
+    store.set('lazyItems', { loading: {}, errors: {} });
 
     // Scan existing items and mark expandable ones based on getChildrenCount
     this.updateExpandableOverrides();
@@ -88,7 +88,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
     }
 
     if (Object.keys(overrides).length > 0) {
-      this.store.setItemExpandableOverrides(overrides);
+      this.store.itemMutation.setItemsExpandable(overrides);
     }
   }
 
@@ -189,6 +189,10 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
   public refreshItemChildren = (itemId: CollectionItemId | null): Promise<void> =>
     this.fetchItemChildren({ itemId, forceRefresh: true });
 
+  private getIsItemExpandable = (item: TItem): boolean => {
+    return this.config.getChildrenCount(item) !== 0;
+  };
+
   public fetchItemChildren = async ({
     itemId,
     forceRefresh,
@@ -221,8 +225,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
         if (itemId != null) {
           this.nestedDataManager.setRequestSettled(itemId);
         }
-        this.store.setItemChildrenOverride(cacheKey, cachedData);
-        this.updateExpandableOverridesForItems(cachedData);
+        this.store.itemMutation.setChildren(itemId, cachedData, this.getIsItemExpandable);
         this.setItemLoading(itemId, false);
         return;
       }
@@ -231,7 +234,7 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
       this.setItemLoading(itemId, true);
 
       if (cachedData === -1) {
-        this.store.removeChildrenOverride(cacheKey);
+        this.store.itemMutation.removeChildren(itemId);
       }
     } else {
       this.setItemLoading(itemId, true);
@@ -257,12 +260,11 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
       }
 
       // Update the items in the state
-      this.store.setItemChildrenOverride(cacheKey, response);
-      this.updateExpandableOverridesForItems(response);
+      this.store.itemMutation.setChildren(itemId, response, this.getIsItemExpandable);
     } catch (error) {
       this.setItemError(itemId, error as Error);
       if (forceRefresh) {
-        this.store.removeChildrenOverride(cacheKey);
+        this.store.itemMutation.removeChildren(itemId);
       }
     } finally {
       this.setItemLoading(itemId, false);
@@ -271,26 +273,6 @@ class LazyLoadingPlugin<TItem = TreeDefaultItemModel> implements TreeLazyLoading
       }
     }
   };
-
-  private updateExpandableOverridesForItems(items: TItem[]): void {
-    if (!this.store) {
-      return;
-    }
-
-    const { getChildrenCount } = this.config;
-    const itemToId = this.store.state.itemToId;
-    const overrides: Record<CollectionItemId, boolean> = {};
-
-    for (const item of items) {
-      const id = itemToId(item);
-      const count = getChildrenCount(item);
-      overrides[id] = count !== 0;
-    }
-
-    if (Object.keys(overrides).length > 0) {
-      this.store.setItemExpandableOverrides(overrides);
-    }
-  }
 
   destroy(): void {
     this.nestedDataManager.clear();

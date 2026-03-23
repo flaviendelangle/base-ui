@@ -1,18 +1,12 @@
 import { createSelector, createSelectorMemoized } from '@base-ui/utils/store';
 import { EMPTY_ARRAY } from '@base-ui/utils/empty';
 import type { CollectionItemId } from '../../types/collection';
-import type {
-  TreeState,
-  TreeItemMeta,
-  TreeDefaultItemModel,
-  TreeItemsState,
-  FlatListEntry,
-} from './types';
+import type { TreeState, FlatListEntry } from './types';
 import { TREE_VIEW_ROOT_PARENT_ID, TREE_SELECTION_ALL } from './types';
 
 /**
  * Intermediate selector: bundles all accessor functions into a single memoized object.
- * This avoids exceeding the max arity of createSelectorMemoized (5 inputs + combiner).
+ * Used by the TreeStore observer to detect accessor changes and trigger a rebuild.
  */
 const itemAccessorsSelector = createSelectorMemoized(
   (state: TreeState) => state.itemToId,
@@ -26,153 +20,27 @@ const itemAccessorsSelector = createSelectorMemoized(
     itemToChildren,
     isItemDisabled,
     isItemSelectionDisabled,
-    // Note: setItemChildren is intentionally not included here because
-    // this selector is used only for reading item properties (building lookups).
-    // Mutations access setItemChildren directly from store state.
   }),
 );
 
 /**
- * Reads the raw lookup tables directly from the store state.
- * The lookups are initialized by buildItemsState() and updated incrementally by mutations.
- * Only creates a new object when any lookup reference changes.
+ * All lookup selectors read directly from state.
+ * Lookups are initialized by buildItemsState() and updated incrementally by mutations
+ * (including lazy loading, which updates them via TreeItemMutationPlugin).
  */
-const rawItemsStateSelector = createSelectorMemoized(
-  (state: TreeState) => state.itemModelLookup,
-  (state: TreeState) => state.itemMetaLookup,
-  (state: TreeState) => state.itemOrderedChildrenIdsLookup,
-  (state: TreeState) => state.itemChildrenIndexesLookup,
-  (state: TreeState) => state.itemIdLookup,
-  (
-    itemModelLookup,
-    itemMetaLookup,
-    itemOrderedChildrenIdsLookup,
-    itemChildrenIndexesLookup,
-    itemIdLookup,
-  ): TreeItemsState => ({
-    itemModelLookup,
-    itemMetaLookup,
-    itemOrderedChildrenIdsLookup,
-    itemChildrenIndexesLookup,
-    itemIdLookup,
-  }),
-);
+const itemMetaLookupSelector = createSelector((state: TreeState) => state.itemMetaLookup);
 
-/**
- * Merges all overrides (lazy items + meta patches) into the raw items state in a single pass.
- * When no overrides exist, returns the raw state as-is (zero overhead).
- */
-const resolvedItemsStateSelector = createSelectorMemoized(
-  rawItemsStateSelector,
-  (state: TreeState) => state.lazyItems,
-  itemAccessorsSelector,
-  (raw, lazyItems, acc): TreeItemsState => {
-    const hasLazyChildren = lazyItems != null && Object.keys(lazyItems.children).length > 0;
-    const hasLazyExpandable = lazyItems != null && Object.keys(lazyItems.expandable).length > 0;
-
-    if (!hasLazyChildren && !hasLazyExpandable) {
-      return raw;
-    }
-
-    // Only copy lookup tables that will actually be modified
-    const metaLookup = { ...raw.itemMetaLookup };
-    const modelLookup = hasLazyChildren ? { ...raw.itemModelLookup } : raw.itemModelLookup;
-    const childrenIdsLookup = hasLazyChildren
-      ? { ...raw.itemOrderedChildrenIdsLookup }
-      : raw.itemOrderedChildrenIdsLookup;
-    const childrenIndexesLookup = hasLazyChildren
-      ? { ...raw.itemChildrenIndexesLookup }
-      : raw.itemChildrenIndexesLookup;
-    const idLookup = hasLazyChildren ? { ...raw.itemIdLookup } : raw.itemIdLookup;
-
-    // Phase 1: Apply lazy-loaded children (tree structure mutations)
-    if (hasLazyChildren) {
-      const processChildren = (
-        children: readonly TreeDefaultItemModel[],
-        parentId: CollectionItemId,
-        parentDepth: number,
-      ) => {
-        const ids: CollectionItemId[] = [];
-        const indexes: Record<CollectionItemId, number> = {};
-
-        for (let i = 0; i < children.length; i += 1) {
-          const child = children[i];
-          const childId = acc.itemToId(child);
-          const depth = parentDepth + 1;
-
-          // Check for grandchildren before creating meta to set expandable correctly
-          const grandchildren = acc.itemToChildren(child);
-          const hasGrandchildren = grandchildren != null && grandchildren.length > 0;
-
-          idLookup[childId] = childId;
-          ids.push(childId);
-          indexes[childId] = i;
-
-          modelLookup[childId] = child;
-          metaLookup[childId] = {
-            id: childId,
-            parentId: parentId === TREE_VIEW_ROOT_PARENT_ID ? null : parentId,
-            depth,
-            expandable: hasGrandchildren || (lazyItems!.expandable[childId] ?? false),
-            disabled: acc.isItemDisabled(child),
-            selectable: !acc.isItemSelectionDisabled(child),
-            label: acc.itemToStringLabel(child),
-          };
-
-          if (hasGrandchildren) {
-            processChildren(grandchildren, childId, depth);
-          }
-        }
-
-        childrenIdsLookup[parentId] = ids;
-        childrenIndexesLookup[parentId] = indexes;
-      };
-
-      for (const [parentId, children] of Object.entries(lazyItems!.children)) {
-        const parentMeta = metaLookup[parentId];
-        const parentDepth = parentMeta ? parentMeta.depth : -1;
-        processChildren(children, parentId, parentDepth);
-      }
-    }
-
-    // Phase 2: Apply expandable overrides (for items not yet in lazyItems.children)
-    if (hasLazyExpandable) {
-      for (const [id, expandable] of Object.entries(lazyItems!.expandable)) {
-        if (metaLookup[id] && metaLookup[id].expandable !== expandable) {
-          metaLookup[id] = { ...metaLookup[id], expandable };
-        }
-      }
-    }
-
-    return {
-      itemMetaLookup: metaLookup,
-      itemModelLookup: modelLookup,
-      itemOrderedChildrenIdsLookup: childrenIdsLookup,
-      itemChildrenIndexesLookup: childrenIndexesLookup,
-      itemIdLookup: idLookup,
-    };
-  },
-);
-
-const itemMetaLookupSelector = createSelector(
-  (state: TreeState) => resolvedItemsStateSelector(state).itemMetaLookup,
-);
-
-const itemModelLookupSelector = createSelector(
-  (state: TreeState) => resolvedItemsStateSelector(state).itemModelLookup,
-);
+const itemModelLookupSelector = createSelector((state: TreeState) => state.itemModelLookup);
 
 const itemOrderedChildrenIdsLookupSelector = createSelector(
-  (state: TreeState) => resolvedItemsStateSelector(state).itemOrderedChildrenIdsLookup,
+  (state: TreeState) => state.itemOrderedChildrenIdsLookup,
 );
 
 const itemChildrenIndexesLookupSelector = createSelector(
-  (state: TreeState) => resolvedItemsStateSelector(state).itemChildrenIndexesLookup,
+  (state: TreeState) => state.itemChildrenIndexesLookup,
 );
 
-const itemIdLookupSelector = createSelector(
-  (state: TreeState) => resolvedItemsStateSelector(state).itemIdLookup,
-);
+const itemIdLookupSelector = createSelector((state: TreeState) => state.itemIdLookup);
 
 const itemOrderedChildrenIdsSelector = createSelector(
   (state: TreeState, itemId: CollectionItemId | null): CollectionItemId[] =>
