@@ -228,6 +228,7 @@ export default function ExampleFileExplorer() {
                     style={isCut ? { opacity: 0.4 } : undefined}
                     onContextMenu={() => setContextMenuItemId(fileItem.id)}
                   >
+                    <Tree.ItemIndentGuide className={styles.IndentGuide} />
                     <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
                       <ChevronIcon />
                     </Tree.ItemExpansionTrigger>

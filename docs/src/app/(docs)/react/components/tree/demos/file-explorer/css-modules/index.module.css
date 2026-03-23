@@ -67,6 +67,23 @@
   }
 }
 
+.IndentGuide {
+  display: contents;
+
+  & > span {
+    position: absolute;
+    inset-inline-start: calc(var(--depth) * 1rem);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--color-gray-200);
+  }
+
+  & > span[data-last] {
+    bottom: 50%;
+  }
+}
+
 .ExpansionTrigger {
   display: inline-flex;
   align-items: center;

@@ -416,6 +416,45 @@ const labelMapSelector = createSelectorMemoized(
   },
 );
 
+/**
+ * Pre-computes ancestor last-child flags for every item in a single pass.
+ * Memoized so it only recomputes when item metadata or children ordering changes.
+ */
+const ancestorLastChildFlagsLookupSelector = createSelectorMemoized(
+  itemMetaLookupSelector,
+  itemOrderedChildrenIdsLookupSelector,
+  (metaLookup, childrenIdsLookup): Record<CollectionItemId, boolean[]> => {
+    const result: Record<CollectionItemId, boolean[]> = {};
+
+    for (const itemId of Object.keys(metaLookup) as CollectionItemId[]) {
+      const meta = metaLookup[itemId];
+      if (!meta || meta.level <= 1) {
+        result[itemId] = EMPTY_ARRAY as boolean[];
+        continue;
+      }
+
+      const flags: boolean[] = [];
+      let currentId: CollectionItemId | null = meta.parentId;
+      while (currentId != null) {
+        const currentMeta = metaLookup[currentId];
+        if (!currentMeta) {
+          break;
+        }
+        const parentKey = currentMeta.parentId ?? TREE_VIEW_ROOT_PARENT_ID;
+        const siblings = childrenIdsLookup[parentKey];
+        const isLast = siblings != null && siblings[siblings.length - 1] === currentId;
+        flags.push(isLast);
+        currentId = currentMeta.parentId;
+      }
+
+      flags.reverse();
+      result[itemId] = flags;
+    }
+
+    return result;
+  },
+);
+
 export const selectors = {
   itemAccessors: itemAccessorsSelector,
   virtualized: createSelector((state: TreeState): boolean => state.virtualized),
@@ -549,4 +588,13 @@ export const selectors = {
     }
     return isItemEditable(model);
   }),
+  /**
+   * Returns a boolean array of length `level - 1` for the given item.
+   * Each entry indicates whether the ancestor at that depth is the last child of its parent.
+   * Used by `Tree.ItemIndentGuide` to implement VS Code-style guide line truncation.
+   */
+  itemAncestorLastChildFlags: createSelector(
+    (state: TreeState, itemId: CollectionItemId): boolean[] =>
+      ancestorLastChildFlagsLookupSelector(state)[itemId] ?? (EMPTY_ARRAY as boolean[]),
+  ),
 };

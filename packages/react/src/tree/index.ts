@@ -27,6 +27,7 @@ export type * from './group-transition/TreeGroupTransition';
 export type * from './empty/TreeEmpty';
 export type * from './virtualized-item-list/TreeVirtualizedItemList';
 export type * from './item-drag-indicator/TreeItemDragIndicator';
+export type * from './item-indent-guide/TreeItemIndentGuide';
 export { TREE_SELECTION_ALL } from './store/types';
 export type {
   TreeItemId,

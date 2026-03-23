@@ -16,6 +16,7 @@ export { TreeGroupTransition as GroupTransition } from './group-transition/TreeG
 export { TreeEmpty as Empty } from './empty/TreeEmpty';
 export { TreeVirtualizedItemList as VirtualizedItemList } from './virtualized-item-list/TreeVirtualizedItemList';
 export { TreeItemDragIndicator as ItemDragIndicator } from './item-drag-indicator/TreeItemDragIndicator';
+export { TreeItemIndentGuide as ItemIndentGuide } from './item-indent-guide/TreeItemIndentGuide';
 export { useLazyLoading } from './utils/useTreeLazyLoading';
 export { useTreeFilter as useFilter } from './utils/useTreeFilter';
 export { useTreeFilteredItems as useFilteredItems } from './utils/useFilteredItems';
