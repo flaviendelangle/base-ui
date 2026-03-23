@@ -5,7 +5,7 @@ import type {
 import type { CollectionItemId } from '../../types/collection';
 import type { DragAndDropState, useDragAndDrop } from '../../use-drag-and-drop';
 import { REASONS } from '../../utils/reasons';
-import { TreeStore } from './TreeStore';
+import type { TreeStore } from './TreeStore';
 
 export type TreeItemId = CollectionItemId;
 
