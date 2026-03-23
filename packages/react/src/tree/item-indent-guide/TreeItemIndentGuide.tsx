@@ -73,8 +73,10 @@ export interface TreeItemIndentGuideState {
   level: number;
 }
 
-export interface TreeItemIndentGuideProps
-  extends BaseUIComponentProps<'span', TreeItemIndentGuideState> {}
+export interface TreeItemIndentGuideProps extends BaseUIComponentProps<
+  'span',
+  TreeItemIndentGuideState
+> {}
 
 export namespace TreeItemIndentGuide {
   export type State = TreeItemIndentGuideState;
