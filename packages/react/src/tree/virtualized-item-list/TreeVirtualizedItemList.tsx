@@ -117,6 +117,14 @@ export function TreeVirtualizedItemList(componentProps: TreeVirtualizedItemList.
     });
   }, [store, itemHeight, scrollerRef]);
 
+  // Register virtualizer scroller for auto-scroll during drag
+  React.useEffect(() => {
+    if (!store.dragAndDrop || !scrollerRef.current) {
+      return undefined;
+    }
+    return store.dragAndDrop.setupScroller(scrollerRef.current);
+  }, [store, scrollerRef]);
+
   return (
     <VirtualizerContext.Provider value={virtualizer}>
       <div

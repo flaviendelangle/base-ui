@@ -24,4 +24,10 @@ if (typeof window !== 'undefined' && window?.navigator?.userAgent?.includes('jsd
     setTimeout(() => cb(0), 0);
     return 0;
   };
+
+  // Polyfill for pragmatic-drag-and-drop-auto-scroll which calls
+  // document.elementFromPoint during its rAF loop.
+  if (typeof document.elementFromPoint !== 'function') {
+    document.elementFromPoint = () => null;
+  }
 }

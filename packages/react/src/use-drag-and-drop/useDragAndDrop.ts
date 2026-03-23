@@ -8,6 +8,7 @@ import {
   monitorForElements,
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview';
+import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import { isMac, isIOS } from '@base-ui/utils/detectBrowser';
 import type { CollectionActions, CollectionItemId } from '../types/collection';
 
@@ -350,6 +351,16 @@ class DragAndDropPlugin<TItem> {
         });
       },
     });
+  }
+
+  setupScroller(element: HTMLElement): () => void {
+    const { overflowX, overflowY } = window.getComputedStyle(element);
+    const isScrollable =
+      overflowX === 'auto' || overflowX === 'scroll' || overflowY === 'auto' || overflowY === 'scroll';
+    if (!isScrollable) {
+      return () => {};
+    }
+    return autoScrollForElements({ element });
   }
 
   canDragItem(itemId: CollectionItemId): boolean {

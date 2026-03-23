@@ -156,12 +156,16 @@ export const TreeRoot = React.forwardRef(function TreeRoot<
 
   useOnMount(store.mountEffect);
 
-  // Register root element as drop target for onRootDrop
+  // Register root element as drop target for onRootDrop and as scroll container for auto-scroll
   React.useEffect(() => {
     if (!store.dragAndDrop || !rootRef.current) {
       return undefined;
     }
-    return store.dragAndDrop.setupRoot(rootRef.current);
+    const cleanups = [
+      store.dragAndDrop.setupRoot(rootRef.current),
+      store.dragAndDrop.setupScroller(rootRef.current),
+    ];
+    return () => cleanups.forEach((fn) => fn());
   }, [store]);
 
   // Sync controlled props
