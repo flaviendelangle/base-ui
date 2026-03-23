@@ -99,5 +99,6 @@
   "99": "Base UI: TreeItemContext is missing. Tree item parts must be placed within <Tree.Item>.",
   "100": "Base UI: TreeRootContext is missing. Tree parts must be placed within <Tree.Root>.",
   "101": "Base UI Tree: refreshItemChildren requires a lazyLoading plugin. Pass a lazyLoading prop to Tree.Root created via Tree.useLazyLoading().",
-  "102": "Base UI: Invalid range - unable to find a path between the two items. This may occur if the items are not in the same tree or the tree structure is invalid. Verify that both items exist in the tree."
+  "102": "Base UI: Invalid range - unable to find a path between the two items. This may occur if the items are not in the same tree or the tree structure is invalid. Verify that both items exist in the tree.",
+  "103": "Base UI: TreeItemLabelEditingContext is missing. Tree.ItemLabelEditingInput must be placed within <Tree.ItemLabelEditing>."
 }

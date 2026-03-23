@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 

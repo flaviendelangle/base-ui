@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import { isJSDOM } from '#test-utils';
 import { Tree } from '..';
 import { useDragAndDrop } from '../../use-drag-and-drop';
 import { resetDrag, lift, dragEnter, dragOver, drop } from '../../use-drag-and-drop/testing';
@@ -60,7 +61,9 @@ function DnDTree(props: {
 // Item attributes
 // ---------------------------------------------------------------------------
 
-describe('Tree drag and drop', () => {
+// The drag-event polyfill only works in JSDOM (it's a no-op when native DragEvent exists),
+// so synthetic drag events lack a dataTransfer in real browsers.
+describe.skipIf(!isJSDOM)('Tree drag and drop', () => {
   describe('item attributes', () => {
     it('items should have draggable attribute when dragAndDrop is provided', async () => {
       render(<DnDTree />);
