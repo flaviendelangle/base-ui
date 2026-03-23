@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { fireEvent } from '@mui/internal-test-utils';
 import { renderHook } from '@testing-library/react';
+import { isJSDOM } from '#test-utils';
 import { useDragAndDrop } from './useDragAndDrop';
 import type { CollectionActions } from '../types/collection';
 import type { DragAndDropState } from './useDragAndDrop';
@@ -26,7 +27,9 @@ afterEach(() => {
 // Hook return value
 // ---------------------------------------------------------------------------
 
-describe('useDragAndDrop', () => {
+// The drag-event polyfill only works in JSDOM (it's a no-op when native DragEvent exists),
+// so synthetic drag events lack a dataTransfer in real browsers.
+describe.skipIf(!isJSDOM)('useDragAndDrop', () => {
   it('returns a DragAndDrop object with attach, setupItem, canDragItem', () => {
     const { result } = renderHook(() => useDragAndDrop({ onMove: vi.fn() }));
     expect(result.current.attach).toBeTypeOf('function');
