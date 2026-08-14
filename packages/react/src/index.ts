@@ -22,6 +22,7 @@ export * from './input';
 export * from './locale-enUS';
 export * from './locale-frFR';
 export * from './localization-provider';
+export * from './listbox';
 export * from './menu';
 export * from './menubar';
 export * from './merge-props';
