@@ -1,40 +1,25 @@
-import { afterEach, beforeEach, expect, vi } from 'vitest';
 import * as React from 'react';
-import { act, flushMicrotasks, screen, waitFor } from '@mui/internal-test-utils';
+import { beforeEach, expect, vi } from 'vitest';
+import { screen, waitFor } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
 import { Listbox } from '@base-ui/react/listbox';
+import {
+  cancel,
+  dragEnter,
+  dragOver,
+  drop,
+  flushRaf,
+  lift,
+  setupDragEngineTests,
+} from '../../../test/dnd';
 
-const dndMocks = vi.hoisted(() => ({
-  draggableConfigs: new Map<HTMLElement, any>(),
-  dropTargetConfigs: new Map<HTMLElement, any>(),
-}));
+setupDragEngineTests();
 
-let originalRequestAnimationFrame: typeof globalThis.requestAnimationFrame;
-let originalCancelAnimationFrame: typeof globalThis.cancelAnimationFrame;
-
-vi.mock('@atlaskit/pragmatic-drag-and-drop/element/adapter', () => ({
-  draggable(config: any) {
-    dndMocks.draggableConfigs.set(config.element, config);
-    return () => {
-      dndMocks.draggableConfigs.delete(config.element);
-    };
-  },
-  dropTargetForElements(config: any) {
-    dndMocks.dropTargetConfigs.set(config.element, config);
-    return () => {
-      dndMocks.dropTargetConfigs.delete(config.element);
-    };
-  },
-}));
-
-vi.mock('@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge', () => ({
-  attachClosestEdge(data: any) {
-    return data;
-  },
-  extractClosestEdge(data: any) {
-    return data.edge ?? null;
-  },
-}));
+function setItemRects(items: HTMLElement[]) {
+  items.forEach((item, index) => {
+    item.getBoundingClientRect = () => new DOMRect(0, index * 100, 100, 100);
+  });
+}
 
 function reorder(
   prev: string[],
@@ -51,20 +36,6 @@ function reorder(
 describe('<Listbox.DragAndDropProvider />', () => {
   beforeEach(() => {
     globalThis.BASE_UI_ANIMATIONS_DISABLED = true;
-    dndMocks.draggableConfigs.clear();
-    dndMocks.dropTargetConfigs.clear();
-    originalRequestAnimationFrame = globalThis.requestAnimationFrame;
-    originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
-    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
-      Number(setTimeout(() => callback(performance.now()), 0));
-    globalThis.cancelAnimationFrame = (id: number) => clearTimeout(id);
-  });
-
-  afterEach(() => {
-    dndMocks.draggableConfigs.clear();
-    dndMocks.dropTargetConfigs.clear();
-    globalThis.requestAnimationFrame = originalRequestAnimationFrame;
-    globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
   });
 
   const { render } = createRenderer();
@@ -96,25 +67,21 @@ describe('<Listbox.DragAndDropProvider />', () => {
     }
 
     await render(<TestComponent />);
-    await flushMicrotasks();
 
     const itemB = screen.getByRole('option', { name: 'b' });
     const itemD = screen.getByRole('option', { name: 'd' });
-    const draggableConfig = dndMocks.draggableConfigs.get(itemB);
-    const dropTargetConfig = dndMocks.dropTargetConfigs.get(itemD);
-    const sourceData = draggableConfig.getInitialData();
+    setItemRects(screen.getAllByRole('option'));
 
-    await act(async () => {
-      dropTargetConfig.onDrop({
-        source: { data: sourceData },
-        self: { data: { edge: 'bottom' } },
-      });
-    });
-    await flushMicrotasks();
+    await lift(itemB, { clientY: 150 });
+    await dragEnter(itemD, { clientY: 375 });
+    await dragOver(itemD, { clientY: 375 });
 
-    await act(async () => {
-      draggableConfig.onDrop({ source: { data: sourceData } });
-    });
+    expect(itemD).toHaveAttribute('data-over', '');
+    expect(itemD).toHaveAttribute('data-drop-position', 'after');
+    expect(itemB).not.toHaveAttribute('data-over');
+
+    drop(itemD, { clientY: 375 });
+    await flushRaf();
 
     expect(handleCanDrop).toHaveBeenCalledWith(
       [
@@ -126,13 +93,54 @@ describe('<Listbox.DragAndDropProvider />', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByRole('option').map((el) => el.textContent)).toEqual([
+      expect(screen.getAllByRole('option').map((element) => element.textContent)).toEqual([
         'c',
         'd',
         'a',
         'b',
       ]);
+    });
+    await waitFor(() => {
       expect(screen.getByRole('option', { name: 'b' })).toBe(document.activeElement);
+    });
+  });
+
+  it('supports object item values', async () => {
+    const itemA = { id: 'a' };
+    const itemB = { id: 'b' };
+    const itemC = { id: 'c' };
+    const handleItemsReorder = vi.fn();
+
+    await render(
+      <Listbox.Root
+        selectionMode="multiple"
+        defaultValue={[itemA, itemB]}
+        isItemEqualToValue={(item, value) => item.id === value.id}
+      >
+        <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.List>
+            <Listbox.Item value={itemA}>a</Listbox.Item>
+            <Listbox.Item value={itemB}>b</Listbox.Item>
+            <Listbox.Item value={itemC}>c</Listbox.Item>
+          </Listbox.List>
+        </Listbox.DragAndDropProvider>
+      </Listbox.Root>,
+    );
+
+    const optionB = screen.getByRole('option', { name: 'b' });
+    const optionC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(optionB, { clientY: 150 });
+    await dragEnter(optionC, { clientY: 275 });
+    drop(optionC, { clientY: 275 });
+    await flushRaf();
+
+    expect(handleItemsReorder).toHaveBeenCalledWith({
+      items: [itemA, itemB],
+      referenceItem: itemC,
+      edge: 'after',
+      reason: 'drag',
     });
   });
 
@@ -150,10 +158,13 @@ describe('<Listbox.DragAndDropProvider />', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    setItemRects([itemA, itemB]);
 
-    expect(dndMocks.draggableConfigs.has(screen.getByRole('option', { name: 'a' }))).toBe(true);
-    expect(dndMocks.draggableConfigs.has(screen.getByRole('option', { name: 'b' }))).toBe(false);
+    await lift(itemB, { expectNoDrag: true });
+    await lift(itemA);
+    cancel();
   });
 
   it('allows overriding canDrag for a disabled item', async () => {
@@ -173,10 +184,13 @@ describe('<Listbox.DragAndDropProvider />', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    setItemRects([itemA, itemB]);
 
-    expect(dndMocks.draggableConfigs.has(screen.getByRole('option', { name: 'a' }))).toBe(false);
-    expect(dndMocks.draggableConfigs.has(screen.getByRole('option', { name: 'b' }))).toBe(true);
+    await lift(itemA, { expectNoDrag: true });
+    await lift(itemB);
+    cancel();
   });
 
   it('blocks all pointer drag-and-drop when the listbox is disabled', async () => {
@@ -195,10 +209,10 @@ describe('<Listbox.DragAndDropProvider />', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
+    const itemA = screen.getByRole('option', { name: 'a' });
+    setItemRects([itemA, screen.getByRole('option', { name: 'b' })]);
 
-    expect(dndMocks.draggableConfigs.size).toBe(0);
-    expect(dndMocks.dropTargetConfigs.size).toBe(0);
+    await lift(itemA, { expectNoDrag: true });
   });
 
   it('blocks pointer reordering when canDrop returns false', async () => {
@@ -217,20 +231,15 @@ describe('<Listbox.DragAndDropProvider />', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
-
     const itemB = screen.getByRole('option', { name: 'b' });
     const itemC = screen.getByRole('option', { name: 'c' });
-    const draggableConfig = dndMocks.draggableConfigs.get(itemB);
-    const dropTargetConfig = dndMocks.dropTargetConfigs.get(itemC);
-    const sourceData = draggableConfig.getInitialData();
+    setItemRects(screen.getAllByRole('option'));
 
-    await act(async () => {
-      dropTargetConfig.onDrop({
-        source: { data: sourceData },
-        self: { data: { edge: 'bottom' } },
-      });
-    });
+    await lift(itemB, { clientY: 150 });
+    await dragEnter(itemC, { clientY: 275 });
+    await dragOver(itemC, { clientY: 275 });
+    drop(itemC, { clientY: 275 });
+    await flushRaf();
 
     expect(handleCanDrop).toHaveBeenCalledWith(
       [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
@@ -255,20 +264,49 @@ describe('<Listbox.DragAndDropProvider />', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
-
     const itemB = screen.getByRole('option', { name: 'b' });
-    const draggableConfig = dndMocks.draggableConfigs.get(itemB);
-    const dropTargetConfig = dndMocks.dropTargetConfigs.get(itemB);
-    const sourceData = draggableConfig.getInitialData();
+    setItemRects(screen.getAllByRole('option'));
 
-    await act(async () => {
-      dropTargetConfig.onDrop({
-        source: { data: sourceData },
-        self: { data: { edge: 'top' } },
-      });
-    });
+    await lift(itemB, { clientY: 150 });
+    await dragEnter(itemB, { clientY: 125 });
+    drop(itemB, { clientY: 125 });
+    await flushRaf();
 
     expect(handleItemsReorder).not.toHaveBeenCalled();
+  });
+
+  it('restricts pointer pickup to ItemDragHandle when one is present', async () => {
+    const handleItemsReorder = vi.fn();
+
+    await render(
+      <Listbox.Root>
+        <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.List>
+            <Listbox.Item value="a">
+              a
+              <Listbox.ItemDragHandle data-testid="handle-a" />
+            </Listbox.Item>
+            <Listbox.Item value="b">b</Listbox.Item>
+          </Listbox.List>
+        </Listbox.DragAndDropProvider>
+      </Listbox.Root>,
+    );
+
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    setItemRects([itemA, itemB]);
+
+    await lift(itemA, { expectNoDrag: true });
+    await lift(screen.getByTestId('handle-a'));
+    await dragEnter(itemB, { clientY: 175 });
+    drop(itemB, { clientY: 175 });
+    await flushRaf();
+
+    expect(handleItemsReorder).toHaveBeenCalledWith({
+      items: ['a'],
+      referenceItem: 'b',
+      edge: 'after',
+      reason: 'drag',
+    });
   });
 });

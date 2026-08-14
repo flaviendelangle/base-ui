@@ -5,7 +5,7 @@ export interface ListboxItemContext {
   selected: boolean;
   indexRef: React.RefObject<number>;
   textRef: React.RefObject<HTMLElement | null>;
-  dragHandleRef: React.RefObject<HTMLElement | null>;
+  dragItemId: string;
   hasRegistered: boolean;
 }
 

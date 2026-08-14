@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
+import type { CollectionItemId } from '../../types/collection';
 
-export type ListboxDragAndDropEdge = 'top' | 'bottom' | 'left' | 'right';
 export type ListboxDragAndDropTargetEdge = 'before' | 'after';
 
 export interface ListboxDragAndDropItem<Value = any> {
@@ -11,16 +11,8 @@ export interface ListboxDragAndDropItem<Value = any> {
   disabled: boolean;
 }
 
-export interface SetupItemParameters {
-  index: number;
-  itemValue: any;
-  element: HTMLElement;
-  dragHandle: HTMLElement;
-  dragEnabled: boolean;
-  dropTargetEnabled: boolean;
-  groupId: string | undefined;
-  disabled: boolean;
-  setClosestEdge: React.Dispatch<React.SetStateAction<ListboxDragAndDropEdge | null>>;
+export interface RegisteredListboxDragAndDropItem<Value = any> {
+  next: ListboxDragAndDropItem<Value>;
 }
 
 export interface ListboxDragAndDropProviderOnItemsReorderEvent<Value = any> {
@@ -38,8 +30,12 @@ export interface ListboxDragAndDropProviderContext {
     targetItem: ListboxDragAndDropItem,
     edge: ListboxDragAndDropTargetEdge,
   ) => boolean;
-  policySignature: readonly [unknown, unknown];
-  setupItem: (params: SetupItemParameters) => (() => void) | undefined;
+  setupItem: (
+    itemId: CollectionItemId,
+    element: HTMLElement,
+    itemRef: RegisteredListboxDragAndDropItem,
+  ) => () => void;
+  setupHandle: (itemId: CollectionItemId, element: HTMLElement) => () => void;
 }
 
 export const ListboxDragAndDropProviderContext = React.createContext<

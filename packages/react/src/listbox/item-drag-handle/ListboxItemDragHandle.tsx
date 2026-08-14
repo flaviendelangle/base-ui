@@ -2,6 +2,7 @@
 import * as React from 'react';
 import type { BaseUIComponentProps } from '../../internals/types';
 import { useRenderElement } from '../../internals/useRenderElement';
+import { useListboxDragAndDropProviderContext } from '../drag-and-drop-provider/ListboxDragAndDropProviderContext';
 import { useListboxItemContext } from '../item/ListboxItemContext';
 
 /**
@@ -19,10 +20,22 @@ export const ListboxItemDragHandle = React.forwardRef(function ListboxItemDragHa
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
   const { className, render, style, ...elementProps } = componentProps;
-  const { dragHandleRef } = useListboxItemContext();
+  const { dragItemId } = useListboxItemContext();
+  const dragAndDropContext = useListboxDragAndDropProviderContext(true);
+  const cleanupRef = React.useRef<(() => void) | undefined>(undefined);
+  const handleRef = React.useCallback(
+    (element: HTMLElement | null) => {
+      cleanupRef.current?.();
+      cleanupRef.current =
+        element && dragAndDropContext
+          ? dragAndDropContext.setupHandle(dragItemId, element)
+          : undefined;
+    },
+    [dragAndDropContext, dragItemId],
+  );
 
   return useRenderElement('div', componentProps, {
-    ref: [forwardedRef, dragHandleRef],
+    ref: [forwardedRef, handleRef],
     props: [
       {
         'aria-hidden': true,

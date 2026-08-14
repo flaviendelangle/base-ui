@@ -1,36 +1,24 @@
 'use client';
 import * as React from 'react';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useTimeout } from '@base-ui/utils/useTimeout';
+import type { CollectionActions, CollectionItemId } from '../../types/collection';
 import {
-  draggable,
-  dropTargetForElements,
-} from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import {
-  attachClosestEdge,
-  extractClosestEdge,
-} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
+  useDraggableCollection,
+  type DraggableCollectionState,
+} from '../../internals/use-draggable-collection';
 import { useListboxRootContext } from '../root/ListboxRootContext';
 import { afterDomSettle } from '../utils/afterDomSettle';
-import { isMultipleSelectionMode } from '../utils/selectionReducer';
 import {
   type ListboxDragAndDropProviderContext as ListboxDragAndDropContextValue,
   ListboxDragAndDropProviderContext,
-  type ListboxDragAndDropEdge,
   type ListboxDragAndDropItem,
   type ListboxDragAndDropProviderOnItemsReorderEvent,
   type ListboxDragAndDropTargetEdge,
+  type RegisteredListboxDragAndDropItem,
 } from './ListboxDragAndDropProviderContext';
-
-/**
- * Maps a physical edge (top/bottom/left/right) from Pragmatic DnD to a
- * logical placement (before/after) so consumers get a consistent API
- * regardless of the listbox orientation.
- */
-function toLogicalEdge(edge: ListboxDragAndDropEdge | null): ListboxDragAndDropTargetEdge {
-  return edge === 'bottom' || edge === 'right' ? 'after' : 'before';
-}
 
 /**
  * Enables drag-and-drop reordering when rendered inside `Listbox.Root`.
@@ -45,10 +33,16 @@ export function ListboxDragAndDropProvider<Value = any>(
   const store = useListboxRootContext();
   const dropHighlightTimeout = useTimeout();
   const dropHighlightFrame = useAnimationFrame();
-  const { disabledItemsRef, groupIdsRef, pointerMoveSuppressedRef, valuesRef } = store.context;
+  const { labelsRef, pointerMoveSuppressedRef } = store.context;
+  const draggedItemIdRef = React.useRef<CollectionItemId | null>(null);
+  const registeredItems = useRefWithInit(
+    () => new Map<CollectionItemId, RegisteredListboxDragAndDropItem<Value>>(),
+  ).current;
 
-  // Stable reference to the reorder callback so that Pragmatic DnD event
-  // handlers always call the latest version without needing to re-register.
+  const getItem = useStableCallback((itemId: CollectionItemId) => {
+    return registeredItems.get(itemId)?.next;
+  });
+
   const handleItemsReorder = useStableCallback(
     (event: ListboxDragAndDropProviderOnItemsReorderEvent<Value>) => {
       onItemsReorder?.(event);
@@ -60,11 +54,7 @@ export function ListboxDragAndDropProvider<Value = any>(
       return false;
     }
 
-    if (canDrag) {
-      return canDrag(item);
-    }
-
-    return !item.disabled;
+    return canDrag ? canDrag(item) : !item.disabled;
   });
 
   const handleCanDrop = useStableCallback(
@@ -77,256 +67,169 @@ export function ListboxDragAndDropProvider<Value = any>(
         return false;
       }
 
-      if (canDrop) {
-        return canDrop(sourceItems, targetItem, edge);
-      }
-
-      return true;
+      return canDrop ? canDrop(sourceItems, targetItem, edge) : true;
     },
   );
 
-  // ---------------------------------------------------------------------------
-  // setupItem — called by each ListboxItem via useDragAndDrop to register
-  // itself as a draggable source and/or drop target with Pragmatic DnD.
-  // Returns a cleanup function that tears down both registrations.
-  // ---------------------------------------------------------------------------
-  const setupItem = useStableCallback<ListboxDragAndDropContextValue['setupItem']>((params) => {
-    const {
-      element,
-      dragHandle,
-      dragEnabled,
-      dropTargetEnabled,
-      index,
-      itemValue,
-      groupId,
-      disabled,
-      setClosestEdge,
-    } = params;
-
-    // Nothing to set up — bail early.
-    if (!dragEnabled && !dropTargetEnabled) {
-      return undefined;
-    }
-
-    let cleanupDraggable: (() => void) | undefined;
-    let cleanupDropTarget: (() => void) | undefined;
-    const targetItem: ListboxDragAndDropItem<Value> = {
-      value: itemValue,
-      index,
-      groupId,
-      disabled,
-    };
-
-    function getSourceItems(sourceData: Record<string, unknown>): ListboxDragAndDropItem<Value>[] {
-      if (sourceData.isMultiDrag) {
-        const values = sourceData.values as Value[];
-        const indices = sourceData.indices as number[];
-        const groupIds = sourceData.groupIds as (string | undefined)[];
-
-        return values.map((value, itemIndex) => ({
-          value,
-          index: indices[itemIndex],
-          groupId: groupIds[itemIndex],
-          disabled: disabledItemsRef.current[indices[itemIndex]] ?? false,
-        }));
-      }
-
-      const sourceIndex = sourceData.index as number;
-
-      return [
-        {
-          value: sourceData.value as Value,
-          index: sourceIndex,
-          groupId: sourceData.groupId as string | undefined,
-          disabled: disabledItemsRef.current[sourceIndex] ?? false,
-        },
-      ];
-    }
-
-    // -------------------------------------------------------------------------
-    // Draggable registration
-    // -------------------------------------------------------------------------
-    if (dragEnabled && handleCanDrag(targetItem)) {
-      cleanupDraggable = draggable({
-        element: dragHandle,
-
-        // Snapshot the drag payload at drag-start. In multi-select modes, if
-        // the dragged item is part of the selection, we bundle *all* selected
-        // items so they move together.
-        getInitialData() {
-          const { value: selectedValues, selectionMode, isItemEqualToValue } = store.state;
-          const isSelected = selectedValues.some((sv) => isItemEqualToValue(itemValue, sv));
-
-          // Multi-drag: collect every selected item's index, value, and groupId.
-          if (isMultipleSelectionMode(selectionMode) && isSelected) {
-            const indices: number[] = [];
-            const values: any[] = [];
-            const groupIds: (string | undefined)[] = [];
-
-            for (let i = 0; i < valuesRef.current.length; i += 1) {
-              const value = valuesRef.current[i];
-              if (selectedValues.some((sv) => isItemEqualToValue(value, sv))) {
-                indices.push(i);
-                values.push(value);
-                groupIds.push(groupIdsRef.current[i]);
-              }
-            }
-
-            return {
-              index,
-              indices,
-              values,
-              groupIds,
-              groupId,
-              value: itemValue,
-              isMultiDrag: true,
-            };
-          }
-
-          // Single-item drag payload.
-          return { index, value: itemValue, groupId, isMultiDrag: false };
-        },
-
-        // Suppress pointer-move highlighting while dragging so hover events
-        // don't steal focus, and record which indices are being dragged.
-        onDragStart({ source }) {
-          pointerMoveSuppressedRef.current = true;
-          if (source.data.isMultiDrag) {
-            store.set('dragActiveIndices', source.data.indices as number[]);
-          } else {
-            store.set('dragActiveIndices', [index]);
-          }
-        },
-
-        // After the drop: clear DnD visual state, wait for React to commit
-        // the reordered DOM (via afterDomSettle), then focus the dragged
-        // item and re-enable pointer-move highlighting.
-        onDrop({ source }) {
-          store.update({ dragActiveIndices: null, dropTargetIndex: null });
-
-          const draggedValue = source.data.value;
-          const eqFn = store.state.isItemEqualToValue;
-
-          afterDomSettle(dropHighlightTimeout, dropHighlightFrame, () => {
-            const idx = valuesRef.current.findIndex(
-              (v) => v !== undefined && eqFn(v, draggedValue),
-            );
-            if (idx !== -1) {
-              const listEl = store.state.listElement;
-              const target = listEl?.querySelectorAll<HTMLElement>('[role="option"]')[idx];
-              target?.focus();
-              store.set('activeIndex', idx);
-            }
-            pointerMoveSuppressedRef.current = false;
-          });
-        },
-      });
-    }
-
-    // -------------------------------------------------------------------------
-    // Drop target registration
-    // -------------------------------------------------------------------------
-    if (dropTargetEnabled) {
-      // Shared handler for onDragEnter and onDrag — both need to mark this
-      // item as the active drop target and update its closest-edge indicator.
-      function updateDropState(args: {
-        source: { data: Record<string, unknown> };
-        self: { data: Record<string, unknown> };
-      }) {
-        const physicalEdge = extractClosestEdge(args.self.data) as ListboxDragAndDropEdge | null;
-        const logicalEdge = toLogicalEdge(physicalEdge);
-        const sourceItems = getSourceItems(args.source.data);
-
-        if (!handleCanDrop(sourceItems, targetItem, logicalEdge)) {
-          if (store.state.dropTargetIndex === index) {
-            store.set('dropTargetIndex', null);
-          }
-          setClosestEdge(null);
-          return;
-        }
-
-        store.set('dropTargetIndex', index);
-        setClosestEdge(physicalEdge);
-      }
-
-      cleanupDropTarget = dropTargetForElements({
-        element,
-
-        // Attach the closest physical edge (top/bottom or left/right) based
-        // on orientation so Pragmatic DnD can report which side the pointer
-        // is closest to.
-        getData: ({ input, element: dropTargetElement }) =>
-          attachClosestEdge(
-            { index, value: itemValue, groupId },
-            {
-              input,
-              element: dropTargetElement,
-              allowedEdges:
-                store.state.orientation === 'horizontal' ? ['left', 'right'] : ['top', 'bottom'],
-            },
-          ),
-
-        onDragEnter: updateDropState,
-        onDrag: updateDropState,
-
-        // Clear this item's drop-target state, but only if it's still the
-        // active target (another item may have already claimed the role).
-        onDragLeave() {
-          if (store.state.dropTargetIndex === index) {
-            store.set('dropTargetIndex', null);
-          }
-          setClosestEdge(null);
-        },
-
-        // Fire the consumer's reorder callback with the moved items, the
-        // reference item (drop target), and the logical edge (before/after).
-        // DnD visual state is cleared by the draggable's onDrop above.
-        onDrop(args) {
-          const edge = extractClosestEdge(args.self.data) as ListboxDragAndDropEdge | null;
-          const logicalEdge = toLogicalEdge(edge);
-          const targetValue = valuesRef.current[index];
-          const sourceItems = getSourceItems(args.source.data);
-          const isDroppingOnDraggedItem = sourceItems.some((item) => item.index === index);
-
-          if (
-            !isDroppingOnDraggedItem &&
-            targetValue !== undefined &&
-            handleCanDrop(sourceItems, targetItem, logicalEdge)
-          ) {
-            const items = sourceItems.map((item) => item.value);
-
-            handleItemsReorder({
-              items,
-              referenceItem: targetValue,
-              edge: logicalEdge,
-              reason: 'drag',
-            });
-          }
-
-          setClosestEdge(null);
-        },
-      });
-    }
-
-    // Cleanup: tear down both registrations when the item unmounts or
-    // its dependencies change.
-    return () => {
-      cleanupDraggable?.();
-      cleanupDropTarget?.();
-    };
+  const canDragItem = useStableCallback((itemId: CollectionItemId) => {
+    const item = getItem(itemId);
+    return item ? handleCanDrag(item) : false;
   });
 
-  // The context value is stable across renders because both
-  // handleItemsReorder and setupItem come from useStableCallback.
+  const actions = useRefWithInit<CollectionActions<ListboxDragAndDropItem<Value>>>(() => ({
+    hasItem(itemId) {
+      return registeredItems.has(itemId);
+    },
+    getSelectedItemIds() {
+      const selectedItemIds = new Set<CollectionItemId>();
+      const { isItemEqualToValue, value: selectedValues } = store.state;
+
+      for (const [itemId, itemRef] of registeredItems) {
+        if (
+          selectedValues.some((selectedValue) =>
+            isItemEqualToValue(itemRef.next.value, selectedValue),
+          )
+        ) {
+          selectedItemIds.add(itemId);
+        }
+      }
+
+      return selectedItemIds;
+    },
+    getItemModels(itemIds) {
+      const items: ListboxDragAndDropItem<Value>[] = [];
+      for (const itemId of itemIds) {
+        const item = registeredItems.get(itemId)?.next;
+        if (item) {
+          items.push(item);
+        }
+      }
+      return items;
+    },
+  })).current;
+
+  const handleStateChange = useStableCallback((dndState: DraggableCollectionState) => {
+    const dragActiveIndices: number[] = [];
+    for (const itemId of dndState.draggedItemIds) {
+      const item = getItem(itemId);
+      if (item) {
+        dragActiveIndices.push(item.index);
+      }
+    }
+
+    const overItem =
+      dndState.dropTargetItemId == null ? undefined : getItem(dndState.dropTargetItemId);
+    const dropPosition =
+      dndState.dropPosition === 'before' || dndState.dropPosition === 'after'
+        ? dndState.dropPosition
+        : null;
+
+    store.update({
+      dragActiveIndices: dragActiveIndices.length === 0 ? null : dragActiveIndices,
+      overIndex: overItem?.index ?? null,
+      dropPosition,
+    });
+  });
+
+  const dragAndDrop = useDraggableCollection<
+    ListboxDragAndDropItem<Value>,
+    CollectionActions<ListboxDragAndDropItem<Value>>
+  >({
+    orientation: store.state.orientation,
+    getActions: () => actions,
+    keyboardActivation: 'off',
+    canDrag: canDragItem,
+    canDrop: ({ draggedItemIds, targetItemId, position }) => {
+      if (position === 'on') {
+        return false;
+      }
+
+      const sourceItems = actions.getItemModels([...draggedItemIds]);
+      const targetItem = getItem(targetItemId);
+      return targetItem ? handleCanDrop(sourceItems, targetItem, position) : false;
+    },
+    canDropRoot: () => false,
+    getDropCapabilities: () => ({ hasOn: false, hasBeforeAfter: true }),
+    onDrop: ({ items, target, isInternal }) => {
+      if (!isInternal || !onItemsReorder || target.itemId == null || target.position === 'on') {
+        return false;
+      }
+
+      const targetItem = getItem(target.itemId);
+      if (!targetItem) {
+        return false;
+      }
+
+      handleItemsReorder({
+        items: items.map((item) => item.value),
+        referenceItem: targetItem.value,
+        edge: target.position,
+        reason: 'drag',
+      });
+      return true;
+    },
+    onStateChange: handleStateChange,
+    onDragStart: ({ source }) => {
+      const payload = source.payload;
+      draggedItemIdRef.current =
+        typeof payload === 'object' &&
+        payload !== null &&
+        'draggedItemId' in payload &&
+        (typeof payload.draggedItemId === 'string' || typeof payload.draggedItemId === 'number')
+          ? payload.draggedItemId
+          : null;
+      pointerMoveSuppressedRef.current = true;
+    },
+    onDragEnd: () => {
+      afterDomSettle(dropHighlightTimeout, dropHighlightFrame, () => {
+        const draggedItem =
+          draggedItemIdRef.current == null ? undefined : getItem(draggedItemIdRef.current);
+        if (draggedItem) {
+          const target =
+            store.state.listElement?.querySelectorAll<HTMLElement>('[role="option"]')[
+              draggedItem.index
+            ];
+          target?.focus();
+          store.set('activeIndex', draggedItem.index);
+        }
+        draggedItemIdRef.current = null;
+        pointerMoveSuppressedRef.current = false;
+      });
+    },
+    getItemLabel: (itemId) => {
+      const item = getItem(itemId);
+      return (item && labelsRef.current[item.index]) ?? String(item?.value ?? itemId);
+    },
+  });
+
+  const setupItem = useStableCallback<ListboxDragAndDropContextValue['setupItem']>(
+    (itemId, element, itemRef) => {
+      registeredItems.set(itemId, itemRef);
+      const cleanup = dragAndDrop.setupItem(itemId, element);
+
+      return () => {
+        cleanup();
+        if (registeredItems.get(itemId) === itemRef) {
+          registeredItems.delete(itemId);
+        }
+      };
+    },
+  );
+
+  const setupHandle = useStableCallback<ListboxDragAndDropContextValue['setupHandle']>(
+    (itemId, element) => dragAndDrop.setupHandle(itemId, element),
+  );
+
+  const itemsReorderEnabled = onItemsReorder != null;
   const contextValue = React.useMemo(
     () => ({
-      onItemsReorder: onItemsReorder ? handleItemsReorder : undefined,
+      onItemsReorder: itemsReorderEnabled ? handleItemsReorder : undefined,
       canDragItem: handleCanDrag,
       canDropItems: handleCanDrop,
-      policySignature: [canDrag, canDrop] as const,
       setupItem,
+      setupHandle,
     }),
-    [canDrag, canDrop, handleCanDrag, handleCanDrop, handleItemsReorder, onItemsReorder, setupItem],
+    [handleCanDrag, handleCanDrop, handleItemsReorder, itemsReorderEnabled, setupHandle, setupItem],
   );
 
   return (

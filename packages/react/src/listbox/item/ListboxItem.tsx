@@ -51,18 +51,9 @@ function useListItemValueRegistration(params: {
   }, [hasRegistered, index, itemValue, valuesRef]);
 }
 
-// Map the raw edge from Pragmatic DnD (top/bottom/left/right) to logical
-// before/after values for the data attribute, so consumers can style with a
-// single pair of selectors regardless of orientation.
-const dropTargetEdgeMapping: StateAttributesMapping<ListboxItemState> = {
-  dropTargetEdge(value) {
-    if (value === 'top' || value === 'left') {
-      return { 'data-drop-target-edge': 'before' };
-    }
-    if (value === 'bottom' || value === 'right') {
-      return { 'data-drop-target-edge': 'after' };
-    }
-    return null;
+const stateAttributesMapping: StateAttributesMapping<ListboxItemState> = {
+  dropPosition(value) {
+    return value ? { 'data-drop-position': value } : null;
   },
 };
 
@@ -142,7 +133,8 @@ export const ListboxItem = React.memo(
     const selected = store.useState('isSelected', listItem.index, itemValue);
     const isItemEqualToValue = store.useState('isItemEqualToValue');
     const isDragging = store.useState('isDragging', listItem.index);
-    const isDropTarget = store.useState('isDropTarget', listItem.index);
+    const over = store.useState('isOver', listItem.index);
+    const dropPosition = store.useState('dropPosition');
     const {
       disabledItemsRef,
       groupIdsRef,
@@ -159,22 +151,18 @@ export const ListboxItem = React.memo(
     const groupId = groupContext?.groupId;
 
     const itemRef = React.useRef<HTMLDivElement | null>(null);
-    const dragHandleRef = React.useRef<HTMLElement | null>(null);
     const indexRef = useValueAsRef(index);
     const dragEnabled = dragAndDropContext != null && hasRegistered && !rootDisabled;
-    const dropTargetEnabled = dragEnabled;
     const preventContextMenuOnAndroid = platform.os.android && dragEnabled && !disabled;
     const handleContextMenu = React.useCallback((event: BaseUIEvent<React.MouseEvent>) => {
       event.preventDefault();
     }, []);
 
-    const { closestEdge } = useDragAndDrop({
+    const dragItemId = useDragAndDrop({
       index,
       itemValue,
       itemRef,
-      dragHandleRef,
-      dragEnabled,
-      dropTargetEnabled,
+      enabled: dragEnabled,
       disabled,
       groupId,
     });
@@ -219,8 +207,8 @@ export const ListboxItem = React.memo(
       selected,
       highlighted,
       dragging: isDragging,
-      dropTarget: isDropTarget,
-      dropTargetEdge: isDropTarget && closestEdge ? closestEdge : null,
+      over,
+      dropPosition: over ? dropPosition : null,
     };
 
     const lastKeyRef = React.useRef<string | null>(null);
@@ -530,7 +518,7 @@ export const ListboxItem = React.memo(
       ref: [buttonRef, forwardedRef, listItem.ref, itemRef],
       state,
       props: [defaultProps, elementProps, getButtonProps],
-      stateAttributesMapping: dropTargetEdgeMapping,
+      stateAttributesMapping,
     });
 
     const contextValue: ListboxItemContext = React.useMemo(
@@ -538,10 +526,10 @@ export const ListboxItem = React.memo(
         selected,
         indexRef,
         textRef,
-        dragHandleRef,
+        dragItemId,
         hasRegistered,
       }),
-      [selected, indexRef, textRef, dragHandleRef, hasRegistered],
+      [selected, indexRef, textRef, dragItemId, hasRegistered],
     );
 
     return (
@@ -568,13 +556,13 @@ export interface ListboxItemState {
    */
   dragging: boolean;
   /**
-   * Whether the item is a drop target.
+   * Whether a dragged item is over this item.
    */
-  dropTarget: boolean;
+  over: boolean;
   /**
-   * The edge closest to the pointer when the item is a drop target (`'before'` or `'after'`), or `null`.
+   * The drop position relative to this item, or `null` when the item is not being dragged over.
    */
-  dropTargetEdge: string | null;
+  dropPosition: 'before' | 'after' | null;
 }
 
 export interface ListboxItemProps

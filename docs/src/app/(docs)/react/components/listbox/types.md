@@ -142,14 +142,14 @@ Renders a `<div>` element.
 
 **Item Data Attributes:**
 
-| Attribute             | Type | Description                                                                                          |
-| :-------------------- | :--- | :--------------------------------------------------------------------------------------------------- |
-| data-selected         | -    | Present when the listbox item is selected.                                                           |
-| data-highlighted      | -    | Present when the listbox item is highlighted.                                                        |
-| data-dragging         | -    | Present when the listbox item is being dragged.                                                      |
-| data-disabled         | -    | Present when the listbox item is disabled.                                                           |
-| data-drop-target      | -    | Present when the listbox item is a drop target.                                                      |
-| data-drop-target-edge | -    | Indicates the closest edge when the item is a drop target.&#xA;The value is `'before'` or `'after'`. |
+| Attribute          | Type | Description                                                                                 |
+| :----------------- | :--- | :------------------------------------------------------------------------------------------ |
+| data-selected      | -    | Present when the listbox item is selected.                                                  |
+| data-highlighted   | -    | Present when the listbox item is highlighted.                                               |
+| data-dragging      | -    | Present when the listbox item is being dragged.                                             |
+| data-disabled      | -    | Present when the listbox item is disabled.                                                  |
+| data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`. |
+| data-over          | -    | Present when a dragged item is over the listbox item.                                       |
 
 ### Item.Props
 
@@ -167,10 +167,10 @@ type ListboxItemState = {
   highlighted: boolean;
   /** Whether the item is currently being dragged. */
   dragging: boolean;
-  /** Whether the item is a drop target. */
-  dropTarget: boolean;
-  /** The edge closest to the pointer when the item is a drop target (`'before'` or `'after'`), or `null`. */
-  dropTargetEdge: string | null;
+  /** Whether a dragged item is over this item. */
+  over: boolean;
+  /** The drop position relative to this item, or `null` when the item is not being dragged over. */
+  dropPosition: 'before' | 'after' | null;
 };
 ```
 

@@ -16,12 +16,12 @@ export enum ListboxItemDataAttributes {
    */
   dragging = 'data-dragging',
   /**
-   * Present when the listbox item is a drop target.
+   * Present when a dragged item is over the listbox item.
    */
-  dropTarget = 'data-drop-target',
+  over = 'data-over',
   /**
-   * Indicates the closest edge when the item is a drop target.
+   * Indicates the drop position relative to the item.
    * The value is `'before'` or `'after'`.
    */
-  dropTargetEdge = 'data-drop-target-edge',
+  dropPosition = 'data-drop-position',
 }
