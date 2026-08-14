@@ -33,12 +33,12 @@ export default function ExampleListboxDragWithinGroups() {
         <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
           Playlist
         </Listbox.Label>
-        <Listbox.DragAndDropProvider
-          canDrop={(sourceItems, targetItem) =>
+        <Listbox.DragProvider
+          canDrop={({ sourceItems, targetItem }) =>
             sourceItems.every((item) => item.groupId === targetItem.groupId)
           }
-          onItemsReorder={(event) => {
-            setItems((prev) => reorderItems(prev, event));
+          onItemsReorder={(order) => {
+            setItems((prev) => reorderItems(prev, order));
           }}
         >
           <Listbox.List className="box-border w-64 max-h-96 overflow-y-auto rounded-md py-1 outline outline-1 outline-gray-200 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800 dark:outline-gray-300">
@@ -68,7 +68,7 @@ export default function ExampleListboxDragWithinGroups() {
               </Listbox.Group>
             ))}
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>
     </div>
   );
@@ -91,22 +91,9 @@ function groupItems(items: Item[]) {
   return groups;
 }
 
-function reorderItems(
-  items: Item[],
-  event: {
-    items: string[];
-    referenceItem: string;
-    edge: 'before' | 'after';
-  },
-) {
-  const movedValues = new Set(event.items);
-  const movedItems = items.filter((item) => movedValues.has(item.value));
-  const rest = items.filter((item) => !movedValues.has(item.value));
-  const referenceIndex = rest.findIndex((item) => item.value === event.referenceItem);
-
-  rest.splice(event.edge === 'after' ? referenceIndex + 1 : referenceIndex, 0, ...movedItems);
-
-  return rest;
+function reorderItems(items: Item[], order: string[]) {
+  const itemsByValue = new Map(items.map((item) => [item.value, item]));
+  return order.map((value) => itemsByValue.get(value)!);
 }
 
 function GripIcon(props: React.ComponentProps<'svg'>) {

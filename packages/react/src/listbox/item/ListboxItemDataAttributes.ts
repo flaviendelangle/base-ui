@@ -20,6 +20,14 @@ export enum ListboxItemDataAttributes {
    */
   dragOver = 'data-drag-over',
   /**
+   * Present while `trackDisplacement` animates the item from a previous layout position.
+   */
+  displacing = 'data-displacing',
+  /**
+   * Present on the first frame of a displacement animation.
+   */
+  startingStyle = 'data-starting-style',
+  /**
    * Indicates the drop position relative to the item.
    * The value is `'before'` or `'after'`.
    */

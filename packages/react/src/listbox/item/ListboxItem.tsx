@@ -4,10 +4,7 @@ import { platform } from '@base-ui/utils/platform';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
 import { isMouseWithinBounds } from '@base-ui/utils/isMouseWithinBounds';
-import { ownerDocument } from '@base-ui/utils/owner';
-import { activeElement, contains } from '@base-ui/utils/shadowDom';
 import { useTimeout } from '@base-ui/utils/useTimeout';
-import { useDirection } from '../../internals/direction-context';
 import type {
   BaseUIComponentProps,
   BaseUIEvent,
@@ -19,11 +16,11 @@ import { useButton } from '../../internals/use-button';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails';
 import { REASONS } from '../../internals/reasons';
 import type { StateAttributesMapping } from '../../internals/getStateAttributesProps';
-import { useCompositeListItem, scrollIntoViewIfNeeded } from '../../internals/composite';
+import { useCompositeListItem } from '../../internals/composite';
 import { findItemIndex } from '../../internals/itemEquality';
 import { useListboxRootContext } from '../root/ListboxRootContext';
 import { ListboxItemContext } from './ListboxItemContext';
-import { useListboxDragAndDropProviderContext } from '../drag-and-drop-provider/ListboxDragAndDropProviderContext';
+import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
 import { useListboxGroupContext } from '../group/ListboxGroupContext';
 import { useDragAndDrop } from '../utils/useDragAndDrop';
 import { selectionReducer, isMultipleSelectionMode } from '../utils/selectionReducer';
@@ -124,9 +121,7 @@ export const ListboxItem = React.memo(
     const store = useListboxRootContext();
 
     const groupContext = useListboxGroupContext(true);
-    const dragAndDropContext = useListboxDragAndDropProviderContext(true);
-    const direction = useDirection();
-
+    const dragContext = useListboxDragProviderContext(true);
     const highlightTimeout = useTimeout();
 
     const selectionMode = store.useState('selectionMode');
@@ -155,7 +150,7 @@ export const ListboxItem = React.memo(
 
     const itemRef = React.useRef<HTMLDivElement | null>(null);
     const indexRef = useValueAsRef(index);
-    const dragEnabled = dragAndDropContext != null && hasRegistered && !rootDisabled;
+    const dragEnabled = dragContext != null && hasRegistered && !rootDisabled;
     const preventContextMenuOnAndroid = platform.os.android && dragEnabled && !disabled;
     const handleContextMenu = React.useCallback((event: BaseUIEvent<React.MouseEvent>) => {
       event.preventDefault();
@@ -281,9 +276,9 @@ export const ListboxItem = React.memo(
      * multi-item (selected set) moves.
      */
     function handleKeyboardReorder(event: BaseUIEvent<React.KeyboardEvent>, resolvedIndex: number) {
-      const reorderItems = dragAndDropContext?.onItemsReorder;
-      const canDragItem = dragAndDropContext?.canDragItem;
-      const canDropItems = dragAndDropContext?.canDropItems;
+      const reorderItems = dragContext?.onItemsReorder;
+      const isItemDragDisabled = dragContext?.isItemDragDisabled;
+      const canDrop = dragContext?.canDrop;
 
       if (
         !event.altKey ||
@@ -291,15 +286,15 @@ export const ListboxItem = React.memo(
         event.ctrlKey ||
         event.metaKey ||
         !reorderItems ||
-        !canDragItem ||
-        !canDropItems ||
+        !isItemDragDisabled ||
+        !canDrop ||
         rootDisabled
       ) {
         return;
       }
       const handleReorderItems = reorderItems;
-      const handleCanDragItem = canDragItem;
-      const handleCanDropItems = canDropItems;
+      const handleIsItemDragDisabled = isItemDragDisabled;
+      const handleCanDrop = canDrop;
       const isVertical = store.state.orientation === 'vertical';
       const moveUp =
         (isVertical && event.key === 'ArrowUp') || (!isVertical && event.key === 'ArrowLeft');
@@ -311,7 +306,7 @@ export const ListboxItem = React.memo(
       }
 
       event.preventDefault();
-      const reorderEdge = moveUp ? 'before' : 'after';
+      const reorderEdge: 'before' | 'after' = moveUp ? 'before' : 'after';
       const currentItem = {
         value: itemValue,
         index: resolvedIndex,
@@ -319,40 +314,8 @@ export const ListboxItem = React.memo(
         disabled: disabledItemsRef.current[resolvedIndex] ?? false,
       };
 
-      if (!handleCanDragItem(currentItem)) {
+      if (handleIsItemDragDisabled(currentItem)) {
         return;
-      }
-
-      // After a keyboard reorder, we need to:
-      // 1. Restore focus if it was lost (cross-group moves cause React to
-      //    unmount/remount the item, moving focus to the document body).
-      // 2. Scroll the moved item into view.
-      // NOTE: This intentionally uses raw setTimeout instead of afterDomSettle
-      // because the item may be unmounted during cross-group moves and a
-      // hook-based cleanup (useTimeout) would cancel the callback.
-      function restoreFocusAndScroll() {
-        setTimeout(() => {
-          const listEl = store.state.listElement;
-          if (!listEl) {
-            pointerMoveSuppressedRef.current = false;
-            return;
-          }
-
-          const doc = ownerDocument(listEl);
-          let target = activeElement(doc) as HTMLElement | null;
-
-          if (!contains(listEl, target)) {
-            target = listEl.querySelector<HTMLElement>('[role="option"][tabindex="0"]');
-            target?.focus();
-          }
-
-          if (target) {
-            scrollIntoViewIfNeeded(listEl, target, direction, store.state.orientation);
-          }
-
-          // Re-enable pointer-move highlighting after the DOM has settled.
-          pointerMoveSuppressedRef.current = false;
-        }, 0);
       }
 
       function commitReorder(movedIndices: number[], movedItems: any[], targetIdx: number) {
@@ -375,7 +338,7 @@ export const ListboxItem = React.memo(
           disabled: disabledItemsRef.current[targetIdx] ?? false,
         };
 
-        if (!handleCanDropItems(sourceItems, targetItem, reorderEdge)) {
+        if (!handleCanDrop({ sourceItems, targetItem, edge: reorderEdge })) {
           return false;
         }
 
@@ -384,17 +347,32 @@ export const ListboxItem = React.memo(
         // stealing the highlight.
         pointerMoveSuppressedRef.current = true;
         requestHighlightReconcile();
+        const previousValues = [...valuesRef.current];
+        const previousLabels = [...labelsRef.current];
+        const previousDisabledItems = [...disabledItemsRef.current];
+        const previousGroupIds = [...groupIdsRef.current];
         reorderRegistry(valuesRef, movedIndices, targetIdx, reorderEdge);
         reorderRegistry(labelsRef, movedIndices, targetIdx, reorderEdge);
         reorderRegistry(disabledItemsRef, movedIndices, targetIdx, reorderEdge);
         reorderRegistry(groupIdsRef, movedIndices, targetIdx, reorderEdge);
 
-        handleReorderItems({
-          items: movedItems,
-          referenceItem: targetValue,
+        const details = createChangeEventDetails(REASONS.keyboard, event.nativeEvent, undefined, {
+          sourceItems,
+          targetItem,
           edge: reorderEdge,
-          reason: 'keyboard',
         });
+        if (!handleReorderItems([...valuesRef.current], details)) {
+          valuesRef.current.splice(0, valuesRef.current.length, ...previousValues);
+          labelsRef.current.splice(0, labelsRef.current.length, ...previousLabels);
+          disabledItemsRef.current.splice(
+            0,
+            disabledItemsRef.current.length,
+            ...previousDisabledItems,
+          );
+          groupIdsRef.current.splice(0, groupIdsRef.current.length, ...previousGroupIds);
+          pointerMoveSuppressedRef.current = false;
+          return false;
+        }
 
         return true;
       }
@@ -433,7 +411,7 @@ export const ListboxItem = React.memo(
         const offsetInSelection = selectedIndices.indexOf(resolvedIndex);
         const newFirstIdx = moveUp ? firstIdx - 1 : firstIdx + 1;
         store.set('activeIndex', newFirstIdx + offsetInSelection);
-        restoreFocusAndScroll();
+        dragContext?.restoreFocusAfterKeyboardReorder(itemValue);
       } else {
         // Single-item reorder
         const targetIdx = moveUp ? resolvedIndex - 1 : resolvedIndex + 1;
@@ -446,7 +424,7 @@ export const ListboxItem = React.memo(
 
         // Move the highlight to follow the reordered item
         store.set('activeIndex', targetIdx);
-        restoreFocusAndScroll();
+        dragContext?.restoreFocusAfterKeyboardReorder(itemValue);
       }
     }
 

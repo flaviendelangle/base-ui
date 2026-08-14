@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { beforeEach, expect, vi } from 'vitest';
 import { screen, waitFor } from '@mui/internal-test-utils';
-import { createRenderer } from '#test-utils';
+import { createRenderer, isJSDOM } from '#test-utils';
 import { Listbox } from '@base-ui/react/listbox';
 import {
   cancel,
@@ -21,26 +21,14 @@ function setItemRects(items: HTMLElement[]) {
   });
 }
 
-function reorder(
-  prev: string[],
-  event: { items: string[]; referenceItem: string; edge: 'before' | 'after' },
-) {
-  const movedValues = new Set(event.items);
-  const movedItems = prev.filter((item) => movedValues.has(item));
-  const rest = prev.filter((item) => !movedValues.has(item));
-  const refIndex = rest.indexOf(event.referenceItem);
-  rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-  return rest;
-}
-
-describe('<Listbox.DragAndDropProvider />', () => {
+describe('<Listbox.DragProvider />', () => {
   beforeEach(() => {
     globalThis.BASE_UI_ANIMATIONS_DISABLED = true;
   });
 
   const { render } = createRenderer();
 
-  it('highlights the dragged item after a multi-drag drop', async () => {
+  it('uses the whole item as the drag source and restores its highlight after drop', async () => {
     const handleCanDrop = vi.fn(() => true);
 
     function TestComponent() {
@@ -48,12 +36,7 @@ describe('<Listbox.DragAndDropProvider />', () => {
 
       return (
         <Listbox.Root selectionMode="multiple" defaultValue={['a', 'b']}>
-          <Listbox.DragAndDropProvider
-            canDrop={handleCanDrop}
-            onItemsReorder={(event) => {
-              setItems((prev) => reorder(prev, event));
-            }}
-          >
+          <Listbox.DragProvider canDrop={handleCanDrop} onItemsReorder={setItems}>
             <Listbox.List>
               {items.map((item) => (
                 <Listbox.Item key={item} value={item}>
@@ -61,7 +44,7 @@ describe('<Listbox.DragAndDropProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>
       );
     }
@@ -83,14 +66,14 @@ describe('<Listbox.DragAndDropProvider />', () => {
     drop(itemD, { clientY: 375 });
     await flushRaf();
 
-    expect(handleCanDrop).toHaveBeenCalledWith(
-      [
+    expect(handleCanDrop).toHaveBeenCalledWith({
+      sourceItems: [
         { value: 'a', index: 0, groupId: undefined, disabled: false },
         { value: 'b', index: 1, groupId: undefined, disabled: false },
       ],
-      { value: 'd', index: 3, groupId: undefined, disabled: false },
-      'after',
-    );
+      targetItem: { value: 'd', index: 3, groupId: undefined, disabled: false },
+      edge: 'after',
+    });
 
     await waitFor(() => {
       expect(screen.getAllByRole('option').map((element) => element.textContent)).toEqual([
@@ -117,13 +100,13 @@ describe('<Listbox.DragAndDropProvider />', () => {
         defaultValue={[itemA, itemB]}
         isItemEqualToValue={(item, value) => item.id === value.id}
       >
-        <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+        <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
           <Listbox.List>
             <Listbox.Item value={itemA}>a</Listbox.Item>
             <Listbox.Item value={itemB}>b</Listbox.Item>
             <Listbox.Item value={itemC}>c</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -136,25 +119,23 @@ describe('<Listbox.DragAndDropProvider />', () => {
     drop(optionC, { clientY: 275 });
     await flushRaf();
 
-    expect(handleItemsReorder).toHaveBeenCalledWith({
-      items: [itemA, itemB],
-      referenceItem: itemC,
-      edge: 'after',
-      reason: 'drag',
-    });
+    expect(handleItemsReorder).toHaveBeenCalledWith(
+      [itemC, itemA, itemB],
+      expect.objectContaining({ reason: 'drag' }),
+    );
   });
 
-  it('uses the default canDrag behavior to block disabled items from dragging', async () => {
+  it('blocks disabled items from dragging', async () => {
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider onItemsReorder={vi.fn()}>
+        <Listbox.DragProvider onItemsReorder={vi.fn()}>
           <Listbox.List>
             <Listbox.Item value="a">a</Listbox.Item>
             <Listbox.Item value="b" disabled>
               b
             </Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -167,11 +148,11 @@ describe('<Listbox.DragAndDropProvider />', () => {
     cancel();
   });
 
-  it('allows overriding canDrag for a disabled item', async () => {
+  it('allows additionally disabling drag for an enabled item', async () => {
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider
-          canDrag={(item) => item.value === 'b'}
+        <Listbox.DragProvider
+          isItemDragDisabled={(item) => item.value === 'a'}
           onItemsReorder={vi.fn()}
         >
           <Listbox.List>
@@ -179,33 +160,32 @@ describe('<Listbox.DragAndDropProvider />', () => {
             <Listbox.Item value="b" disabled>
               b
             </Listbox.Item>
+            <Listbox.Item value="c">c</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
     const itemA = screen.getByRole('option', { name: 'a' });
     const itemB = screen.getByRole('option', { name: 'b' });
-    setItemRects([itemA, itemB]);
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects([itemA, itemB, itemC]);
 
     await lift(itemA, { expectNoDrag: true });
-    await lift(itemB);
+    await lift(itemB, { expectNoDrag: true });
+    await lift(itemC);
     cancel();
   });
 
   it('blocks all pointer drag-and-drop when the listbox is disabled', async () => {
     await render(
       <Listbox.Root disabled>
-        <Listbox.DragAndDropProvider
-          canDrag={() => true}
-          canDrop={() => true}
-          onItemsReorder={vi.fn()}
-        >
+        <Listbox.DragProvider canDrop={() => true} onItemsReorder={vi.fn()}>
           <Listbox.List>
             <Listbox.Item value="a">a</Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -221,13 +201,13 @@ describe('<Listbox.DragAndDropProvider />', () => {
 
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
+        <Listbox.DragProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
           <Listbox.List>
             <Listbox.Item value="a">a</Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
             <Listbox.Item value="c">c</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -241,11 +221,11 @@ describe('<Listbox.DragAndDropProvider />', () => {
     drop(itemC, { clientY: 275 });
     await flushRaf();
 
-    expect(handleCanDrop).toHaveBeenCalledWith(
-      [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
-      { value: 'c', index: 2, groupId: undefined, disabled: false },
-      'after',
-    );
+    expect(handleCanDrop).toHaveBeenCalledWith({
+      sourceItems: [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
+      targetItem: { value: 'c', index: 2, groupId: undefined, disabled: false },
+      edge: 'after',
+    });
     expect(handleItemsReorder).not.toHaveBeenCalled();
   });
 
@@ -254,13 +234,13 @@ describe('<Listbox.DragAndDropProvider />', () => {
 
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+        <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
           <Listbox.List>
             <Listbox.Item value="a">a</Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
             <Listbox.Item value="c">c</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -280,7 +260,7 @@ describe('<Listbox.DragAndDropProvider />', () => {
 
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+        <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
           <Listbox.List>
             <Listbox.Item value="a">
               a
@@ -288,7 +268,7 @@ describe('<Listbox.DragAndDropProvider />', () => {
             </Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 
@@ -302,11 +282,151 @@ describe('<Listbox.DragAndDropProvider />', () => {
     drop(itemB, { clientY: 175 });
     await flushRaf();
 
-    expect(handleItemsReorder).toHaveBeenCalledWith({
-      items: ['a'],
-      referenceItem: 'b',
-      edge: 'after',
-      reason: 'drag',
+    expect(handleItemsReorder).toHaveBeenCalledWith(
+      ['b', 'a'],
+      expect.objectContaining({ reason: 'drag' }),
+    );
+  });
+
+  it('keeps the live order when the moved source is under the release point', async () => {
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+
+      return (
+        <Listbox.Root>
+          <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(itemA, { clientY: 50 });
+    await dragEnter(itemC, { clientY: 275 });
+    await dragOver(itemC, { clientY: 275 });
+    await flushRaf();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'b',
+        'c',
+        'a',
+      ]);
+    });
+
+    // Reordering the DOM puts the dragged row where the target used to be. It must remain a valid
+    // terminal target rather than turning the release into a canceled drag and rolling back.
+    drop(itemA, { clientY: 275 });
+    await flushRaf();
+
+    expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual(['b', 'c', 'a']);
+  });
+
+  it.skipIf(isJSDOM)('publishes displacement after the reordered items commit', async () => {
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+
+      return (
+        <Listbox.Root>
+          <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item} style={{ height: 40 }}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    const displacedValues: string[] = [];
+    const observer = new MutationObserver(() => {
+      if (itemB.hasAttribute('data-displacing')) {
+        displacedValues.push(itemB.style.getPropertyValue('--drag-displacement-y'));
+      }
+    });
+    observer.observe(itemB, { attributes: true });
+
+    const sourceRect = itemA.getBoundingClientRect();
+    const targetRect = itemC.getBoundingClientRect();
+    await lift(itemA, { clientY: sourceRect.top + sourceRect.height / 2 });
+    await dragEnter(itemC, { clientY: targetRect.bottom - 1 });
+    await dragOver(itemC, { clientY: targetRect.bottom - 1 });
+    await flushRaf();
+
+    await waitFor(() => {
+      expect(displacedValues).toContain('40px');
+    });
+
+    observer.disconnect();
+    cancel(itemA);
+  });
+
+  it('restores the exact initial order when a live multi-item drag is canceled', async () => {
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
+
+      return (
+        <Listbox.Root selectionMode="multiple" defaultValue={['a', 'c']}>
+          <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemD = screen.getByRole('option', { name: 'd' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(itemA, { clientY: 50 });
+    await dragEnter(itemD, { clientY: 375 });
+    await dragOver(itemD, { clientY: 375 });
+    await flushRaf();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'b',
+        'd',
+        'a',
+        'c',
+      ]);
+    });
+
+    cancel(itemA);
+    await flushRaf();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'a',
+        'b',
+        'c',
+        'd',
+      ]);
     });
   });
 });

@@ -2,14 +2,14 @@
 import * as React from 'react';
 import type { BaseUIComponentProps } from '../../internals/types';
 import { useRenderElement } from '../../internals/useRenderElement';
-import { useListboxDragAndDropProviderContext } from '../drag-and-drop-provider/ListboxDragAndDropProviderContext';
+import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
 import { useListboxItemContext } from '../item/ListboxItemContext';
 
 /**
  * A drag handle within a listbox item for initiating drag-and-drop reordering.
  * Renders a `<div>` element.
  *
- * When placed inside a `Listbox.Item` within `Listbox.DragAndDropProvider`,
+ * When placed inside a `Listbox.Item` within `Listbox.DragProvider`,
  * the drag operation will be restricted to start only from this handle
  * whenever the provider allows dragging for that item.
  *
@@ -21,17 +21,15 @@ export const ListboxItemDragHandle = React.forwardRef(function ListboxItemDragHa
 ) {
   const { className, render, style, ...elementProps } = componentProps;
   const { dragItemId } = useListboxItemContext();
-  const dragAndDropContext = useListboxDragAndDropProviderContext(true);
+  const dragContext = useListboxDragProviderContext(true);
   const cleanupRef = React.useRef<(() => void) | undefined>(undefined);
   const handleRef = React.useCallback(
     (element: HTMLElement | null) => {
       cleanupRef.current?.();
       cleanupRef.current =
-        element && dragAndDropContext
-          ? dragAndDropContext.setupHandle(dragItemId, element)
-          : undefined;
+        element && dragContext ? dragContext.setupHandle(dragItemId, element) : undefined;
     },
-    [dragAndDropContext, dragItemId],
+    [dragContext, dragItemId],
   );
 
   return useRenderElement('div', componentProps, {

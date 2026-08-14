@@ -25,7 +25,7 @@ import { Listbox } from '@base-ui/react/listbox';
 
 <Listbox.Root>
   <Listbox.Label />
-  <Listbox.DragAndDropProvider>
+  <Listbox.DragProvider>
     <Listbox.List>
       <Listbox.Item>
         <Listbox.ItemIndicator />
@@ -37,7 +37,8 @@ import { Listbox } from '@base-ui/react/listbox';
       </Listbox.Group>
       <Listbox.LoadingTrigger />
     </Listbox.List>
-  </Listbox.DragAndDropProvider>
+    <Listbox.DragPreview />
+  </Listbox.DragProvider>
 </Listbox.Root>;
 ```
 
@@ -65,8 +66,8 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 
 ### Drag and drop
 
-Wrap reorderable content in `Listbox.DragAndDropProvider` and provide `onItemsReorder` on the provider.
-Use the provider's `canDrag` and `canDrop` predicates to control which items can be dragged or dropped, and use `Listbox.ItemDragHandle` to restrict drag initiation to a handle.
+Wrap reorderable content in `Listbox.DragProvider` and render the complete value order passed to `onItemsReorder`.
+The whole item is draggable by default. Add `Listbox.ItemDragHandle` to restrict pointer pickup to a handle, use `isItemDragDisabled` to disable pickup for specific items, and use `canDrop` to control their valid targets.
 Items can also be reordered with the keyboard using <kbd>Alt</kbd> + Arrow keys.
 
 Use `canDrop` to constrain reordering within a `Listbox.Group` or apply other custom drop rules.
@@ -75,12 +76,21 @@ In `multiple` or `explicit-multiple` mode, dragging a selected item moves all se
 
 import { DemoListboxDragAndDrop } from './demos/drag-and-drop';
 import { DemoListboxDragWithinGroups } from './demos/drag-within-groups';
+import { DemoListboxLiveReorderDnd } from './demos/live-reorder-dnd';
 
 <DemoListboxDragAndDrop />
 
+### Live reorder
+
+Add `updateOn="drag"` to reorder items as the pointer moves. A canceled or invalid drag restores the original order. `trackDisplacement` defaults to `true` in this mode, exposing `data-displacing`, `data-starting-style`, `--drag-displacement-x`, and `--drag-displacement-y` for transition styling.
+
+This example also omits `Listbox.ItemDragHandle`, so the full item starts the drag. The drag engine's default preview clones the row, avoiding duplicate preview markup when the preview should match the source.
+
+<DemoListboxLiveReorderDnd />
+
 ### Drag within groups
 
-Pass `canDrop` to `Listbox.DragAndDropProvider` to keep reordering inside the current `Listbox.Group`. This example only accepts drops when every dragged item belongs to the same group as the target item.
+Pass `canDrop` to `Listbox.DragProvider` to keep reordering inside the current `Listbox.Group`. This example only accepts drops when every dragged item belongs to the same group as the target item.
 
 The same `canDrop` callback can also enforce other drop target rules, such as preventing drops around locked items or only allowing certain item types to be reordered next to each other. Because it receives the dragged items, the target item, and the drop edge, you can use it to express custom placement logic in one place.
 
@@ -110,9 +120,13 @@ import { TypesListbox } from './types';
 
 <TypesListbox.List />
 
-### DragAndDropProvider
+### DragProvider
 
-<TypesListbox.DragAndDropProvider />
+<TypesListbox.DragProvider />
+
+### DragPreview
+
+<TypesListbox.DragPreview />
 
 ### Item
 

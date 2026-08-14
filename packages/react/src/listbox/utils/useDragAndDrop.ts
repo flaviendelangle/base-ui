@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
-import { useListboxDragAndDropProviderContext } from '../drag-and-drop-provider/ListboxDragAndDropProviderContext';
+import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
 
 /**
  * Parameters for {@link useDragAndDrop}.
@@ -25,7 +25,7 @@ export interface UseDragAndDropParameters {
 }
 
 /**
- * Wires a listbox item into `Listbox.DragAndDropProvider`.
+ * Wires a listbox item into `Listbox.DragProvider`.
  *
  * @param params Configuration for the current draggable item.
  * @returns The stable identifier used by the collection drag engine.
@@ -35,16 +35,23 @@ export function useDragAndDrop(params: UseDragAndDropParameters): string {
 
   const itemId = React.useId();
   const item = useValueAsRef({ value: itemValue, index, groupId, disabled });
-  const dragAndDropContext = useListboxDragAndDropProviderContext(true);
+  const dragContext = useListboxDragProviderContext(true);
 
   useIsoLayoutEffect(() => {
     const element = itemRef.current;
-    if (!dragAndDropContext || !element || !enabled || index === -1) {
+    if (!dragContext || !element || !enabled || index === -1) {
       return undefined;
     }
 
-    return dragAndDropContext.setupItem(itemId, element, item);
-  }, [dragAndDropContext, enabled, index, itemId, item, itemRef]);
+    return dragContext.setupItem(itemId, element, item);
+  }, [dragContext, enabled, index, itemId, item, itemRef]);
+
+  useIsoLayoutEffect(() => {
+    const element = itemRef.current;
+    if (dragContext && element && enabled) {
+      dragContext.scheduleDisplacementSweep(element);
+    }
+  });
 
   return itemId;
 }

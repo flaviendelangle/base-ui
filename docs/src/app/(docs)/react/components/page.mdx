@@ -1103,13 +1103,15 @@ An always-visible list for selecting one or more options.
     - Selection modes
     - Lazy loading
     - Drag and drop
+    - Live reorder
     - Drag within groups
     - Custom keyboard shortcuts
   - API reference
     - Root
     - Label
     - List
-    - DragAndDropProvider
+    - DragProvider
+    - DragPreview
     - Item
     - ItemText
     - ItemIndicator
@@ -1125,7 +1127,8 @@ An always-visible list for selecting one or more options.
     - Data Attributes: data-disabled, data-orientation
   - Listbox - Item
     - Props: children, className, disabled, label, nativeButton, render, style, value
-    - Data Attributes: data-disabled, data-drag-over, data-dragging, data-drop-position, data-highlighted, data-selected
+    - Data Attributes: data-disabled, data-displacing, data-drag-over, data-dragging, data-drop-position, data-highlighted, data-selected, data-starting-style
+    - CSS Variables: --drag-displacement-x, --drag-displacement-y
   - Listbox - Group
     - Props: className, render, style
   - Listbox - GroupLabel
@@ -1136,13 +1139,15 @@ An always-visible list for selecting one or more options.
     - Props: className, render, style
   - Listbox - ItemIndicator
     - Props: children, className, keepMounted, render, style
-  - Listbox - DragAndDropProvider
-    - Props: canDrag, canDrop, children, onItemsReorder
+  - Listbox - DragPreview
+    - Props: children, className, container, disabled, modifiers, offset, render, style
+  - Listbox - DragProvider
+    - Props: canDrop, children, isItemDragDisabled, onItemsReorder, trackDisplacement, updateOn
   - Listbox - ItemDragHandle
     - Props: className, render, style
   - Listbox - LoadingTrigger
     - Props: className, keepMounted, render, style
-- Types: Listbox.DragAndDropProvider.Props, Listbox.DragAndDropProvider.State, Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemDragHandle.Props, Listbox.ItemDragHandle.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State
+- Types: Listbox.DragPreview.Props, Listbox.DragPreview.State, Listbox.DragProvider.CanDropParameters, Listbox.DragProvider.ItemsReorderEventDetails, Listbox.DragProvider.Props, Listbox.DragProvider.State, Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemDragHandle.Props, Listbox.ItemDragHandle.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State
 
 </details>
 

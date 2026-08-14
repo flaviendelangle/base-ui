@@ -1250,7 +1250,7 @@ describe('<Listbox.Root />', () => {
       expect(handleValueChange.mock.calls[1][0]).toEqual(['a', 'c']);
     });
 
-    it('should not reorder with Alt+Arrow when DragAndDropProvider is not rendered', async () => {
+    it('should not reorder with Alt+Arrow when DragProvider is not rendered', async () => {
       await render(
         <Listbox.Root>
           <Listbox.List>
@@ -1277,7 +1277,7 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1285,7 +1285,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1305,12 +1305,10 @@ describe('<Listbox.Root />', () => {
       fireEvent.keyDown(itemC, { key: 'ArrowUp', altKey: true });
 
       expect(handleItemsReorder).toHaveBeenCalledTimes(1);
-      expect(handleItemsReorder.mock.calls[0][0]).toEqual({
-        items: ['c'],
-        referenceItem: 'b',
-        edge: 'before',
-        reason: 'keyboard',
-      });
+      expect(handleItemsReorder.mock.calls[0][0]).toEqual(['a', 'c', 'b']);
+      expect(handleItemsReorder.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ reason: 'keyboard', edge: 'before' }),
+      );
     });
 
     it('should not reorder a disabled item with Alt+Arrow', async () => {
@@ -1318,7 +1316,7 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1326,7 +1324,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1345,21 +1343,22 @@ describe('<Listbox.Root />', () => {
       expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
-    it('should allow overriding canDrag for a disabled item with Alt+Arrow', async () => {
+    it('should allow additionally disabling keyboard drag for an enabled item', async () => {
       const handleItemsReorder = vi.fn();
-      const handleCanDrag = vi.fn((item: { value: string }) => item.value === 'b');
+      const handleIsItemDragDisabled = vi.fn((item: { value: string }) => item.value === 'b');
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider canDrag={handleCanDrag} onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider
+            isItemDragDisabled={handleIsItemDragDisabled}
+            onItemsReorder={handleItemsReorder}
+          >
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
-              <Listbox.Item value="b" disabled>
-                b
-              </Listbox.Item>
+              <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1375,19 +1374,13 @@ describe('<Listbox.Root />', () => {
       await act(() => itemB.focus());
       fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
 
-      expect(handleCanDrag).toHaveBeenCalledWith({
+      expect(handleIsItemDragDisabled).toHaveBeenCalledWith({
         value: 'b',
         index: 1,
         groupId: undefined,
-        disabled: true,
+        disabled: false,
       });
-      expect(handleItemsReorder).toHaveBeenCalledTimes(1);
-      expect(handleItemsReorder.mock.calls[0][0]).toEqual({
-        items: ['b'],
-        referenceItem: 'c',
-        edge: 'after',
-        reason: 'keyboard',
-      });
+      expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
     it('should block keyboard reordering when canDrop returns false', async () => {
@@ -1396,13 +1389,13 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1417,11 +1410,11 @@ describe('<Listbox.Root />', () => {
       const itemB = screen.getByRole('option', { name: 'b' });
       fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
 
-      expect(handleCanDrop).toHaveBeenCalledWith(
-        [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
-        { value: 'c', index: 2, groupId: undefined, disabled: false },
-        'after',
-      );
+      expect(handleCanDrop).toHaveBeenCalledWith({
+        sourceItems: [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
+        targetItem: { value: 'c', index: 2, groupId: undefined, disabled: false },
+        edge: 'after',
+      });
       expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
@@ -1430,17 +1423,13 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root disabled>
-          <Listbox.DragAndDropProvider
-            canDrag={() => true}
-            canDrop={() => true}
-            onItemsReorder={handleItemsReorder}
-          >
+          <Listbox.DragProvider canDrop={() => true} onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1456,7 +1445,7 @@ describe('<Listbox.Root />', () => {
     it('should keep hover highlighting working after a blocked Alt+Arrow reorder', async () => {
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={vi.fn()}>
+          <Listbox.DragProvider onItemsReorder={vi.fn()}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1464,7 +1453,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1490,24 +1479,13 @@ describe('<Listbox.Root />', () => {
       function ReorderableListbox() {
         const [items, setItems] = React.useState(['a', 'b', 'c', 'd', 'e']);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
-          setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const movedItems = prev.filter((v) => movedValues.has(v));
-            const rest = prev.filter((v) => !movedValues.has(v));
-            const refIndex = rest.indexOf(event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
-          });
+        function handleReorder(items: string[]) {
+          setItems(items);
         }
 
         return (
           <Listbox.Root>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {items.map((item) => (
                   <Listbox.Item key={item} value={item}>
@@ -1515,7 +1493,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Item>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1554,24 +1532,13 @@ describe('<Listbox.Root />', () => {
       function ReorderableListbox() {
         const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
-          setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const movedItems = prev.filter((v) => movedValues.has(v));
-            const rest = prev.filter((v) => !movedValues.has(v));
-            const refIndex = rest.indexOf(event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
-          });
+        function handleReorder(items: string[]) {
+          setItems(items);
         }
 
         return (
           <Listbox.Root onHighlightChange={handleHighlightChange}>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {items.map((item) => (
                   <Listbox.Item key={item} value={item}>
@@ -1579,7 +1546,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Item>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1617,21 +1584,19 @@ describe('<Listbox.Root />', () => {
           { value: 'd', group: 'g2' },
         ]);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
+        function handleReorder(
+          order: string[],
+          details: Listbox.DragProvider.ItemsReorderEventDetails,
+        ) {
           setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const refItem = prev.find((i) => i.value === event.referenceItem)!;
-            const movedItems = prev
-              .filter((i) => movedValues.has(i.value))
-              .map((i) => ({ ...i, group: refItem.group }));
-            const rest = prev.filter((i) => !movedValues.has(i.value));
-            const refIndex = rest.findIndex((i) => i.value === event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
+            const movedValues = new Set(details.sourceItems.map((item) => item.value));
+            const targetGroup = prev.find(
+              (item) => item.value === details.targetItem?.value,
+            )?.group;
+            return order.map((value) => {
+              const item = prev.find((candidate) => candidate.value === value)!;
+              return movedValues.has(value) && targetGroup ? { ...item, group: targetGroup } : item;
+            });
           });
         }
 
@@ -1648,7 +1613,7 @@ describe('<Listbox.Root />', () => {
 
         return (
           <Listbox.Root>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {Object.entries(groups).map(([groupName, groupItems]) => (
                   <Listbox.Group key={groupName}>
@@ -1661,7 +1626,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Group>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1698,8 +1663,8 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider
-            canDrop={(sourceItems, targetItem) =>
+          <Listbox.DragProvider
+            canDrop={({ sourceItems, targetItem }) =>
               sourceItems.every((item) => item.groupId === targetItem.groupId)
             }
             onItemsReorder={handleItemsReorder}
@@ -1716,7 +1681,7 @@ describe('<Listbox.Root />', () => {
                 <Listbox.Item value="d">d</Listbox.Item>
               </Listbox.Group>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 

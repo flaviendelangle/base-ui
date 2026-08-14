@@ -6,7 +6,7 @@ export interface ListboxGroupContext {
   setLabelId: React.Dispatch<React.SetStateAction<string | undefined>>;
   /**
    * A stable identifier for the group, exposed to drag-and-drop predicates
-   * rendered within `Listbox.DragAndDropProvider`.
+   * rendered within `Listbox.DragProvider`.
    */
   groupId: string;
 }
