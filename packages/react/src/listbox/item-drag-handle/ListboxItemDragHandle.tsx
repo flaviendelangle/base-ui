@@ -27,7 +27,9 @@ export const ListboxItemDragHandle = React.forwardRef(function ListboxItemDragHa
     (element: HTMLElement | null) => {
       cleanupRef.current?.();
       cleanupRef.current =
-        element && dragContext ? dragContext.setupHandle(dragItemId, element) : undefined;
+        element && dragContext && dragItemId !== undefined
+          ? dragContext.setupHandle(dragItemId, element)
+          : undefined;
     },
     [dragContext, dragItemId],
   );

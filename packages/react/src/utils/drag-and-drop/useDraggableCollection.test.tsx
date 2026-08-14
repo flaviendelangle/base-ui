@@ -495,9 +495,11 @@ describe('useDraggableCollection', () => {
           target: { itemId: 'a', position: 'on' },
           isInternal: true,
         }),
+        expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) }),
       );
       expect(onDragEnd).toHaveBeenCalledWith(
         expect.objectContaining({ canceled: false, isInternal: true }),
+        expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) }),
       );
     });
 

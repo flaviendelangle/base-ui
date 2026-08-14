@@ -1526,6 +1526,31 @@ describe('<Listbox.Root />', () => {
       expect(document.activeElement).toBe(screen.getByRole('option', { name: 'e' }));
     });
 
+    it('should keep focus on the initiating item when a keyboard reorder is not rendered yet', async () => {
+      const handleItemsReorder = vi.fn();
+
+      await render(
+        <Listbox.Root>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
+            <Listbox.List>
+              <Listbox.Item value="a">a</Listbox.Item>
+              <Listbox.Item value="b">b</Listbox.Item>
+              <Listbox.Item value="c">c</Listbox.Item>
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>,
+      );
+
+      const itemB = screen.getByRole('option', { name: 'b' });
+      await act(() => itemB.focus());
+      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+
+      expect(handleItemsReorder.mock.calls[0][0]).toEqual(['a', 'c', 'b']);
+      await waitFor(() => {
+        expect(document.activeElement).toBe(itemB);
+      });
+    });
+
     it('should report the reordered item from onHighlightChange after keyboard reorder', async () => {
       const handleHighlightChange = vi.fn();
 

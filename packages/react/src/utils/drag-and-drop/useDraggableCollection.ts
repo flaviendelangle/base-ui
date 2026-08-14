@@ -45,6 +45,10 @@ import type {
   DragKeyboardMovement,
   DragKeyboardFinalFocusParameters,
   DragKeyboardActivation,
+  DragStartEventDetails,
+  DragEndEventDetails,
+  DragDropEventDetails,
+  DropTargetChangeEventDetails,
   DropTargetRecord,
 } from '../../types/drag';
 import type { CollectionActions, CollectionItemId } from '../../types/collection';
@@ -310,7 +314,7 @@ export class DraggableCollectionPlugin<
 
     const monitor: RegisterMonitorParameters<IncomingSourceData<TItem>> = {
       accept: this.accept,
-      onDragStart: ({ source }) => {
+      onDragStart: ({ source }, eventDetails) => {
         // Row `direction` is cached per drag; a locale switch between drags must
         // not keep resolving before/after against the old reading order.
         invalidateDirectionCache();
@@ -327,20 +331,26 @@ export class DraggableCollectionPlugin<
 
         // Only the plugin that owns the dragged items updates state and fires callbacks.
         if (this.dragOriginatedHere) {
-          this.config.onStateChange?.({
-            draggedItemIds,
-            dropTargetItemId: null,
-            dropPosition: null,
-          });
+          this.config.onStateChange?.(
+            {
+              draggedItemIds,
+              dropTargetItemId: null,
+              dropPosition: null,
+            },
+            eventDetails,
+          );
           this.hasNonInitialState = true;
-          this.config.onDragStart?.({
-            itemIds: draggedItemIds,
-            actions: this.config.getActions(),
-            source: source as DragSource<unknown>,
-          });
+          this.config.onDragStart?.(
+            {
+              itemIds: draggedItemIds,
+              actions: this.config.getActions(),
+              source: source as DragSource<unknown>,
+            },
+            eventDetails,
+          );
         }
       },
-      onDragEnd: ({ source, location, dropTarget }) => {
+      onDragEnd: ({ source, location, dropTarget }, eventDetails) => {
         const src = source.payload;
         const draggedItemIds = this.currentDraggedItemIds;
         const actualTargetData = dropTarget?.payload;
@@ -369,7 +379,7 @@ export class DraggableCollectionPlugin<
 
         const dragItems = this.currentDragItems;
         if (this.hasNonInitialState) {
-          this.config.onStateChange?.(createInitialState());
+          this.config.onStateChange?.(createInitialState(), eventDetails);
           this.hasNonInitialState = false;
         }
         this.currentDraggedItemIds = new Set();
@@ -378,15 +388,18 @@ export class DraggableCollectionPlugin<
         this.rootDropActive = false;
 
         if (draggedItemIds.size > 0 && this.dragOriginatedHere) {
-          this.config.onDragEnd?.({
-            itemIds: draggedItemIds,
-            items: dragItems,
-            isInternal,
-            canceled,
-            actions: this.config.getActions(),
-            source: source as DragSource<unknown>,
-            dropTarget: dropTarget ?? null,
-          });
+          this.config.onDragEnd?.(
+            {
+              itemIds: draggedItemIds,
+              items: dragItems,
+              isInternal,
+              canceled,
+              actions: this.config.getActions(),
+              source: source as DragSource<unknown>,
+              dropTarget: dropTarget ?? null,
+            },
+            eventDetails,
+          );
         }
 
         // Flush an a11y sweep deferred mid-drag. This dispatch runs before the
@@ -558,6 +571,7 @@ export class DraggableCollectionPlugin<
     // too, but the drop commits against `dropTargets[0]`.
     const trackDropPosition = (
       event: DropTargetEvent<'onDrag', IncomingSourceData<TItem>, DropTargetItemData>,
+      eventDetails: DropTargetChangeEventDetails,
     ) => {
       const { source, location } = event;
       if (location.current.dropTargets[0]?.element !== element) {
@@ -565,7 +579,7 @@ export class DraggableCollectionPlugin<
       }
       const { input } = location.current;
       const position = this.computeDropPosition(element, input, source.payload);
-      this.updateDropState(itemId, position);
+      this.updateDropState(itemId, position, eventDetails);
     };
 
     const itemPayload: DropTargetItemData = {
@@ -625,11 +639,11 @@ export class DraggableCollectionPlugin<
       canDrop: itemCanDrop,
       onDragEnter: trackDropPosition,
       onDrag: trackDropPosition,
-      onDragLeave: () => {
-        this.clearDropState();
+      onDragLeave: (_, eventDetails) => {
+        this.clearDropState(eventDetails);
       },
-      onDrop: ({ source, location }) => {
-        this.handleDrop(location, source as DragSource<IncomingSourceData<TItem>>);
+      onDrop: ({ source, location }, eventDetails) => {
+        this.handleDrop(location, source as DragSource<IncomingSourceData<TItem>>, eventDetails);
       },
     };
     return this.engine.registerDropTarget(element, () => {
@@ -802,16 +816,16 @@ export class DraggableCollectionPlugin<
   }
 
   setupRoot(element: HTMLElement): () => void {
-    const trackRootDrop = ({
-      source,
-      location,
-    }: DropTargetEvent<'onDrag', IncomingSourceData<TItem>>) => {
+    const trackRootDrop = (
+      { source, location }: DropTargetEvent<'onDrag', IncomingSourceData<TItem>>,
+      eventDetails: DropTargetChangeEventDetails,
+    ) => {
       if (location.current.dropTargets[0]?.element !== element) {
         return;
       }
       if (this.isPointInDraggedFootprint(source.payload, location.current.input)) {
         if (this.rootDropActive || this.lastDropTargetItemId != null) {
-          this.clearDropState();
+          this.clearDropState(eventDetails);
         }
         return;
       }
@@ -824,11 +838,14 @@ export class DraggableCollectionPlugin<
         return;
       }
       this.rootDropActive = true;
-      this.config.onStateChange?.({
-        draggedItemIds: this.currentDraggedItemIds,
-        dropTargetItemId: null,
-        dropPosition: 'root',
-      });
+      this.config.onStateChange?.(
+        {
+          draggedItemIds: this.currentDraggedItemIds,
+          dropTargetItemId: null,
+          dropPosition: 'root',
+        },
+        eventDetails,
+      );
       this.hasNonInitialState = true;
     };
 
@@ -846,12 +863,12 @@ export class DraggableCollectionPlugin<
         (this.config.onDrop != null || this.config.onRootDrop != null),
       onDragEnter: trackRootDrop,
       onDrag: trackRootDrop,
-      onDragLeave: () => {
+      onDragLeave: (_, eventDetails) => {
         if (this.rootDropActive) {
-          this.clearDropState();
+          this.clearDropState(eventDetails);
         }
       },
-      onDrop: ({ source, location }) => {
+      onDrop: ({ source, location }, eventDetails) => {
         const src = source.payload;
 
         // Ignore releases over the dragged rows.
@@ -864,14 +881,17 @@ export class DraggableCollectionPlugin<
         let committed = false;
         if (onDrop != null) {
           committed =
-            onDrop({
-              itemIds: src?.itemIds ?? new Set(),
-              items: src?.items ?? [],
-              target: { itemId: null, position: 'root' },
-              isInternal: src?.sourceInstanceId === this.instanceId,
-              source: source as DragSource<unknown>,
-              actions,
-            }) !== false;
+            onDrop(
+              {
+                itemIds: src?.itemIds ?? new Set(),
+                items: src?.items ?? [],
+                target: { itemId: null, position: 'root' },
+                isInternal: src?.sourceInstanceId === this.instanceId,
+                source: source as DragSource<unknown>,
+                actions,
+              },
+              eventDetails,
+            ) !== false;
         } else if (this.config.onRootDrop != null) {
           this.config.onRootDrop({
             itemIds: src?.itemIds ?? new Set(),
@@ -1011,7 +1031,7 @@ export class DraggableCollectionPlugin<
 
   // ---- Private helpers -----------------------------------------------------
 
-  private clearDropState() {
+  private clearDropState(eventDetails?: DropTargetChangeEventDetails) {
     // Reset drop metadata so a hovered target doesn't leak into a later drag phase.
     // Only the slot this plugin owns: leaves dispatch before enters, so on a
     // row-to-row move the entered row's plugin re-establishes ownership after.
@@ -1022,11 +1042,14 @@ export class DraggableCollectionPlugin<
     this.lastDropPosition = null;
     this.rootDropActive = false;
     if (this.hasNonInitialState) {
-      this.config.onStateChange?.({
-        draggedItemIds: this.currentDraggedItemIds,
-        dropTargetItemId: null,
-        dropPosition: null,
-      });
+      this.config.onStateChange?.(
+        {
+          draggedItemIds: this.currentDraggedItemIds,
+          dropTargetItemId: null,
+          dropPosition: null,
+        },
+        eventDetails,
+      );
       this.hasNonInitialState = true;
     }
   }
@@ -1138,7 +1161,11 @@ export class DraggableCollectionPlugin<
     }
   }
 
-  private updateDropState(targetItemId: CollectionItemId, position: DropPosition) {
+  private updateDropState(
+    targetItemId: CollectionItemId,
+    position: DropPosition,
+    eventDetails: DropTargetChangeEventDetails,
+  ) {
     // Published even when unchanged for this plugin — cheap, and it
     // re-establishes ownership when another instance's (DOM-nested) row was
     // hovered in between without this plugin's row ever leaving the stack.
@@ -1156,15 +1183,22 @@ export class DraggableCollectionPlugin<
     this.lastDropPosition = position;
     this.rootDropActive = false;
 
-    this.config.onStateChange?.({
-      draggedItemIds: this.currentDraggedItemIds,
-      dropTargetItemId: targetItemId,
-      dropPosition: position,
-    });
+    this.config.onStateChange?.(
+      {
+        draggedItemIds: this.currentDraggedItemIds,
+        dropTargetItemId: targetItemId,
+        dropPosition: position,
+      },
+      eventDetails,
+    );
     this.hasNonInitialState = true;
   }
 
-  private handleDrop(location: DragLocationHistory, source: DragSource<IncomingSourceData<TItem>>) {
+  private handleDrop(
+    location: DragLocationHistory,
+    source: DragSource<IncomingSourceData<TItem>>,
+    eventDetails: DragDropEventDetails,
+  ) {
     const src = source.payload;
     // A collection can mount mid-drag (a panel revealed while dragging): its item
     // targets register synchronously in ref callbacks, but `connect()`, which
@@ -1222,14 +1256,17 @@ export class DraggableCollectionPlugin<
     let committed: boolean;
     if (onDrop != null) {
       committed =
-        onDrop({
-          itemIds: draggedItemIds,
-          items: this.currentDragItems,
-          target: { itemId: targetItemId, position },
-          isInternal,
-          actions,
-          source,
-        }) !== false;
+        onDrop(
+          {
+            itemIds: draggedItemIds,
+            items: this.currentDragItems,
+            target: { itemId: targetItemId, position },
+            isInternal,
+            actions,
+            source,
+          },
+          eventDetails,
+        ) !== false;
     } else if (isInternal) {
       committed = this.handleInternalDrop(draggedItemIds, targetItemId, position, actions);
     } else {
@@ -1560,10 +1597,16 @@ export interface UseDraggableCollectionParameters<
   onRootDrop?: ((parameters: OnRootDropParameters<TItem, TActions>) => void) | undefined;
   /**
    * Receives the normalized item/root drop after final-coordinate resolution.
+   * The second argument contains the native release event.
    * Return `false` when no mutation committed, so focus restoration does not
    * transfer ownership to this collection.
    */
-  onDrop?: ((parameters: CollectionDropParameters<TItem, TActions>) => boolean | void) | undefined;
+  onDrop?:
+    | ((
+        parameters: CollectionDropParameters<TItem, TActions>,
+        eventDetails: DragDropEventDetails,
+      ) => boolean | void)
+    | undefined;
   /** Chooses whether the collection root participates for a source. */
   canDropRoot?: ((source: DragSource<unknown>) => boolean) | undefined;
   /** Chooses which row placements participate for internal and foreign sources. */
@@ -1614,13 +1657,20 @@ export interface UseDraggableCollectionParameters<
    */
   dragPreview?: CollectionDragPreview<TActions> | undefined;
   /**
-   * Called when a drag operation starts.
+   * Called when a drag operation starts, with the native activation event in the second argument.
    */
-  onDragStart?: ((parameters: OnDragStartParameters<TActions>) => void) | undefined;
+  onDragStart?:
+    | ((parameters: OnDragStartParameters<TActions>, eventDetails: DragStartEventDetails) => void)
+    | undefined;
   /**
-   * Called when a drag operation ends (drop or cancel).
+   * Called when a drag operation ends (drop or cancel), with its native event details.
    */
-  onDragEnd?: ((parameters: OnDragEndParameters<TItem, TActions>) => void) | undefined;
+  onDragEnd?:
+    | ((
+        parameters: OnDragEndParameters<TItem, TActions>,
+        eventDetails: DragEndEventDetails,
+      ) => void)
+    | undefined;
   /**
    * What items dragged out of this collection are, created with
    * `Draggable.createKind`. Maps directly to the engine-level `kind` on every source
@@ -1660,8 +1710,15 @@ export interface UseDraggableCollectionParameters<
    * `draggedItemIds` carries the foreign drag's ids (so "N items incoming" UIs
    * can respond); those ids are only meaningful within their source instance —
    * don't use them to mark this collection's own rows as dragged.
+   * The optional second argument carries the native event behind the transition;
+   * it is omitted for the initial mount state and when a collection joins mid-drag.
    */
-  onStateChange?: ((state: DraggableCollectionState) => void) | undefined;
+  onStateChange?:
+    | ((
+        state: DraggableCollectionState,
+        eventDetails?: DragStartEventDetails | DropTargetChangeEventDetails | DragEndEventDetails,
+      ) => void)
+    | undefined;
   /**
    * Given a set of selected item IDs being dragged, returns a pruned set
    * that removes redundant items.

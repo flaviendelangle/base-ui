@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { beforeEach, expect, vi } from 'vitest';
-import { screen, waitFor } from '@mui/internal-test-utils';
+import { act, fireEvent, screen, waitFor } from '@mui/internal-test-utils';
 import { createRenderer, isJSDOM } from '#test-utils';
 import { Listbox } from '@base-ui/react/listbox';
 import {
@@ -121,8 +121,63 @@ describe('<Listbox.DragProvider />', () => {
 
     expect(handleItemsReorder).toHaveBeenCalledWith(
       [itemC, itemA, itemB],
-      expect.objectContaining({ reason: 'drag' }),
+      expect.objectContaining({
+        reason: 'drag',
+        event: expect.any(PointerEvent),
+        sourceItems: [
+          { value: itemA, index: 0, groupId: undefined, disabled: false },
+          { value: itemB, index: 1, groupId: undefined, disabled: false },
+        ],
+        targetItem: { value: itemC, index: 2, groupId: undefined, disabled: false },
+        edge: 'after',
+      }),
     );
+    expect(handleItemsReorder.mock.calls[0][1].event.clientY).toBe(275);
+  });
+
+  it('rebases a drop reorder on items added during the drag', async () => {
+    let addItem = () => {};
+
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+      addItem = () => setItems((currentItems) => [...currentItems, 'd']);
+
+      return (
+        <Listbox.Root>
+          <Listbox.DragProvider onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(itemA, { clientY: 50 });
+    await act(async () => addItem());
+    await waitFor(() => {
+      expect(screen.getAllByRole('option')).toHaveLength(4);
+    });
+    setItemRects(screen.getAllByRole('option'));
+    await dragEnter(itemC, { clientY: 275 });
+    drop(itemC, { clientY: 275 });
+    await flushRaf();
+
+    expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+      'b',
+      'c',
+      'a',
+      'd',
+    ]);
   });
 
   it('blocks disabled items from dragging', async () => {
@@ -255,6 +310,48 @@ describe('<Listbox.DragProvider />', () => {
     expect(handleItemsReorder).not.toHaveBeenCalled();
   });
 
+  it('only rerenders the item whose drop position changes', async () => {
+    const renderItem = {
+      a: vi.fn(),
+      b: vi.fn(),
+      c: vi.fn(),
+    };
+
+    await render(
+      <Listbox.Root>
+        <Listbox.DragProvider onItemsReorder={vi.fn()}>
+          <Listbox.List>
+            {(['a', 'b', 'c'] as const).map((item) => (
+              <Listbox.Item
+                key={item}
+                value={item}
+                render={(itemProps, state) => {
+                  renderItem[item](state);
+                  return <div {...itemProps} />;
+                }}
+              >
+                {item}
+              </Listbox.Item>
+            ))}
+          </Listbox.List>
+        </Listbox.DragProvider>
+      </Listbox.Root>,
+    );
+
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+    await lift(itemA, { clientY: 50 });
+    Object.values(renderItem).forEach((renderSpy) => renderSpy.mockClear());
+
+    await dragEnter(itemC, { clientY: 275 });
+
+    expect(renderItem.a).not.toHaveBeenCalled();
+    expect(renderItem.b).not.toHaveBeenCalled();
+    expect(renderItem.c).toHaveBeenCalled();
+    cancel(itemA);
+  });
+
   it('restricts pointer pickup to ItemDragHandle when one is present', async () => {
     const handleItemsReorder = vi.fn();
 
@@ -324,6 +421,8 @@ describe('<Listbox.DragProvider />', () => {
         'a',
       ]);
     });
+    expect(itemA).toHaveAttribute('data-dragging', '');
+    expect(screen.getByRole('option', { name: 'b' })).not.toHaveAttribute('data-dragging');
 
     // Reordering the DOM puts the dragged row where the target used to be. It must remain a valid
     // terminal target rather than turning the release into a canceled drag and rolling back.
@@ -331,6 +430,143 @@ describe('<Listbox.DragProvider />', () => {
     await flushRaf();
 
     expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('rolls a live reorder back when canDrop rejects its last accepted placement at release', async () => {
+    let allowDrop = true;
+
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+
+      return (
+        <Listbox.Root>
+          <Listbox.DragProvider updateOn="drag" canDrop={() => allowDrop} onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(itemA, { clientY: 50 });
+    await dragEnter(itemC, { clientY: 275 });
+    await dragOver(itemC, { clientY: 275 });
+    await flushRaf();
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'b',
+        'c',
+        'a',
+      ]);
+    });
+
+    allowDrop = false;
+    drop(itemA, { clientY: 275 });
+    await flushRaf();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
+    });
+  });
+
+  it('does not overwrite items added after a live reorder', async () => {
+    let addItem = () => {};
+
+    function TestComponent() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+      addItem = () => setItems((currentItems) => [...currentItems, 'd']);
+
+      return (
+        <Listbox.Root>
+          <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item} value={item}>
+                  {item}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>
+      );
+    }
+
+    await render(<TestComponent />);
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects(screen.getAllByRole('option'));
+
+    await lift(itemA, { clientY: 50 });
+    await dragEnter(itemC, { clientY: 275 });
+    await dragOver(itemC, { clientY: 275 });
+    await flushRaf();
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+        'b',
+        'c',
+        'a',
+      ]);
+    });
+
+    await act(async () => addItem());
+    await waitFor(() => {
+      expect(screen.getAllByRole('option')).toHaveLength(4);
+    });
+    drop(itemA, { clientY: 275 });
+    await flushRaf();
+
+    expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
+      'b',
+      'c',
+      'a',
+      'd',
+    ]);
+  });
+
+  it('does not let focus cleanup from one drop interfere with the next drag', async () => {
+    await render(
+      <Listbox.Root>
+        <Listbox.DragProvider onItemsReorder={vi.fn()}>
+          <Listbox.List>
+            <Listbox.Item value="a">a</Listbox.Item>
+            <Listbox.Item value="b">b</Listbox.Item>
+            <Listbox.Item value="c">c</Listbox.Item>
+          </Listbox.List>
+        </Listbox.DragProvider>
+      </Listbox.Root>,
+    );
+
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    const itemC = screen.getByRole('option', { name: 'c' });
+    setItemRects([itemA, itemB, itemC]);
+
+    await lift(itemA, { clientY: 50 });
+    await dragEnter(itemC, { clientY: 275 });
+    drop(itemC, { clientY: 275 });
+
+    await act(() => itemB.focus());
+    await lift(itemB, { clientY: 150 });
+    await flushRaf();
+    await flushRaf();
+    fireEvent.mouseMove(itemC);
+
+    expect(document.activeElement).toBe(itemB);
+    cancel(itemB);
   });
 
   it.skipIf(isJSDOM)('publishes displacement after the reordered items commit', async () => {

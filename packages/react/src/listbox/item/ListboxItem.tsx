@@ -130,9 +130,6 @@ export const ListboxItem = React.memo(
     const highlighted = store.useState('isActive', listItem.index);
     const selected = store.useState('isSelected', listItem.index, itemValue);
     const isItemEqualToValue = store.useState('isItemEqualToValue');
-    const isDragging = store.useState('isDragging', listItem.index);
-    const dragOver = store.useState('isDragOver', listItem.index);
-    const dropPosition = store.useState('dropPosition');
     const {
       disabledItemsRef,
       groupIdsRef,
@@ -164,6 +161,9 @@ export const ListboxItem = React.memo(
       disabled,
       groupId,
     });
+    const isDragging = store.useState('isDragging', dragItemId);
+    const dropPosition = store.useState('dropPositionForItem', dragItemId);
+    const dragOver = dropPosition !== null;
 
     useListItemValueRegistration({
       index,
@@ -206,7 +206,7 @@ export const ListboxItem = React.memo(
       highlighted,
       dragging: isDragging,
       dragOver,
-      dropPosition: dragOver ? dropPosition : null,
+      dropPosition,
     };
 
     const lastKeyRef = React.useRef<string | null>(null);
@@ -411,7 +411,7 @@ export const ListboxItem = React.memo(
         const offsetInSelection = selectedIndices.indexOf(resolvedIndex);
         const newFirstIdx = moveUp ? firstIdx - 1 : firstIdx + 1;
         store.set('activeIndex', newFirstIdx + offsetInSelection);
-        dragContext?.restoreFocusAfterKeyboardReorder(itemValue);
+        dragContext?.restoreFocusAfterKeyboardReorder(dragItemId, itemValue, itemRef.current);
       } else {
         // Single-item reorder
         const targetIdx = moveUp ? resolvedIndex - 1 : resolvedIndex + 1;
@@ -424,7 +424,7 @@ export const ListboxItem = React.memo(
 
         // Move the highlight to follow the reordered item
         store.set('activeIndex', targetIdx);
-        dragContext?.restoreFocusAfterKeyboardReorder(itemValue);
+        dragContext?.restoreFocusAfterKeyboardReorder(dragItemId, itemValue, itemRef.current);
       }
     }
 

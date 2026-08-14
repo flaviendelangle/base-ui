@@ -356,14 +356,14 @@ Renders no DOM element of its own.
 
 **DragProvider Props:**
 
-| Prop               | Type                                                                               | Default  | Description                                                                                                                          |
-| :----------------- | :--------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
-| canDrop            | `((parameters: ListboxDragProviderCanDropParameters<Value>) => boolean)`           | -        | Returns whether the dragged items can be dropped relative to a target item.                                                          |
-| isItemDragDisabled | `((item: ListboxDragItem<Value>) => boolean)`                                      | -        | Declaratively disables drag pickup for an item without disabling its other interactions.                                             |
-| onItemsReorder     | `((items: Value[], details: ListboxDragProviderItemsReorderEventDetails) => void)` | -        | Called with all item values in their proposed visual order.&#xA;Render the items in this order synchronously when `updateOn="drag"`. |
-| trackDisplacement  | `boolean`                                                                          | -        | Enables displacement attributes and CSS variables on items. Defaults to `true` in live mode.                                         |
-| updateOn           | `ListboxDragUpdateOn`                                                              | `'drop'` | Applies reordering on release or live as the active target changes.                                                                  |
-| children           | `React.ReactNode`                                                                  | -        | The listbox content and optional preview part.                                                                                       |
+| Prop               | Type                                                                                      | Default  | Description                                                                                                                          |
+| :----------------- | :---------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+| canDrop            | `((parameters: ListboxDragProviderCanDropParameters<Value>) => boolean)`                  | -        | Returns whether the dragged items can be dropped relative to a target item.                                                          |
+| isItemDragDisabled | `((item: ListboxDragItem<Value>) => boolean)`                                             | -        | Declaratively disables drag pickup for an item without disabling its other interactions.                                             |
+| onItemsReorder     | `((items: Value[], details: ListboxDragProviderItemsReorderEventDetails<Value>) => void)` | -        | Called with all item values in their proposed visual order.&#xA;Render the items in this order synchronously when `updateOn="drag"`. |
+| trackDisplacement  | `boolean`                                                                                 | -        | Enables displacement attributes and CSS variables on items. Defaults to `true` in live mode.                                         |
+| updateOn           | `ListboxDragUpdateOn`                                                                     | `'drop'` | Applies reordering on release or live as the active target changes.                                                                  |
+| children           | `React.ReactNode`                                                                         | -        | The listbox content and optional preview part.                                                                                       |
 
 ### DragProvider.Props
 
@@ -385,10 +385,21 @@ type ListboxDragProviderCanDropParameters<Value = any> = {
 };
 ```
 
+### DragProvider.Item
+
+```typescript
+type ListboxDragProviderItem<Value = any> = {
+  value: Value;
+  index: number;
+  groupId: string | undefined;
+  disabled: boolean;
+};
+```
+
 ### DragProvider.ItemsReorderEventDetails
 
 ```typescript
-type ListboxDragProviderItemsReorderEventDetails = (
+type ListboxDragProviderItemsReorderEventDetails<Value = any> = (
   | { reason: 'keyboard'; event: KeyboardEvent }
   | { reason: 'drag'; event: PointerEvent | TouchEvent }
 ) & {
@@ -402,6 +413,19 @@ type ListboxDragProviderItemsReorderEventDetails = (
   isPropagationAllowed: boolean;
   /** The element that triggered the event, if applicable. */
   trigger: Element | undefined;
+  sourceItems: ListboxDragItem<Value>[];
+  targetItem: ListboxDragItem<Value> | null;
+  edge: ListboxDropTargetEdge | null;
+};
+```
+
+### DragProvider.ReorderChange
+
+```typescript
+type ListboxDragProviderReorderChange<Value = any> = {
+  sourceItems: ListboxDragItem<Value>[];
+  targetItem: ListboxDragItem<Value> | null;
+  edge: ListboxDropTargetEdge | null;
 };
 ```
 
@@ -501,7 +525,7 @@ type ListboxDropTargetEdge = 'before' | 'after';
 - `Listbox.ItemIndicator`: `Listbox.ItemIndicator`, `Listbox.ItemIndicator.State`, `Listbox.ItemIndicator.Props`
 - `Listbox.ItemText`: `Listbox.ItemText`, `Listbox.ItemText.State`, `Listbox.ItemText.Props`
 - `Listbox.ItemDragHandle`: `Listbox.ItemDragHandle`, `Listbox.ItemDragHandle.State`, `Listbox.ItemDragHandle.Props`
-- `Listbox.DragProvider`: `Listbox.DragProvider`, `Listbox.DragProvider.Props`, `Listbox.DragProvider.State`, `Listbox.DragProvider.CanDropParameters`, `Listbox.DragProvider.ItemsReorderEventDetails`
+- `Listbox.DragProvider`: `Listbox.DragProvider`, `Listbox.DragProvider.Props`, `Listbox.DragProvider.State`, `Listbox.DragProvider.Item`, `Listbox.DragProvider.ReorderChange`, `Listbox.DragProvider.CanDropParameters`, `Listbox.DragProvider.ItemsReorderEventDetails`
 - `Listbox.DragPreview`: `Listbox.DragPreview`, `Listbox.DragPreview.State`, `Listbox.DragPreview.Props`
 - `Listbox.Group`: `Listbox.Group`, `Listbox.Group.State`, `Listbox.Group.Props`
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`

@@ -40,7 +40,11 @@ export interface ListboxDragProviderContext {
     | undefined;
   isItemDragDisabled: (item: ListboxDragItem) => boolean;
   canDrop: (parameters: ListboxDragProviderCanDropParameters) => boolean;
-  restoreFocusAfterKeyboardReorder: (itemValue: any) => void;
+  restoreFocusAfterKeyboardReorder: (
+    itemId: CollectionItemId | undefined,
+    itemValue: any,
+    element: HTMLElement | null,
+  ) => void;
   setupItem: (
     itemId: CollectionItemId,
     element: HTMLElement,

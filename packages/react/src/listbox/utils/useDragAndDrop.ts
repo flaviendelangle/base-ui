@@ -1,7 +1,9 @@
 'use client';
 import * as React from 'react';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import { useId } from '@base-ui/utils/useId';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
+import type { CollectionItemId } from '../../types/collection';
 import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
 
 /**
@@ -30,25 +32,25 @@ export interface UseDragAndDropParameters {
  * @param params Configuration for the current draggable item.
  * @returns The stable identifier used by the collection drag engine.
  */
-export function useDragAndDrop(params: UseDragAndDropParameters): string {
+export function useDragAndDrop(params: UseDragAndDropParameters): CollectionItemId | undefined {
   const { index, itemValue, itemRef, enabled, disabled, groupId } = params;
 
-  const itemId = React.useId();
+  const itemId = useId();
   const item = useValueAsRef({ value: itemValue, index, groupId, disabled });
   const dragContext = useListboxDragProviderContext(true);
 
   useIsoLayoutEffect(() => {
     const element = itemRef.current;
-    if (!dragContext || !element || !enabled || index === -1) {
+    if (!dragContext || itemId === undefined || !element || !enabled) {
       return undefined;
     }
 
     return dragContext.setupItem(itemId, element, item);
-  }, [dragContext, enabled, index, itemId, item, itemRef]);
+  }, [dragContext, enabled, itemId, item, itemRef]);
 
   useIsoLayoutEffect(() => {
     const element = itemRef.current;
-    if (dragContext && element && enabled) {
+    if (dragContext && itemId !== undefined && element && enabled) {
       dragContext.scheduleDisplacementSweep(element);
     }
   });

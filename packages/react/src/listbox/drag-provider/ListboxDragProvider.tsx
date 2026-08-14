@@ -8,8 +8,13 @@ import { warn } from '@base-ui/utils/warn';
 import { DraggablePreviewProvider } from '../../draggable/preview-provider/DraggablePreviewProvider';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails';
 import { REASONS } from '../../internals/reasons';
-import { findItemIndex } from '../../internals/itemEquality';
 import type { CollectionActions, CollectionItemId } from '../../types/collection';
+import type {
+  DragDropEventDetails,
+  DragEndEventDetails,
+  DragStartEventDetails,
+  DropTargetChangeEventDetails,
+} from '../../types/drag';
 import {
   useDraggableCollection,
   type CollectionDragPreview,
@@ -23,6 +28,7 @@ import {
   type ListboxDragItem,
   type ListboxDragProviderCanDropParameters,
   type ListboxDragProviderItemsReorderEventDetails,
+  type ListboxDragProviderReorderChange,
   type ListboxDropTargetEdge,
   type RegisteredListboxDragItem,
 } from './ListboxDragProviderContext';
@@ -44,6 +50,8 @@ interface LiveReorderTransaction<Value> {
   changed: boolean;
   committed: boolean;
   stale: boolean;
+  lastTargetItemId: CollectionItemId | null;
+  lastEdge: ListboxDropTargetEdge | null;
 }
 
 function hasSameOrder(a: readonly CollectionItemId[], b: readonly CollectionItemId[]) {
@@ -71,6 +79,24 @@ function createReorderProposal<Value>(
   const insertionIndex = edge === 'after' ? targetIndex + 1 : targetIndex;
   remainingItems.splice(insertionIndex, 0, ...draggedItems);
   return remainingItems;
+}
+
+function getOrderedItemsByIds<Value>(
+  itemIds: readonly CollectionItemId[],
+  items: readonly OrderedItem<Value>[],
+): OrderedItem<Value>[] | null {
+  const itemsById = new Map(items.map((item) => [item.id, item]));
+  const orderedItems: OrderedItem<Value>[] = [];
+
+  for (const itemId of itemIds) {
+    const item = itemsById.get(itemId);
+    if (!item) {
+      return null;
+    }
+    orderedItems.push(item);
+  }
+
+  return orderedItems.length === items.length ? orderedItems : null;
 }
 
 /**
@@ -124,6 +150,8 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   const keyboardFocusTimeout = useTimeout();
   const { labelsRef, pointerMoveSuppressedRef } = store.context;
   const draggedItemIdRef = React.useRef<CollectionItemId | null>(null);
+  const dragEventRef = React.useRef<PointerEvent | TouchEvent | null>(null);
+  const dragSessionRef = React.useRef(0);
   const transactionRef = React.useRef<LiveReorderTransaction<Value> | null>(null);
   const registeredItems = useRefWithInit(
     () => new Map<CollectionItemId, RegisteredListboxDragItem<Value>>(),
@@ -152,7 +180,7 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   });
 
   const handleItemsReorder = useStableCallback(
-    (items: Value[], details: ListboxDragProviderItemsReorderEventDetails) => {
+    (items: Value[], details: ListboxDragProviderItemsReorderEventDetails<Value>) => {
       onItemsReorder?.(items, details);
       return !details.isCanceled;
     },
@@ -237,14 +265,14 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   const notifyReorder = useStableCallback(
     (
       proposal: readonly OrderedItem<Value>[],
-      reason: typeof REASONS.drag | typeof REASONS.keyboard,
+      event: PointerEvent | TouchEvent,
       change: {
         sourceItems: ListboxDragItem<Value>[];
         targetItem: ListboxDragItem<Value> | null;
         edge: ListboxDropTargetEdge | null;
       },
     ) => {
-      const details = createChangeEventDetails(reason, undefined, undefined, change);
+      const details = createChangeEventDetails(REASONS.drag, event, undefined, change);
       const accepted = handleItemsReorder(
         proposal.map(({ item }) => item.value),
         details,
@@ -258,9 +286,20 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       transaction: LiveReorderTransaction<Value>,
       targetItemId: CollectionItemId,
       edge: ListboxDropTargetEdge,
+      event: PointerEvent | TouchEvent,
     ) => {
+      const currentItems = getOrderedItems();
+      const proposalSnapshot = getOrderedItemsByIds(
+        transaction.snapshot.map(({ id }) => id),
+        currentItems,
+      );
+      if (proposalSnapshot == null) {
+        transaction.stale = true;
+        return false;
+      }
+
       const proposal = createReorderProposal(
-        transaction.snapshot,
+        proposalSnapshot,
         transaction.draggedItemIds,
         targetItemId,
         edge,
@@ -271,22 +310,23 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
 
       const proposalIds = proposal.map(({ id }) => id);
       if (hasSameOrder(proposalIds, transaction.expectedItemIds)) {
+        transaction.lastTargetItemId = targetItemId;
+        transaction.lastEdge = edge;
         return true;
       }
 
-      const sourceItems = transaction.snapshot
+      const sourceItems = currentItems
         .filter(({ id }) => transaction.draggedItemIds.has(id))
         .map(({ item }) => item);
       const targetItem = getItem(targetItemId);
-      if (
-        !targetItem ||
-        !notifyReorder(proposal, REASONS.drag, { sourceItems, targetItem, edge })
-      ) {
+      if (!targetItem || !notifyReorder(proposal, event, { sourceItems, targetItem, edge })) {
         return false;
       }
 
       transaction.expectedItemIds = proposalIds;
       transaction.changed = true;
+      transaction.lastTargetItemId = targetItemId;
+      transaction.lastEdge = edge;
       controlledCommitFrame.request(() => {
         if (transactionRef.current !== transaction) {
           return;
@@ -304,56 +344,70 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
     },
   );
 
-  const handleStateChange = useStableCallback((dndState: DraggableCollectionState) => {
-    const dragActiveIndices: number[] = [];
-    for (const itemId of dndState.draggedItemIds) {
-      const item = getItem(itemId);
-      if (item) {
-        dragActiveIndices.push(item.index);
-      }
-    }
-
-    const dragOverItem =
-      dndState.dropTargetItemId == null ? undefined : getItem(dndState.dropTargetItemId);
-    const dropPosition =
-      dndState.dropPosition === 'before' || dndState.dropPosition === 'after'
-        ? dndState.dropPosition
-        : null;
-
-    store.update({
-      dragActiveIndices: dragActiveIndices.length === 0 ? null : dragActiveIndices,
-      dragOverIndex: dragOverItem?.index ?? null,
-      dropPosition,
-    });
-
-    if (
-      updateOn !== 'drag' ||
-      dndState.dropTargetItemId == null ||
-      dropPosition == null ||
-      dndState.draggedItemIds.size === 0
-    ) {
-      liveReorderFrame.cancel();
-      return;
-    }
-
-    liveReorderFrame.request(() => {
-      const transaction = transactionRef.current;
-      if (transaction == null || transaction.stale) {
-        return;
-      }
-
-      const currentItemIds = getOrderedItems().map(({ id }) => id);
-      if (!hasSameOrder(currentItemIds, transaction.expectedItemIds)) {
-        const snapshotIds = transaction.snapshot.map(({ id }) => id);
-        if (!hasSameOrder(currentItemIds, snapshotIds)) {
-          transaction.stale = true;
+  const handleStateChange = useStableCallback(
+    (
+      dndState: DraggableCollectionState,
+      eventDetails?: DragStartEventDetails | DropTargetChangeEventDetails | DragEndEventDetails,
+    ) => {
+      const dragActiveItemIds = new Set<CollectionItemId>();
+      for (const itemId of dndState.draggedItemIds) {
+        if (registeredItems.has(itemId)) {
+          dragActiveItemIds.add(itemId);
         }
+      }
+
+      const dragOverItemId =
+        dndState.dropTargetItemId != null && registeredItems.has(dndState.dropTargetItemId)
+          ? dndState.dropTargetItemId
+          : null;
+      const dropPosition =
+        dndState.dropPosition === 'before' || dndState.dropPosition === 'after'
+          ? dndState.dropPosition
+          : null;
+
+      store.update({
+        dragActiveItemIds: dragActiveItemIds.size === 0 ? null : dragActiveItemIds,
+        dragOverItemId,
+        dropPosition,
+      });
+
+      if (
+        updateOn !== 'drag' ||
+        dndState.dropTargetItemId == null ||
+        dropPosition == null ||
+        dndState.draggedItemIds.size === 0
+      ) {
+        liveReorderFrame.cancel();
         return;
       }
 
-      applyLiveProposal(transaction, dndState.dropTargetItemId!, dropPosition);
-    });
-  });
+      if (eventDetails?.reason === 'pointer') {
+        dragEventRef.current = eventDetails.event;
+      }
+      const dragEvent = dragEventRef.current;
+      if (dragEvent == null) {
+        return;
+      }
+
+      liveReorderFrame.request(() => {
+        const transaction = transactionRef.current;
+        if (transaction == null || transaction.stale) {
+          return;
+        }
+
+        const currentItemIds = getOrderedItems().map(({ id }) => id);
+        if (!hasSameOrder(currentItemIds, transaction.expectedItemIds)) {
+          const snapshotIds = transaction.snapshot.map(({ id }) => id);
+          if (!hasSameOrder(currentItemIds, snapshotIds)) {
+            transaction.stale = true;
+          }
+          return;
+        }
+
+        applyLiveProposal(transaction, dndState.dropTargetItemId!, dropPosition, dragEvent);
+      });
+    },
+  );
 
   const dragAndDrop = useDraggableCollection<
     ListboxDragItem<Value>,
@@ -375,27 +429,64 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
     canDropRoot: () => false,
     allowDropOnDraggedItems: updateOn === 'drag',
     getDropCapabilities: () => ({ hasOn: false, hasBeforeAfter: true }),
-    onDrop: ({ itemIds, target, isInternal }) => {
+    onDrop: ({ itemIds, target, isInternal }, eventDetails: DragDropEventDetails) => {
       if (!isInternal || !onItemsReorder || target.itemId == null || target.position === 'on') {
         return false;
       }
 
       liveReorderFrame.cancel();
+      // Listbox disables collection keyboard activation, so a committed drop always comes from
+      // the pointer sensor even though the generic collection event also supports keyboard drops.
+      const dragEvent = eventDetails.event as PointerEvent;
+      dragEventRef.current = dragEvent;
       const transaction = transactionRef.current;
+      if (updateOn === 'drag' && transaction?.stale) {
+        return false;
+      }
+      const currentItems = getOrderedItems();
+      const draggedItemIds = transaction?.draggedItemIds ?? itemIds;
       if (
         updateOn === 'drag' &&
         transaction != null &&
         transaction.draggedItemIds.has(target.itemId)
       ) {
-        const currentItemIds = getOrderedItems().map(({ id }) => id);
-        transaction.committed = hasSameOrder(currentItemIds, transaction.expectedItemIds);
+        const sourceItems = currentItems
+          .filter(({ id }) => transaction.draggedItemIds.has(id))
+          .map(({ item }) => item);
+        const lastTargetItem =
+          transaction.lastTargetItemId == null ? undefined : getItem(transaction.lastTargetItemId);
+        const dropAllowed =
+          lastTargetItem != null &&
+          transaction.lastEdge != null &&
+          handleCanDrop({
+            sourceItems,
+            targetItem: lastTargetItem,
+            edge: transaction.lastEdge,
+          });
+        transaction.committed =
+          dropAllowed &&
+          hasSameOrder(
+            currentItems.map(({ id }) => id),
+            transaction.expectedItemIds,
+          );
         return transaction.committed;
       }
 
-      const snapshot = transaction?.snapshot ?? getOrderedItems();
-      const draggedItemIds = transaction?.draggedItemIds ?? itemIds;
+      const proposalSnapshot =
+        updateOn === 'drag' && transaction != null
+          ? getOrderedItemsByIds(
+              transaction.snapshot.map(({ id }) => id),
+              currentItems,
+            )
+          : currentItems;
+      if (proposalSnapshot == null) {
+        if (transaction) {
+          transaction.stale = true;
+        }
+        return false;
+      }
       const proposal = createReorderProposal(
-        snapshot,
+        proposalSnapshot,
         draggedItemIds,
         target.itemId,
         target.position,
@@ -405,16 +496,16 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       }
 
       const proposalIds = proposal.map(({ id }) => id);
-      const currentItemIds = getOrderedItems().map(({ id }) => id);
+      const currentItemIds = currentItems.map(({ id }) => id);
       const alreadyApplied = hasSameOrder(proposalIds, currentItemIds);
-      const sourceItems = snapshot
+      const sourceItems = currentItems
         .filter(({ id }) => draggedItemIds.has(id))
         .map(({ item }) => item);
       const targetItem = getItem(target.itemId);
       const committed =
         alreadyApplied ||
         (targetItem != null &&
-          notifyReorder(proposal, REASONS.drag, {
+          notifyReorder(proposal, dragEvent, {
             sourceItems,
             targetItem,
             edge: target.position,
@@ -433,7 +524,12 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       return committed;
     },
     onStateChange: handleStateChange,
-    onDragStart: ({ itemIds, source }) => {
+    onDragStart: ({ itemIds, source }, eventDetails: DragStartEventDetails) => {
+      dropHighlightTimeout.clear();
+      dropHighlightFrame.cancel();
+      dragSessionRef.current += 1;
+      // `keyboardActivation="off"` makes this event a PointerEvent at runtime.
+      dragEventRef.current = eventDetails.event as PointerEvent;
       const payload = source.payload;
       draggedItemIdRef.current =
         typeof payload === 'object' &&
@@ -450,6 +546,8 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
         changed: false,
         committed: false,
         stale: false,
+        lastTargetItemId: null,
+        lastEdge: null,
       };
       pointerMoveSuppressedRef.current = true;
     },
@@ -464,33 +562,41 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
         transaction.changed &&
         (canceled || !transaction.committed)
       ) {
-        const currentItemIds = getOrderedItems().map(({ id }) => id);
+        const currentItems = getOrderedItems();
+        const currentItemIds = currentItems.map(({ id }) => id);
         const snapshotIds = transaction.snapshot.map(({ id }) => id);
         if (!hasSameOrder(currentItemIds, snapshotIds)) {
-          const sourceItems = transaction.snapshot
+          const rollbackProposal = getOrderedItemsByIds(snapshotIds, currentItems);
+          const sourceItems = currentItems
             .filter(({ id }) => transaction.draggedItemIds.has(id))
             .map(({ item }) => item);
-          notifyReorder(transaction.snapshot, REASONS.drag, {
-            sourceItems,
-            targetItem: null,
-            edge: null,
-          });
+          if (rollbackProposal && dragEventRef.current) {
+            notifyReorder(rollbackProposal, dragEventRef.current, {
+              sourceItems,
+              targetItem: null,
+              edge: null,
+            });
+          }
         }
       }
       transactionRef.current = null;
 
+      const endedDragItemId = draggedItemIdRef.current;
+      const endedDragSession = dragSessionRef.current;
+      draggedItemIdRef.current = null;
       afterDomSettle(dropHighlightTimeout, dropHighlightFrame, () => {
-        const draggedItem =
-          draggedItemIdRef.current == null ? undefined : getItem(draggedItemIdRef.current);
-        if (draggedItem) {
-          const target =
-            store.state.listElement?.querySelectorAll<HTMLElement>('[role="option"]')[
-              draggedItem.index
-            ];
-          target?.focus();
-          store.set('activeIndex', draggedItem.index);
+        if (dragSessionRef.current !== endedDragSession) {
+          return;
         }
-        draggedItemIdRef.current = null;
+        const target =
+          endedDragItemId == null ? undefined : registeredItemElements.get(endedDragItemId);
+        const options = store.state.listElement?.querySelectorAll<HTMLElement>('[role="option"]');
+        const targetIndex = target && options ? Array.prototype.indexOf.call(options, target) : -1;
+        if (target && targetIndex >= 0) {
+          target.focus();
+          store.set('activeIndex', targetIndex);
+        }
+        dragEventRef.current = null;
         pointerMoveSuppressedRef.current = false;
       });
     },
@@ -526,28 +632,43 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
     dragAndDrop.scheduleDisplacementSweep(element),
   );
 
-  const restoreFocusAfterKeyboardReorder = useStableCallback((itemValue: Value) => {
-    keyboardFocusTimeout.start(0, () => {
-      const listElement = store.state.listElement;
-      if (!listElement) {
-        pointerMoveSuppressedRef.current = false;
-        return;
-      }
+  const restoreFocusAfterKeyboardReorder = useStableCallback(
+    (
+      itemId: CollectionItemId | undefined,
+      itemValue: Value,
+      initiatingElement: HTMLElement | null,
+    ) => {
+      keyboardFocusTimeout.start(0, () => {
+        const listElement = store.state.listElement;
+        if (!listElement) {
+          pointerMoveSuppressedRef.current = false;
+          return;
+        }
 
-      const itemIndex = findItemIndex(
-        store.context.valuesRef.current,
-        itemValue,
-        store.state.isItemEqualToValue,
-      );
-      const itemElement = listElement.querySelectorAll<HTMLElement>('[role="option"]')[itemIndex];
-      if (itemElement) {
-        store.set('activeIndex', itemIndex);
-        itemElement.focus();
-        itemElement.scrollIntoView?.({ block: 'nearest' });
-      }
-      pointerMoveSuppressedRef.current = false;
-    });
-  });
+        let itemElement = itemId === undefined ? undefined : registeredItemElements.get(itemId);
+        if (!itemElement?.isConnected && initiatingElement?.isConnected) {
+          itemElement = initiatingElement;
+        }
+        if (!itemElement?.isConnected) {
+          for (const [registeredItemId, itemRef] of registeredItems) {
+            if (store.state.isItemEqualToValue(itemRef.next.value, itemValue)) {
+              itemElement = registeredItemElements.get(registeredItemId);
+              break;
+            }
+          }
+        }
+
+        const options = listElement.querySelectorAll<HTMLElement>('[role="option"]');
+        const itemIndex = itemElement ? Array.prototype.indexOf.call(options, itemElement) : -1;
+        if (itemElement && itemIndex >= 0) {
+          store.set('activeIndex', itemIndex);
+          itemElement.focus();
+          itemElement.scrollIntoView?.({ block: 'nearest' });
+        }
+        pointerMoveSuppressedRef.current = false;
+      });
+    },
+  );
 
   const itemsReorderEnabled = onItemsReorder != null;
   const contextValue = React.useMemo(
@@ -589,7 +710,7 @@ export interface ListboxDragProviderProps<Value = any> {
    * Render the items in this order synchronously when `updateOn="drag"`.
    */
   onItemsReorder?:
-    | ((items: Value[], details: ListboxDragProviderItemsReorderEventDetails) => void)
+    | ((items: Value[], details: ListboxDragProviderItemsReorderEventDetails<Value>) => void)
     | undefined;
   /** Declaratively disables drag pickup for an item without disabling its other interactions. */
   isItemDragDisabled?: ((item: ListboxDragItem<Value>) => boolean) | undefined;
@@ -606,6 +727,8 @@ export interface ListboxDragProviderState {}
 export namespace ListboxDragProvider {
   export type Props<Value = any> = ListboxDragProviderProps<Value>;
   export type State = ListboxDragProviderState;
+  export type Item<Value = any> = ListboxDragItem<Value>;
+  export type ReorderChange<Value = any> = ListboxDragProviderReorderChange<Value>;
   export type CanDropParameters<Value = any> = ListboxDragProviderCanDropParameters<Value>;
   export type ItemsReorderEventDetails<Value = any> =
     ListboxDragProviderItemsReorderEventDetails<Value>;
@@ -615,5 +738,6 @@ export type {
   ListboxDragItem,
   ListboxDragProviderCanDropParameters,
   ListboxDragProviderItemsReorderEventDetails,
+  ListboxDragProviderReorderChange,
   ListboxDropTargetEdge,
 } from './ListboxDragProviderContext';
