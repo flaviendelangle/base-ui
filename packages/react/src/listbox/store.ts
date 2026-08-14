@@ -25,7 +25,7 @@ export type State = {
   // DnD state
   /** Indices of all items currently being dragged (multi-select drags all selected items). */
   dragActiveIndices: number[] | null;
-  overIndex: number | null;
+  dragOverIndex: number | null;
   dropPosition: 'before' | 'after' | null;
 
   // Loading state
@@ -87,13 +87,13 @@ export const selectors = {
   listElement: createSelector((state: State) => state.listElement),
 
   dragActiveIndices: createSelector((state: State) => state.dragActiveIndices),
-  overIndex: createSelector((state: State) => state.overIndex),
+  dragOverIndex: createSelector((state: State) => state.dragOverIndex),
   dropPosition: createSelector((state: State) => state.dropPosition),
   isDragging: createSelector(
     (state: State, index: number) =>
       state.dragActiveIndices != null && state.dragActiveIndices.includes(index),
   ),
-  isOver: createSelector((state: State, index: number) => state.overIndex === index),
+  isDragOver: createSelector((state: State, index: number) => state.dragOverIndex === index),
 
   loading: createSelector((state: State) => state.loading),
   loadingProp: createSelector((state: State) => state.loadingProp),
@@ -130,7 +130,7 @@ function createInitialState(): State {
     activeIndex: null,
     listElement: null,
     dragActiveIndices: null,
-    overIndex: null,
+    dragOverIndex: null,
     dropPosition: null,
     loading: false,
     loadingProp: false,

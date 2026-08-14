@@ -76,9 +76,9 @@ describe('<Listbox.DragAndDropProvider />', () => {
     await dragEnter(itemD, { clientY: 375 });
     await dragOver(itemD, { clientY: 375 });
 
-    expect(itemD).toHaveAttribute('data-over', '');
+    expect(itemD).toHaveAttribute('data-drag-over', '');
     expect(itemD).toHaveAttribute('data-drop-position', 'after');
-    expect(itemB).not.toHaveAttribute('data-over');
+    expect(itemB).not.toHaveAttribute('data-drag-over');
 
     drop(itemD, { clientY: 375 });
     await flushRaf();

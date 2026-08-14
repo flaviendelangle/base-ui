@@ -117,7 +117,7 @@ export function ListboxDragAndDropProvider<Value = any>(
       }
     }
 
-    const overItem =
+    const dragOverItem =
       dndState.dropTargetItemId == null ? undefined : getItem(dndState.dropTargetItemId);
     const dropPosition =
       dndState.dropPosition === 'before' || dndState.dropPosition === 'after'
@@ -126,7 +126,7 @@ export function ListboxDragAndDropProvider<Value = any>(
 
     store.update({
       dragActiveIndices: dragActiveIndices.length === 0 ? null : dragActiveIndices,
-      overIndex: overItem?.index ?? null,
+      dragOverIndex: dragOverItem?.index ?? null,
       dropPosition,
     });
   });

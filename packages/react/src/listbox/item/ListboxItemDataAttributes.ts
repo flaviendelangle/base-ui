@@ -18,7 +18,7 @@ export enum ListboxItemDataAttributes {
   /**
    * Present when a dragged item is over the listbox item.
    */
-  over = 'data-over',
+  dragOver = 'data-drag-over',
   /**
    * Indicates the drop position relative to the item.
    * The value is `'before'` or `'after'`.

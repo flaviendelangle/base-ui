@@ -52,6 +52,9 @@ function useListItemValueRegistration(params: {
 }
 
 const stateAttributesMapping: StateAttributesMapping<ListboxItemState> = {
+  dragOver(value) {
+    return value ? { 'data-drag-over': '' } : null;
+  },
   dropPosition(value) {
     return value ? { 'data-drop-position': value } : null;
   },
@@ -133,7 +136,7 @@ export const ListboxItem = React.memo(
     const selected = store.useState('isSelected', listItem.index, itemValue);
     const isItemEqualToValue = store.useState('isItemEqualToValue');
     const isDragging = store.useState('isDragging', listItem.index);
-    const over = store.useState('isOver', listItem.index);
+    const dragOver = store.useState('isDragOver', listItem.index);
     const dropPosition = store.useState('dropPosition');
     const {
       disabledItemsRef,
@@ -207,8 +210,8 @@ export const ListboxItem = React.memo(
       selected,
       highlighted,
       dragging: isDragging,
-      over,
-      dropPosition: over ? dropPosition : null,
+      dragOver,
+      dropPosition: dragOver ? dropPosition : null,
     };
 
     const lastKeyRef = React.useRef<string | null>(null);
@@ -558,7 +561,7 @@ export interface ListboxItemState {
   /**
    * Whether a dragged item is over this item.
    */
-  over: boolean;
+  dragOver: boolean;
   /**
    * The drop position relative to this item, or `null` when the item is not being dragged over.
    */

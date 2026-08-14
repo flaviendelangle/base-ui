@@ -148,8 +148,8 @@ Renders a `<div>` element.
 | data-highlighted   | -    | Present when the listbox item is highlighted.                                               |
 | data-dragging      | -    | Present when the listbox item is being dragged.                                             |
 | data-disabled      | -    | Present when the listbox item is disabled.                                                  |
+| data-drag-over     | -    | Present when a dragged item is over the listbox item.                                       |
 | data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`. |
-| data-over          | -    | Present when a dragged item is over the listbox item.                                       |
 
 ### Item.Props
 
@@ -168,7 +168,7 @@ type ListboxItemState = {
   /** Whether the item is currently being dragged. */
   dragging: boolean;
   /** Whether a dragged item is over this item. */
-  over: boolean;
+  dragOver: boolean;
   /** The drop position relative to this item, or `null` when the item is not being dragged over. */
   dropPosition: 'before' | 'after' | null;
 };
