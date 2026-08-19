@@ -95,7 +95,7 @@ describe('DropTarget.Root', () => {
           calls.push('canDrop');
           return true;
         }}
-        payload={() => ({ id: 'slot-1' })}
+        getPayload={() => ({ id: 'slot-1' })}
         snap={() => {
           calls.push('snap');
           return { y: 4 };
@@ -827,13 +827,53 @@ describe('DropTarget.Root', () => {
     await flushRaf();
     expect(target).toHaveAttribute('data-drag-over');
 
+    const hitTest = vi.spyOn(document, 'elementFromPoint').mockReturnValue(null);
     await rerender(<Fixture allowed={false} />);
+    // A parameter-only refresh must re-resolve from the last event target. A
+    // fresh hit test can observe layout changed by an onDrag state update and
+    // recursively enter another target during the same React commit.
+    expect(hitTest).not.toHaveBeenCalled();
     expect(onDragLeave).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
 
     await rerender(<Fixture allowed />);
     expect(onDragEnter).toHaveBeenCalledTimes(2);
     expect(target).toHaveAttribute('data-drag-over');
+  });
+
+  it('coalesces inline canDrop changes from one render into one resolution', async () => {
+    const canDrop = vi.fn(() => true);
+    function Fixture({ revision }: { revision: number }) {
+      return (
+        <div data-revision={revision}>
+          {Array.from({ length: 20 }, (_, index) => (
+            <DropTarget.Root
+              key={index}
+              accept={DropTarget.anyKind}
+              data-testid={`target-${index}`}
+              canDrop={() => canDrop()}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    const { rerender, engine } = await renderDnd(<Fixture revision={0} />);
+    const source = createElement();
+    engine.registerDraggable(source, {});
+    const target = screen.getByTestId('target-0');
+
+    fireEvent.dragStart(source);
+    await flushRaf();
+    fireEvent.dragEnter(target);
+    fireEvent.dragOver(target);
+    await flushRaf();
+
+    canDrop.mockClear();
+    await rerender(<Fixture revision={1} />);
+
+    expect(canDrop).toHaveBeenCalledTimes(1);
+    fireEvent.drop(target);
   });
 
   it('passes the drag-over state to a className callback', async () => {
@@ -1026,7 +1066,7 @@ describe('DropTarget.Root', () => {
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
-        payload={() => ({ id: 'slot-1' })}
+        getPayload={() => ({ id: 'slot-1' })}
         onDrop={({ self }) => {
           observed = self.payload.id;
         }}

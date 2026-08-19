@@ -1,5 +1,5 @@
 import { ownerWindow } from '@base-ui/utils/owner';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { WindowAnimationFrame } from '../../windowAnimationFrame';
 import type { DragPreviewElementHandle } from './cloneDragPreview';
 import type { DragModifier, DragModifierKeys, DragMode, DragPosition } from '../../../types/drag';
 import { applyDragModifiers } from '../dragModifiers';
@@ -37,8 +37,8 @@ const endingPreviews = getSharedSlot(
 
 export interface SyntheticPreviewSourceIdentity {
   kind: symbol;
-  label: string | undefined;
-  /** The declaration, not the value returned by a payload callback. */
+  previewKey: string | number | undefined;
+  /** The static declaration, not the value returned by `getPayload`. */
   payload: unknown;
 }
 
@@ -69,9 +69,10 @@ export function retargetEndingPreviewSource(
 
     const sameDeclaredPayload =
       identity.payload !== undefined && Object.is(registration.identity.payload, identity.payload);
-    const sameLabel =
-      identity.label !== undefined && registration.identity.label === identity.label;
-    if (sameDeclaredPayload || sameLabel) {
+    const samePreviewKey =
+      identity.previewKey !== undefined &&
+      Object.is(registration.identity.previewKey, identity.previewKey);
+    if (sameDeclaredPayload || samePreviewKey) {
       registration.retarget(element);
       return;
     }
@@ -199,7 +200,7 @@ export function createSyntheticPreview(
         // Wait a frame so this first position is committed before the transition
         // turns on — otherwise a keyboard drag would ease in from off-screen.
         const { element } = previewElement;
-        AnimationFrame.request(() => {
+        WindowAnimationFrame.request(() => {
           if (!destroyed && previewElement?.element === element) {
             element.setAttribute(DRAG_MODE_ATTR, mode);
           }
@@ -324,7 +325,7 @@ export function createSyntheticPreview(
       // mounted until a consumer-authored drop transition finishes.
       if (preparedForDrop && endingPreview && !endingPreview.isHost) {
         const element = endingPreview.element;
-        const frame = new AnimationFrame(ownerWindow(element));
+        const frame = new WindowAnimationFrame(ownerWindow(element));
         let registration: EndingPreviewRegistration | null = null;
 
         const cleanup = () => {

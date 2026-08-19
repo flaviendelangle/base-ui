@@ -5,6 +5,7 @@ import type { BaseUIComponentProps } from '../../internals/types';
 import type { DragKind, DragPreviewSettings, DragPreviewRenderEvent } from '../../types/drag';
 import { DraggablePreviewElement } from './DraggablePreviewElement';
 import { useDeclaredPreview } from './useDeclaredPreview';
+import { createDragPreviewHostElement } from '../../utils/drag-and-drop/synthetic/cloneDragPreview';
 
 /**
  * Customizes what follows the pointer while the draggable is dragged, replacing
@@ -46,7 +47,12 @@ export function DraggablePreview<TData = unknown>(
     return <DraggablePreviewElement componentProps={{ ...componentProps, children: resolved }} />;
   });
 
-  useDeclaredPreview<TData>(getProps, render);
+  useDeclaredPreview<TData>(
+    getProps,
+    render,
+    createDragPreviewHostElement,
+    props.disabled === true,
+  );
 
   return null;
 }

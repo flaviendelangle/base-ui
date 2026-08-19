@@ -4,6 +4,7 @@ import type {
   DragKind,
   DragStartContext,
   DraggablePayload,
+  DraggablePayloadGetter,
   DragPreviewParameters,
   DragPreviewContainer,
   BeforeDragStartEventDetails,
@@ -66,8 +67,6 @@ interface StaticSetupHold {
 
 interface StaticSetupEntry {
   count: number;
-  /** Number of enabled registrants that need pointer-gesture styles. */
-  gestureCount: number;
   /**
    * One entry per keyboard-enabled registrant, removed by identity so a registrant's
    * instruction id and role description are always dropped as the pair it
@@ -201,7 +200,6 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
 
     const created: StaticSetupEntry = {
       count: 0,
-      gestureCount: 0,
       holds: [],
       applyGestureStyles() {
         gestureStyle.touchAction = 'manipulation';
@@ -259,11 +257,10 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
     entry = created;
     staticSetups.set(gestureElement, entry);
   }
-  entry.count += 1;
-  if (entry.gestureCount === 0) {
+  if (entry.count === 0) {
     entry.applyGestureStyles();
   }
-  entry.gestureCount += 1;
+  entry.count += 1;
 
   const activeEntry = entry;
   // Reconcile on *this* registration, not just the first, so a keyboard-enabled
@@ -281,10 +278,6 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
     const current = staticSetups.get(gestureElement);
     if (current !== activeEntry) {
       return;
-    }
-    current.gestureCount -= 1;
-    if (current.gestureCount === 0) {
-      current.restoreGestureStyles();
     }
     if (hold !== null) {
       const index = current.holds.indexOf(hold);
@@ -438,16 +431,23 @@ export type DraggableConfig<TData = undefined> = {
   disableStyleElements?: boolean | undefined;
   /**
    * The data to attach to this drag, surfaced as `source.payload` on every
-   * drag-and-drop event. Accepts a static value, or a callback evaluated at drag
-   * start for a payload that depends on the gesture.
-   *
-   * A function is always taken as the callback. To attach a function *as* the
-   * payload, return it from one: `payload={() => myFunction}`.
+   * drag-and-drop event. Functions are preserved as ordinary payload values.
    */
   // Optional here so the conditional requirement lives in one place: `Draggable.Root`
   // and `registerDraggable` re-impose it through an overload, which also keeps a
   // wrapper spreading their `Props` from hitting a deferred conditional.
   payload?: DraggablePayload<TData> | undefined;
+  /**
+   * Resolves the data attached to this drag at drag start. Use this instead of
+   * `payload` when the value depends on the pickup gesture.
+   */
+  getPayload?: DraggablePayloadGetter<TData> | undefined;
+  /**
+   * Stable identity used to reconnect a settling cloned preview to this source
+   * after it remounts. Use the same key for the same logical item across the move.
+   * Static payload identity is used as a fallback when it is referentially stable.
+   */
+  previewKey?: string | number | undefined;
   /**
    * Human-readable name of this draggable, used by the default screen-reader
    * announcements for keyboard drags. Defaults to a generic "item".
@@ -480,7 +480,7 @@ export type DraggableConfig<TData = undefined> = {
   disabled?: boolean | undefined;
   /**
    * Event handler called when a drag is about to start, once the activation condition
-   * is met and before the preview is built and any `payload` callback runs.
+   * is met and before the preview is built and `getPayload` runs.
    * Call `eventDetails.cancel()` to prevent the drag from starting.
    */
   onBeforeDragStart?:
@@ -542,7 +542,8 @@ export type DraggableConfig<TData = undefined> = {
   dragCursor?: string | false | undefined;
   /**
    * The drag preview: what follows the pointer, and where it lives in the DOM.
-   * Omit it and the source is cloned, in place.
+   * Omit it to use a sanitized clone of the source. The clone preserves classes
+   * and live element state, but rewrites IDs to keep the document unique.
    *
    * For sources registered imperatively. A draggable that renders a preview part
    * describes its preview there instead.
@@ -551,7 +552,7 @@ export type DraggableConfig<TData = undefined> = {
   /**
    * The preview part declared for this draggable, if any. Wired by the React layer;
    * the engine reads it once at drag start, before React can run, to decide between
-   * cloning the source and building a host to render into.
+   * cloning the source and building a host for custom content.
    * @internal
    */
   getDragPreviewDeclaration?: (() => DragPreviewDeclaration<NoInfer<TData>> | null) | undefined;

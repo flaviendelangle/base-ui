@@ -11,14 +11,15 @@ import { useDragAutoScrollElement } from './useDragAutoScrollElement';
 import type { UseDragAutoScrollElementParameters } from './useDragAutoScrollElement';
 
 /**
- * Overrides how its element auto-scrolls during a drag.
+ * Configures how its element scrolls during a drag, enabling auto-scroll if no
+ * `DragAutoScroll.Provider` is mounted.
  * Renders a `<div>` element.
  *
- * A scroll container needs no component: the engine walks up from the drag and
- * scrolls whatever scroll containers it finds, with speed proportional to depth
- * into the edge zone. Render this one to change that: `applyScroll` for a
- * surface that has no scroll offsets to move, `disabled` or `canScroll` to leave
- * a container alone, `allowedAxis`, `maxSpeed` and `accept` to tune the rest.
+ * `DragAutoScroll.Provider` enables inferred scrolling without annotating each
+ * container. Configure a particular region with this root, using
+ * `applyScroll` for a surface that has no scroll offsets to move, `disabled` or
+ * `canScroll` to leave it alone, and `allowedAxis`, `maxSpeed`, or `accept` to
+ * tune the rest.
  *
  * Nested containers scroll innermost-first, the outer one taking over only on
  * the axes the inner one leaves unconsumed.

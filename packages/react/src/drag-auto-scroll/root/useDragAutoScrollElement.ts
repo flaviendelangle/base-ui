@@ -11,11 +11,10 @@ import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef
 
 /**
  * Configures the element the returned `ref` is attached to as an auto-scroll
- * container, which scrolls while a drag nears its edges. Backs
+ * container, and enables auto-scroll when used without a provider. Backs
  * `DragAutoScroll.Root`.
  *
- * The engine also infers scroll containers from the DOM, so this is what
- * *configures* one rather than what makes it scroll.
+ * Once enabled, the engine also infers nested scroll containers from the DOM.
  *
  * The parameters are read through a stable getter on every frame, so a re-render never
  * re-registers and the freshest callbacks always apply.
@@ -27,11 +26,9 @@ export function useDragAutoScrollElement<TSourceData = unknown>(
   const getParameters = useStableCallback(
     () => parameters as RegisterAutoScrollerParameters<unknown>,
   );
-  const elementRef = React.useRef<HTMLElement | null>(null);
+  const observerRef = React.useRef<MutationObserver | null>(null);
 
-  // Registering mid-drag needs nothing from this layer: the loop is already
-  // armed and running on a live input (the first draggable armed it), so the
-  // element just joins the candidate set on the frame the registration wakes.
+  // Registering mid-drag arms and wakes the loop with the latest live input.
   // The public `registerAutoScroller` is keyed on the `accept` value; this
   // internal layer is keyed on the payload it promises (like the component's
   // implementation signature), so the parameters are erased to `unknown` here.
@@ -40,8 +37,19 @@ export function useDragAutoScrollElement<TSourceData = unknown>(
   // — and its cached depth order — on every flip of the prop.
   const ref = useRegistrationRef<HTMLElement>((node) => registerAutoScroller(node, getParameters));
   const mergedRef = useRefWithInit(() => (node: HTMLElement | null) => {
-    elementRef.current = node;
+    observerRef.current?.disconnect();
+    observerRef.current = null;
     ref(node);
+    if (node) {
+      const observer = new (ownerWindow(node).MutationObserver)(refreshAutoScroll);
+      observer.observe(node, {
+        attributes: true,
+        attributeFilter: ['class', 'style'],
+        childList: true,
+        subtree: true,
+      });
+      observerRef.current = observer;
+    }
   }).current;
 
   useIsoLayoutEffect(() => {
@@ -57,23 +65,6 @@ export function useDragAutoScrollElement<TSourceData = unknown>(
     parameters.disabled,
     parameters.maxSpeed,
   ]);
-
-  useIsoLayoutEffect(() => {
-    const element = elementRef.current;
-    if (!element) {
-      return undefined;
-    }
-    // Class and inline-style changes can alter overflow or direction without a
-    // parameter change. Observe the actual DOM mutation instead of invalidating
-    // caches after every React commit.
-    const MutationObserver = ownerWindow(element).MutationObserver;
-    const observer = new MutationObserver(refreshAutoScroll);
-    observer.observe(element, {
-      attributes: true,
-      attributeFilter: ['class', 'style'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   return { ref: mergedRef };
 }

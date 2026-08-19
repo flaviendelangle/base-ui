@@ -34,9 +34,11 @@ export type {
   RegisterDropTargetParametersWithPayload,
   RegisterAutoScrollerParameters,
   RegisterMonitorParameters,
+  WithOptionalPayload,
+  WithRequiredPayload,
   WithInferredAccept,
   WithRequiredAccept,
-  DragEngine,
+  DragDropManager,
 } from './dragRegistration';
 
 export type {
@@ -99,8 +101,10 @@ export type {
   DragPreviewOffsetParameters,
   DragStartContext,
   DraggablePayload,
+  DraggablePayloadGetter,
   DropTargetResolutionContext,
   DropTargetPayload,
+  DropTargetPayloadGetter,
   DropTargetSelf,
   DragKeyboardActivation,
   DragKeyboardAnnouncements,

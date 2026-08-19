@@ -358,13 +358,13 @@ describe('keyboard sensor', () => {
     expect(errorSpy.mock.calls[0][1]).toBe(el);
   });
 
-  it('contains a throwing payload callback: the pickup is canceled and reported', async () => {
+  it('contains a throwing getPayload callback: the pickup is canceled and reported', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     registerCleanup(() => errorSpy.mockRestore());
     const { engine } = await renderDnd();
     const el = createElement();
     engine.registerDraggable(el, {
-      payload: () => {
+      getPayload: () => {
         throw new Error('broken payload');
       },
     });
@@ -2979,6 +2979,64 @@ describe('keyboard sensor — modifiers', () => {
     expect(moves.length).toBeGreaterThan(0);
     expect(moves.every((move) => move.x <= viewportWidth - 1)).toBe(true);
     expect(spy.mock.calls.every(([x]) => x <= viewportWidth - 1)).toBe(true);
+
+    act(() => cancelDrag());
+  });
+
+  it('reverses through an accepted collection row at its modified entry edge', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement({ left: 0, width: 100, top: 0, height: 100 });
+    const row = createElement({ left: 100, width: 100, top: 0, height: 100 });
+    const nextRow = createElement({ left: 200, width: 100, top: 0, height: 100 });
+    const rowPayload = (itemId: string) => ({
+      ...reorderRowBrand,
+      role: 'item',
+      itemId,
+      targetInstanceId: 1,
+    });
+    engine.registerDropTarget(row, { accept: cardKind, payload: rowPayload('row') });
+    engine.registerDropTarget(nextRow, { accept: cardKind, payload: rowPayload('next-row') });
+
+    const moves: Array<{ x: number; y: number }> = [];
+    const snapToAbsoluteGrid: DragModifier = ({ point }) => ({
+      x: Math.round(point.x / 16) * 16,
+      y: point.y,
+    });
+    engine.registerDraggable(source, {
+      kind: cardKind,
+      modifiers: snapToAbsoluteGrid,
+      onDrag: ({ location }) => {
+        moves.push({ x: location.current.input.clientX, y: location.current.input.clientY });
+      },
+    });
+
+    const hitTest = vi.spyOn(document, 'elementFromPoint').mockImplementation((x, y) => {
+      if (y < 0 || y >= 100) {
+        return null;
+      }
+      if (x >= 100 && x < 200) {
+        return row;
+      }
+      if (x >= 200 && x < 300) {
+        return nextRow;
+      }
+      return null;
+    });
+    registerCleanup(() => hitTest.mockRestore());
+
+    source.focus();
+    pressKey(source, ' ');
+    await flushRaf();
+    moves.length = 0;
+
+    pressKey(source, 'ArrowRight');
+    expect(moves.at(-1)).toEqual({ x: 192, y: 50 });
+
+    pressKey(source, 'ArrowLeft');
+    // A plain draggable can enter a branded collection row. Reversing uses the
+    // modified back edge and returns to the row's opposite edge; without that
+    // plumbing this degrades to a 24px step and lands at x=176 instead.
+    expect(moves.at(-1)).toEqual({ x: 112, y: 50 });
 
     act(() => cancelDrag());
   });

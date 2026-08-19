@@ -61,7 +61,7 @@ For the second, compare the current pointer against the previous one so the swap
 
 The drag survives its own source being unmounted: pointer events are captured on a document-level anchor, and preview content renders in the [`Draggable.PreviewProvider`](/react/drag-and-drop/overview#setup) tree rather than inside the item. A row that React removes and re-adds mid-drag does not end the gesture. Give rows stable keys anyway, so a reorder moves the existing DOM nodes rather than rebuilding them.
 
-Rows that swap instantly are hard to follow. Set [`trackDisplacement`](/react/components/draggable#animating-displaced-items) on each row and style the published displacement variables and state attributes; the engine then measures the before/after positions for drag-time reorders. For motion that needs different lifecycle control, you can instead measure each row around the commit and animate the difference with `Element.animate` or an animation library. Leave the preview out of either approach, since the engine positions it every frame and a transition there only makes it lag — see [Easing keyboard drags](/react/drag-and-drop/styling#easing-keyboard-drags) for the exception.
+Rows that swap instantly are hard to follow. Render [`Draggable.Displacement`](/react/components/draggable#animating-displaced-items) in each row and style the published displacement variables and state attributes; the engine then measures the before/after positions for drag-time reorders. For motion that needs different lifecycle control, you can instead measure each row around the commit and animate the difference with `Element.animate` or an animation library. Leave the preview out of either approach, since the engine positions it every frame and a transition there only makes it lag — see [Easing keyboard drags](/react/drag-and-drop/styling#easing-keyboard-drags) for the exception.
 
 ## Moving between lists
 
@@ -102,17 +102,19 @@ function useDropIndicator() {
 
 ## Scrolling a long list
 
-A drag has to be able to reach the part of a list that is scrolled out of view, and it can: a scroll container scrolls as the pointer nears one of its edges with nothing declared. The list only has to be scrollable on its own.
+A drag has to be able to reach the part of a list that is scrolled out of view. Wrap the collection area in `DragAutoScroll.Provider` to enable inferred scrolling as the pointer nears an edge. Scrollable descendants require no annotation.
 
 ```tsx title="A scrollable, reorderable list"
-<div style={{ maxHeight: 400, overflowY: 'auto' }}>
-  {items.map((item) => (
-    <Row key={item.id} item={item} />
-  ))}
-</div>
+<DragAutoScroll.Provider>
+  <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+    {items.map((item) => (
+      <Row key={item.id} item={item} />
+    ))}
+  </div>
+</DragAutoScroll.Provider>
 ```
 
-Render a [`DragAutoScroll.Root`](/react/components/drag-auto-scroll) in its place to override that — to leave a nested scroller alone, to cap the speed, or to drive a surface that has no scrollbar at all.
+Use [`DragAutoScroll.Root`](/react/components/drag-auto-scroll) only to leave a nested scroller alone, cap its speed, or drive a surface that has no scrollbar at all.
 
 Auto-scroll runs for pointer drags only. A keyboard drag moves between targets rather than by position, so the engine scrolls the target it lands on into view instead.
 
@@ -156,7 +158,7 @@ The `payload` on records read from `location.current.dropTargets` is typed `unkn
 - **`trackDragOver={false}` on rows that render no drag-over feedback.** Drag-over tracking re-renders a target as a drag enters and leaves it. Rows that exist only so a drop can be resolved on them don't need it, and their callbacks still fire. See [Track the drag-over state](/react/components/drop-target#track-the-drag-over-state).
 - **One monitor rather than a handler per row.** State shared across the collection, such as what is being dragged or where the indicator goes, belongs in a single [`useDragMonitor`](/react/utils/use-drag-monitor). [`Draggable.useActiveDrag`](/react/components/draggable#useactivedrag) is the read-only version, and re-renders only when a drag starts or ends.
 - **Keep modifiers cheap.** A [modifier](/react/components/draggable#movement-modifiers) runs on every frame of a pointer drag, so measuring the DOM inside one costs a layout per frame.
-- **Keep imperative getters current.** React component and hook props stay current across renders. For [`useDragEngine`](/react/utils/use-drag-engine), read changing values from refs or re-register from an effect with the appropriate dependencies.
+- **Keep imperative getters current.** React component and hook props stay current across renders. For [`useDragDropManager`](/react/utils/use-drag-drop-manager), read changing values from refs or re-register from an effect with the appropriate dependencies.
 - **Keep shared context values stable.** A context update re-renders every subscribed row, even through `React.memo`. Split frequently changing values from stable configuration and subscribe each row only to the state it needs.
 - **Hoist static parts.** If a preview declaration is identical for every row, define it once outside the row component.
 
@@ -166,9 +168,9 @@ The `payload` on records read from `location.current.dropTargets` is typed `unkn
 
 **An inner target swallows drops meant for its parent.** The innermost accepting target wins. Return `false` from the inner target's `canDrop`, or set `disabled`, to let the drag fall through.
 
-**A custom preview throws.** Preview content renders in React, so it needs a `Draggable.PreviewProvider` above it, and above the component calling `useDragEngine` for imperative registrations. A source with no preview part clones itself and needs no provider.
+**A custom preview throws.** Preview content renders in React, so it needs a `Draggable.PreviewProvider` above it, and above the component calling `useDragDropManager` for imperative registrations. A source with no preview part clones itself and needs no provider.
 
-**Auto-scroll does nothing.** The container must be scrollable on its own: a scrollable `overflow` plus a size that constrains its content, and something left to scroll on the axis the pointer is pushing toward. A surface with no scrollbar — a canvas moved by a `transform` — is never found by the engine and moves itself through [`applyScroll`](/react/components/drag-auto-scroll#drive-a-surface-that-has-no-scroll-container) instead. Auto-scroll also runs for pointer drags only.
+**Auto-scroll does nothing.** First mount `DragAutoScroll.Provider` or register a `DragAutoScroll.Root`. The container must also be scrollable on its own: a scrollable `overflow` plus a size that constrains its content, and something left to scroll on the axis the pointer is pushing toward. A surface with no scrollbar — a canvas moved by a `transform` — is never found by the engine and moves itself through [`applyScroll`](/react/components/drag-auto-scroll#drive-a-surface-that-has-no-scroll-container) instead. Auto-scroll also runs for pointer drags only.
 
 **Keyboard dragging does nothing on an imperatively registered source.** `registerDraggable` does not manage `tabIndex` the way `Draggable.Root` does. Make the element focusable yourself.
 

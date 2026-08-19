@@ -6,14 +6,15 @@
 
 ### Root
 
-Overrides how its element auto-scrolls during a drag.
+Configures how its element scrolls during a drag, enabling auto-scroll if no
+`DragAutoScroll.Provider` is mounted.
 Renders a `<div>` element.
 
-A scroll container needs no component: the engine walks up from the drag and
-scrolls whatever scroll containers it finds, with speed proportional to depth
-into the edge zone. Render this one to change that: `applyScroll` for a
-surface that has no scroll offsets to move, `disabled` or `canScroll` to leave
-a container alone, `allowedAxis`, `maxSpeed` and `accept` to tune the rest.
+`DragAutoScroll.Provider` enables inferred scrolling without annotating each
+container. Configure a particular region with this root, using
+`applyScroll` for a surface that has no scroll offsets to move, `disabled` or
+`canScroll` to leave it alone, and `allowedAxis`, `maxSpeed`, or `accept` to
+tune the rest.
 
 Nested containers scroll innermost-first, the outer one taking over only on
 the axes the inner one leaves unconsumed.
@@ -50,6 +51,26 @@ type DragAutoScrollRootState = {
   disabled: boolean;
 };
 ```
+
+### Provider
+
+Enables inferred auto-scroll for every drag source managed by Base UI.
+Renders no element.
+
+Scrollable containers do not need to be registered individually. Use
+`DragAutoScroll.Root` only to configure a particular region or drive a custom
+scrolling surface.
+
+**Provider Props:**
+
+| Prop     | Type              | Default | Description                                                          |
+| :------- | :---------------- | :------ | :------------------------------------------------------------------- |
+| disabled | `boolean`         | `false` | Whether this provider's inferred auto-scroll activation is disabled. |
+| children | `React.ReactNode` | -       | The application subtree rendered by this provider.                   |
+
+### Provider.Props
+
+Re-export of [Provider](#provider) props.
 
 ### DragAutoScrollApply
 
@@ -211,7 +232,8 @@ type DragPointerType = 'mouse' | 'pen' | 'touch';
 ## Export Groups
 
 - `DragAutoScroll.Root`: `DragAutoScroll.Root`, `DragAutoScroll.Root.State`, `DragAutoScroll.Root.Props`
-- `Default`: `DragAutoScrollApply`, `DragAutoScrollApplyContext`, `DragAutoScrollAxis`, `DragAutoScrollFrameContext`, `DragInput`, `DragSource`, `DragAutoScrollRootState`, `DragAutoScrollRootProps`
+- `DragAutoScroll.Provider`: `DragAutoScroll.Provider`, `DragAutoScroll.Provider.Props`
+- `Default`: `DragAutoScrollApply`, `DragAutoScrollApplyContext`, `DragAutoScrollAxis`, `DragAutoScrollFrameContext`, `DragInput`, `DragSource`, `DragAutoScrollRootState`, `DragAutoScrollRootProps`, `DragAutoScrollProviderProps`
 
 ## Canonical Types
 
@@ -219,3 +241,4 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 
 - `DragAutoScroll.Root.State`: `DragAutoScrollRootState`
 - `DragAutoScroll.Root.Props`: `DragAutoScrollRootProps`
+- `DragAutoScroll.Provider.Props`: `DragAutoScrollProviderProps`

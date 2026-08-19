@@ -6,7 +6,7 @@ import { act, fireEvent, screen, render as rtlRender } from '@testing-library/re
 import { createDndRenderer, describeConformance, testDragKind } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { DropTarget } from '@base-ui/react/drop-target';
-import { useDragEngine } from '@base-ui/react/use-drag-engine';
+import { useDragDropManager } from '@base-ui/react/use-drag-drop-manager';
 import {
   cancel,
   createElement,
@@ -67,7 +67,7 @@ function TestDraggable<TData = undefined>(props: {
   // pass no payload at all — so widen past the overloads rather than making every
   // fixture declare one. `kind` defaults to the shared test kind, and a fixture
   // exercising kind matching (or a typed payload) passes its own.
-  const Root = Draggable.Root as (props: Draggable.Root.Props<any>) => React.JSX.Element;
+  const Root = Draggable.Root as React.ComponentType<any>;
   return (
     <Root
       kind={testDragKind}
@@ -98,11 +98,14 @@ describe('Draggable.Root', () => {
     expect(screen.getByTestId('moved').hasAttribute('keyboardmovement')).toBe(false);
   });
 
-  it('keeps trackDisplacement off the DOM element', () => {
-    rtlRender(<Draggable.Root kind={testDragKind} data-testid="tracked" trackDisplacement />);
+  it('renders Displacement without adding a DOM element', () => {
+    rtlRender(
+      <Draggable.Root kind={testDragKind} data-testid="tracked">
+        <Draggable.Displacement />
+      </Draggable.Root>,
+    );
     const el = screen.getByTestId('tracked');
-    expect(el.hasAttribute('trackdisplacement')).toBe(false);
-    // Component-level behavior only: nothing drag-scoped applies while idle.
+    expect(el).toBeEmptyDOMElement();
     expect(el).not.toHaveAttribute('data-displacing');
   });
 
@@ -139,7 +142,7 @@ describe('Draggable.Root', () => {
 
   it('needs no PreviewProvider to clone the source', async () => {
     // The clone is engine-built and touches no React, so the provider requirement
-    // is scoped to content: a plain draggable stays zero-config.
+    // is scoped to custom content.
     rtlRender(
       <Draggable.Root kind={testDragKind} data-testid="bare">
         <Draggable.ClonedPreview />
@@ -367,14 +370,16 @@ describe('Draggable.Root', () => {
     expect(screen.getByTestId('enabled')).not.toHaveAttribute('data-disabled');
   });
 
-  it('forwards payload into the drag payload', async () => {
+  it('forwards getPayload into the drag payload', async () => {
     const tokenKind = Draggable.createKind<{ token: string }>('token');
     const payload = vi.fn(() => ({ token: 'abc' }));
     const onDragStart = vi.fn();
     await renderDnd(
       // `Props` hides `kind` behind an `Omit`, which TypeScript can't infer through, so
       // the payload type is named here rather than read off the kind.
-      <TestDraggable<{ token: string }> options={{ kind: tokenKind, payload, onDragStart }} />,
+      <TestDraggable<{ token: string }>
+        options={{ kind: tokenKind, getPayload: payload, onDragStart }}
+      />,
     );
     const source = screen.getByTestId('drag');
 
@@ -1221,6 +1226,42 @@ describe('Draggable.Root', () => {
       expect(el).toHaveAttribute('role', 'listitem');
     });
 
+    it('preserves the semantics of polymorphic render targets', async () => {
+      await renderDnd(
+        <React.Fragment>
+          <ul>
+            <Draggable.Root kind={testDragKind} render={<li data-testid="list-item" />} />
+          </ul>
+          <Draggable.Root
+            kind={testDragKind}
+            render={<a href="#destination" data-testid="link" />}
+          />
+          <table>
+            <tbody>
+              <Draggable.Root kind={testDragKind} render={<tr data-testid="row" />} />
+            </tbody>
+          </table>
+          <Draggable.Root
+            kind={testDragKind}
+            render={<div role="option" aria-selected="false" data-testid="option" />}
+          />
+          <Draggable.Root
+            kind={testDragKind}
+            render={(props) => <section {...props} data-testid="callback" />}
+          />
+        </React.Fragment>,
+      );
+
+      for (const testId of ['list-item', 'link', 'row', 'option', 'callback']) {
+        expect(screen.getByTestId(testId)).toHaveAttribute('tabindex', '0');
+      }
+      expect(screen.getByTestId('list-item')).not.toHaveAttribute('role');
+      expect(screen.getByTestId('link')).not.toHaveAttribute('role');
+      expect(screen.getByTestId('row')).not.toHaveAttribute('role');
+      expect(screen.getByTestId('option')).toHaveAttribute('role', 'option');
+      expect(screen.getByTestId('callback')).not.toHaveAttribute('role');
+    });
+
     it('server-renders a root with a handle without tabindex or role', () => {
       // `hasHandle` starts `null` for a reason: the server can't see handles
       // (they attach through client-side ref callbacks), so the SSR markup must
@@ -1645,12 +1686,20 @@ describe('Draggable.Root', () => {
     });
 
     it('tracks arrow keys, and clamps to its modifiers, during a keyboard drag', async () => {
+      const committedXs: number[] = [];
       function BoundedDraggable() {
         const boundsRef = React.useRef<HTMLDivElement>(null);
         return (
           <React.Fragment>
             <div ref={boundsRef} data-testid="bounds" />
-            <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
+            <Draggable.Root
+              kind={testDragKind}
+              data-testid="drag"
+              className="Card"
+              onDrag={({ location }) => {
+                committedXs.push(location.current.input.clientX);
+              }}
+            >
               <Draggable.ClonedPreview
                 modifiers={Draggable.restrictToElement(boundsRef)}
                 offset="pointer"
@@ -1681,6 +1730,9 @@ describe('Draggable.Root', () => {
 
       const x = Number(/^(-?[\d.]+)px/.exec(clone.style.translate)![1]);
       expect(x).toBeLessThanOrEqual(30);
+      // Preview modifiers never enter the session modifier pipeline: keyboard
+      // collision and the public input continue past the visual clamp.
+      expect(committedXs.at(-1)).toBeGreaterThan(40);
     });
 
     it('swaps back to a Draggable.Preview in a single commit', async () => {
@@ -1740,7 +1792,7 @@ describe('Draggable.Root', () => {
       expect(screen.getByTestId('preview')).toHaveTextContent('hello');
     });
 
-    it('replaces the default clone rather than rendering alongside it', async () => {
+    it('renders custom content without cloning the source', async () => {
       function CardWithPreview() {
         return (
           <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
@@ -2048,12 +2100,22 @@ describe('Draggable.Root', () => {
     });
 
     it('clamps the preview to a modifiers element when the pointer leaves it', async () => {
+      const committedPoints: Array<{ x: number; y: number }> = [];
       function BoundedDraggable() {
         const boundsRef = React.useRef<HTMLDivElement>(null);
         return (
           <React.Fragment>
             <div ref={boundsRef} data-testid="bounds" />
-            <Draggable.Root kind={testDragKind} data-testid="drag">
+            <Draggable.Root
+              kind={testDragKind}
+              data-testid="drag"
+              onDrag={({ location }) => {
+                committedPoints.push({
+                  x: location.current.input.clientX,
+                  y: location.current.input.clientY,
+                });
+              }}
+            >
               {/* Pin the preview to the pointer so the assertions below read the
                   clamp alone, not the grab offset the `'source'` default would add. */}
               <Draggable.Preview
@@ -2083,6 +2145,10 @@ describe('Draggable.Root', () => {
       // (200 − preview size: 200−50=150, 200−30=170) instead of following out.
       await dragOver(source, { clientX: 500, clientY: 500 });
       expect(overlay.style.translate).toBe('150px 170px');
+      await flushRaf();
+      // Only the preview is constrained; hit-testing and reported input keep the
+      // pointer's real position rather than inheriting the visual clamp.
+      expect(committedPoints.at(-1)).toEqual({ x: 500, y: 500 });
 
       // Back inside the bounds, the preview tracks the pointer normally.
       await dragOver(source, { clientX: 80, clientY: 90 });
@@ -2097,7 +2163,7 @@ describe('Draggable.Root', () => {
       fireEvent.dragStart(source);
 
       // The content is portaled into an engine-owned host that sits in the
-      // source's own parent — the same place the default clone goes. A provider
+      // source's own parent — the same place a cloned preview goes. A provider
       // supplies the React tree, and relocates nothing.
       const host = screen.getByTestId('preview').closest('[data-drag-preview]') as HTMLElement;
       expect(host).not.toBeNull();
@@ -2202,7 +2268,9 @@ describe('Draggable.Root', () => {
           <React.Fragment>
             <div ref={containerRef} data-testid="container" />
             <DraggablePreviewProvider container={containerRef}>
-              <Draggable.Root kind={testDragKind} data-testid="drag" className="Card" />
+              <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
+                <Draggable.ClonedPreview />
+              </Draggable.Root>
             </DraggablePreviewProvider>
           </React.Fragment>
         );
@@ -2230,7 +2298,9 @@ describe('Draggable.Root', () => {
           <React.Fragment>
             <div ref={setContainer} data-testid="late-container" />
             <DraggablePreviewProvider container={container ?? undefined}>
-              <Draggable.Root kind={testDragKind} data-testid="drag" className="Card" />
+              <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
+                <Draggable.ClonedPreview />
+              </Draggable.Root>
             </DraggablePreviewProvider>
           </React.Fragment>
         );
@@ -2281,13 +2351,13 @@ describe('Draggable.Root', () => {
     // An imperatively registered source has no component to hold a
     // `Draggable.Preview`, so it declares the preview on the registration itself.
     function ImperativeCard() {
-      const engine = useDragEngine();
+      const engine = useDragDropManager();
       const elementRef = React.useRef<HTMLDivElement>(null);
       React.useEffect(
         () =>
           engine.registerDraggable(elementRef.current!, () => ({
             kind: cardKind,
-            payload: () => ({ id: 'a' }),
+            getPayload: () => ({ id: 'a' }),
             dragPreview: { render: () => <span data-testid="preview">chip</span> },
           })),
         [engine],
@@ -2348,13 +2418,13 @@ describe('Draggable.Root', () => {
 
     it('still honours dragPreview.offset for an imperative preview', async () => {
       function OffsetCard() {
-        const engine = useDragEngine();
+        const engine = useDragDropManager();
         const elementRef = React.useRef<HTMLDivElement>(null);
         React.useEffect(
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              payload: () => ({ id: 'a' }),
+              getPayload: () => ({ id: 'a' }),
               dragPreview: {
                 render: () => <span data-testid="preview">chip</span>,
                 offset: { x: 5, y: 6 },
@@ -2382,13 +2452,13 @@ describe('Draggable.Root', () => {
 
     it('shows no preview at all with dragPreview.disabled', async () => {
       function DisabledCard() {
-        const engine = useDragEngine();
+        const engine = useDragDropManager();
         const elementRef = React.useRef<HTMLDivElement>(null);
         React.useEffect(
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              payload: () => ({ id: 'a' }),
+              getPayload: () => ({ id: 'a' }),
               dragPreview: { disabled: true },
             })),
           [engine],
@@ -2408,14 +2478,14 @@ describe('Draggable.Root', () => {
 
     it('clamps an imperative preview to dragPreview.modifiers', async () => {
       function BoundedCard() {
-        const engine = useDragEngine();
+        const engine = useDragDropManager();
         const elementRef = React.useRef<HTMLDivElement>(null);
         const boundsRef = React.useRef<HTMLDivElement>(null);
         React.useEffect(
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              payload: () => ({ id: 'a' }),
+              getPayload: () => ({ id: 'a' }),
               dragPreview: {
                 modifiers: Draggable.restrictToElement(boundsRef),
                 offset: 'pointer',
@@ -2450,13 +2520,13 @@ describe('Draggable.Root', () => {
       document.body.appendChild(host);
       try {
         function ContainedCard() {
-          const engine = useDragEngine();
+          const engine = useDragDropManager();
           const elementRef = React.useRef<HTMLDivElement>(null);
           React.useEffect(
             () =>
               engine.registerDraggable(elementRef.current!, () => ({
                 kind: cardKind,
-                payload: () => ({ id: 'a' }),
+                getPayload: () => ({ id: 'a' }),
                 dragPreview: { container: host },
               })),
             [engine],
@@ -2481,13 +2551,13 @@ describe('Draggable.Root', () => {
       document.body.appendChild(host);
       try {
         function ContainedCard() {
-          const engine = useDragEngine();
+          const engine = useDragDropManager();
           const elementRef = React.useRef<HTMLDivElement>(null);
           React.useEffect(
             () =>
               engine.registerDraggable(elementRef.current!, () => ({
                 kind: cardKind,
-                payload: () => ({ id: 'a' }),
+                getPayload: () => ({ id: 'a' }),
                 dragPreview: {
                   render: () => <span data-testid="preview">chip</span>,
                   container: host,
@@ -2710,6 +2780,7 @@ describe('Draggable.Root', () => {
     it.each([
       ['Draggable.Handle', <Draggable.Handle key="h" />],
       ['Draggable.ClonedPreview', <Draggable.ClonedPreview key="c" />],
+      ['Draggable.Displacement', <Draggable.Displacement key="d" />],
     ])('throws when %s is rendered outside Draggable.Root', (_name, element) => {
       // React logs the uncaught render error through console.error in dev.
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

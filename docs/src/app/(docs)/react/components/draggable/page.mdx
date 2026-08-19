@@ -29,18 +29,17 @@ import { Draggable } from '@base-ui/react/draggable';
 
 const itemKind = Draggable.createKind('item');
 
-<Draggable.PreviewProvider>
-  <Draggable.Root kind={itemKind} label="Item">
-    <Draggable.Handle />
-    <Draggable.Preview>{/* what follows the pointer */}</Draggable.Preview>
-  </Draggable.Root>
-</Draggable.PreviewProvider>;
+<Draggable.Root kind={itemKind} label="Item">
+  <Draggable.Handle />
+  <Draggable.Displacement />
+</Draggable.Root>;
 ```
 
-A root takes at most one preview part. Omit it to drag a clone of the source, or
-swap `Draggable.Preview` for a `Draggable.ClonedPreview` to keep that clone and
-only configure how it is placed. Declaring both warns in development; the last
-one mounted wins.
+A root takes at most one preview part. Omit it to use a sanitized clone of the
+source, render `Draggable.ClonedPreview` to configure that clone, or use
+`Draggable.Preview` to render custom content. Declaring both warns in development;
+the last one mounted wins. `Draggable.Displacement` is independent and opts the
+root into reorder animations.
 
 ## Pass data along
 
@@ -60,7 +59,7 @@ const divider = Draggable.createKind('divider');
 <Draggable.Root kind={divider} label="Divider" />;
 ```
 
-Pass a callback instead when the payload depends on the gesture, such as where inside the element the pointer grabbed. It runs once, at drag start. A function is always taken as that callback. To attach a function _as_ the payload, return it from one (`payload={() => myFn}`).
+Pass `getPayload` instead when the payload depends on the gesture, such as where inside the element the pointer grabbed. It runs once, at drag start. `payload` itself is always data, so function-valued payloads are preserved without a wrapper.
 
 ```tsx title="Deriving the payload from the gesture"
 const grabbedCard = Draggable.createKind<{ id: string; grabOffsetX: number }>('card');
@@ -68,7 +67,7 @@ const grabbedCard = Draggable.createKind<{ id: string; grabOffsetX: number }>('c
 <Draggable.Root
   kind={grabbedCard}
   label={title}
-  payload={({ input, element }) => {
+  getPayload={({ input, element }) => {
     const rect = element.getBoundingClientRect();
     return { id, grabOffsetX: input.clientX - rect.left };
   }}
@@ -183,12 +182,12 @@ A drag survives its source element leaving the DOM. A windowed list can unmount 
 <DropTarget.Root accept={card} label="Done" onDrop={({ source }) => move(source.payload)} />
 ```
 
-Deleting the dragged item does not end the drag either. Call [`cancelDrag`](/react/utils/use-drag-engine#cancelling-a-drag) if you want it to stop:
+Deleting the dragged item does not end the drag either. Call [`cancelDrag`](/react/utils/use-drag-drop-manager#cancelling-a-drag) if you want it to stop:
 
 ```tsx title="Ending the drag with the item it was carrying"
 function deleteCard(id: string) {
   if (id === draggingId) {
-    engine.cancelDrag();
+    manager.cancelDrag();
   }
   setCards((prev) => prev.filter((card) => card.id !== id));
 }
@@ -196,7 +195,14 @@ function deleteCard(id: string) {
 
 ## Animating displaced items
 
-Set `trackDisplacement` to animate items moved by a reorder. It publishes the offset from the item's previous position as `--drag-displacement-x` and `--drag-displacement-y`, adds `data-starting-style` for the initial frame, and keeps `data-displacing` while the animation runs. A drop or cancellation update made synchronously from `onDragEnd` is included; a deferred update moves immediately.
+Render `Draggable.Displacement` inside each root that should animate when a reorder moves it. The part renders nothing; it publishes the offset from the item's previous position as `--drag-displacement-x` and `--drag-displacement-y`, adds `data-starting-style` for the initial frame, and keeps `data-displacing` while the animation runs. A drop or cancellation update made synchronously from `onDragEnd` is included; a deferred update moves immediately.
+
+```tsx title="Enable displacement tracking"
+<Draggable.Root kind={card} payload={cardData}>
+  <Draggable.Displacement />
+  {cardData.title}
+</Draggable.Root>
+```
 
 The motion is entirely yours, in two rules:
 
@@ -210,6 +216,8 @@ The motion is entirely yours, in two rules:
 ```
 
 Keep the transition off the `data-starting-style` frame so an interrupted reorder starts from its current position. Use `translate` so the displacement composes with existing `transform` positioning, and restate any other transitions replaced by the shorthand. For reduced-motion users, disable both rules; the starting-style rule alone still paints the previous position for one frame.
+
+Measurement is scoped to the viewport: items outside it are not measured and take their new position without animating, so tracking thousands of mounted items costs no more per drag than tracking the visible ones. An item scrolled into view mid-drag adopts its current position and animates from there on.
 
 ## Activation
 
@@ -252,7 +260,7 @@ A drag can be completed without a pointer, and it works automatically — `Dragg
 
 The widgets here are plain draggables and the dashboard slots plain drop targets, with no keyboard-specific code — the slots only carry a [`label`](#screen-reader-announcements) so the announcements can name them. Pressing <kbd>←</kbd> or <kbd>→</kbd> moves the focused widget to the empty slot because the engine finds the next accepting drop target by direction — the same behavior falls out of any draggable-and-drop-target setup, reorderable collections included.
 
-The source has to be focusable for any of this to work. `Draggable.Root` defaults `tabIndex={0}` and `role="button"` whenever keyboard dragging is enabled and no [`Draggable.Handle`](#drag-handle) is attached, since a handle renders its own focusable button. Pass your own `tabIndex` or `role` in props to override either — do override the role when the element already has a semantic one (`listitem`, `row`, …), and prefer a handle when the source contains interactive children, since a button may not contain other interactive elements. When using [`registerDraggable`](/react/utils/use-drag-engine), make the registered element focusable yourself.
+The source has to be focusable for any of this to work. `Draggable.Root` defaults `tabIndex={0}` and `role="button"` whenever keyboard dragging is enabled and no [`Draggable.Handle`](#drag-handle) is attached, since a handle renders its own focusable button. Pass your own `tabIndex` or `role` in props to override either — do override the role when the element already has a semantic one (`listitem`, `row`, …), and prefer a handle when the source contains interactive children, since a button may not contain other interactive elements. When using [`registerDraggable`](/react/utils/use-drag-drop-manager), make the registered element focusable yourself.
 
 The default `tabIndex` and `role` are added after mount, once the root knows whether it has a handle. Pass them explicitly when a server-rendered draggable must be keyboard-reachable before hydration.
 
@@ -338,11 +346,11 @@ When a keyboard drag ends, the default behavior tries its handle, its source, an
 event that opens a menu, a listbox option where Space selects, a card that expands. They can't both
 own the same press.
 
-`keyboardActivation="manual"` settles it. The engine stops listening for the pickup key — the element keeps its own <kbd>Space</kbd> and <kbd>Enter</kbd> — and hands you the pickup as [`useDragEngine().startKeyboardDrag(element)`](/react/utils/use-drag-engine) to call from wherever the pickup belongs. From there it is an ordinary keyboard drag, announcements and focus restoration included.
+`keyboardActivation="manual"` settles it. The engine stops listening for the pickup key — the element keeps its own <kbd>Space</kbd> and <kbd>Enter</kbd> — and hands you the pickup as [`useDragDropManager().startKeyboardDrag(element)`](/react/utils/use-drag-drop-manager) to call from wherever the pickup belongs. From there it is an ordinary keyboard drag, announcements and focus restoration included.
 
 ```tsx title="A drag started from the widget's own menu"
 function Widget({ widget }) {
-  const engine = useDragEngine();
+  const manager = useDragDropManager();
   const ref = React.useRef<HTMLButtonElement>(null);
   const startOnCloseRef = React.useRef(false);
 
@@ -351,7 +359,7 @@ function Widget({ widget }) {
       onOpenChangeComplete={(open) => {
         if (!open && startOnCloseRef.current) {
           startOnCloseRef.current = false;
-          engine.startKeyboardDrag(ref.current);
+          manager.startKeyboardDrag(ref.current);
         }
       }}
     >
@@ -427,7 +435,7 @@ Below, `restrictToElement` clamps each widget to the dashed dashboard frame. The
 
 ### Modifiers on the preview
 
-`Draggable.Preview` and `Draggable.ClonedPreview` take the same `modifiers` prop, applied only to what is drawn: the drag itself — the drop hit-test and the reported input — keeps following the pointer. Reach for it when leaving the area is itself a meaningful gesture the drag must keep expressing. A data grid reordering columns clamps its ghost to the grid so it doesn't trail across the page, but the clamp can't go on the root: releasing away from the grid has to resolve as a cancel, not commit on whichever header sits at the clamped edge. When in doubt, put the modifier on `Draggable.Root`, so what the user sees and what the drop commits always agree.
+`Draggable.Preview` and `Draggable.ClonedPreview` take the same `modifiers` prop, applied only to what is drawn: preview modifiers do not populate the active drag session, so the drop hit-test, keyboard movement, and reported input keep following the unconstrained drag. Reach for them when leaving the area is itself a meaningful gesture the drag must keep expressing. A data grid reordering columns clamps its ghost to the grid so it doesn't trail across the page, but the clamp can't go on the root: releasing away from the grid has to resolve as a cancel, not commit on whichever header sits at the clamped edge. When in doubt, put the modifier on `Draggable.Root`, so what the user sees and what the drop commits always agree.
 
 ### Write your own
 
@@ -481,9 +489,11 @@ A modifier only moves a point, so it still can't express a keyboard move that ta
 
 ### Default preview
 
-If no `Draggable.Preview` is provided, the dragged element is cloned. The clone follows the pointer, keeps your element's classes so your own CSS styles it, and renders in the browser's top layer, where no scroll container can clip it and nothing on the page paints over it.
+With no preview part, a sanitized clone of the dragged element follows the pointer. The clone keeps your element's classes and live form, canvas, and scroll state, and renders in the browser's top layer, where no scroll container can clip it and nothing on the page paints over it.
 
-Custom elements inside a default clone are replaced with inert native placeholders. Cloning a live custom element would run its constructor and connection callbacks again merely because a drag started. Render a `Draggable.Preview` when the preview must reproduce a custom element's shadow content exactly.
+The clone rewrites its IDs to keep the document unique and updates fragment references inside the clone. External `#id` selectors therefore do not style it; use classes or `[data-drag-preview]` for preview styles.
+
+Custom elements inside a clone are replaced with inert native placeholders. Cloning a live custom element would run its constructor and connection callbacks again merely because a drag started. Render a `Draggable.Preview` when the preview must reproduce a custom element's shadow content exactly.
 
 After a release, the clone moves to the source's final position and receives `data-ending-style`. That includes a release outside a target, when it returns to the unchanged source. Add a `translate` transition under that attribute to animate the handoff; the engine keeps the clone mounted until the transition finishes. The source also receives `data-ending-style` alongside `data-dragging`, so it can remain styled as an empty placeholder until the clone arrives. With no transition, the attributes and clone are removed before the next paint.
 
@@ -524,7 +534,7 @@ function Widget({ id, title, value }) {
 }
 ```
 
-The content renders in the [`Draggable.PreviewProvider`](/react/drag-and-drop/overview#setup)'s tree, so it reads the same context, themes and stores as the rest of your app, and outlives the source when a virtualizer or a live reorder unmounts it mid-drag. The element itself still sits next to the source, so your CSS reaches it either way.
+The content renders beside the nearest [`Draggable.PreviewProvider`](/react/drag-and-drop/overview#setup)'s children and outlives the source when a virtualizer or a live reorder unmounts it mid-drag. It receives context from providers above that preview provider, but not from providers nested between the preview provider and this draggable. Place a preview provider inside each local theme, direction, or store boundary the preview needs. The element itself still sits next to the source, so your CSS reaches it either way.
 
 Pass a function as the children to build the preview from the dragged item's data. To size a custom preview like the element it replaces, use the `--drag-source-width` and `--drag-source-height` CSS variables — see [Sizing a custom preview](/react/drag-and-drop/styling#sizing-a-custom-preview).
 
@@ -532,7 +542,7 @@ To show **no preview for a particular drag**, resolve the children to nothing: `
 
 ### Configure the clone
 
-To keep the clone and only change how it's placed, render a `Draggable.ClonedPreview`. It takes the same placement props as `Draggable.Preview` and renders nothing, since the clone is the engine's and there's no content to own:
+To configure how the default clone is placed, render a `Draggable.ClonedPreview`. It takes the same placement props as `Draggable.Preview` and renders nothing, since the clone is the engine's and there's no content to own:
 
 ```tsx title="Place the clone under the pointer"
 function Card({ id, label }) {
@@ -545,13 +555,11 @@ function Card({ id, label }) {
 }
 ```
 
-You only need it to configure the clone: a draggable with no preview part at all already clones its source. Style the clone with `[data-drag-preview]`. The part renders no element of its own, so it takes no `className`.
+You only need this part to configure the clone. Style the clone with `[data-drag-preview]`. The part renders no element of its own, so it takes no `className`.
 
 ### Drag without a preview
 
-Use `disabled` to switch the preview off. It works on either preview part: nothing is built, so nothing follows the pointer. The drag itself still runs — targets light up and the drop commits — which suits a surface that draws its own feedback, such as a canvas rendering the moved shape.
-
-Omitting the preview part is not the same thing, since a source with no part clones itself. Prefer `Draggable.ClonedPreview` over `Draggable.Preview` here: it declares no content, so it needs no `Draggable.PreviewProvider` above it, while a `Draggable.Preview` throws without one even when `disabled` is set.
+Use `disabled` on a preview part when nothing should follow the pointer. The drag itself still runs — targets light up and the drop commits — which suits a surface that draws its own feedback, such as a canvas rendering the moved shape. `Draggable.ClonedPreview` needs no preview provider, even when disabled.
 
 ```tsx title="Dragging without a preview"
 <Draggable.Root kind={shape} label={label} payload={id}>

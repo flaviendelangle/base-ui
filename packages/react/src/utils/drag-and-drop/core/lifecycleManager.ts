@@ -1,16 +1,14 @@
 /**
  * Core drag lifecycle state machine.
  *
- * Drop-target resolution, monitor dispatch, the rAF-throttled `onDrag`
- * scheduler, and the session snapshot all live here. The pointer-events sensor
- * starts a session with `start()` and drives the returned controller
- * (`update` / `drop` / `cancel`) from its own listeners. The preview itself is
- * owned by the sensors (see `synthetic/syntheticPreview`).
+ * Drop-target resolution, monitor dispatch, `onDrag` delivery, and the session
+ * snapshot all live here. Sensors call `start()` and drive the returned
+ * controller (`update` / `drop` / `cancel`) from their own listeners. The
+ * preview itself is owned by the sensors (see `synthetic/syntheticPreview`).
  */
 
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
+import { ownerDocument } from '@base-ui/utils/owner';
 import { areArraysEqual } from '@base-ui/utils/areArraysEqual';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import type {
   DragCanceledReason,
   DragCleanupFn,
@@ -54,7 +52,9 @@ interface LifecycleState {
    */
   dragCancel: (() => void) | null;
   /** See {@link refreshDropTargets}. Set during an active drag, cleared on teardown. */
-  refreshDropTargets: (() => void) | null;
+  refreshDropTargets: ((rehitTest: boolean) => void) | null;
+  /** The session whose parameter refresh owns the queued microtask. */
+  queuedParameterRefresh: ((rehitTest: boolean) => void) | null;
   /**
    * Whether an element currently holds delivered hover state. See
    * {@link isHoveredDropTarget}.
@@ -67,6 +67,7 @@ const state = getSharedSlot<LifecycleState>('lifecycleManager', () => ({
   dragCleanup: null,
   dragCancel: null,
   refreshDropTargets: null,
+  queuedParameterRefresh: null,
   isHovered: null,
 }));
 
@@ -88,8 +89,28 @@ export function isActive(): boolean {
  * element un-registers mid-drag, so subscribers see it leave `dropTargets`
  * without a pointer event.
  */
-export function refreshDropTargets(): void {
-  state.refreshDropTargets?.();
+export function refreshDropTargets(options?: { rehitTest?: boolean | undefined }): void {
+  state.refreshDropTargets?.(options?.rehitTest ?? true);
+}
+
+/** Coalesce a React commit's drop-target parameter changes into one resolution. */
+export function scheduleDropTargetParameterRefresh(): void {
+  const refresh = state.refreshDropTargets;
+  if (refresh === null || state.queuedParameterRefresh === refresh) {
+    return;
+  }
+  state.queuedParameterRefresh = refresh;
+  queueMicrotask(() => {
+    // A newer drag can replace this job before it runs. Only the job that still
+    // owns the slot may clear it or refresh the current session.
+    if (state.queuedParameterRefresh !== refresh) {
+      return;
+    }
+    state.queuedParameterRefresh = null;
+    if (state.refreshDropTargets === refresh) {
+      refresh(false);
+    }
+  });
 }
 
 /**
@@ -193,12 +214,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     return cloneLocationHistory(location);
   }
 
-  // The location snapshot at the last *delivered* event. `location.previous` is
-  // documented as "the location at the prior event", but raw pointer samples
-  // arrive several times per rAF-throttled `onDrag` — so `previous` is
-  // reassigned from this snapshot right before each dispatch, never per raw
-  // sample, keeping a consumer's `current` vs `previous` diff the movement
-  // since the last event it actually saw.
+  // The location snapshot at the last delivered event. Sensors can coalesce
+  // several native samples before calling `update`, so `previous` advances at
+  // dispatch rather than at raw input frequency.
   let lastDispatched: DragLocation = location.previous;
 
   // Last DOM target resolved against. Tracked for `refreshDropTargets()` so a
@@ -221,6 +239,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   // round finishes (see `drainPendingRefresh`).
   let dispatching = false;
   let refreshPending = false;
+  let pendingRefreshNeedsHitTest = false;
 
   // Whether the terminal `onDragEnd` has been delivered. The recovery path below
   // reads it so a throw *from* `onDragEnd` doesn't produce a second one.
@@ -429,20 +448,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     drainPendingRefresh();
   }
 
-  // Schedule in the source window so popout drags are not throttled with their opener.
-  const dragFrame = new AnimationFrame(ownerWindow(source.element));
-  // A flag rather than a prebuilt payload: `location.previous` only advances
-  // below, at delivery, so a payload snapshotted when the sample arrived would
-  // carry a `previous` from before the coalescing window.
-  let dragPending = false;
-
-  function dispatchPendingDrag(): void {
-    if (!dragPending) {
-      return;
-    }
-    dragPending = false;
-    // See `lastDispatched`: `previous` reflects the last delivered event, so
-    // several coalesced raw samples read as one movement here.
+  function dispatchDrag(): void {
+    // See `lastDispatched`: `previous` reflects the last delivered event.
     location.previous = lastDispatched;
     const dragPayload: DragEventMap['onDrag'] = { location: snapshotLocation(), source, mode };
     const dragDetails = createDragEventDetails(mode, lastInputEvent);
@@ -476,26 +483,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     drainPendingRefresh();
   }
 
-  function scheduleDrag(): void {
-    dragPending = true;
-    // Only arm a frame when none is pending; further moves in the same frame just
-    // re-set `dragPending`, coalescing into one onDrag per frame.
-    if (dragFrame.currentId === null) {
-      dragFrame.request(dispatchPendingDrag);
-    }
-  }
-
-  // Dispatch any pending throttled `onDrag` immediately (see DragSessionController.flushDrag).
-  function flushDrag(): void {
-    dragFrame.cancel();
-    dispatchPendingDrag();
-  }
-
-  function cancelPendingDrag(): void {
-    dragFrame.cancel();
-    dragPending = false;
-  }
-
   // Re-resolve the stack after a registration change (see the
   // `state.refreshDropTargets` installation below for when this is armed).
   // Always re-hit-test from the pointer position rather than walking up from
@@ -503,21 +490,23 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   // fading in mid-drag) is not an ancestor of the old target, and a detached
   // `lastTarget` (virtualizer/live reorder) would resolve an empty stack. The
   // preview is skipped so it can't be hit and spuriously empty the stack.
-  function resolveDropTargetsFromLastTarget(): void {
+  function resolveDropTargetsFromLastTarget(rehitTest: boolean): void {
     let target = lastTarget;
-    const { clientX, clientY } = location.current.input;
-    const fresh = elementFromPointIgnoring(
-      ownerDocument(source.element),
-      clientX,
-      clientY,
-      synthetic.getPreviewElement(),
-      getDropTargetShadowRoots(),
-    );
-    // A `null` hit with a still-connected last target means the pointer is
-    // outside the viewport (captured pointer drag); keep the last target so the
-    // stack doesn't spuriously empty.
-    if (fresh !== null || target == null || !target.isConnected) {
-      target = fresh;
+    if (rehitTest) {
+      const { clientX, clientY } = location.current.input;
+      const fresh = elementFromPointIgnoring(
+        ownerDocument(source.element),
+        clientX,
+        clientY,
+        synthetic.getPreviewElement(),
+        getDropTargetShadowRoots(),
+      );
+      // A `null` hit with a still-connected last target means the pointer is
+      // outside the viewport (captured pointer drag); keep the last target so the
+      // stack doesn't spuriously empty.
+      if (fresh !== null || target == null || !target.isConnected) {
+        target = fresh;
+      }
     }
     updateDropTargets(location.current.input, target);
   }
@@ -525,7 +514,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   function drainPendingRefresh(): void {
     while (refreshPending && !tornDown) {
       refreshPending = false;
-      resolveDropTargetsFromLastTarget();
+      const rehitTest = pendingRefreshNeedsHitTest;
+      pendingRefreshNeedsHitTest = false;
+      resolveDropTargetsFromLastTarget(rehitTest);
     }
   }
 
@@ -572,17 +563,13 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     }
 
     const newDropTargets = resolveStack(rawTarget, input);
-    // A consumer resolver (`payload` / `canDrop`) can synchronously cancel the
+    // A consumer resolver (`getPayload` / `canDrop`) can synchronously cancel the
     // drag. Teardown already delivered the terminal events and cleared the
     // session, so do not mutate or publish location state for the dead drag.
     if (tornDown) {
       return;
     }
     const previousDropTargets = location.current.dropTargets;
-    // Captured before `location.current` is reassigned below. `refreshDropTargets`
-    // re-runs with the same `input` (no pointer movement), so this lets the change
-    // branch tell a genuine new-input update from an unrelated refresh.
-    const previousInput = location.current.input;
 
     location.current = { input, dropTargets: newDropTargets };
 
@@ -609,15 +596,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
           return;
         }
 
-        // Cancel stale onDrag only when this change came from genuine new pointer
-        // input; a stack change from an unrelated `refreshDropTargets()` (e.g. a
-        // virtualizer unregister) must not discard a queued real-movement onDrag.
-        if (input !== previousInput) {
-          cancelPendingDrag();
-        }
-
-        // Sync onDrag to current targets on the entering frame so target-side
-        // hover logic lives in `onDrag` only (source `onDrag` stays throttled).
+        // Sync onDrag to current targets on entry so target-side hover logic
+        // lives in `onDrag` without an extra source dispatch.
         if (newDropTargets.length > 0) {
           const dragPayload: DragEventMap['onDrag'] = {
             location: snapshotLocation(),
@@ -664,8 +644,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       return;
     }
     tornDown = true;
-    dragPending = false;
-
     // Release the shared state before running cleanup callbacks.
     state.isActive = false;
     state.dragCleanup = null;
@@ -673,7 +651,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     state.refreshDropTargets = null;
     state.isHovered = null;
 
-    dragFrame.cancel();
     try {
       // Notify the sensor, which owns the preview; no-ops if already torn down.
       containConsumerError(
@@ -710,7 +687,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     if (tornDown) {
       return { canceled: true, dropTarget: null };
     }
-    cancelPendingDrag();
     // The end sequence owns the stack from here: a sync refresh requested by a
     // handler below queues behind `dispatching` and is deliberately never
     // drained — the terminal leaves settle the hover state themselves, and the
@@ -751,7 +727,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     location.current = { input, dropTargets: freshDropTargets };
 
     // The final pointer position can resolve a different stack than the last
-    // throttled `update` (the sensor calls `drop` directly). Reconcile
+    // sensor update (the sensor calls `drop` directly). Reconcile
     // enter/leave against the fresh stack before the drop so a newly
     // entered/left target gets onDragEnter/onDragLeave, not a stale-hover onDrop.
     // recover on throw (see dispatchDragStart)
@@ -786,8 +762,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       // Disarm `refreshDropTargets` for the end dispatch: an `onDragEnd` that
       // unregisters a target would otherwise re-enter `updateDropTargets` and
       // shift `location.current` out from under the onDrop/leave dispatch below.
-      // `tearDown()` nulls it anyway, so restoring right after the try is fine.
-      const savedRefreshFn = state.refreshDropTargets;
+      // It stays disarmed: `tearDown()` clears the slot after the terminal
+      // dispatch, and nothing may refresh the committed target stack meanwhile.
       state.refreshDropTargets = null;
 
       // The end sequence is committed: a `cancelDrag()` from one of the end
@@ -875,8 +851,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
             hoveredDropTargets,
           );
         }
-
-        state.refreshDropTargets = savedRefreshFn;
       }
     } catch (error) {
       dispatchRecoveryEnd();
@@ -914,8 +888,6 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     // targets still under the pointer, and dispatch `onDragEnter` to them
     // mid-cancel with no balancing leave. `tearDown()` nulls it anyway.
     state.refreshDropTargets = null;
-    cancelPendingDrag();
-
     const cancelInput = input ?? location.current.input;
     // Terminal-leave recipients are the targets whose hover state was actually
     // delivered. They differ from `location.current.dropTargets` when this
@@ -974,14 +946,12 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   const controller: DragSessionController = {
     update(input, target, event) {
       updateDropTargets(input, target, event);
-      // `updateDropTargets` can re-enter `cancelDrag()` via a consumer callback and
-      // tear the session down; scheduling an onDrag after teardown would re-arm a
-      // dead session, so only schedule while still live.
+      // Sensors coalesce input before `update`, so deliver in that sensor frame.
+      // `updateDropTargets` can re-enter `cancelDrag()` via a consumer callback.
       if (!tornDown) {
-        scheduleDrag();
+        dispatchDrag();
       }
     },
-    flushDrag,
     drop: doDrop,
     cancel: doCancel,
     get committedOutcome() {
@@ -1014,14 +984,15 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     // Installed before the synchronous `onGenerateDragPreview` dispatch so a
     // consumer that unregisters an initial drop target during it gets the stale
     // target dropped from the stack rather than published onDragStart.
-    state.refreshDropTargets = () => {
+    state.refreshDropTargets = (rehitTest) => {
       // Requested from inside a consumer fan-out, or before `onDragStart` has
       // been delivered: queue it (see `dispatching` and `startDispatched`).
       if (dispatching || !startDispatched) {
         refreshPending = true;
+        pendingRefreshNeedsHitTest ||= rehitTest;
         return;
       }
-      resolveDropTargetsFromLastTarget();
+      resolveDropTargetsFromLastTarget(rehitTest);
     };
     state.isHovered = (element) => hoveredDropTargets.some((record) => record.element === element);
 
@@ -1108,16 +1079,10 @@ export interface DragSessionController {
    * `keydown` the sensor is reacting to. It reaches `eventDetails.event` on
    * `onDrag`, `onDropTargetChange`, `onDragEnter` and `onDragLeave`, so those
    * handlers can read modifier keys off a real event rather than a placeholder.
-   * Several raw samples coalesce into one `onDrag`, which then reports the last
-   * one's event — the same sample its `location.current` came from.
+   * Sensors may coalesce several raw samples before calling `update`, which then
+   * reports the last sample's event alongside its `location.current`.
    */
   update(input: DragInput, target: Element | null, event?: Event): void;
-  /**
-   * Flush the throttled `onDrag` synchronously so logic that runs right after a
-   * move (e.g. keyboard announcements) observes the just-resolved hover state
-   * rather than the previous frame's.
-   */
-  flushDrag(): void;
   /**
    * End the drag as a release at `input` over `target`. Returns the outcome the
    * resulting `onDragEnd` reported. See {@link DropOutcome}.

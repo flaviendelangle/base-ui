@@ -6,12 +6,13 @@ import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { areArraysEqual } from '@base-ui/utils/areArraysEqual';
 import { registerDropTarget } from '../../utils/drag-and-drop/registrations';
-import { refreshDropTargets } from '../../utils/drag-and-drop/core/lifecycleManager';
+import { scheduleDropTargetParameterRefresh } from '../../utils/drag-and-drop/core/lifecycleManager';
 import type { RegisterDropTargetParameters } from '../../types/dragRegistration';
 import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef';
 import {
   createDragTargetStateStore,
   dragSourceStore,
+  dragTargetStateStride,
   DragTargetState,
 } from '../../utils/drag-and-drop/dragSessionStore';
 import { matchesAccept } from '../../utils/drag-and-drop/dragKind';
@@ -23,11 +24,12 @@ function selectTargetState(
   disabled: boolean | undefined,
   accept: RegisterDropTargetParameters['accept'],
 ): number {
+  const targetState = state % dragTargetStateStride;
   const source = dragSourceStore.state;
   if (source !== null && !disabled && matchesAccept(accept, source)) {
-    return state + DragTargetState.accepting;
+    return targetState + DragTargetState.accepting;
   }
-  return state;
+  return targetState;
 }
 
 function hasTargetState(state: number, flag: number): boolean {
@@ -80,12 +82,9 @@ export function useDropTargetElement(
     registrationRef(node);
   }).current;
 
-  // Parameter changes never re-register, so the engine re-reads them on the next
-  // resolution — normally the next pointer move. A `disabled` or `accept` change
-  // under a stationary pointer has no next move: the hovered target would keep
-  // `data-drag-over` until a drop silently resolved without it, so re-resolve
-  // eagerly (a no-op while no drag is active). `canDrop` gets no such refresh —
-  // only calling it could reveal a changed verdict, and that means polling.
+  // A changed `disabled`, `accept`, or `canDrop` identity is re-resolved for a
+  // stationary pointer. Mutations hidden behind a stable callback are observed
+  // on the next input.
   // Only on an actual change, compared by content so an inline `accept` array
   // doesn't re-resolve every render: a mount-time refresh would resolve the
   // transient state of a same-commit remount mid-registration and churn a
@@ -105,7 +104,12 @@ export function useDropTargetElement(
     previousDisabledRef.current = disabled;
     previousAcceptRef.current = accept;
     previousCanDropRef.current = canDrop;
-    refreshDropTargets();
+    // Parameter changes re-resolve from the last event target rather than
+    // hit-testing the live DOM again. An inline `canDrop` commonly changes
+    // identity after its own `onDrag` updates preview state; re-hit-testing the
+    // shifted content there can enter another target, update preview state
+    // again, and create a synchronous render/refresh loop.
+    scheduleDropTargetParameterRefresh();
   }, [disabled, accept, canDrop]);
 
   const targetState = useStore(

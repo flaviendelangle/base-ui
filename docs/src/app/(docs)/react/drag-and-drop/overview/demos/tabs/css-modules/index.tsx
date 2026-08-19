@@ -5,10 +5,10 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import {
   Draggable,
   type BeforeDragStartEventDetails,
-  type DragMoveEvent,
   type DragStartContext,
 } from '@base-ui/react/draggable';
-import { DropTarget } from '@base-ui/react/drop-target';
+import { DropTarget, type DropTargetEvent } from '@base-ui/react/drop-target';
+import { DragAutoScroll } from '@base-ui/react/drag-auto-scroll';
 import styles from '../../tabs.module.css';
 
 interface TabItem {
@@ -112,11 +112,6 @@ function DraggableTab(props: DraggableTabProps) {
     onKeyboardMove,
   } = props;
 
-  const modifiers = React.useMemo(
-    () => [Draggable.restrictToHorizontalAxis, Draggable.restrictToElement(listRef)],
-    [listRef],
-  );
-
   const handleBeforeDragStart = useStableCallback(
     (_context: DragStartContext, eventDetails: BeforeDragStartEventDetails) => {
       if (eventDetails.trigger?.closest('[data-close-tab]')) {
@@ -127,13 +122,10 @@ function DraggableTab(props: DraggableTabProps) {
     },
   );
 
-  const handleDrag = useStableCallback((event: DragMoveEvent<string>) => {
-    const currentX = event.location.current.input.clientX;
-    const previousX = event.location.previous.input.clientX;
-
-    if (currentX !== previousX) {
-      onDragOverTab(event.source.payload, item.id, currentX > previousX);
-    }
+  const handleDrag = useStableCallback((event: DropTargetEvent<'onDrag', string>) => {
+    // Compare against the tab's midpoint rather than the pointer's direction of
+    // travel: while the list auto-scrolls, tabs slide under a stationary pointer.
+    onDragOverTab(event.source.payload, item.id, event.self.getLocalPoint().x > 0.5);
   });
 
   const handleClosePointerDown = useStableCallback((event: React.PointerEvent) => {
@@ -168,8 +160,7 @@ function DraggableTab(props: DraggableTabProps) {
           payload={item.id}
           keyboardActivation="off"
           pointerActivation={{ mouse: { type: 'distance', distance: 5 } }}
-          trackDisplacement
-          modifiers={modifiers}
+          modifiers={Draggable.restrictToHorizontalAxis}
           onBeforeDragStart={handleBeforeDragStart}
           onDragStart={onDragStart}
           onDrop={onDrop}
@@ -204,6 +195,8 @@ function DraggableTab(props: DraggableTabProps) {
       >
         <CloseIcon />
       </span>
+      {/* Keep the clone in the list without clamping the pointer used to resolve insertion slots. */}
+      <Draggable.ClonedPreview modifiers={Draggable.restrictToElement(listRef)} />
     </Tabs.Tab>
   );
 }
@@ -288,7 +281,14 @@ export default function DraggableTabs() {
           ref={listRef}
           className={styles.TabList}
           activateOnFocus
-          render={<DropTarget.Root label="Open documents" accept={tabKind} trackDragOver={false} />}
+          render={
+            <DropTarget.Root
+              label="Open documents"
+              accept={tabKind}
+              trackDragOver={false}
+              render={<DragAutoScroll.Root allowedAxis="horizontal" />}
+            />
+          }
         >
           {items.map((item) => (
             <DraggableTab

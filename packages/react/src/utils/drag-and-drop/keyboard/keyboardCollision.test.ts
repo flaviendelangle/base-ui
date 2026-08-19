@@ -42,7 +42,7 @@ function registerTarget(
   element: HTMLElement,
   accept?: ReadonlyArray<DragKind<unknown>>,
 ): void {
-  engine.registerDropTarget(element, { accept, payload: () => ({}) });
+  engine.registerDropTarget(element, { accept, getPayload: () => ({}) });
 }
 
 // A reorder row: a collection brands its per-item targets' payload, which is what
@@ -55,7 +55,7 @@ function registerRow(
 ): void {
   engine.registerDropTarget(element, {
     accept,
-    payload: () => ({ ...reorderRowBrand, role: 'item', itemId, targetInstanceId: 1 }),
+    getPayload: () => ({ ...reorderRowBrand, role: 'item', itemId, targetInstanceId: 1 }),
   });
 }
 
@@ -93,9 +93,9 @@ describe('keyboardCollision', () => {
       const nearCanDrop = vi.fn(() => true);
       const farCanDrop = vi.fn(() => true);
       const driftedCanDrop = vi.fn(() => true);
-      engine.registerDropTarget(near, { canDrop: nearCanDrop, payload: () => ({}) });
-      engine.registerDropTarget(farBehindOnAxis, { canDrop: farCanDrop, payload: () => ({}) });
-      engine.registerDropTarget(farDrifted, { canDrop: driftedCanDrop, payload: () => ({}) });
+      engine.registerDropTarget(near, { canDrop: nearCanDrop, getPayload: () => ({}) });
+      engine.registerDropTarget(farBehindOnAxis, { canDrop: farCanDrop, getPayload: () => ({}) });
+      engine.registerDropTarget(farDrifted, { canDrop: driftedCanDrop, getPayload: () => ({}) });
 
       const result = findDirectionalTarget({
         key: 'ArrowDown',
@@ -105,9 +105,10 @@ describe('keyboardCollision', () => {
       });
 
       expect(result?.element).toBe(near);
-      // A held arrow re-runs this scan once per OS repeat tick over every
-      // registered target, so a candidate whose best possible score already loses
-      // must not cost the consumer a `canDrop` (nor the `payload` behind it).
+      // Held key events are coalesced to at most one executed move per frame, but
+      // each move can still scan every registered target. A candidate whose best
+      // possible score already loses must not cost the consumer a `canDrop` (nor
+      // the `payload` behind it).
       expect(nearCanDrop).toHaveBeenCalled();
       expect(farCanDrop).not.toHaveBeenCalled();
       expect(driftedCanDrop).not.toHaveBeenCalled();
@@ -242,7 +243,7 @@ describe('keyboardCollision', () => {
       expect(seen).toEqual([190]);
     });
 
-    it('keeps resolving a callback-payload row at both points', async () => {
+    it('keeps resolving a getPayload row at both points', async () => {
       // A callback can answer differently per point, so a peek at one point
       // cannot prove the target is a row everywhere: the centre-first order has
       // to stand for this form.
@@ -251,7 +252,12 @@ describe('keyboardCollision', () => {
       const row = createElement({ left: 0, width: 200, top: 100, height: 100 });
       const seen: number[] = [];
       engine.registerDropTarget(row, {
-        payload: () => ({ ...reorderRowBrand, role: 'item', itemId: 'row', targetInstanceId: 1 }),
+        getPayload: () => ({
+          ...reorderRowBrand,
+          role: 'item',
+          itemId: 'row',
+          targetInstanceId: 1,
+        }),
         canDrop: ({ input }) => {
           seen.push(input.clientY);
           return true;
@@ -276,7 +282,12 @@ describe('keyboardCollision', () => {
       const row = createElement({ left: 0, width: 200, top: 100, height: 100 });
       const seen: number[] = [];
       engine.registerDropTarget(row, {
-        payload: () => ({ ...reorderRowBrand, role: 'item', itemId: 'row', targetInstanceId: 1 }),
+        getPayload: () => ({
+          ...reorderRowBrand,
+          role: 'item',
+          itemId: 'row',
+          targetInstanceId: 1,
+        }),
         canDrop: ({ input }) => {
           seen.push(input.clientY);
           // Only the lower half of the row (below y = 150) accepts.
