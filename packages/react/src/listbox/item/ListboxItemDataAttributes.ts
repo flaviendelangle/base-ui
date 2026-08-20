@@ -16,12 +16,20 @@ export enum ListboxItemDataAttributes {
    */
   dragging = 'data-dragging',
   /**
-   * Present when the listbox item is a drop target.
+   * Present when a dragged item is over the listbox item.
    */
-  dropTarget = 'data-drop-target',
+  dragOver = 'data-drag-over',
   /**
-   * Indicates the closest edge when the item is a drop target.
+   * Present while `trackDisplacement` animates the item from a previous layout position.
+   */
+  displacing = 'data-displacing',
+  /**
+   * Present on the first frame of a displacement animation.
+   */
+  startingStyle = 'data-starting-style',
+  /**
+   * Indicates the drop position relative to the item.
    * The value is `'before'` or `'after'`.
    */
-  dropTargetEdge = 'data-drop-target-edge',
+  dropPosition = 'data-drop-position',
 }

@@ -2,15 +2,13 @@
 import * as React from 'react';
 import type { BaseUIComponentProps } from '../../internals/types';
 import { useRenderElement } from '../../internals/useRenderElement';
-import { useListboxItemContext } from '../item/ListboxItemContext';
 
 /**
- * A drag handle within a listbox item for initiating drag-and-drop reordering.
+ * A visual drag affordance within a listbox item.
  * Renders a `<div>` element.
  *
- * When placed inside a `Listbox.Item` within `Listbox.DragAndDropProvider`,
- * the drag operation will be restricted to start only from this handle
- * whenever the provider allows dragging for that item.
+ * Pointer dragging remains available from the whole item. Keyboard users start
+ * dragging the focused item with Alt+Enter.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
@@ -19,10 +17,9 @@ export const ListboxItemDragHandle = React.forwardRef(function ListboxItemDragHa
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
   const { className, render, style, ...elementProps } = componentProps;
-  const { dragHandleRef } = useListboxItemContext();
 
   return useRenderElement('div', componentProps, {
-    ref: [forwardedRef, dragHandleRef],
+    ref: forwardedRef,
     props: [
       {
         'aria-hidden': true,

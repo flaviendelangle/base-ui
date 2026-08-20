@@ -80,6 +80,14 @@ function pressKey(target: EventTarget, key: string): void {
   });
 }
 
+function pointerDropDetails() {
+  return expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) });
+}
+
+function keyboardDropDetails() {
+  return expect.objectContaining({ reason: 'drop', event: expect.any(KeyboardEvent) });
+}
+
 describe('useDraggableCollection', () => {
   it('reuses item registration parameters until a dynamic input changes', () => {
     let draggable = true;
@@ -278,6 +286,7 @@ describe('useDraggableCollection', () => {
 
       expect(onDrop).toHaveBeenCalledWith(
         expect.objectContaining({ target: { itemId: 'b', position: 'before' } }),
+        pointerDropDetails(),
       );
     });
 
@@ -298,6 +307,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'before' },
         }),
+        pointerDropDetails(),
       );
 
       // middle → on
@@ -309,6 +319,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'on' },
         }),
+        pointerDropDetails(),
       );
 
       // bottom 25% → after
@@ -320,6 +331,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'after' },
         }),
+        pointerDropDetails(),
       );
     });
 
@@ -346,6 +358,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'before' },
         }),
+        pointerDropDetails(),
       );
     });
 
@@ -374,6 +387,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'before' },
         }),
+        pointerDropDetails(),
       );
 
       // Right half → after. Only clientX changed, pinning the axis pick.
@@ -385,6 +399,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'after' },
         }),
+        pointerDropDetails(),
       );
     });
 
@@ -415,6 +430,7 @@ describe('useDraggableCollection', () => {
         expect.objectContaining({
           target: { itemId: 'b', position: 'before' },
         }),
+        pointerDropDetails(),
       );
     });
   });
@@ -469,7 +485,10 @@ describe('useDraggableCollection', () => {
       await dragOver(target, { clientY: 250 });
       drop(target, { clientY: 250 });
 
-      expect(onDrop).toHaveBeenCalledWith(expect.objectContaining({ isInternal: true }));
+      expect(onDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ isInternal: true }),
+        pointerDropDetails(),
+      );
       expect(onDragEnd).toHaveBeenCalledTimes(1);
       expect(onDragEnd.mock.calls[0][0].isInternal).toBe(true);
     });
@@ -511,9 +530,11 @@ describe('useDraggableCollection', () => {
           target: { itemId: 'a', position: 'on' },
           isInternal: true,
         }),
+        expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) }),
       );
       expect(onDragEnd).toHaveBeenCalledWith(
         expect.objectContaining({ canceled: false, isInternal: true }),
+        expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) }),
       );
     });
 
@@ -975,6 +996,7 @@ describe('useDraggableCollection', () => {
           isInternal: false,
           target: { itemId: 'b', position: 'on' },
         }),
+        pointerDropDetails(),
       );
       // This collection did not originate the drag, so it has no lifecycle end.
       expect(onDragEnd).not.toHaveBeenCalled();
@@ -1039,6 +1061,7 @@ describe('useDraggableCollection', () => {
           itemIds: new Set(),
           target: { itemId: null, position: 'root' },
         }),
+        pointerDropDetails(),
       );
     });
 
@@ -1262,6 +1285,7 @@ describe('useDraggableCollection', () => {
       expect(onDrop).toHaveBeenCalledTimes(1);
       expect(onDrop).toHaveBeenCalledWith(
         expect.objectContaining({ target: { itemId: 'b', position: 'on' } }),
+        pointerDropDetails(),
       );
     });
 
@@ -1406,6 +1430,7 @@ describe('useDraggableCollection', () => {
       expect(onDrop).toHaveBeenCalledTimes(1);
       expect(onDrop).toHaveBeenLastCalledWith(
         expect.objectContaining({ target: { itemId: 'b', position: 'after' } }),
+        keyboardDropDetails(),
       );
     });
 
@@ -1553,6 +1578,20 @@ describe('useDraggableCollection', () => {
       expect(a.hasAttribute('aria-roledescription')).toBe(true);
       expect(a.hasAttribute('aria-describedby')).toBe(false);
     });
+
+    it('supports custom instructions with manual keyboard activation', () => {
+      const keyboardInstructions = 'Press Alt+Enter to pick up.';
+      const { plugin } = setupPlugin(
+        { keyboardActivation: 'manual', keyboardInstructions },
+        { knownItemIds: ['a'] },
+      );
+      const a = createElement({ top: 0, height: 100 });
+      plugin.setupItem('a', a);
+
+      const instructionsId = a.getAttribute('aria-describedby');
+      expect(instructionsId).not.toBeNull();
+      expect(document.getElementById(instructionsId!)?.textContent).toBe(keyboardInstructions);
+    });
   });
 
   describe('localized keyboardAnnouncements', () => {
@@ -1609,6 +1648,7 @@ describe('useDraggableCollection', () => {
 
       expect(onDrop).toHaveBeenLastCalledWith(
         expect.objectContaining({ target: { itemId: 'b', position: 'after' } }),
+        keyboardDropDetails(),
       );
       expect(liveRegionText()).toBe('Acheter du lait déposé après Promener le chien.');
     });

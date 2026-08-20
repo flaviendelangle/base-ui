@@ -3,7 +3,13 @@ import * as React from 'react';
 import { Listbox } from '@base-ui/react/listbox';
 import styles from './index.module.css';
 
-const initialItems = [
+interface Song {
+  title: string;
+  artist: string;
+  value: string;
+}
+
+const initialItems: Song[] = [
   { title: 'Bohemian Rhapsody', artist: 'Queen', value: 'bohemian-rhapsody' },
   { title: 'Billie Jean', artist: 'Michael Jackson', value: 'billie-jean' },
   { title: 'Hotel California', artist: 'Eagles', value: 'hotel-california' },
@@ -11,33 +17,26 @@ const initialItems = [
   { title: 'Dancing Queen', artist: 'ABBA', value: 'dancing-queen' },
 ];
 
-export default function ExampleListboxDragAndDrop() {
+export default function ExampleListboxLiveReorderDnd() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={['bohemian-rhapsody']}>
+      <Listbox.Root defaultValue={[initialItems[0]]}>
         <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.DragProvider
-          onItemsReorder={(order) => {
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            });
-          }}
-        >
+        <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
           <Listbox.List className={styles.List}>
-            {items.map(({ title, artist, value }) => (
-              <Listbox.Item key={value} value={value} className={styles.Item}>
-                <Listbox.ItemDragHandle className={styles.DragHandle}>
+            {items.map((item) => (
+              <Listbox.Item key={item.value} value={item} className={styles.Item}>
+                <span className={styles.DragGrip} aria-hidden="true">
                   <GripIcon />
-                </Listbox.ItemDragHandle>
+                </span>
                 <Listbox.ItemIndicator className={styles.ItemIndicator}>
                   <CheckIcon className={styles.ItemIndicatorIcon} />
                 </Listbox.ItemIndicator>
                 <Listbox.ItemText className={styles.ItemText}>
-                  <span className={styles.ItemTitle}>{title}</span>
-                  <span className={styles.ItemArtist}>{artist}</span>
+                  <span className={styles.ItemTitle}>{item.title}</span>
+                  <span className={styles.ItemArtist}>{item.artist}</span>
                 </Listbox.ItemText>
               </Listbox.Item>
             ))}

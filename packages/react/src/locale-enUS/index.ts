@@ -5,6 +5,9 @@ export const enUS: LocalizationProviderTranslations = {
   dragKeyboardInstructions:
     'Press Space or Enter to pick up. Use the arrow keys to move. ' +
     'Press Space or Enter again to drop, or Escape to cancel.',
+  listboxDragKeyboardInstructions:
+    'Press Alt+Enter to pick up. Use the arrow keys to move. ' +
+    'Press Space or Enter to drop, or Escape to cancel.',
   dragHandleLabel: ({ label }) => (label ? `Drag ${label}` : 'Drag'),
   dragDefaultItemLabel: ({ label }) => label || 'item',
   dragMultipleItemsLabel: ({ count }) => `${count} items`,

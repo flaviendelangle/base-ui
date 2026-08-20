@@ -19,14 +19,14 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
   it('prevents the native context menu for draggable items', async () => {
     await render(
       <Listbox.Root>
-        <Listbox.DragAndDropProvider onItemsReorder={vi.fn()}>
+        <Listbox.DragProvider onItemsReorder={vi.fn()}>
           <Listbox.List>
             <Listbox.Item value="a">
               <Listbox.ItemDragHandle data-testid="handle">drag</Listbox.ItemDragHandle>
               <Listbox.ItemText>a</Listbox.ItemText>
             </Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>,
     );
 

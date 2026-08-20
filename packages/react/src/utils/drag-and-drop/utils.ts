@@ -2,6 +2,7 @@ import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isShadowRoot } from '@floating-ui/utils/dom';
 import { contains } from '@base-ui/utils/shadowDom';
 import type { DragInput, DragModifierKeys, DragPointerType, DragPosition } from '../../types/drag';
+import { getElementAtPoint } from '../getElementAtPoint';
 import { getParentElement as getComposedParentElement } from '../getParentElement';
 import {
   identityLinearTransform,
@@ -78,11 +79,11 @@ export function getDragEventRoot(node: Element): Document | ShadowRoot {
  * roots can be supplied because their host does not expose them through
  * `Element.shadowRoot`.
  *
- * Optional-chained at both levels: jsdom implements `elementFromPoint` on neither
- * `Document` nor `ShadowRoot`. This runs from the activation commit, outside every
- * containment boundary and after the pending listeners are gone, so a `TypeError`
- * here would strand the sensor and refuse every later pickup. Degrade to "nothing
- * under the pointer" instead.
+ * `getElementAtPoint` guards both levels because jsdom implements `elementFromPoint`
+ * on neither `Document` nor `ShadowRoot`. This runs from the activation commit,
+ * outside every containment boundary and after the pending listeners are gone, so
+ * a `TypeError` here would strand the sensor and refuse every later pickup. Degrade
+ * to "nothing under the pointer" instead.
  */
 export function deepElementFromPoint(
   doc: Document,
@@ -101,10 +102,10 @@ export function deepElementFromPoint(
       root = root.host.getRootNode();
     }
   }
-  let hit = doc.elementFromPoint?.(clientX, clientY) ?? null;
+  let hit = getElementAtPoint(doc, clientX, clientY);
   let innerRoot = hit ? (hit.shadowRoot ?? rootsByHost.get(hit)) : undefined;
   while (innerRoot) {
-    const inner = innerRoot.elementFromPoint?.(clientX, clientY);
+    const inner = getElementAtPoint(innerRoot, clientX, clientY);
     if (!inner || inner === hit) {
       break;
     }

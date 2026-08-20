@@ -13,16 +13,14 @@ const initialItems = [
   { label: 'Background', value: 'background', icon: 'image' as IconType },
 ];
 
-function reorder(
-  prev: typeof initialItems,
-  event: { items: string[]; referenceItem: string; edge: 'before' | 'after' },
-) {
-  const movedValues = new Set(event.items);
-  const movedItems = prev.filter((item) => movedValues.has(item.value));
-  const rest = prev.filter((item) => !movedValues.has(item.value));
-  const refIndex = rest.findIndex((item) => item.value === event.referenceItem);
-  rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-  return rest;
+function moveItem(items: typeof initialItems, value: string, index: number) {
+  const item = items.find((candidate) => candidate.value === value);
+  if (!item) {
+    return items;
+  }
+  const nextItems = items.filter((candidate) => candidate !== item);
+  nextItems.splice(index, 0, item);
+  return nextItems;
 }
 
 export default function ExampleListboxCustomShortcuts() {
@@ -42,13 +40,7 @@ export default function ExampleListboxCustomShortcuts() {
       if (!first || first.value === highlighted.value) {
         return;
       }
-      setItems((prev) =>
-        reorder(prev, {
-          items: [highlighted.value],
-          referenceItem: first.value,
-          edge: 'before',
-        }),
-      );
+      setItems((prev) => moveItem(prev, highlighted.value, 0));
       actionsRef.current?.highlightValue(highlighted.value, highlighted.element);
     }
 
@@ -58,13 +50,7 @@ export default function ExampleListboxCustomShortcuts() {
       if (!last || last.value === highlighted.value) {
         return;
       }
-      setItems((prev) =>
-        reorder(prev, {
-          items: [highlighted.value],
-          referenceItem: last.value,
-          edge: 'after',
-        }),
-      );
+      setItems((prev) => moveItem(prev, highlighted.value, prev.length - 1));
       actionsRef.current?.highlightValue(highlighted.value, highlighted.element);
     }
   }
@@ -81,8 +67,13 @@ export default function ExampleListboxCustomShortcuts() {
         <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
           Layers
         </Listbox.Label>
-        <Listbox.DragAndDropProvider
-          onItemsReorder={(event) => setItems((prev) => reorder(prev, event))}
+        <Listbox.DragProvider
+          onItemsReorder={(order) =>
+            setItems((prev) => {
+              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+              return order.map((value) => itemsByValue.get(value)!);
+            })
+          }
         >
           <Listbox.List
             className="box-border w-56 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-gray-200 dark:outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800"
@@ -92,14 +83,14 @@ export default function ExampleListboxCustomShortcuts() {
               <Listbox.Item
                 key={value}
                 value={value}
-                className="relative z-0 grid cursor-default grid-cols-[1rem_1fr] items-center gap-2 py-2 pr-4 pl-2.5 text-sm leading-4 text-gray-900 outline-hidden select-none before:absolute before:inset-x-1 before:inset-y-0 before:z-[-1] before:rounded-xs data-[highlighted]:before:bg-gray-100 data-[selected]:before:bg-blue-800/10 data-[selected]:data-[highlighted]:before:bg-blue-800/18 data-[dragging]:opacity-50 data-[drop-target-edge=before]:after:absolute data-[drop-target-edge=before]:after:top-[-1px] data-[drop-target-edge=before]:after:left-1 data-[drop-target-edge=before]:after:right-1 data-[drop-target-edge=before]:after:h-0.5 data-[drop-target-edge=before]:after:bg-blue-800 data-[drop-target-edge=before]:after:content-[''] data-[drop-target-edge=after]:after:absolute data-[drop-target-edge=after]:after:bottom-[-1px] data-[drop-target-edge=after]:after:left-1 data-[drop-target-edge=after]:after:right-1 data-[drop-target-edge=after]:after:h-0.5 data-[drop-target-edge=after]:after:bg-blue-800 data-[drop-target-edge=after]:after:content-[''] pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]"
+                className="relative z-0 grid cursor-default grid-cols-[1rem_1fr] items-center gap-2 py-2 pr-4 pl-2.5 text-sm leading-4 text-gray-900 outline-hidden select-none before:absolute before:inset-x-1 before:inset-y-0 before:z-[-1] before:rounded-xs data-[highlighted]:before:bg-gray-100 data-[selected]:before:bg-blue-800/10 data-[selected]:data-[highlighted]:before:bg-blue-800/18 data-[dragging]:opacity-50 data-[drop-position=before]:after:absolute data-[drop-position=before]:after:top-[-1px] data-[drop-position=before]:after:left-1 data-[drop-position=before]:after:right-1 data-[drop-position=before]:after:h-0.5 data-[drop-position=before]:after:bg-blue-800 data-[drop-position=before]:after:content-[''] data-[drop-position=after]:after:absolute data-[drop-position=after]:after:bottom-[-1px] data-[drop-position=after]:after:left-1 data-[drop-position=after]:after:right-1 data-[drop-position=after]:after:h-0.5 data-[drop-position=after]:after:bg-blue-800 data-[drop-position=after]:after:content-[''] pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]"
               >
                 <LayerIcon type={icon} className="size-4 text-gray-400" />
                 <Listbox.ItemText>{label}</Listbox.ItemText>
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.DragProvider>
       </Listbox.Root>
     </div>
   );

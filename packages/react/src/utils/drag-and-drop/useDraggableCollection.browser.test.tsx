@@ -101,6 +101,7 @@ describe.skipIf(isJSDOM)('useDraggableCollection browser geometry', () => {
     expect(previewRender).toHaveBeenCalled();
     expect(onDrop).toHaveBeenCalledWith(
       expect.objectContaining({ target: { itemId: 'b', position: 'before' } }),
+      expect.objectContaining({ reason: 'drop', event: expect.any(PointerEvent) }),
     );
     expect(outerRootDrop).not.toHaveBeenCalled();
     expect(dragSessionStore.getSnapshot()).toBeNull();

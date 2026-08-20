@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ReactStore, createSelector } from '@base-ui/utils/store';
 import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
+import type { CollectionItemId } from '../types/collection';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];
@@ -23,9 +24,10 @@ export type State = {
   listElement: HTMLElement | null;
 
   // DnD state
-  /** Indices of all items currently being dragged (multi-select drags all selected items). */
-  dragActiveIndices: number[] | null;
-  dropTargetIndex: number | null;
+  /** Internal IDs of all items currently being dragged (multi-select drags all selected items). */
+  dragActiveItemIds: Set<CollectionItemId> | null;
+  dragOverItemId: CollectionItemId | null;
+  dropPosition: 'before' | 'after' | null;
 
   // Loading state
   loading: boolean;
@@ -85,13 +87,17 @@ export const selectors = {
 
   listElement: createSelector((state: State) => state.listElement),
 
-  dragActiveIndices: createSelector((state: State) => state.dragActiveIndices),
-  dropTargetIndex: createSelector((state: State) => state.dropTargetIndex),
+  dragActiveItemIds: createSelector((state: State) => state.dragActiveItemIds),
+  dragOverItemId: createSelector((state: State) => state.dragOverItemId),
   isDragging: createSelector(
-    (state: State, index: number) =>
-      state.dragActiveIndices != null && state.dragActiveIndices.includes(index),
+    (state: State, itemId: CollectionItemId | undefined) =>
+      itemId !== undefined &&
+      state.dragActiveItemIds != null &&
+      state.dragActiveItemIds.has(itemId),
   ),
-  isDropTarget: createSelector((state: State, index: number) => state.dropTargetIndex === index),
+  dropPositionForItem: createSelector((state: State, itemId: CollectionItemId | undefined) =>
+    itemId !== undefined && state.dragOverItemId === itemId ? state.dropPosition : null,
+  ),
 
   loading: createSelector((state: State) => state.loading),
   loadingProp: createSelector((state: State) => state.loadingProp),
@@ -127,8 +133,9 @@ function createInitialState(): State {
     value: [],
     activeIndex: null,
     listElement: null,
-    dragActiveIndices: null,
-    dropTargetIndex: null,
+    dragActiveItemIds: null,
+    dragOverItemId: null,
+    dropPosition: null,
     loading: false,
     loadingProp: false,
     hasOnLoadMore: false,

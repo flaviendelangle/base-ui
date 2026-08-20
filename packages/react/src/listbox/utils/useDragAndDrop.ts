@@ -1,10 +1,10 @@
 'use client';
 import * as React from 'react';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import {
-  type ListboxDragAndDropEdge,
-  useListboxDragAndDropProviderContext,
-} from '../drag-and-drop-provider/ListboxDragAndDropProviderContext';
+import { useId } from '@base-ui/utils/useId';
+import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
+import type { CollectionItemId } from '../../types/collection';
+import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
 
 /**
  * Parameters for {@link useDragAndDrop}.
@@ -16,12 +16,8 @@ export interface UseDragAndDropParameters {
   itemValue: any;
   /** Ref to the item's DOM element. */
   itemRef: React.RefObject<HTMLElement | null>;
-  /** Ref to the optional drag handle element. */
-  dragHandleRef: React.RefObject<HTMLElement | null>;
-  /** Whether dragging should be enabled for the item. */
-  dragEnabled: boolean;
-  /** Whether the item should act as a drop target. */
-  dropTargetEnabled: boolean;
+  /** Whether drag-and-drop registration is enabled for the item. */
+  enabled: boolean;
   /** Whether the item is disabled. */
   disabled: boolean;
   /**
@@ -30,61 +26,34 @@ export interface UseDragAndDropParameters {
   groupId: string | undefined;
 }
 
-export interface UseDragAndDropReturnValue {
-  /** The closest edge when the item is the active drop target. */
-  closestEdge: ListboxDragAndDropEdge | null;
-}
-
 /**
- * Wires a listbox item into `Listbox.DragAndDropProvider` and exposes its
- * current drop-target edge for styling.
+ * Wires a listbox item into `Listbox.DragProvider`.
  *
  * @param params Configuration for the current draggable item.
- * @returns The closest edge for the current drop target, or `null`.
+ * @returns The stable identifier used by the collection drag engine.
  */
-export function useDragAndDrop(params: UseDragAndDropParameters): UseDragAndDropReturnValue {
-  const {
-    index,
-    itemValue,
-    itemRef,
-    dragHandleRef,
-    dragEnabled,
-    dropTargetEnabled,
-    disabled,
-    groupId,
-  } = params;
+export function useDragAndDrop(params: UseDragAndDropParameters): CollectionItemId | undefined {
+  const { index, itemValue, itemRef, enabled, disabled, groupId } = params;
 
-  const [closestEdge, setClosestEdge] = React.useState<ListboxDragAndDropEdge | null>(null);
-  const dragAndDropContext = useListboxDragAndDropProviderContext(true);
+  const itemId = useId();
+  const item = useValueAsRef({ value: itemValue, index, groupId, disabled });
+  const dragContext = useListboxDragProviderContext(true);
 
   useIsoLayoutEffect(() => {
     const element = itemRef.current;
-    if (!dragAndDropContext || !element || (!dragEnabled && !dropTargetEnabled)) {
+    if (!dragContext || itemId === undefined || !element || !enabled) {
       return undefined;
     }
 
-    return dragAndDropContext.setupItem({
-      element,
-      dragHandle: dragHandleRef.current ?? element,
-      index,
-      itemValue,
-      dragEnabled,
-      dropTargetEnabled,
-      disabled,
-      groupId,
-      setClosestEdge,
-    });
-  }, [
-    dragAndDropContext,
-    dragEnabled,
-    dropTargetEnabled,
-    disabled,
-    index,
-    itemValue,
-    groupId,
-    itemRef,
-    dragHandleRef,
-  ]);
+    return dragContext.setupItem(itemId, element, item);
+  }, [dragContext, enabled, itemId, item, itemRef]);
 
-  return { closestEdge };
+  useIsoLayoutEffect(() => {
+    const element = itemRef.current;
+    if (dragContext && itemId !== undefined && element && enabled) {
+      dragContext.scheduleDisplacementSweep(element);
+    }
+  });
+
+  return itemId;
 }

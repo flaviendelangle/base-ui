@@ -4,6 +4,7 @@ import { Listbox } from '@base-ui/react/listbox';
 import { DirectionProvider } from '@base-ui/react/direction-provider';
 import { act, fireEvent, flushMicrotasks, screen, waitFor } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
+import { flushRaf } from '../../../test/dnd';
 
 describe('<Listbox.Root />', () => {
   beforeEach(() => {
@@ -11,6 +12,33 @@ describe('<Listbox.Root />', () => {
   });
 
   const { render } = createRenderer();
+
+  async function pickupWithKeyboard(item: HTMLElement) {
+    const options = screen.getAllByRole('option');
+    options.forEach((option, index) => {
+      option.getBoundingClientRect = () => new DOMRect(0, index * 100, 100, 100);
+    });
+    vi.spyOn(document, 'elementFromPoint').mockImplementation((_x, y) => {
+      return (
+        options.find((option) => {
+          const rect = option.getBoundingClientRect();
+          return y >= rect.top && y < rect.bottom;
+        }) ?? null
+      );
+    });
+    fireEvent.keyDown(item, { key: 'Enter', altKey: true });
+    await flushRaf();
+  }
+
+  async function moveKeyboardDrag(item: HTMLElement, key: 'ArrowUp' | 'ArrowDown') {
+    fireEvent.keyDown(item, { key });
+    await flushRaf();
+  }
+
+  async function dropWithKeyboard(item: HTMLElement) {
+    fireEvent.keyDown(item, { key: 'Enter' });
+    await flushRaf();
+  }
 
   describe('prop: defaultValue', () => {
     it('should select the item by default', async () => {
@@ -1250,7 +1278,7 @@ describe('<Listbox.Root />', () => {
       expect(handleValueChange.mock.calls[1][0]).toEqual(['a', 'c']);
     });
 
-    it('should not reorder with Alt+Arrow when DragAndDropProvider is not rendered', async () => {
+    it('should not start a keyboard drag when DragProvider is not rendered', async () => {
       await render(
         <Listbox.Root>
           <Listbox.List>
@@ -1265,19 +1293,20 @@ describe('<Listbox.Root />', () => {
 
       const itemC = screen.getByRole('option', { name: 'c' });
       await act(() => itemC.focus());
-      fireEvent.keyDown(itemC, { key: 'ArrowUp', altKey: true });
+      fireEvent.keyDown(itemC, { key: 'Enter', altKey: true });
       await flushMicrotasks();
 
       expect(screen.getAllByRole('option').map((el) => el.textContent)).toEqual(['a', 'b', 'c']);
       expect(document.activeElement).toBe(itemC);
+      expect(itemC).not.toHaveAttribute('data-dragging');
     });
 
-    it('should reorder relative to a disabled item with Alt+Arrow', async () => {
+    it('should reorder relative to a disabled item with keyboard drag and drop', async () => {
       const handleItemsReorder = vi.fn();
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1285,7 +1314,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1302,23 +1331,23 @@ describe('<Listbox.Root />', () => {
       await flushMicrotasks();
 
       const itemC = screen.getByRole('option', { name: 'c' });
-      fireEvent.keyDown(itemC, { key: 'ArrowUp', altKey: true });
+      await pickupWithKeyboard(itemC);
+      await moveKeyboardDrag(itemC, 'ArrowUp');
+      await dropWithKeyboard(itemC);
 
       expect(handleItemsReorder).toHaveBeenCalledTimes(1);
-      expect(handleItemsReorder.mock.calls[0][0]).toEqual({
-        items: ['c'],
-        referenceItem: 'b',
-        edge: 'before',
-        reason: 'keyboard',
-      });
+      expect(handleItemsReorder.mock.calls[0][0]).toEqual(['a', 'c', 'b']);
+      expect(handleItemsReorder.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ reason: 'keyboard', edge: 'before' }),
+      );
     });
 
-    it('should not reorder a disabled item with Alt+Arrow', async () => {
+    it('should not start keyboard dragging from a disabled item', async () => {
       const handleItemsReorder = vi.fn();
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1326,7 +1355,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1340,26 +1369,27 @@ describe('<Listbox.Root />', () => {
 
       const itemB = screen.getByRole('option', { name: 'b' });
       await act(() => itemB.focus());
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
 
       expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
-    it('should allow overriding canDrag for a disabled item with Alt+Arrow', async () => {
+    it('should allow additionally disabling keyboard drag for an enabled item', async () => {
       const handleItemsReorder = vi.fn();
-      const handleCanDrag = vi.fn((item: { value: string }) => item.value === 'b');
+      const handleIsItemDragDisabled = vi.fn((item: { value: string }) => item.value === 'b');
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider canDrag={handleCanDrag} onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider
+            isItemDragDisabled={handleIsItemDragDisabled}
+            onItemsReorder={handleItemsReorder}
+          >
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
-              <Listbox.Item value="b" disabled>
-                b
-              </Listbox.Item>
+              <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1373,21 +1403,15 @@ describe('<Listbox.Root />', () => {
 
       const itemB = screen.getByRole('option', { name: 'b' });
       await act(() => itemB.focus());
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
 
-      expect(handleCanDrag).toHaveBeenCalledWith({
+      expect(handleIsItemDragDisabled).toHaveBeenCalledWith({
         value: 'b',
         index: 1,
         groupId: undefined,
-        disabled: true,
+        disabled: false,
       });
-      expect(handleItemsReorder).toHaveBeenCalledTimes(1);
-      expect(handleItemsReorder.mock.calls[0][0]).toEqual({
-        items: ['b'],
-        referenceItem: 'c',
-        edge: 'after',
-        reason: 'keyboard',
-      });
+      expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
     it('should block keyboard reordering when canDrop returns false', async () => {
@@ -1396,13 +1420,13 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
+          <Listbox.DragProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1415,13 +1439,15 @@ describe('<Listbox.Root />', () => {
       await flushMicrotasks();
 
       const itemB = screen.getByRole('option', { name: 'b' });
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
 
-      expect(handleCanDrop).toHaveBeenCalledWith(
-        [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
-        { value: 'c', index: 2, groupId: undefined, disabled: false },
-        'after',
-      );
+      expect(handleCanDrop).toHaveBeenCalledWith({
+        sourceItems: [{ value: 'b', index: 1, groupId: undefined, disabled: false }],
+        targetItem: { value: 'c', index: 2, groupId: undefined, disabled: false },
+        edge: 'after',
+      });
       expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
@@ -1430,17 +1456,13 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root disabled>
-          <Listbox.DragAndDropProvider
-            canDrag={() => true}
-            canDrop={() => true}
-            onItemsReorder={handleItemsReorder}
-          >
+          <Listbox.DragProvider canDrop={() => true} onItemsReorder={handleItemsReorder}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b">b</Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1448,15 +1470,15 @@ describe('<Listbox.Root />', () => {
 
       const itemB = screen.getByRole('option', { name: 'b' });
       await act(() => itemB.focus());
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
 
       expect(handleItemsReorder).not.toHaveBeenCalled();
     });
 
-    it('should keep hover highlighting working after a blocked Alt+Arrow reorder', async () => {
+    it('should keep hover highlighting working after blocked keyboard pickup', async () => {
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider onItemsReorder={vi.fn()}>
+          <Listbox.DragProvider onItemsReorder={vi.fn()}>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b" disabled>
@@ -1464,7 +1486,7 @@ describe('<Listbox.Root />', () => {
               </Listbox.Item>
               <Listbox.Item value="c">c</Listbox.Item>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1478,7 +1500,7 @@ describe('<Listbox.Root />', () => {
 
       const itemB = screen.getByRole('option', { name: 'b' });
       await act(() => itemB.focus());
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
 
       const itemA = screen.getByRole('option', { name: 'a' });
       fireEvent.mouseMove(itemA);
@@ -1490,24 +1512,13 @@ describe('<Listbox.Root />', () => {
       function ReorderableListbox() {
         const [items, setItems] = React.useState(['a', 'b', 'c', 'd', 'e']);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
-          setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const movedItems = prev.filter((v) => movedValues.has(v));
-            const rest = prev.filter((v) => !movedValues.has(v));
-            const refIndex = rest.indexOf(event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
-          });
+        function handleReorder(items: string[]) {
+          setItems(items);
         }
 
         return (
           <Listbox.Root>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {items.map((item) => (
                   <Listbox.Item key={item} value={item}>
@@ -1515,7 +1526,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Item>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1528,10 +1539,11 @@ describe('<Listbox.Root />', () => {
       await act(() => itemB.focus());
       expect(document.activeElement).toBe(itemB);
 
-      // Move 'b' down 3 times rapidly (no flushMicrotasks between moves)
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
       await flushMicrotasks();
 
       // After 3 moves down, 'b' should be at index 4 (a, c, d, e, b)
@@ -1539,6 +1551,7 @@ describe('<Listbox.Root />', () => {
       expect(allItems.map((el) => el.textContent)).toEqual(['a', 'c', 'd', 'e', 'b']);
 
       const movedItemB = screen.getByRole('option', { name: 'b' });
+      await waitFor(() => expect(movedItemB).toHaveAttribute('tabindex', '0'));
       expect(document.activeElement).toBe(movedItemB);
 
       // Now release Alt and use regular arrow keys — should still work
@@ -1548,30 +1561,46 @@ describe('<Listbox.Root />', () => {
       expect(document.activeElement).toBe(screen.getByRole('option', { name: 'e' }));
     });
 
+    it('should keep focus on the initiating item when a keyboard reorder is not rendered yet', async () => {
+      const handleItemsReorder = vi.fn();
+
+      await render(
+        <Listbox.Root>
+          <Listbox.DragProvider onItemsReorder={handleItemsReorder}>
+            <Listbox.List>
+              <Listbox.Item value="a">a</Listbox.Item>
+              <Listbox.Item value="b">b</Listbox.Item>
+              <Listbox.Item value="c">c</Listbox.Item>
+            </Listbox.List>
+          </Listbox.DragProvider>
+        </Listbox.Root>,
+      );
+
+      const itemB = screen.getByRole('option', { name: 'b' });
+      await act(() => itemB.focus());
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
+
+      expect(handleItemsReorder.mock.calls[0][0]).toEqual(['a', 'c', 'b']);
+      await waitFor(() => {
+        expect(document.activeElement).toBe(itemB);
+      });
+    });
+
     it('should report the reordered item from onHighlightChange after keyboard reorder', async () => {
       const handleHighlightChange = vi.fn();
 
       function ReorderableListbox() {
         const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
-          setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const movedItems = prev.filter((v) => movedValues.has(v));
-            const rest = prev.filter((v) => !movedValues.has(v));
-            const refIndex = rest.indexOf(event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
-          });
+        function handleReorder(items: string[]) {
+          setItems(items);
         }
 
         return (
           <Listbox.Root onHighlightChange={handleHighlightChange}>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {items.map((item) => (
                   <Listbox.Item key={item} value={item}>
@@ -1579,7 +1608,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Item>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1592,7 +1621,9 @@ describe('<Listbox.Root />', () => {
       expect(handleHighlightChange).toHaveBeenLastCalledWith('b', itemB);
       handleHighlightChange.mockClear();
 
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
       await flushMicrotasks();
 
       await waitFor(() => {
@@ -1617,21 +1648,19 @@ describe('<Listbox.Root />', () => {
           { value: 'd', group: 'g2' },
         ]);
 
-        function handleReorder(event: {
-          items: string[];
-          referenceItem: string;
-          edge: 'before' | 'after';
-        }) {
+        function handleReorder(
+          order: string[],
+          details: Listbox.DragProvider.ItemsReorderEventDetails,
+        ) {
           setItems((prev) => {
-            const movedValues = new Set(event.items);
-            const refItem = prev.find((i) => i.value === event.referenceItem)!;
-            const movedItems = prev
-              .filter((i) => movedValues.has(i.value))
-              .map((i) => ({ ...i, group: refItem.group }));
-            const rest = prev.filter((i) => !movedValues.has(i.value));
-            const refIndex = rest.findIndex((i) => i.value === event.referenceItem);
-            rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-            return rest;
+            const movedValues = new Set(details.sourceItems.map((item) => item.value));
+            const targetGroup = prev.find(
+              (item) => item.value === details.targetItem?.value,
+            )?.group;
+            return order.map((value) => {
+              const item = prev.find((candidate) => candidate.value === value)!;
+              return movedValues.has(value) && targetGroup ? { ...item, group: targetGroup } : item;
+            });
           });
         }
 
@@ -1648,7 +1677,7 @@ describe('<Listbox.Root />', () => {
 
         return (
           <Listbox.Root>
-            <Listbox.DragAndDropProvider onItemsReorder={handleReorder}>
+            <Listbox.DragProvider onItemsReorder={handleReorder}>
               <Listbox.List>
                 {Object.entries(groups).map(([groupName, groupItems]) => (
                   <Listbox.Group key={groupName}>
@@ -1661,7 +1690,7 @@ describe('<Listbox.Root />', () => {
                   </Listbox.Group>
                 ))}
               </Listbox.List>
-            </Listbox.DragAndDropProvider>
+            </Listbox.DragProvider>
           </Listbox.Root>
         );
       }
@@ -1675,7 +1704,9 @@ describe('<Listbox.Root />', () => {
       expect(document.activeElement).toBe(itemB);
 
       // Move 'b' down — crosses from g1 to g2
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
       await flushMicrotasks();
 
       // 'b' should now be between 'c' and 'd' (in g2)
@@ -1684,6 +1715,7 @@ describe('<Listbox.Root />', () => {
 
       // Focus must still be on 'b' after crossing the group boundary
       const movedItemB = screen.getByRole('option', { name: 'b' });
+      await waitFor(() => expect(movedItemB).toHaveAttribute('tabindex', '0'));
       expect(document.activeElement).toBe(movedItemB);
 
       // Regular arrow key should still work
@@ -1698,8 +1730,8 @@ describe('<Listbox.Root />', () => {
 
       await render(
         <Listbox.Root>
-          <Listbox.DragAndDropProvider
-            canDrop={(sourceItems, targetItem) =>
+          <Listbox.DragProvider
+            canDrop={({ sourceItems, targetItem }) =>
               sourceItems.every((item) => item.groupId === targetItem.groupId)
             }
             onItemsReorder={handleItemsReorder}
@@ -1716,7 +1748,7 @@ describe('<Listbox.Root />', () => {
                 <Listbox.Item value="d">d</Listbox.Item>
               </Listbox.Group>
             </Listbox.List>
-          </Listbox.DragAndDropProvider>
+          </Listbox.DragProvider>
         </Listbox.Root>,
       );
 
@@ -1724,7 +1756,9 @@ describe('<Listbox.Root />', () => {
 
       const itemB = screen.getByRole('option', { name: 'b' });
       await act(() => itemB.focus());
-      fireEvent.keyDown(itemB, { key: 'ArrowDown', altKey: true });
+      await pickupWithKeyboard(itemB);
+      await moveKeyboardDrag(itemB, 'ArrowDown');
+      await dropWithKeyboard(itemB);
 
       expect(handleItemsReorder).not.toHaveBeenCalled();
       expect(screen.getAllByRole('option').map((el) => el.textContent)).toEqual([

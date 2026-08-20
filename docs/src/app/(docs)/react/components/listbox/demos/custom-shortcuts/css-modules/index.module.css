@@ -96,7 +96,7 @@
     opacity: 0.5;
   }
 
-  &[data-drop-target-edge='before']::after {
+  &[data-drop-position='before']::after {
     content: '';
     position: absolute;
     top: -1px;
@@ -106,7 +106,7 @@
     background-color: oklch(62.3% 0.214 259.815deg);
   }
 
-  &[data-drop-target-edge='after']::after {
+  &[data-drop-position='after']::after {
     content: '';
     position: absolute;
     bottom: -1px;
