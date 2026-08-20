@@ -1,6 +1,6 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { warn } from '@base-ui/utils/warn';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { WindowAnimationFrame } from '../windowAnimationFrame';
 import type {
   DragAccept,
   DragSource,
@@ -12,6 +12,7 @@ import { matchesAccept } from './dragKind';
 import {
   monitorRegistry,
   engageMonitorIfDragging,
+  removeMonitor,
   type RegisterMonitorParameters,
 } from './monitor';
 import { createGetterStackRegistry } from './getterStackRegistry';
@@ -64,6 +65,7 @@ const state = getSharedSlot<AutoScrollerState>('registerAutoScroller', () => ({
   scrollWindow: null,
   enabled: false,
   scrollMonitorGetter: null,
+  scrollMonitorRetainers: 0,
   lastTimestamp: 0,
   currentInput: null,
   currentReportedInput: null,
@@ -76,9 +78,12 @@ const state = getSharedSlot<AutoScrollerState>('registerAutoScroller', () => ({
   chainSourceParent: null,
   sortedScrollers: null,
   engagedThisFrame: new Set<HTMLElement>(),
+  idleMutationObserver: null,
   overflowCache: new WeakMap<HTMLElement, OverflowFlags>(),
   rtlCache: new WeakMap<HTMLElement, boolean>(),
 }));
+state.idleMutationObserver ??= null;
+state.scrollMonitorRetainers ??= 0;
 
 const holds = createGetterStackRegistry<HTMLElement, ScrollerGetter>({
   entries: state.scrollers,
@@ -825,7 +830,7 @@ function requestScrollFrame(): number | null {
   if (state.scrollWindow === null) {
     state.scrollWindow = ownerWindow(source.element);
   }
-  return AnimationFrame.request(scrollLoop, state.scrollWindow);
+  return WindowAnimationFrame.request(scrollLoop, state.scrollWindow);
 }
 
 /**
@@ -836,6 +841,38 @@ function requestScrollFrame(): number | null {
 function idleScrollLoop(): void {
   state.scrollLoopRaf = null;
   state.lastTimestamp = 0;
+  observeIdleMutations();
+}
+
+function clearIdleMutationObserver(): void {
+  state.idleMutationObserver?.disconnect();
+  state.idleMutationObserver = null;
+}
+
+function observeIdleMutations(): void {
+  if (state.idleMutationObserver !== null || state.currentSource === null) {
+    return;
+  }
+  const doc = ownerDocument(state.currentSource.element);
+  const root = doc.documentElement;
+  if (!root) {
+    return;
+  }
+  // A parked inferred scroller can become scrollable without an input event: a
+  // stationary pointer may trigger delayed expansion that appends rows below the
+  // fold. That produces no pointer move, scroll event, target change, or scroller
+  // registration. This one-shot observer is the wake path for that case.
+  const observer = new (ownerWindow(root).MutationObserver)(() => {
+    clearIdleMutationObserver();
+    refreshAutoScroll();
+  });
+  observer.observe(root, {
+    attributes: true,
+    attributeFilter: ['class', 'style'],
+    childList: true,
+    subtree: true,
+  });
+  state.idleMutationObserver = observer;
 }
 
 /** Resume a parked loop when fresh input may have moved the pointer into an edge zone. */
@@ -843,11 +880,13 @@ function wakeScrollLoop(): void {
   if (!state.enabled || state.scrollLoopRaf !== null) {
     return;
   }
+  clearIdleMutationObserver();
   state.lastTimestamp = 0;
   state.scrollLoopRaf = requestScrollFrame();
 }
 
 function startScrollLoop(): void {
+  clearIdleMutationObserver();
   state.enabled = true;
   if (state.scrollLoopRaf !== null) {
     return;
@@ -887,10 +926,11 @@ function stopScrollLoop(): void {
   // Scratch set from the last frame; it would otherwise pin those containers
   // until the next drag's first frame cleared it.
   state.engagedThisFrame.clear();
+  clearIdleMutationObserver();
   clearInferredScrollers();
   resetStyleCaches();
   if (scrollLoopRaf !== null && scrollWindow !== null) {
-    AnimationFrame.cancel(scrollLoopRaf, scrollWindow);
+    WindowAnimationFrame.cancel(scrollLoopRaf, scrollWindow);
   }
 }
 
@@ -917,6 +957,11 @@ export function resetForTests(): void {
   // cleanups the consumer still holds, and dropping them here would unregister a
   // scroller out from under a live test.
   stopScrollLoop();
+  if (state.scrollMonitorGetter) {
+    removeMonitor(state.scrollMonitorGetter);
+    state.scrollMonitorGetter = null;
+  }
+  state.scrollMonitorRetainers = 0;
 }
 
 /**
@@ -988,28 +1033,32 @@ function getInnermostDropTargetElement(location: DragLocationHistory): Element |
   return location.current.dropTargets[0]?.element ?? null;
 }
 
+function startScrollSession({
+  location,
+  source,
+  mode,
+}: Pick<DragEventMap['onDragStart'], 'location' | 'source' | 'mode'>): void {
+  // A drag that ended abnormally with the loop *parked* leaves `enabled` set
+  // and the last input/source referenced: the loop's own no-session
+  // self-termination only runs when a frame fires. Clear that state before
+  // this drag decides anything.
+  stopScrollLoop();
+  // Keyboard drags scroll via `scrollIntoView` (one step per key); the
+  // edge-based loop would fight that.
+  if (mode === 'keyboard') {
+    return;
+  }
+  state.currentInput = resolveScrollInput(location.current.input);
+  state.currentReportedInput = location.current.input;
+  state.currentSource = source;
+  state.currentDropTargetElement = getInnermostDropTargetElement(location);
+  startScrollLoop();
+}
+
 // The engine-internal monitor that drives the scroll loop, registered from the
-// first draggable (see `ensureScrollMonitor`).
+// first auto-scroller registration.
 const SCROLL_MONITOR_PARAMS: RegisterMonitorParameters = {
-  onDragStart: ({ location, source }) => {
-    // A drag that ended abnormally with the loop *parked* leaves `enabled` set
-    // and the last input/source referenced: the loop's own no-session
-    // self-termination only runs when a frame fires. Clear that state before
-    // this drag decides anything — otherwise a keyboard drag skips the guard
-    // below yet inherits `enabled`, and its `onDrag` events wake the loop.
-    stopScrollLoop();
-    // Keyboard drags scroll via `scrollIntoView` (one step per key); the
-    // edge-based loop would fight that — the virtual cursor parks in the edge
-    // zone and the loop runs away — so skip auto-scroll for keyboard mode.
-    if (dragSessionStore.getSnapshot()?.mode === 'keyboard') {
-      return;
-    }
-    state.currentInput = resolveScrollInput(location.current.input);
-    state.currentReportedInput = location.current.input;
-    state.currentSource = source;
-    state.currentDropTargetElement = getInnermostDropTargetElement(location);
-    startScrollLoop();
-  },
+  onDragStart: startScrollSession,
   onDrag: refreshDragInput,
   onDropTargetChange: refreshDragInput,
   onDragEnd: () => {
@@ -1018,25 +1067,56 @@ const SCROLL_MONITOR_PARAMS: RegisterMonitorParameters = {
 };
 
 /**
- * Register the engine scroll-monitor (idempotent), which arms auto-scroll for
- * every drag that follows.
+ * Retain the engine scroll-monitor, which arms auto-scroll while at least one
+ * explicit auto-scroller registration exists.
  *
- * Called when a draggable registers, not only when a scroller does: the
- * containers are inferred from the DOM, so "nothing registered" no longer means
- * "nothing to scroll" and there is no registry whose emptiness could retire the
- * monitor. It stays for the page's lifetime, which costs one entry in the
- * monitor registry — the loop itself only runs between a drag's start and its
- * end, and parks itself whenever no container is engaged.
+ * Called by each explicit auto-scroller registration. While armed, containers
+ * are also inferred from the DOM. The loop itself only runs between a drag's
+ * start and end, parks whenever no container is engaged, and is removed with the
+ * last registration.
  */
-export function ensureScrollMonitor(): void {
-  if (state.scrollMonitorGetter) {
-    return;
+export function retainScrollMonitor(): () => void {
+  state.scrollMonitorRetainers += 1;
+  if (!state.scrollMonitorGetter) {
+    const getMonitor = () => SCROLL_MONITOR_PARAMS;
+    state.scrollMonitorGetter = getMonitor;
+    monitorRegistry.add(getMonitor);
+    // A scroller mounting mid-drag activates the monitor for the in-progress drag.
+    engageMonitorIfDragging(getMonitor);
+    const session = dragSessionStore.getSnapshot();
+    if (session) {
+      startScrollSession(session);
+    }
   }
-  const getMonitor = () => SCROLL_MONITOR_PARAMS;
-  state.scrollMonitorGetter = getMonitor;
-  monitorRegistry.add(getMonitor);
-  // A scroller mounting mid-drag activates the monitor for the in-progress drag.
-  engageMonitorIfDragging(getMonitor);
+  const retainedMonitor = state.scrollMonitorGetter;
+  let released = false;
+  return () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    // Test teardown can reset the shared feature boundary before a mounted
+    // consumer's cleanup runs. That stale cleanup must not release a monitor
+    // installed by the following test.
+    if (state.scrollMonitorGetter !== retainedMonitor) {
+      return;
+    }
+    state.scrollMonitorRetainers -= 1;
+    if (state.scrollMonitorRetainers === 0 && state.scrollMonitorGetter) {
+      const getMonitor = state.scrollMonitorGetter;
+      // React detaches an old render node before attaching its replacement in
+      // the same commit. Defer the last release so that swap keeps the live drag
+      // input and loop; a replacement registration cancels this retirement by
+      // incrementing the retain count before the microtask runs.
+      queueMicrotask(() => {
+        if (state.scrollMonitorRetainers === 0 && state.scrollMonitorGetter === getMonitor) {
+          state.scrollMonitorGetter = null;
+          stopScrollLoop();
+          removeMonitor(getMonitor);
+        }
+      });
+    }
+  };
 }
 
 /** Which axis (or axes) an auto-scroll container may scroll on. */
@@ -1045,11 +1125,10 @@ export type DragAutoScrollAxis = 'vertical' | 'horizontal' | 'all';
 /** Live drag context passed to the per-frame callbacks. */
 export interface DragAutoScrollFrameContext<TSourceData = unknown> {
   /**
-   * The position this container's edge zones were measured from, which is the
-   * physical pointer whenever it is inside the container. A `modifiers` clamp can
-   * hold the reported drag point inside a container the physical pointer has
-   * already left — and the reverse — so the engine probes both and reports
-   * whichever one it used here.
+   * The position used to measure this container's edge zones. Base UI uses the
+   * physical pointer while it is inside the container. Because a modifier can
+   * separate the reported drag position from the pointer, Base UI checks both and
+   * returns the position it used.
    */
   input: DragInput;
   source: DragSource<TSourceData>;
@@ -1061,9 +1140,9 @@ export interface DragAutoScrollApplyContext<
   TSourceData = unknown,
 > extends DragAutoScrollFrameContext<TSourceData> {
   /**
-   * How far to move horizontally this frame, in CSS pixels, with `scrollBy`
-   * semantics: a positive value moves the view right, so the content slides left
-   * under the pointer. Already ramped and scaled by the frame's elapsed time.
+   * How far to move horizontally this frame, in CSS pixels, using `scrollBy`
+   * semantics. A positive value moves the view right, so the content moves left.
+   * The value includes the speed ramp and elapsed frame time.
    * `0` when the horizontal axis isn't engaged this frame.
    */
   x: number;
@@ -1072,12 +1151,11 @@ export interface DragAutoScrollApplyContext<
 }
 
 /**
- * Applies one frame's scroll delta in place of the engine.
+ * Applies one frame's scroll delta instead of using element scrolling.
  *
- * Return which axes moved, so a container further out takes over the ones this
- * surface is at the bound of. Return `false`, `'none'` or `null` when the
- * surface moved on neither. Returning nothing claims every axis the frame
- * engaged.
+ * Return the axes that moved so an ancestor can scroll on any remaining axis.
+ * Return `false`, `'none'`, or `null` when neither axis moved. Returning nothing
+ * claims every active axis.
  */
 export type DragAutoScrollApply<TSourceData = unknown> = (
   parameters: DragAutoScrollApplyContext<TSourceData>,
@@ -1098,6 +1176,7 @@ interface AutoScrollerState {
    */
   enabled: boolean;
   scrollMonitorGetter: (() => RegisterMonitorParameters) | null;
+  scrollMonitorRetainers: number;
   lastTimestamp: number;
   currentInput: DragInput | null;
   /**
@@ -1134,6 +1213,8 @@ interface AutoScrollerState {
   sortedScrollers: HTMLElement[] | null;
   /** Scratch set of scrollers engaged in the current frame, reused across frames. */
   engagedThisFrame: Set<HTMLElement>;
+  /** Watches for content/style changes only while the frame loop is parked. */
+  idleMutationObserver: MutationObserver | null;
   /** Per-drag per-axis overflow cache (see `readCached`). */
   overflowCache: WeakMap<HTMLElement, OverflowFlags>;
   /** Per-drag `isRtl` cache (see `readCached`). */
@@ -1142,22 +1223,20 @@ interface AutoScrollerState {
 
 export interface RegisterAutoScrollerParameters<TSourceData = unknown> {
   /**
-   * The kinds of drag source this scroller reacts to: one kind, or an array of them.
-   * Omit it to scroll for every drag.
+   * One or more drag source kinds that can scroll this element. Omit it to scroll
+   * for every drag.
    *
-   * A drag whose kind isn't accepted never engages this element at all, not even as
-   * the scroll container it may otherwise be, so this is also how a container opts out
-   * of scrolling for some drags but not others. The payload the per-frame callbacks see
-   * is typed from it.
+   * An unaccepted drag does not scroll this element, even when it is a detected
+   * scroll container. The accepted kinds determine the payload type passed to
+   * per-frame callbacks.
    */
   accept?: DragAccept<TSourceData> | undefined;
   /**
-   * Whether the element should never auto-scroll, including as the scroll container
-   * the engine would otherwise find on its own. The axes it declines pass to the
-   * container further out.
+   * Whether to disable auto-scroll for this element, including when Base UI detects
+   * it as a scroll container. An ancestor can scroll on the excluded axes.
    *
-   * Read every frame, and the registration is kept — so toggling it mid-drag
-   * suspends and resumes scrolling without the container having to re-join the drag.
+   * Base UI reads this value every frame and keeps the registration active. Changing
+   * it during a drag pauses or resumes scrolling without re-registering the element.
    *
    * For a decision that depends on the drag, use `canScroll` instead.
    * @default false
@@ -1181,20 +1260,19 @@ export interface RegisterAutoScrollerParameters<TSourceData = unknown> {
    * pixels per second. Accepts a static value or a callback evaluated every
    * frame the container is engaged.
    *
-   * The default suits a container a few hundred pixels across: raise it for one
-   * holding much more content, lower it for a short list. A speed of `0` stops
-   * this container scrolling and lets the one outside it take over, the same as
-   * a `canScroll` returning `false`.
+   * The default is `900`. Increase it for a large scroll range or reduce it for a
+   * short list. A value of `0` stops this container and lets an ancestor scroll,
+   * which is equivalent to returning `false` from `canScroll`.
    * @default 900
    */
   maxSpeed?: number | ((parameters: DragAutoScrollFrameContext<TSourceData>) => number) | undefined;
   /**
-   * Applies the frame's scroll delta yourself, for a surface the engine can't
-   * scroll, such as a canvas moved by a CSS `transform`. The element then needs no
-   * scrollable overflow, and its scroll extent is never read.
+   * Applies the frame's scroll delta with custom logic. Use it for a canvas moved
+   * by a CSS `transform`. The element does not need scrollable overflow, and Base UI
+   * does not read its scroll extent.
    *
-   * Move the surface synchronously, before returning: the engine re-resolves the
-   * drop target under the pointer on the frame after this call.
+   * Apply the movement synchronously before returning. Base UI resolves the drop
+   * target under the pointer again on the next frame.
    */
   applyScroll?: DragAutoScrollApply<TSourceData> | undefined;
 }

@@ -61,13 +61,9 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
     onForceCleanup,
   } = parameters;
 
-  // Resolve on `typeof`, not nullishness: a payload of `0`, `''` or `false` is a
-  // value the consumer meant to attach, not an absent one.
-  const declaredPayload = source.payload;
-  const payload =
-    typeof declaredPayload === 'function'
-      ? declaredPayload({ input: initialInput, element, dragHandle })
-      : declaredPayload;
+  const payload = source.getPayload
+    ? source.getPayload({ input: initialInput, element, dragHandle })
+    : source.payload;
 
   const dragSource: DragSource = {
     element,
@@ -188,7 +184,7 @@ export function createPreviewAndStartSession(
     const previewSettings = resolveDragPreview(draggableParameters, element);
     preview = createSyntheticPreview(element, mode, {
       kind: draggableParameters.kind.id,
-      label: draggableParameters.label,
+      previewKey: draggableParameters.previewKey,
       payload: draggableParameters.payload,
     });
     preview.setModifiers(compileDragModifiers(previewSettings.modifiers));

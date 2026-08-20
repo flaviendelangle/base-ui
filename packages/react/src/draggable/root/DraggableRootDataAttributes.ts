@@ -3,27 +3,27 @@ import { TransitionStatusDataAttributes } from '../../internals/stateAttributesM
 export enum DraggableRootDataAttributes {
   /**
    * Present on the source element while it is being dragged.
-   * The default preview clone never carries this attribute, so a `[data-dragging]`
+   * A cloned preview never carries this attribute, so a `[data-dragging]`
    * rule that dims or hides the source leaves the preview fully visible.
    */
   dragging = 'data-dragging',
   /**
-   * The input modality driving the drag: `'pointer'` or `'keyboard'`. Present on the
-   * source alongside `data-dragging`, and mirrored on the preview element.
+   * The input method driving the drag, either `'pointer'` or `'keyboard'`.
+   * Present on the source alongside `data-dragging`, and also on the preview.
    * @type {'pointer' | 'keyboard'}
    */
   dragMode = 'data-drag-mode',
   /**
-   * Present on the source after a deliberate release while an engine-owned clone
-   * settles into its final position, including a return after release outside a
-   * target. Use it to keep the source styled as a placeholder until the preview's
-   * ending animation finishes.
+   * Present on the source after a deliberate release while a clone created by
+   * Base UI settles into its final position, including a return after release
+   * outside a target. Use it to keep the source styled as a placeholder until
+   * the preview's ending animation finishes.
    */
   endingStyle = TransitionStatusDataAttributes.endingStyle,
   /**
-   * Present while `trackDisplacement` is animating this element being pushed aside
+   * Present while `Draggable.Displacement` is animating this element being pushed aside
    * by a reorder, paired with the `--drag-displacement-x`/`--drag-displacement-y`
-   * variables. The hook for the displacement transition.
+   * variables. Use it to apply the displacement transition.
    */
   displacing = 'data-displacing',
   /**

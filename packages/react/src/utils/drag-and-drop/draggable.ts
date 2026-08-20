@@ -4,6 +4,7 @@ import type {
   DragKind,
   DragStartContext,
   DraggablePayload,
+  DraggablePayloadGetter,
   DragPreviewParameters,
   DragPreviewContainer,
   BeforeDragStartEventDetails,
@@ -46,14 +47,7 @@ function removeToken(existing: string | null, id: string): string {
     .join(' ');
 }
 
-/**
- * Per-element static-setup state, since multiple draggables can share a handle
- * element. The first registration captures the prior gesture styles and ARIA
- * attributes; only the last to clean up restores them. In between, the ARIA
- * attributes are reconciled on every registration and cleanup, so a keyboard-enabled
- * registrant following one that opted out of keyboard drag still lands them.
- */
-interface StaticSetupHold {
+interface KeyboardSetupHold {
   /**
    * The `aria-describedby` instruction id this registrant contributed, or `null`
    * when it has none to describe (`keyboardActivation: 'manual'` with no consumer text).
@@ -64,34 +58,33 @@ interface StaticSetupHold {
   roleDescription: string;
 }
 
-interface StaticSetupEntry {
-  count: number;
-  /** Number of enabled registrants that need pointer-gesture styles. */
-  gestureCount: number;
+interface KeyboardSetupEntry {
   /**
    * One entry per keyboard-enabled registrant, removed by identity so a registrant's
    * instruction id and role description are always dropped as the pair it
    * contributed. The element carries the ARIA attributes while this is non-empty,
    * with the most recent surviving registrant's role description winning.
    */
-  holds: StaticSetupHold[];
-  /** Apply the styles that prevent native text/touch gestures during pickup. */
-  applyGestureStyles: () => void;
-  /** Restore the consumer's gesture styles when no enabled registrant remains. */
-  restoreGestureStyles: () => void;
-  restore: DragCleanupFn;
+  holds: KeyboardSetupHold[];
   /** Apply the union of the current registrants' ARIA state to the element. */
   reconcile: () => void;
-  /** Restore the captured `aria-roledescription` without touching gesture styles. */
-  restoreRole: () => void;
+  /** Restore the captured keyboard accessibility attributes. */
+  restore: () => void;
 }
-// Through the shared slot like the engine's other registries: two bundled copies
-// sharing a handle element would otherwise each snapshot the *other's* already-
-// modified gesture styles, and the last restore would strand
-// `touch-action: manipulation` / `user-select: none` on the node.
-const staticSetups = getSharedSlot<WeakMap<Element, StaticSetupEntry>>(
-  'draggable.staticSetups',
-  () => new WeakMap<Element, StaticSetupEntry>(),
+
+interface GestureSetupEntry {
+  count: number;
+  restore: () => void;
+}
+
+const keyboardSetups = getSharedSlot<WeakMap<Element, KeyboardSetupEntry>>(
+  'draggable.keyboardSetups',
+  () => new WeakMap<Element, KeyboardSetupEntry>(),
+);
+
+const gestureSetups = getSharedSlot<WeakMap<Element, GestureSetupEntry>>(
+  'draggable.gestureSetups',
+  () => new WeakMap<Element, GestureSetupEntry>(),
 );
 
 /**
@@ -118,6 +111,8 @@ export function buildStaticSetupKey(inputs: {
 interface DraggableStaticSetupParameters {
   element: HTMLElement;
   dragHandle?: DragHandle | undefined;
+  pointerDragHandle?: DragHandle | undefined;
+  keyboardDragHandle?: DragHandle | undefined;
   // Required, already localization-resolved: the engine is the single home for
   // `?? translations.…` defaulting, so a second layer here can't drift out of sync.
   // Empty means "say nothing", which is what `keyboardActivation: 'manual'` resolves to.
@@ -128,65 +123,20 @@ interface DraggableStaticSetupParameters {
 }
 
 /**
- * Single application of the static DOM setup: the gesture styles and the keyboard
- * a11y attributes. The handle is resolved once here; the setup is ref-counted per
- * element (see {@link staticSetups}). `keyboardActivation: 'off'` keeps only the
- * pointer gesture styles, while `disabled` applies neither styles nor attributes so
- * ordinary text and touch interaction remains available. `'manual'` keeps the role
- * description, and describes the pickup route only if the consumer wrote it.
+ * Apply the pointer gesture styles to one element. Pointer and keyboard ownership
+ * are kept separate because a keyboard-only handle leaves pointer pickup on the root.
  *
- * Hands back both halves: `release` undoes this registration's contribution, and
- * `reconcile` re-asserts the attributes it owns without re-running the setup. The
- * latter exists because the attributes are shared DOM the consumer also writes —
- * React rewriting a controlled `aria-describedby` drops the keyboard-instructions
- * idref, and only an idempotent re-apply puts it back.
+ * The setup is ref-counted because multiple registrations can share a node.
  */
-function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
-  release: DragCleanupFn;
-  reconcile: () => void;
-} {
-  const { element, dragHandle, keyboardActivation, disabled } = parameters;
-
-  // Resolve the handle to set up; drag-time logic re-resolves `dragHandle` for freshness.
-  const initialDragHandle = resolveElementReference(dragHandle, undefined);
-  const gestureElement = (initialDragHandle as HTMLElement | null) ?? element;
-
-  // A disabled registration owns no static DOM at all. In particular, do not
-  // capture a restoration snapshot: restoring fields the engine never changed
-  // would overwrite consumer style/ARIA updates made while it stayed disabled.
+function applyGestureSetup(
+  gestureElement: HTMLElement,
+  disabled: boolean | undefined,
+): DragCleanupFn {
   if (disabled) {
-    return { release: () => {}, reconcile: () => {} };
+    return () => {};
   }
 
-  // `hold === null` gates the attribute apply/restore below.
-  const keyboardEnabled = (keyboardActivation ?? 'auto') !== 'off';
-  // The instructions node is created relative to `gestureElement`, which is the node
-  // that receives the `aria-describedby`: an ARIA IDREF cannot cross a shadow
-  // boundary, so a handle inside a shadow root needs the node in *its* root. Empty
-  // text buys no node — `'manual'` says nothing unless the consumer wrote it.
-  const instructionsHold =
-    keyboardEnabled && parameters.keyboardInstructions !== ''
-      ? ensureKeyboardInstructions(gestureElement, parameters.keyboardInstructions)
-      : null;
-  if (keyboardEnabled) {
-    // Pre-create the per-document live region while the draggable registers: screen
-    // readers can drop an announcement written into a region that was inserted into
-    // the document in the same tick. Unlike the ref-counted instructions node above,
-    // the region is deliberately never torn down — see `getAnnouncer`.
-    getAnnouncer(element);
-  }
-
-  // Kept as one object so the cleanup below removes this registrant's contributions
-  // as a unit, by identity. A hold with no `instructionId` still claims the role
-  // description: `'manual'` is draggable, just not by a key.
-  const hold: StaticSetupHold | null = keyboardEnabled
-    ? {
-        instructionId: instructionsHold?.id ?? null,
-        roleDescription: parameters.ariaRoleDescription,
-      }
-    : null;
-
-  let entry = staticSetups.get(gestureElement);
+  let entry = gestureSetups.get(gestureElement);
   if (!entry) {
     const gestureStyle = gestureElement.style as CSSStyleDeclaration & Record<string, string>;
     const previous = {
@@ -195,22 +145,13 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
       webkitUserSelect: gestureStyle.webkitUserSelect ?? '',
       webkitTouchCallout: gestureStyle.webkitTouchCallout ?? '',
     };
-    // Captured once so cleanup can restore the exact pre-engine ARIA state.
-    const hadRoleDescription = gestureElement.hasAttribute('aria-roledescription');
-    const previousRoleDescription = gestureElement.getAttribute('aria-roledescription');
-
-    const created: StaticSetupEntry = {
+    gestureStyle.touchAction = 'manipulation';
+    gestureStyle.userSelect = 'none';
+    gestureStyle.webkitUserSelect = 'none';
+    gestureStyle.webkitTouchCallout = 'none';
+    entry = {
       count: 0,
-      gestureCount: 0,
-      holds: [],
-      applyGestureStyles() {
-        gestureStyle.touchAction = 'manipulation';
-        gestureStyle.userSelect = 'none';
-        gestureStyle.webkitUserSelect = 'none';
-        gestureStyle.webkitTouchCallout = 'none';
-      },
-      restoreGestureStyles() {
-        // Preserve style updates made while the element was registered.
+      restore() {
         if (gestureStyle.touchAction === 'manipulation') {
           gestureStyle.touchAction = previous.touchAction;
         }
@@ -224,11 +165,63 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
           gestureStyle.webkitTouchCallout = previous.webkitTouchCallout;
         }
       },
+    };
+    gestureSetups.set(gestureElement, entry);
+  }
+  entry.count += 1;
+  const activeEntry = entry;
+  return onceCleanup(() => {
+    const current = gestureSetups.get(gestureElement);
+    if (current !== activeEntry) {
+      return;
+    }
+    current.count -= 1;
+    if (current.count === 0) {
+      gestureSetups.delete(gestureElement);
+      current.restore();
+    }
+  });
+}
+
+/** Apply keyboard instructions and role description to the keyboard pickup element. */
+function applyKeyboardSetup(
+  keyboardElement: HTMLElement,
+  parameters: DraggableStaticSetupParameters,
+): { release: DragCleanupFn; reconcile: () => void } {
+  const keyboardEnabled = (parameters.keyboardActivation ?? 'auto') !== 'off';
+  if (parameters.disabled || !keyboardEnabled) {
+    return { release: () => {}, reconcile: () => {} };
+  }
+
+  // The instructions node is created relative to `keyboardElement`, which is the node
+  // that receives the `aria-describedby`: an ARIA IDREF cannot cross a shadow
+  // boundary, so a handle inside a shadow root needs the node in *its* root. Empty
+  // text buys no node. `'manual'` says nothing unless the consumer wrote it.
+  const instructionsHold =
+    parameters.keyboardInstructions !== ''
+      ? ensureKeyboardInstructions(keyboardElement, parameters.keyboardInstructions)
+      : null;
+  // Pre-create the live region while the draggable registers. Screen readers can
+  // drop an announcement written into a region inserted in the same tick.
+  getAnnouncer(parameters.element);
+
+  const hold: KeyboardSetupHold = {
+    instructionId: instructionsHold?.id ?? null,
+    roleDescription: parameters.ariaRoleDescription,
+  };
+
+  let entry = keyboardSetups.get(keyboardElement);
+  if (!entry) {
+    const hadRoleDescription = keyboardElement.hasAttribute('aria-roledescription');
+    const previousRoleDescription = keyboardElement.getAttribute('aria-roledescription');
+
+    const created: KeyboardSetupEntry = {
+      holds: [],
       reconcile() {
-        const existing = gestureElement.getAttribute('aria-describedby');
+        const existing = keyboardElement.getAttribute('aria-describedby');
         if (created.holds.length > 0) {
           if (!hadRoleDescription || previousRoleDescription == null) {
-            gestureElement.setAttribute(
+            keyboardElement.setAttribute(
               'aria-roledescription',
               created.holds[created.holds.length - 1].roleDescription,
             );
@@ -240,92 +233,55 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
             }
           }
           if (nextDescribedBy && nextDescribedBy !== existing) {
-            gestureElement.setAttribute('aria-describedby', nextDescribedBy);
+            keyboardElement.setAttribute('aria-describedby', nextDescribedBy);
           }
         }
       },
-      restoreRole() {
-        if (!hadRoleDescription) {
-          gestureElement.removeAttribute('aria-roledescription');
-        } else if (previousRoleDescription != null) {
-          gestureElement.setAttribute('aria-roledescription', previousRoleDescription);
-        }
-      },
       restore() {
-        created.restoreGestureStyles();
-        created.restoreRole();
+        if (!hadRoleDescription) {
+          keyboardElement.removeAttribute('aria-roledescription');
+        } else if (previousRoleDescription != null) {
+          keyboardElement.setAttribute('aria-roledescription', previousRoleDescription);
+        }
       },
     };
     entry = created;
-    staticSetups.set(gestureElement, entry);
+    keyboardSetups.set(keyboardElement, entry);
   }
-  entry.count += 1;
-  if (entry.gestureCount === 0) {
-    entry.applyGestureStyles();
-  }
-  entry.gestureCount += 1;
 
   const activeEntry = entry;
-  // Reconcile on *this* registration, not just the first, so a keyboard-enabled
-  // registrant that follows a `keyboardActivation: 'off'` one — or a locale change
-  // re-supplying the text — still lands the attributes.
-  if (hold !== null) {
-    activeEntry.holds.push(hold);
-    activeEntry.reconcile();
-  }
+  activeEntry.holds.push(hold);
+  activeEntry.reconcile();
 
   const release = onceCleanup(() => {
-    // Released before the entry guard below, which can bail out — the hold is this
-    // registration's own either way.
     instructionsHold?.release();
-    const current = staticSetups.get(gestureElement);
+    const current = keyboardSetups.get(keyboardElement);
     if (current !== activeEntry) {
       return;
     }
-    current.gestureCount -= 1;
-    if (current.gestureCount === 0) {
-      current.restoreGestureStyles();
+    const index = current.holds.indexOf(hold);
+    if (index !== -1) {
+      current.holds.splice(index, 1);
     }
-    if (hold !== null) {
-      const index = current.holds.indexOf(hold);
-      if (index !== -1) {
-        current.holds.splice(index, 1);
-      }
-      // Keep the token when another surviving registrant references the same
-      // instructions node (same text → same id). Without this per-token cleanup, a
-      // handle shared by draggables with *different* instructions would strand the
-      // earlier registrant's idref on `aria-describedby` when it unmounts.
-      if (
-        hold.instructionId !== null &&
-        !current.holds.some((heldSetup) => heldSetup.instructionId === hold.instructionId)
-      ) {
-        const restoredDescribedBy = removeToken(
-          gestureElement.getAttribute('aria-describedby'),
-          hold.instructionId,
-        );
-        if (restoredDescribedBy) {
-          gestureElement.setAttribute('aria-describedby', restoredDescribedBy);
-        } else {
-          gestureElement.removeAttribute('aria-describedby');
-        }
-      }
-      if (current.holds.length === 0) {
-        // Drop the engine's `aria-roledescription` too, but only if the element still
-        // has other (keyboard-disabled) registrants keeping the entry alive;
-        // otherwise `restore()` below handles the full teardown.
-        if (current.count > 1) {
-          current.restoreRole();
-        }
+    if (
+      hold.instructionId !== null &&
+      !current.holds.some((heldSetup) => heldSetup.instructionId === hold.instructionId)
+    ) {
+      const restoredDescribedBy = removeToken(
+        keyboardElement.getAttribute('aria-describedby'),
+        hold.instructionId,
+      );
+      if (restoredDescribedBy) {
+        keyboardElement.setAttribute('aria-describedby', restoredDescribedBy);
       } else {
-        // A keyboard-enabled registrant survives: re-apply its role description, so
-        // unmounting a later registrant doesn't strand its own value.
-        current.reconcile();
+        keyboardElement.removeAttribute('aria-describedby');
       }
     }
-    current.count -= 1;
-    if (current.count === 0) {
-      staticSetups.delete(gestureElement);
+    if (current.holds.length === 0) {
+      keyboardSetups.delete(keyboardElement);
       current.restore();
+    } else {
+      current.reconcile();
     }
   });
 
@@ -334,10 +290,36 @@ function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
     // A registrant with no keyboard hold owns no attributes, so it has nothing to
     // re-assert.
     reconcile: () => {
-      if (hold !== null && staticSetups.get(gestureElement) === activeEntry) {
+      if (keyboardSetups.get(keyboardElement) === activeEntry) {
         activeEntry.reconcile();
       }
     },
+  };
+}
+
+/** Apply both static setup paths to their input-specific elements. */
+function applyStaticSetup(parameters: DraggableStaticSetupParameters): {
+  release: DragCleanupFn;
+  reconcile: () => void;
+} {
+  const pointerHandle = resolveElementReference(
+    parameters.pointerDragHandle ?? parameters.dragHandle,
+    undefined,
+  );
+  const keyboardHandle = resolveElementReference(
+    parameters.keyboardDragHandle ?? parameters.dragHandle,
+    undefined,
+  );
+  const pointerElement = (pointerHandle as HTMLElement | null) ?? parameters.element;
+  const keyboardElement = (keyboardHandle as HTMLElement | null) ?? parameters.element;
+  const releaseGesture = applyGestureSetup(pointerElement, parameters.disabled);
+  const keyboardSetup = applyKeyboardSetup(keyboardElement, parameters);
+  return {
+    release: onceCleanup(() => {
+      releaseGesture();
+      keyboardSetup.release();
+    }),
+    reconcile: keyboardSetup.reconcile,
   };
 }
 
@@ -355,8 +337,16 @@ export function applyDraggableStaticSetup(
 ): DragCleanupFn {
   const { element } = parameters;
   let appliedKey = buildStaticSetupKey(parameters);
-  let appliedGestureElement =
-    (resolveElementReference(parameters.dragHandle, undefined) as HTMLElement | null) ?? element;
+  let appliedPointerElement =
+    (resolveElementReference(
+      parameters.pointerDragHandle ?? parameters.dragHandle,
+      undefined,
+    ) as HTMLElement | null) ?? element;
+  let appliedKeyboardElement =
+    (resolveElementReference(
+      parameters.keyboardDragHandle ?? parameters.dragHandle,
+      undefined,
+    ) as HTMLElement | null) ?? element;
   let setup = applyStaticSetup(parameters);
 
   const refreshFromRegistration = () => {
@@ -379,9 +369,21 @@ export function applyDraggableStaticSetup(
     // The key covers the setup's inputs; the resolved handle covers *where* it
     // was applied — a swapped `dragHandle` must move the gesture styles and
     // ARIA off the old node even when no keyed input changed.
-    const nextGestureElement =
-      (resolveElementReference(latest.dragHandle, undefined) as HTMLElement | null) ?? element;
-    if (nextKey === appliedKey && nextGestureElement === appliedGestureElement) {
+    const nextPointerElement =
+      (resolveElementReference(
+        latest.pointerDragHandle ?? latest.dragHandle,
+        undefined,
+      ) as HTMLElement | null) ?? element;
+    const nextKeyboardElement =
+      (resolveElementReference(
+        latest.keyboardDragHandle ?? latest.dragHandle,
+        undefined,
+      ) as HTMLElement | null) ?? element;
+    if (
+      nextKey === appliedKey &&
+      nextPointerElement === appliedPointerElement &&
+      nextKeyboardElement === appliedKeyboardElement
+    ) {
       // Nothing about the setup's inputs changed, but the attributes it wrote are
       // shared DOM: a consumer-controlled `aria-describedby` rewritten by React
       // drops the keyboard-instructions idref, and a screen-reader user silently
@@ -391,11 +393,14 @@ export function applyDraggableStaticSetup(
       return;
     }
     appliedKey = nextKey;
-    appliedGestureElement = nextGestureElement;
+    appliedPointerElement = nextPointerElement;
+    appliedKeyboardElement = nextKeyboardElement;
     setup.release();
     setup = applyStaticSetup({
       element,
       dragHandle: latest.dragHandle,
+      pointerDragHandle: latest.pointerDragHandle,
+      keyboardDragHandle: latest.keyboardDragHandle,
       ariaRoleDescription: latest.ariaRoleDescription,
       keyboardInstructions: latest.keyboardInstructions,
       keyboardActivation: latest.keyboardActivation,
@@ -438,16 +443,23 @@ export type DraggableConfig<TData = undefined> = {
   disableStyleElements?: boolean | undefined;
   /**
    * The data to attach to this drag, surfaced as `source.payload` on every
-   * drag-and-drop event. Accepts a static value, or a callback evaluated at drag
-   * start for a payload that depends on the gesture.
-   *
-   * A function is always taken as the callback. To attach a function *as* the
-   * payload, return it from one: `payload={() => myFunction}`.
+   * drag-and-drop event. Functions are preserved as ordinary payload values.
    */
   // Optional here so the conditional requirement lives in one place: `Draggable.Root`
   // and `registerDraggable` re-impose it through an overload, which also keeps a
   // wrapper spreading their `Props` from hitting a deferred conditional.
   payload?: DraggablePayload<TData> | undefined;
+  /**
+   * Resolves the data attached to this drag at drag start. Use this instead of
+   * `payload` when the value depends on the pickup gesture.
+   */
+  getPayload?: DraggablePayloadGetter<TData> | undefined;
+  /**
+   * Stable identity used to reconnect a settling cloned preview to this source
+   * after it remounts. Use the same key for the same logical item across the move.
+   * Static payload identity is used as a fallback when it is referentially stable.
+   */
+  previewKey?: string | number | undefined;
   /**
    * Human-readable name of this draggable, used by the default screen-reader
    * announcements for keyboard drags. Defaults to a generic "item".
@@ -455,9 +467,9 @@ export type DraggableConfig<TData = undefined> = {
    */
   label?: string | undefined;
   /**
-   * What this draggable is, created with `Draggable.createKind`. Drop targets and
-   * monitors declare the kinds they take through their `accept`, and the kind's payload
-   * type is what types `payload` and `source.payload` on every event.
+   * The drag kind created with `Draggable.createKind`. Drop targets and monitors
+   * list accepted kinds in `accept`. The kind determines the type of `payload` and
+   * `source.payload`.
    */
   kind: DragKind<TData>;
   /**
@@ -470,27 +482,34 @@ export type DraggableConfig<TData = undefined> = {
    */
   dragHandle?: DragHandle | undefined;
   /**
-   * Whether the element should ignore user interaction: a press behaves like an
-   * ordinary click and Space/Enter keep their native behavior. The keyboard-drag
-   * a11y attributes are also omitted, so screen readers don't announce a drag that
-   * can't start. For a decision that needs the gesture context, use
-   * `onBeforeDragStart` instead.
+   * Restricts keyboard pickup to a specific child element, ref, or resolver without
+   * restricting pointer pickup. Space and Enter start a drag only when this element
+   * has focus. Omit it to use `dragHandle`, then the draggable element itself.
+   *
+   * For sources registered imperatively. A draggable component configures this by
+   * rendering a `Draggable.KeyboardHandle` instead.
+   */
+  keyboardDragHandle?: DragHandle | undefined;
+  /**
+   * Whether to disable dragging. Pointer presses and keyboard events keep their
+   * native behavior, and Base UI omits the keyboard-drag accessibility attributes.
+   * Use `onBeforeDragStart` instead when the decision depends on the gesture.
    * @default false
    */
   disabled?: boolean | undefined;
   /**
    * Event handler called when a drag is about to start, once the activation condition
-   * is met and before the preview is built and any `payload` callback runs.
+   * is met and before the preview is built and `getPayload` runs.
    * Call `eventDetails.cancel()` to prevent the drag from starting.
    */
   onBeforeDragStart?:
     | ((context: DragStartContext, eventDetails: BeforeDragStartEventDetails) => void)
     | undefined;
   /**
-   * Determines when a press becomes a drag. Mouse and pen default to a 5px
-   * distance, touch to a 250ms press-hold. Pass a single `DragActivation` to
-   * apply to all pointer types, or a per-type map.
-   * Keyboard pickup is separate: see `keyboardActivation`.
+   * Determines when a pointer press starts a drag. Mouse and pen use a 5px distance
+   * by default. Touch uses a 250ms press and hold. Pass one `DragActivation` for
+   * every pointer type or a map with per-type values. See `keyboardActivation` for
+   * keyboard pickup.
    */
   pointerActivation?: DragActivationConfig | undefined;
   /**
@@ -533,16 +552,17 @@ export type DraggableConfig<TData = undefined> = {
    */
   modifiers?: DragModifiers | undefined;
   /**
-   * CSS cursor pinned across the whole document while a pointer drag is active.
-   * The drag preview has `pointer-events: none`, so without this the cursor would
-   * track whatever sits under the pointer. Touch drags ignore it.
+   * CSS cursor applied across the document during a pointer drag. The drag preview
+   * has `pointer-events: none`, so otherwise the cursor would depend on the element
+   * under the pointer. Touch drags ignore this value.
    * Pass `false` to manage the cursor yourself.
    * @default 'grabbing'
    */
   dragCursor?: string | false | undefined;
   /**
-   * The drag preview: what follows the pointer, and where it lives in the DOM.
-   * Omit it and the source is cloned, in place.
+   * The content and DOM container of the drag preview.
+   * Omit it to use a sanitized clone of the source. The clone preserves classes
+   * and live element state, but rewrites IDs to keep the document unique.
    *
    * For sources registered imperatively. A draggable that renders a preview part
    * describes its preview there instead.
@@ -551,7 +571,7 @@ export type DraggableConfig<TData = undefined> = {
   /**
    * The preview part declared for this draggable, if any. Wired by the React layer;
    * the engine reads it once at drag start, before React can run, to decide between
-   * cloning the source and building a host to render into.
+   * cloning the source and building a host for custom content.
    * @internal
    */
   getDragPreviewDeclaration?: (() => DragPreviewDeclaration<NoInfer<TData>> | null) | undefined;
@@ -584,10 +604,9 @@ export type DraggableConfig<TData = undefined> = {
       ) => void)
     | undefined;
   /**
-   * Event handler called, rAF-throttled, as the drag moves — a pointer move, or an
-   * arrow press moving the keyboard drag's virtual cursor. Not dispatched on
-   * drop-target-stack changes, so hover logic belongs on the drop target's
-   * `onDrag`, not here.
+   * Event handler called as the pointer or keyboard cursor moves, limited to one
+   * call per animation frame. Drop target stack changes do not call this handler.
+   * Use the drop target's `onDrag` for hover behavior.
    */
   onDrag?:
     | ((
@@ -606,9 +625,9 @@ export type DraggableConfig<TData = undefined> = {
       ) => void)
     | undefined;
   /**
-   * Event handler called when the drag is released over an accepting drop target,
-   * and only then — the place to commit the move. `dropTarget` is never `null` here.
-   * A drag that ends any other way reaches `onDragEnd` alone.
+   * Event handler called when the drag is released over an accepting drop target.
+   * Commit the move here. `dropTarget` is never `null`. A drag that ends another
+   * way calls only `onDragEnd`.
    */
   onDrop?:
     | ((
@@ -617,9 +636,9 @@ export type DraggableConfig<TData = undefined> = {
       ) => void)
     | undefined;
   /**
-   * Event handler called once when the drag ends, however it ended — dropped,
-   * released over nothing, or canceled. Use it to undo optimistic state and clean up;
-   * commit the drop from `onDrop`. `eventDetails.reason` carries the exact outcome.
+   * Event handler called once when the drag ends after a drop, outside release, or
+   * cancellation. Use it to clean up or revert optimistic state. Commit a drop from
+   * `onDrop`. `eventDetails.reason` identifies the outcome.
    */
   onDragEnd?:
     | ((

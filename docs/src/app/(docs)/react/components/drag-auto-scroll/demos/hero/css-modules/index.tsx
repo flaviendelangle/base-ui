@@ -153,6 +153,18 @@ function DropZone({
       )}
     </React.Fragment>
   );
+  const scrollRegion =
+    maxSpeed === undefined ? (
+      <div ref={listRef} className={styles.Cards}>
+        {cards}
+      </div>
+    ) : (
+      // @highlight-start
+      <DragAutoScroll.Root ref={listRef} className={styles.Cards} maxSpeed={maxSpeed}>
+        {cards}
+      </DragAutoScroll.Root>
+      // @highlight-end
+    );
 
   return (
     <DropTarget.Root
@@ -178,17 +190,7 @@ function DropZone({
       }}
     >
       <span className={styles.Label}>{label}</span>
-      {maxSpeed === undefined ? (
-        // Nothing declared: the list scrolls because its `overflow` says it can.
-        <div ref={listRef} className={styles.Cards}>
-          {cards}
-        </div>
-      ) : (
-        // The same list, slowed down.
-        <DragAutoScroll.Root ref={listRef} className={styles.Cards} maxSpeed={maxSpeed}>
-          {cards}
-        </DragAutoScroll.Root>
-      )}
+      {scrollRegion}
     </DropTarget.Root>
   );
 }
@@ -227,27 +229,31 @@ export default function AutoScrollBoard() {
   }, [tasks]);
 
   return (
-    <div ref={rootRef} className={styles.Root}>
-      <p className={styles.Hint}>
-        Drag the card into either list, at the slot you want. Both scroll when you near an edge.
-        Only the second one declares anything.
-      </p>
-      <div className={styles.Tray}>
-        <Card task={pending} draggable />
+    // @highlight-start
+    <DragAutoScroll.Provider>
+      {/* @highlight-end */}
+      <div ref={rootRef} className={styles.Root}>
+        <p className={styles.Hint}>
+          Drag the card into either list, at the slot you want. The provider enables both; only the
+          second list configures its region.
+        </p>
+        <div className={styles.Tray}>
+          <Card task={pending} draggable />
+        </div>
+        <div className={styles.Columns}>
+          <DropZone
+            label="Default"
+            tasks={tasks.plain}
+            onInsert={(task, index) => insert('plain', task, index)}
+          />
+          <DropZone
+            label="maxSpeed={150}"
+            tasks={tasks.slow}
+            maxSpeed={150}
+            onInsert={(task, index) => insert('slow', task, index)}
+          />
+        </div>
       </div>
-      <div className={styles.Columns}>
-        <DropZone
-          label="Default"
-          tasks={tasks.plain}
-          onInsert={(task, index) => insert('plain', task, index)}
-        />
-        <DropZone
-          label="maxSpeed={150}"
-          tasks={tasks.slow}
-          maxSpeed={150}
-          onInsert={(task, index) => insert('slow', task, index)}
-        />
-      </div>
-    </div>
+    </DragAutoScroll.Provider>
   );
 }

@@ -33,11 +33,20 @@
  * the drop-commit and cancel-revert renders still animate. Nothing animates
  * outside the window, so unrelated layout changes (a resize, a filter) never
  * move anything.
+ *
+ * Measurement is also scoped to the viewport: an `IntersectionObserver` per
+ * window maintains a visibility flag per tracked element, and baselines and
+ * sweeps skip elements outside the viewport (plus slack). Off-screen motion
+ * cannot be seen, and the skip is what keeps a sweep proportional to what is
+ * on screen instead of to the registry — an unwindowed 5,000-row list would
+ * otherwise pay 5,000 elements × 5 layout reads on every commit of a drag.
+ * An element that scrolls in mid-drag adopts its current position when the
+ * observer reports it, so its later moves animate but the arrival does not.
  */
 
 import { ownerWindow } from '@base-ui/utils/owner';
 import { addEventListener } from '@base-ui/utils/addEventListener';
-import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { WindowAnimationFrame } from '../windowAnimationFrame';
 import { dragSessionStore, dragSourceStore } from './dragSessionStore';
 import type { DragCleanupFn } from '../../types/drag';
 
@@ -74,6 +83,14 @@ interface TrackedState {
    * element is adopted right back (see `trackDisplacedElement`).
    */
   untracking: boolean;
+  /**
+   * Whether the element intersects its window's viewport (with slack).
+   * Maintained by the per-window visibility observer; `true` until the
+   * observer reports otherwise, and always `true` in environments without
+   * `IntersectionObserver`, so measurement degrades to the whole registry
+   * rather than to nothing.
+   */
+  visible: boolean;
 }
 
 interface Measurement {
@@ -91,7 +108,8 @@ const tracked = new Map<HTMLElement, TrackedState>();
 const resizeListeners = new Map<Window, DragCleanupFn>();
 let storeUnsubscribe: DragCleanupFn | null = null;
 let windowOpen = false;
-let graceFrame: AnimationFrame | null = null;
+let graceFrame: WindowAnimationFrame | null = null;
+let dragWindow: Window | null = null;
 /** Monotonic across all plays, so a remounted record can never reuse a token. */
 let playCounter = 0;
 // One sweep per commit: the first tracked element's layout effect sweeps the
@@ -130,12 +148,65 @@ function baseline(element: HTMLElement, state: TrackedState): void {
 
 function baselineAll(): void {
   for (const [element, state] of tracked) {
-    if (element.isConnected) {
+    if (element.isConnected && state.visible) {
       baseline(element, state);
     } else {
       state.hasBaseline = false;
     }
   }
+}
+
+const visibilityObservers = new Map<Window, IntersectionObserver>();
+
+/**
+ * Slack around the viewport, so an element just outside that a reorder shifts
+ * into view still animates. The margin applies to the window's viewport only:
+ * an element clipped out by an inner scroll container gets no slack and simply
+ * appears at its final position when it moves in.
+ */
+const VISIBILITY_MARGIN = '50%';
+
+function handleVisibilityChange(entries: IntersectionObserverEntry[]): void {
+  for (const entry of entries) {
+    const element = entry.target as HTMLElement;
+    const state = tracked.get(element);
+    if (!state) {
+      continue;
+    }
+    const visible = entry.isIntersecting;
+    state.visible = visible;
+    if (!visible) {
+      // Whatever baseline it had is now unwatchable; a stale one would play a
+      // meaningless delta if the element came back.
+      state.hasBaseline = false;
+    } else if (windowOpen && element.isConnected) {
+      // Became visible mid-drag (auto-scroll, a manual scroll): adopt the
+      // current position, so later moves animate but the arrival does not.
+      baseline(element, state);
+    }
+  }
+}
+
+function observeVisibility(element: HTMLElement): void {
+  const win = ownerWindow(element);
+  // Without the API (jsdom), `visible` stays `true` and every element is
+  // measured, matching the pre-observer behavior.
+  if (typeof win.IntersectionObserver !== 'function') {
+    return;
+  }
+  let observer = visibilityObservers.get(win);
+  if (!observer) {
+    observer = new win.IntersectionObserver(handleVisibilityChange, {
+      rootMargin: VISIBILITY_MARGIN,
+    });
+    visibilityObservers.set(win, observer);
+  }
+  observer.observe(element);
+}
+
+function disconnectVisibilityObservers(): void {
+  visibilityObservers.forEach((observer) => observer.disconnect());
+  visibilityObservers.clear();
 }
 
 /**
@@ -156,14 +227,16 @@ function attachResizeListener(win: Window): void {
 }
 
 function detachResizeListeners(): void {
-  for (const off of resizeListeners.values()) {
-    off();
-  }
+  resizeListeners.forEach((off) => off());
   resizeListeners.clear();
 }
 
 function openWindow(): void {
   windowOpen = true;
+  const source = dragSourceStore.getSnapshot();
+  if (source) {
+    dragWindow = ownerWindow(source.element);
+  }
   // The drag-start frame is already measure-heavy (the preview clone); one read
   // per tracked element rides along so the first reorder diffs against the
   // pre-drag layout rather than against whenever the elements last rendered.
@@ -175,12 +248,14 @@ function openWindow(): void {
 
 function closeWindow(): void {
   windowOpen = false;
+  dragWindow = null;
   detachResizeListeners();
 }
 
 function handleSessionChange(): void {
-  const live = dragSourceStore.getSnapshot() !== null;
-  if (live) {
+  const source = dragSourceStore.getSnapshot();
+  if (source) {
+    dragWindow = ownerWindow(source.element);
     graceFrame?.cancel();
     graceFrame = null;
     if (!windowOpen) {
@@ -194,11 +269,11 @@ function handleSessionChange(): void {
   // Held open one frame: the drop-commit and cancel-revert renders land after
   // the store nulls but before this frame fires, so they still animate. A
   // commit deferred past that (a transition, an `await`) misses the window.
-  // The frame is re-derived per request: a cached one could sit on a throttled
-  // or closed popout window and never deliver the close.
+  // Use the drag's window. A registered row may belong to an inactive opener,
+  // whose throttled frame would leave the animation window open too long.
   const first = tracked.keys().next().value as HTMLElement | undefined;
   graceFrame?.cancel();
-  graceFrame = new AnimationFrame(first ? ownerWindow(first) : window);
+  graceFrame = new WindowAnimationFrame(dragWindow ?? (first ? ownerWindow(first) : window));
   graceFrame.request(closeWindow);
 }
 
@@ -239,7 +314,6 @@ function watchFinish(element: HTMLElement, token: number): void {
 
 interface Play {
   element: HTMLElement;
-  state: TrackedState;
   dx: number;
   dy: number;
   token: number;
@@ -260,6 +334,13 @@ function sweep(): void {
   // instead of one per sweep.
   for (const [element, state] of tracked) {
     if (!element.isConnected) {
+      state.hasBaseline = false;
+      continue;
+    }
+    if (!state.visible) {
+      // Off-screen: its motion cannot be seen, and skipping the layout reads
+      // is what keeps the sweep proportional to the viewport rather than the
+      // registry. The visibility observer re-baselines it if it scrolls in.
       state.hasBaseline = false;
       continue;
     }
@@ -297,7 +378,8 @@ function sweep(): void {
       continue;
     }
     playCounter += 1;
-    plays.push({ element, state, dx, dy, token: playCounter });
+    state.token = playCounter;
+    plays.push({ element, dx, dy, token: playCounter });
   }
 
   if (plays.length === 0) {
@@ -308,7 +390,6 @@ function sweep(): void {
   // whenever the opener is throttled.
   const perWindow = new Map<Window, Play[]>();
   for (const play of plays) {
-    play.state.token = play.token;
     play.element.style.setProperty(VAR_X, `${play.dx}px`);
     play.element.style.setProperty(VAR_Y, `${play.dy}px`);
     play.element.setAttribute(DISPLACING_ATTR, '');
@@ -334,7 +415,7 @@ function sweep(): void {
   // carries each element from the published delta back to its stylesheet rest
   // state. One frame per window serves every element it played.
   for (const [win, group] of perWindow) {
-    AnimationFrame.request(() => {
+    WindowAnimationFrame.request(() => {
       for (const play of group) {
         // A newer sweep can retarget the same element before this frame runs.
         // Its starting-style guard and variables belong to that newer token.
@@ -351,7 +432,9 @@ function sweep(): void {
 /**
  * Request the per-commit sweep. Every tracked component calls this from a
  * dependency-less layout effect; the first call in a commit does the work and
- * the latch absorbs the rest.
+ * the latch absorbs the rest. A parent can also request without an element after
+ * keyed reconciliation moves memoized rows that did not run their own effects;
+ * when a sweep is already latched, that path schedules the required trailing pass.
  */
 export function scheduleDisplacementSweep(requester?: HTMLElement): void {
   if (!windowOpen) {
@@ -403,10 +486,12 @@ export function trackDisplacedElement(element: HTMLElement): DragCleanupFn {
     hasBaseline: false,
     token: 0,
     untracking: false,
+    visible: true,
   };
   state.untracking = false;
   if (!adopted) {
     tracked.set(element, state);
+    observeVisibility(element);
     if (windowOpen) {
       // Mounted mid-drag: baseline now, so its later moves animate.
       baseline(element, state);
@@ -431,7 +516,7 @@ export function trackDisplacedElement(element: HTMLElement): DragCleanupFn {
       if (!state.untracking || tracked.get(element) !== state) {
         return;
       }
-      state.untracking = false;
+      visibilityObservers.forEach((observer) => observer.unobserve(element));
       cleanupPlay(element);
       tracked.delete(element);
       if (tracked.size === 0) {
@@ -439,6 +524,7 @@ export function trackDisplacedElement(element: HTMLElement): DragCleanupFn {
         storeUnsubscribe = null;
         graceFrame?.cancel();
         graceFrame = null;
+        disconnectVisibilityObservers();
         closeWindow();
       }
     });
@@ -451,6 +537,7 @@ export function resetDisplacementForTests(): void {
     cleanupPlay(element);
   }
   tracked.clear();
+  disconnectVisibilityObservers();
   storeUnsubscribe?.();
   storeUnsubscribe = null;
   graceFrame?.cancel();

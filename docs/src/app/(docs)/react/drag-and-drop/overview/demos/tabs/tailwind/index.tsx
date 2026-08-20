@@ -5,10 +5,10 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import {
   Draggable,
   type BeforeDragStartEventDetails,
-  type DragMoveEvent,
   type DragStartContext,
 } from '@base-ui/react/draggable';
-import { DropTarget } from '@base-ui/react/drop-target';
+import { DropTarget, type DropTargetEvent } from '@base-ui/react/drop-target';
+import { DragAutoScroll } from '@base-ui/react/drag-auto-scroll';
 
 interface TabItem {
   id: string;
@@ -114,11 +114,6 @@ function DraggableTab(props: DraggableTabProps) {
     onKeyboardMove,
   } = props;
 
-  const modifiers = React.useMemo(
-    () => [Draggable.restrictToHorizontalAxis, Draggable.restrictToElement(listRef)],
-    [listRef],
-  );
-
   const handleBeforeDragStart = useStableCallback(
     (_context: DragStartContext, eventDetails: BeforeDragStartEventDetails) => {
       if (eventDetails.trigger?.closest('[data-close-tab]')) {
@@ -129,13 +124,10 @@ function DraggableTab(props: DraggableTabProps) {
     },
   );
 
-  const handleDrag = useStableCallback((event: DragMoveEvent<string>) => {
-    const currentX = event.location.current.input.clientX;
-    const previousX = event.location.previous.input.clientX;
-
-    if (currentX !== previousX) {
-      onDragOverTab(event.source.payload, item.id, currentX > previousX);
-    }
+  const handleDrag = useStableCallback((event: DropTargetEvent<'onDrag', string>) => {
+    // Compare against the tab's midpoint rather than the pointer's direction of
+    // travel: while the list auto-scrolls, tabs slide under a stationary pointer.
+    onDragOverTab(event.source.payload, item.id, event.self.getLocalPoint().x > 0.5);
   });
 
   const handleClosePointerDown = useStableCallback((event: React.PointerEvent) => {
@@ -163,15 +155,18 @@ function DraggableTab(props: DraggableTabProps) {
     <Tabs.Tab
       className={TAB_CLASS}
       value={item.id}
+      // @highlight-start
       render={
         <Draggable.Root
           label={`${item.label} tab`}
           kind={tabKind}
           payload={item.id}
+          // Enter and Space stay with Tabs for selection; reordering is
+          // Alt+Arrow through the button's onKeyDown below.
           keyboardActivation="off"
+          // @highlight-end
           pointerActivation={{ mouse: { type: 'distance', distance: 5 } }}
-          trackDisplacement
-          modifiers={modifiers}
+          modifiers={Draggable.restrictToHorizontalAxis}
           onBeforeDragStart={handleBeforeDragStart}
           onDragStart={onDragStart}
           onDrop={onDrop}
@@ -208,6 +203,8 @@ function DraggableTab(props: DraggableTabProps) {
       >
         <CloseIcon />
       </span>
+      {/* Keep the clone in the list without clamping the pointer used to resolve insertion slots. */}
+      <Draggable.ClonedPreview modifiers={Draggable.restrictToElement(listRef)} />
     </Tabs.Tab>
   );
 }
@@ -296,7 +293,14 @@ export default function DraggableTabs() {
           ref={listRef}
           className="flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           activateOnFocus
-          render={<DropTarget.Root label="Open documents" accept={tabKind} trackDragOver={false} />}
+          render={
+            <DropTarget.Root
+              label="Open documents"
+              accept={tabKind}
+              trackDragOver={false}
+              render={<DragAutoScroll.Root allowedAxis="horizontal" />}
+            />
+          }
         >
           {items.map((item) => (
             <DraggableTab
@@ -328,7 +332,7 @@ export default function DraggableTabs() {
           <div className="col-start-1 row-start-1 flex flex-col items-center justify-center gap-3 text-sm text-neutral-500">
             <p className="m-0">No documents are open.</p>
             <button
-              className="cursor-pointer border border-solid border-neutral-950 bg-transparent px-2.5 py-1.5 font-[inherit] text-neutral-950 dark:border-white dark:text-white"
+              className="cursor-pointer border border-solid border-neutral-950 bg-transparent px-2.5 py-1.5 font-[inherit] text-neutral-950 hover:bg-neutral-100 focus-visible:-outline-offset-1 focus-visible:outline-2 focus-visible:outline-neutral-950 dark:border-white dark:text-white dark:hover:bg-neutral-800 dark:focus-visible:outline-white"
               type="button"
               onClick={handleAdd}
             >

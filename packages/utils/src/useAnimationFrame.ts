@@ -104,44 +104,35 @@ export function resetAnimationFrameScheduler() {
 }
 
 export class AnimationFrame {
-  static create(ownerWindow?: Window) {
-    return new AnimationFrame(ownerWindow);
+  static create() {
+    return new AnimationFrame();
   }
 
-  static request(fn: FrameRequestCallback, ownerWindow?: Window) {
-    return ownerWindow ? ownerWindow.requestAnimationFrame(fn) : scheduler.request(fn);
+  static request(fn: FrameRequestCallback) {
+    return scheduler.request(fn);
   }
 
-  static cancel(id: AnimationFrameId, ownerWindow?: Window) {
-    if (ownerWindow) {
-      try {
-        ownerWindow.cancelAnimationFrame(id);
-      } catch {
-        // The window may have closed.
-      }
-      return;
-    }
-    scheduler.cancel(id);
+  static cancel(id: AnimationFrameId) {
+    return scheduler.cancel(id);
   }
-
-  constructor(private readonly ownerWindow?: Window) {}
 
   currentId: AnimationFrameId | null = EMPTY;
 
-  /** Executes `fn` on the next animation frame, replacing any pending call. */
+  /**
+   * Executes `fn` after `delay`, clearing any previously scheduled call.
+   */
   request(fn: Function) {
     this.cancel();
-    this.currentId = AnimationFrame.request(() => {
+    this.currentId = scheduler.request(() => {
       this.currentId = EMPTY;
       fn();
-    }, this.ownerWindow);
+    });
   }
 
   cancel = () => {
     if (this.currentId !== EMPTY) {
-      const id = this.currentId;
+      scheduler.cancel(this.currentId);
       this.currentId = EMPTY;
-      AnimationFrame.cancel(id, this.ownerWindow);
     }
   };
 

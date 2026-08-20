@@ -1,8 +1,10 @@
 export { DraggableRoot as Root } from './root/DraggableRoot';
 export { DraggableHandle as Handle } from './handle/DraggableHandle';
+export { DraggableKeyboardHandle as KeyboardHandle } from './keyboard-handle/DraggableKeyboardHandle';
 export { DraggablePreview as Preview } from './preview/DraggablePreview';
 export { DraggableClonedPreview as ClonedPreview } from './preview/DraggableClonedPreview';
 export { DraggablePreviewProvider as PreviewProvider } from './preview-provider/DraggablePreviewProvider';
+export { DraggableDisplacement as Displacement } from './displacement/DraggableDisplacement';
 
 export { useDraggableActiveDrag as useActiveDrag } from './use-active-drag';
 

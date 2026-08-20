@@ -6,6 +6,8 @@ import type { BaseUIComponentProps } from '../../internals/types';
 import type {
   NativeDragEventProps,
   RegisterDropTargetParameters,
+  WithOptionalPayload,
+  WithRequiredPayload,
   WithRequiredAccept,
 } from '../../types/dragRegistration';
 import type {
@@ -14,6 +16,7 @@ import type {
   DragAccept,
   DragKind,
   DropTargetPayload,
+  DropTargetPayloadGetter,
 } from '../../types/drag';
 import { useDropTargetElement } from './useDropTargetElement';
 import type { UseDropTargetElementParameters } from './useDropTargetElement';
@@ -41,6 +44,7 @@ export const DropTargetRoot = React.forwardRef(function DropTargetRoot<
   componentProps: DropTargetRootPropsBase<TSourceData, TLocalData> & {
     accept?: DragAccept<TSourceData> | undefined;
     payload?: DropTargetPayload<TSourceData, TLocalData> | undefined;
+    getPayload?: DropTargetPayloadGetter<TSourceData, TLocalData> | undefined;
   },
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
@@ -59,6 +63,7 @@ export const DropTargetRoot = React.forwardRef(function DropTargetRoot<
     canDrop,
     disabled,
     payload,
+    getPayload,
     snap,
     trackDragOver,
     // Event handlers
@@ -81,6 +86,7 @@ export const DropTargetRoot = React.forwardRef(function DropTargetRoot<
     canDrop,
     disabled,
     payload,
+    getPayload,
     snap,
     trackDragOver,
     onDragStart,
@@ -119,7 +125,8 @@ export const DropTargetRoot = React.forwardRef(function DropTargetRoot<
       RequiredDropTargetPayload<TSourceData, TLocalData>,
   ): React.JSX.Element;
   <TSourceData = unknown>(
-    props: DropTargetRootPropsWithRequiredAccept<TSourceData, undefined>,
+    props: DropTargetRootPropsWithRequiredAccept<TSourceData, undefined> &
+      WithOptionalPayload<DropTargetPayloadParameters<TSourceData, undefined>>,
   ): React.JSX.Element;
   // Private inference overloads retain precise payload unions for heterogeneous
   // `accept` arrays. Explicit component generics use the payload-keyed overloads above.
@@ -128,7 +135,8 @@ export const DropTargetRoot = React.forwardRef(function DropTargetRoot<
       RequiredDropTargetPayload<AcceptedDragPayload<TAccept>, TLocalData>,
   ): React.JSX.Element;
   <TAccept extends AnyDragAccept = DragKind<unknown>>(
-    props: DropTargetRootPropsFromAccept<TAccept, undefined>,
+    props: DropTargetRootPropsFromAccept<TAccept, undefined> &
+      WithOptionalPayload<DropTargetPayloadParameters<AcceptedDragPayload<TAccept>, undefined>>,
   ): React.JSX.Element;
 };
 
@@ -139,11 +147,10 @@ export interface DropTargetRootState {
    */
   dragOver: boolean;
   /**
-   * Whether the drag in progress is one this target accepts, wherever the pointer
-   * is — the state to key a "valid drop zone" highlight on. `false` when no drag
-   * is running, when the target is `disabled`, and always when `trackDragOver` is
-   * `false`. Matched on `accept` alone: `canDrop` answers per position, so it
-   * cannot describe a target the pointer is nowhere near.
+   * Whether this target accepts the current drag, regardless of pointer position.
+   * Use it to highlight all compatible drop targets. It is `false` when no drag is
+   * active, the target is disabled, or `trackDragOver` is `false`. The value is
+   * based on `accept`; `canDrop` is evaluated only for the current position.
    */
   accepting: boolean;
   /**
@@ -153,24 +160,23 @@ export interface DropTargetRootState {
    */
   dragOverInnermost: boolean;
   /**
-   * Whether this target is currently refusing the drag: its `canDrop` returned
-   * `'reject'` for the current position, the state to key a "column is full"
-   * affordance on. Mutually exclusive with `dragOver`, and always `false` when
-   * `trackDragOver` is `false`.
+   * Whether `canDrop` returned `'reject'` for the current position. Use it to
+   * display feedback such as a full column. It is mutually exclusive with
+   * `dragOver` and always `false` when `trackDragOver` is `false`.
    */
   rejected: boolean;
   /** Whether the drop target is disabled. */
   disabled: boolean;
 }
 
-// Every `DropTarget.Root` prop except `payload`; the overloads and `Props` below
+// Every `DropTarget.Root` prop except its payload fields; the overloads and `Props` below
 // each add it back with their own optionality. See `DraggableConfig.payload`.
 type DropTargetRootPropsBase<TSourceData, TLocalData> = Omit<
   BaseUIComponentProps<'div', DropTargetRootState>,
   // The whole native HTML5 drag event family is replaced by this engine.
   NativeDragEventProps
 > &
-  Omit<RegisterDropTargetParameters<TSourceData, TLocalData>, 'payload'> & {
+  Omit<RegisterDropTargetParameters<TSourceData, TLocalData>, 'payload' | 'getPayload'> & {
     /**
      * Whether to update drag-over state and its data attributes. Set to `false`
      * when the target renders no drag-over feedback; drag callbacks still fire.
@@ -179,12 +185,15 @@ type DropTargetRootPropsBase<TSourceData, TLocalData> = Omit<
     trackDragOver?: boolean | undefined;
   };
 
-/**
- * Just the `payload` field, required. Picked from `RegisterDropTargetParameters`
- * rather than redeclared so its description has one home.
- */
-type RequiredDropTargetPayload<TSourceData, TLocalData> = Required<
-  Pick<RegisterDropTargetParameters<TSourceData, TLocalData>, 'payload'>
+type DropTargetPayloadParameters<TSourceData, TLocalData> = Pick<
+  RegisterDropTargetParameters<TSourceData, TLocalData>,
+  'payload' | 'getPayload'
+>;
+
+type RequiredDropTargetPayload<TSourceData, TLocalData> = WithRequiredPayload<
+  DropTargetPayloadParameters<TSourceData, TLocalData>,
+  DropTargetPayload<TSourceData, TLocalData>,
+  DropTargetPayloadGetter<TSourceData, TLocalData>
 >;
 
 /**
@@ -207,7 +216,7 @@ type DropTargetRootPropsFromAccept<TAccept extends AnyDragAccept, TLocalData> = 
  * use {@link DropTargetRootPropsWithPayload} instead.
  */
 type DropTargetRootPayloadField<TSourceData, TLocalData> = [TLocalData] extends [undefined]
-  ? Partial<RequiredDropTargetPayload<TSourceData, TLocalData>>
+  ? WithOptionalPayload<DropTargetPayloadParameters<TSourceData, TLocalData>>
   : RequiredDropTargetPayload<TSourceData, TLocalData>;
 
 // Keyed on the payloads rather than on an `accept` value, so a wrapper's props stay

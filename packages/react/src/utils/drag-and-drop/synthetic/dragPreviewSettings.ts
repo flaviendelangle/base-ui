@@ -2,6 +2,11 @@ import type * as React from 'react';
 import type { DraggableConfig } from '../draggable';
 import { resolveElementReference } from '../utils';
 import type { DragModifiers, DragPreviewOffset, DragPreviewRenderEvent } from '../../../types/drag';
+import {
+  createClonedDragPreviewElement,
+  createDragPreviewHostElement,
+  type DragPreviewElementFactory,
+} from './cloneDragPreview';
 
 interface ResolvedDragPreviewBase {
   offset: DragPreviewOffset | undefined;
@@ -9,6 +14,7 @@ interface ResolvedDragPreviewBase {
   /** Already resolved to an element; `null` injects the preview in place. */
   container: HTMLElement | null;
   disabled: boolean;
+  createPreviewElement: DragPreviewElementFactory | null;
 }
 
 /**
@@ -41,6 +47,9 @@ export function resolveDragPreview<TData = unknown>(
   const settings = declaration ?? parameters.dragPreview;
   const render = settings?.render ?? null;
   const disabled = settings?.disabled ?? false;
+  const createPreviewElement =
+    declaration?.createPreviewElement ??
+    (render ? createDragPreviewHostElement : createClonedDragPreviewElement);
 
   // A part's (or an imperative source's) own container wins over the subtree
   // default a `Draggable.PreviewProvider` set; with neither, the engine injects
@@ -50,12 +59,14 @@ export function resolveDragPreview<TData = unknown>(
   const base: ResolvedDragPreviewBase = {
     offset: settings?.offset,
     modifiers: settings?.modifiers,
-    // Can be a callback, so leave it uninvoked when there is no preview to inject.
+    // Can be a callback, so leave it uninvoked when the preview is disabled.
     container: disabled ? null : resolveElementReference(container, source),
     disabled,
+    createPreviewElement: disabled ? null : createPreviewElement,
   };
 
-  return render
-    ? { ...base, content: 'host', render }
-    : { ...base, content: 'clone', render: null };
+  if (render) {
+    return { ...base, content: 'host', render };
+  }
+  return { ...base, content: 'clone', render: null };
 }

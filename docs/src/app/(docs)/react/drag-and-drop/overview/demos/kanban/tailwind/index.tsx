@@ -47,13 +47,13 @@ interface DropPlaceholder {
 }
 
 const COLUMN_BASE =
-  'box-border flex flex-1 flex-col border border-neutral-200 p-3 transition-colors dark:border-neutral-700';
+  'box-border flex w-40 shrink-0 flex-col border border-neutral-200 p-3 transition-colors sm:w-auto sm:flex-1 dark:border-neutral-700';
 const COLUMN_CLASS = `${COLUMN_BASE} data-[active]:border-neutral-950 data-[active]:bg-neutral-100 dark:data-[active]:border-white dark:data-[active]:bg-neutral-800`;
 // The preview is a clone of the card, so it keeps these classes: `data-dragging`
 // dims the source, `data-ending-style` keeps the committed card looking like the
 // placeholder until the clone arrives, and `data-drag-preview` lifts the clone.
 const CARD_CLASS =
-  'box-border border border-neutral-950 bg-white px-2.5 py-2 text-sm leading-5 text-neutral-950 dark:border-white dark:bg-neutral-950 dark:text-white cursor-grab transition data-[dragging]:opacity-40 data-ending-style:not-data-[drag-preview]:text-transparent motion-safe:data-[drag-preview]:data-ending-style:transition-[translate] motion-safe:data-[drag-preview]:data-ending-style:duration-200 motion-safe:data-[drag-preview]:data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] data-[drag-preview]:shadow-[0.25rem_0.25rem_0_rgb(0_0_0_/_12%)] dark:data-[drag-preview]:shadow-none hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white';
+  'box-border border border-neutral-950 bg-white px-2.5 py-2 text-sm leading-5 text-neutral-950 dark:border-white dark:bg-neutral-950 dark:text-white cursor-grab transition data-[dragging]:opacity-40 data-ending-style:not-data-[drag-preview]:text-transparent motion-safe:data-[drag-preview]:data-ending-style:transition-[translate] motion-safe:data-[drag-preview]:data-ending-style:duration-200 motion-safe:data-[drag-preview]:data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] data-[drag-preview]:shadow-[0.25rem_0.25rem_0_rgb(0_0_0_/_12%)] dark:data-[drag-preview]:shadow-none data-[drag-preview]:data-[drag-mode=keyboard]:outline-2 data-[drag-preview]:data-[drag-mode=keyboard]:-outline-offset-1 data-[drag-preview]:data-[drag-mode=keyboard]:outline-neutral-950 dark:data-[drag-preview]:data-[drag-mode=keyboard]:outline-white hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white';
 // An empty ghost card marking where the dropped card will land.
 const PLACEHOLDER_CLASS =
   'pointer-events-none box-border shrink-0 border border-neutral-950 bg-white opacity-40 dark:border-white dark:bg-neutral-950';
@@ -211,8 +211,10 @@ export default function KanbanBoard() {
     },
   );
 
+  // @highlight-start
   useDragMonitor({
     accept: cardKind,
+    // @highlight-end
     onDragStart: ({ source, location }) => {
       const { clientX, clientY } = location.current.input;
       const slot = computeSlot(clientX, clientY, columnElementsRef.current);
@@ -246,12 +248,12 @@ export default function KanbanBoard() {
     // Catch-all drop target on the demo root, so a release anywhere inside the
     // demo lands on a registered target rather than falling outside every one.
     <DropTarget.Root
-      className="flex w-full flex-col gap-4 select-none"
+      className="flex w-full min-w-0 flex-col gap-4 select-none"
       label="Board"
       accept={cardKind}
       trackDragOver={false}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex w-full items-start gap-3 overflow-x-auto">
         {board.columnOrder.map((id) => {
           const column = board.columns[id];
           return (

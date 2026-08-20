@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { Draggable } from '@base-ui/react/draggable';
 import { DropTarget } from '@base-ui/react/drop-target';
-import { useDragEngine } from '@base-ui/react/use-drag-engine';
+import { useDragDropManager } from '@base-ui/react/use-drag-drop-manager';
 import styles from '../../menu-drag.module.css';
 
 type SlotId = 'left' | 'center' | 'right';
@@ -55,7 +55,7 @@ function MoreIcon() {
 }
 
 function Widget({ widget, onRemove }: { widget: WidgetData; onRemove: (id: string) => void }) {
-  const engine = useDragEngine();
+  const manager = useDragDropManager();
   const ref = React.useRef<HTMLButtonElement | null>(null);
   const [openedByKeyboard, setOpenedByKeyboard] = React.useState(false);
   const startOnCloseRef = React.useRef(false);
@@ -67,19 +67,23 @@ function Widget({ widget, onRemove }: { widget: WidgetData; onRemove: (id: strin
           setOpenedByKeyboard((eventDetails.event as MouseEvent).detail === 0);
         }
       }}
+      // @highlight-start
       onOpenChangeComplete={(open) => {
         if (!open && startOnCloseRef.current) {
           startOnCloseRef.current = false;
-          engine.startKeyboardDrag(ref.current);
+          manager.startKeyboardDrag(ref.current);
         }
       }}
+      // @highlight-end
     >
       <Draggable.Root
         kind={widgetKind}
         payload={widget.id}
         label={`${widget.title} widget`}
+        // @highlight-start
         keyboardActivation="manual"
         keyboardInstructions="Press Space to open the widget menu, then choose Move to move it."
+        // @highlight-end
         render={
           <Menu.Trigger render={<button ref={ref} type="button" aria-label={widget.title} />} />
         }

@@ -10,7 +10,6 @@ import type {
   DropEvent,
   DropTargetEvent,
   DropTargetResolutionContext,
-  DropTargetPayload,
   DropTargetSelf,
   DropTargetRecord,
   DragSource,
@@ -64,6 +63,8 @@ const state = getSharedSlot<DropTargetState>('dropTarget', () => ({
   documents: new Map<Document, Set<Element>>(),
   retainedDocuments: new WeakMap<Element, Document>(),
 }));
+// Additive shared-state evolution: a protocol bump is reserved for incompatible
+// layouts, because two protocol versions must not split the live target registry.
 state.documents ??= new Map<Document, Set<Element>>();
 state.retainedDocuments ??= new WeakMap<Element, Document>();
 
@@ -95,6 +96,9 @@ function retainDocument(element: Element): void {
 }
 
 function releaseDocument(element: Element): void {
+  // Read the document retained at registration, not today's `ownerDocument`:
+  // detachment leaves it unchanged, but `adoptNode` can move a still-registered
+  // target and its eventual cleanup must remove it from the original partition.
   const doc = state.retainedDocuments.get(element);
   if (!doc) {
     return;
@@ -247,7 +251,7 @@ export function resetForTests(): void {
   retiringRegistrations.clear();
 }
 
-type ConsumerCallbackName = 'canDrop' | 'payload' | 'snap' | 'getParameters';
+type ConsumerCallbackName = 'canDrop' | 'getPayload' | 'snap' | 'getParameters';
 
 /**
  * The active drag's pickup grab offset: the pointer at pickup minus the source's
@@ -268,8 +272,8 @@ export function setSessionGrabOffset(offset: { x: number; y: number } | null): v
 }
 
 /**
- * Sentinel `safeCall` fallback for a `payload` callback, distinguishing a value
- * the callback genuinely returned from a thrown failure: no return value can be
+ * Sentinel `safeCall` fallback for `getPayload`, distinguishing a value the
+ * callback genuinely returned from a thrown failure: no return value can be
  * mistaken for it.
  */
 const PAYLOAD_ERROR = Symbol('payloadError');
@@ -289,11 +293,11 @@ function safeCall<T>(
 
 /**
  * The payload a target declared, when it declared a plain value rather than a
- * callback; `undefined` otherwise, including for an unregistered element.
+ * resolver; `undefined` otherwise, including for an unregistered element.
  *
  * A peek, not a resolution: it runs the parameters getter but never `accept`,
- * `canDrop`, or a `payload` callback, so it costs nothing a caller wasn't going
- * to pay and can't have side effects. Callback payloads deliberately return
+ * `canDrop`, or a `getPayload` callback, so it costs nothing a caller wasn't going
+ * to pay and can't have side effects. Resolved payloads deliberately return
  * `undefined` — evaluating one needs a resolution context, and its answer can
  * differ per point, so a caller must not assume a peeked value stands for every
  * position on the target.
@@ -304,8 +308,7 @@ export function getDeclaredDropTargetPayload(element: Element): unknown {
     return undefined;
   }
   const registration = safeCall('getParameters', element, getRegistration, null);
-  const declared = registration?.payload;
-  return typeof declared === 'function' ? undefined : declared;
+  return registration?.getPayload ? undefined : registration?.payload;
 }
 
 /**
@@ -365,13 +368,11 @@ function resolveDropTargetOutcome(
     return null;
   }
 
-  // A value payload can't throw, so only the callback form needs the boundary.
-  const declaredPayload = registration.payload;
-  const payload =
-    typeof declaredPayload === 'function'
-      ? safeCall('payload', element, () => declaredPayload(fullFeedback), PAYLOAD_ERROR)
-      : declaredPayload;
-  // A throwing `payload` yields the sentinel: treat the target as inactive, like
+  // A value payload can't throw, so only the resolver needs the boundary.
+  const payload = registration.getPayload
+    ? safeCall('getPayload', element, () => registration.getPayload!(fullFeedback), PAYLOAD_ERROR)
+    : registration.payload;
+  // A throwing `getPayload` yields the sentinel: treat the target as inactive, like
   // `canDrop: false`, instead of dispatching `onDrop` with a stand-in cast as the
   // declared payload type.
   if (payload === PAYLOAD_ERROR) {
@@ -753,37 +754,40 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
   /**
    * The data to attach to this target, read back as `self.payload` in its own
    * callbacks and on its record in `location.dropTargets`. Use it to identify which
-   * cell, row, or column a drag is over. Accepts a static value, or a callback
-   * evaluated on each resolution for data derived from the current drag.
-   *
-   * A function is always taken as the callback. To attach a function *as* the
-   * payload, return it from one: `payload={() => myFunction}`.
+   * cell, row, or column a drag is over. Functions are preserved as ordinary
+   * payload values.
    */
-  payload?: DropTargetPayload<TSourceData, TLocalData> | undefined;
+  payload?: TLocalData | undefined;
+  /**
+   * Resolves this target's payload each time it is evaluated. Use this instead
+   * of `payload` when the value depends on the current drag or position.
+   */
+  getPayload?:
+    | ((context: DropTargetResolutionContext<NoInfer<TSourceData>>) => TLocalData)
+    | undefined;
   /**
    * Human-readable name of this drop target, used by the default screen-reader
    * announcements for keyboard drags to name where the item is and where it landed.
    */
   label?: string | undefined;
   /**
-   * What this drop target is, created with `Draggable.createKind`. It identifies the
-   * target on its own records — `self.kind` and the entries of `location.dropTargets` —
-   * so a handler watching several kinds of target can tell them apart with the kind's
-   * `matches`. Its payload type must match this target's `payload`.
+   * The target kind created with `Draggable.createKind`. It is available as
+   * `self.kind` and on entries in `location.dropTargets`. Use the kind's `matches`
+   * method to distinguish target kinds and narrow their payload types. Its payload
+   * type must match this target's `payload`.
    *
    * Distinct from `accept`, which declares the **source** kinds this target takes.
    */
   kind?: DragKind<NoInfer<TLocalData>> | undefined;
   /**
-   * The kinds of drag source this target accepts: one kind, or an array of them.
+   * One or more drag source kinds accepted by this target.
    *
-   * Required on a drop target. Every registration joins the same page-global engine
-   * with no subtree scoping, so a target written without one would take every drag in
-   * the application. Pass `DropTarget.anyKind` to opt into exactly that — at the cost
-   * of `source.payload` being `unknown`.
+   * Every registration uses the same page-wide drag manager, so this value is
+   * required. Pass `DropTarget.anyKind` to accept every drag. In that case,
+   * `source.payload` is `unknown`.
    *
-   * A source whose kind isn't accepted is ignored by this target, and an ancestor target
-   * can still claim it. Runs before `canDrop`.
+   * The target ignores a source whose kind is not accepted. An ancestor target can
+   * still accept it. Base UI checks `accept` before `canDrop`.
    */
   accept?: DragAccept<TSourceData> | undefined;
   /**
@@ -798,35 +802,30 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
    * Predicate for whether this target should be considered a candidate for the
    * current drag. Runs after `accept`.
    *
-   * Returning `false` makes the engine treat this target as if it weren't registered
-   * for this dispatch: the DOM walk continues outward and a parent drop target
-   * underneath can claim the drop. Use this rather than blocking inside an `onDrop`
-   * body, which would discard the drop without letting an outer target receive it.
+   * Return `false` to skip this target for the current resolution. Base UI continues
+   * through its ancestors, so a parent target can receive the drop. This differs from
+   * ignoring the drop inside `onDrop`, which does not give a parent target a chance.
    *
-   * Returning `'reject'` refuses the drop outright instead of abstaining: no target
-   * resolves at this position (descendants that accepted are overruled, and nothing
-   * behind this target can claim the drop), and the target exposes `data-rejected`
-   * while the drag is over it. Use it for container-level rules such as a capacity
-   * limit, which `false` would silently defeat by falling through to the items inside.
+   * Return `'reject'` to block every drop at this position. Descendants, this target,
+   * and ancestors cannot receive the drop. While the drag is over the target, it has
+   * `data-rejected`. Use this for container rules such as a capacity limit. Returning
+   * `false` would allow an item inside the container to receive the drop.
    */
   canDrop?:
     | ((parameters: DropTargetResolutionContext<NoInfer<TSourceData>>) => boolean | 'reject')
     | undefined;
   /**
-   * Quantizes the local point this target reports through `getSnappedLocalPoint`,
-   * as a count of equal steps per axis of its border box: a day column of
-   * 15-minute slots is `{ y: 96 }`, a month grid `{ x: 7, y: 6 }`.
+   * Divides the target's border box into equal steps for
+   * `getSnappedLocalPoint()`. For example, `{ y: 96 }` creates 15-minute slots in
+   * a day column, and `{ x: 7, y: 6 }` creates a month grid.
    *
-   * Counts are unitless fractions, so a target sized at runtime (a column filling
-   * whatever the viewport leaves) declares them with no dimensions in hand; the
-   * engine measures when a drop resolves. Accepts a static value, or a callback
-   * receiving the same resolution context as `canDrop`, evaluated once per
-   * resolution on the first snapped read, for counts derived from the drag itself
-   * (a coarser grid per source kind) or read from live state at drag time; return
-   * `undefined` to not quantize.
+   * Step counts do not depend on the target's pixel size. Base UI measures the
+   * target when resolving a drag. Pass a static value or a callback that receives
+   * the same context as `canDrop`. The callback runs on the first snapped read for
+   * each resolution. Return `undefined` to skip snapping.
    *
-   * Distinct from the `snapToGrid` modifier, which snaps the drag point itself in
-   * surface pixels for every target: `snap` only quantizes what this target reports.
+   * This differs from `snapToGrid`, which snaps the drag position for every target.
+   * `snap` changes only the value reported by this target.
    */
   snap?:
     | DragSnapSteps
@@ -880,8 +879,8 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
     | undefined;
   /**
    * Event handler called when this target leaves the active stack, because the
-   * pointer moved off it or the drag ended. `eventDetails.reason` tells the two
-   * apart: a modality for a hover-out, a drag end reason for the drag ending.
+   * pointer moved away or the drag ended. `eventDetails.reason` identifies whether
+   * the pointer or keyboard left the target, or the drag ended.
    */
   onDragLeave?:
     | ((

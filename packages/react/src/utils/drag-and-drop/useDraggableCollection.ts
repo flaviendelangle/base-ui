@@ -3,10 +3,8 @@ import * as React from 'react';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import { warn } from '@base-ui/utils/warn';
 import {
   computeDropPosition as computeCollectionDropPosition,
-  getDropCapabilities as getLegacyDropCapabilities,
   invalidateDirectionCache,
   treeDragPayloadBrand,
   type CollectionOrientation,
@@ -15,7 +13,8 @@ import {
   type DropPosition,
 } from './collectionDrop';
 import { reorderRowBrand, type ReorderRowBrand } from './reorderRow';
-import { DragEngineImpl, resolveKeyboardInstructions } from './useInnerDragEngine';
+import { DragEngineBase, resolveKeyboardInstructions } from './useInnerDragEngine';
+import { registerDropTarget, registerMonitor } from './registrations';
 import { useDragPreviewContext } from './overlay/DragPreviewContext';
 import type { DragPreviewContext } from './overlay/DragPreviewContext';
 import type {
@@ -25,17 +24,19 @@ import type {
   RegisterMonitorParameters,
 } from '../../types/dragRegistration';
 import { getSharedSlot } from './sharedState';
-import { dragSessionStore, selectors, updateDragSourceElement } from './dragSessionStore';
+import { dragSessionStore, isDraggingElement, updateDragSourceElement } from './dragSessionStore';
 import { retargetActivePreviewSource } from './activePreview';
 import { mergeKeyboardAnnouncements } from './a11y/defaultAnnouncements';
 import { buildStaticSetupKey } from './draggable';
 import { createKind, matchesAccept } from './dragKind';
 import { scheduleDisplacementSweep, trackDisplacedElement } from './displacement';
-import { EMPTY_AUTO_SCROLLER_PARAMETERS } from './autoScroller';
+import { getActiveHitElement } from './synthetic/syntheticSensor';
+import { startKeyboardDrag as startRegisteredKeyboardDrag } from './keyboard/keyboardSensor';
 import type { LatestGetter } from './useRegistrationRef';
-import { isPointInRect, runAllCleanups } from './utils';
+import { getComposedParentElement, isPointInRect, runAllCleanups } from './utils';
 import type {
   DragKind,
+  DragInput,
   DragSource,
   DragLocationHistory,
   DragPreviewSettings,
@@ -54,6 +55,23 @@ import { useCSPContext } from '../../internals/csp-context/CSPContext';
 import type { CSPContextValue } from '../../internals/csp-context/CSPContext';
 
 const DEFAULT_KIND = createKind<never>('base-ui-dnd-item');
+const ALL_DROP_CAPABILITIES: DropCapabilities = { hasOn: true, hasBeforeAfter: true };
+
+type DraggableCollectionEngineApi = Pick<
+  InternalDragEngine,
+  'registerDraggable' | 'registerDropTarget' | 'registerMonitor'
+>;
+
+/**
+ * The engine surface collections need. Auto-scroll remains an explicit feature
+ * composed by the collection wrapper, so collections without it do not retain
+ * the auto-scroller registration and measurement code.
+ */
+class DraggableCollectionEngine extends DragEngineBase implements DraggableCollectionEngineApi {
+  registerDropTarget = registerDropTarget;
+
+  registerMonitor = registerMonitor;
+}
 
 /** The kinds a collection accepts for drops, normalized to an array. */
 type IncomingKinds<TItem> = ReadonlyArray<DragKind<IncomingSourceData<TItem>>>;
@@ -95,7 +113,7 @@ function getNextInstanceId() {
 
 /** The subset of a plugin the origin needs to find a row another instance remounted. */
 interface CommittedDropOwner {
-  getItemElement(itemId: CollectionItemId): HTMLElement | undefined;
+  getItemFocusElement(itemId: CollectionItemId): HTMLElement | undefined;
 }
 
 /**
@@ -164,11 +182,11 @@ export class DraggableCollectionPlugin<
 
   private getTranslations: LatestGetter<LocalizationProviderTranslations>;
 
-  // The drag engine, so collection items, the root, the global monitor
-  // and scroll containers all register through the same (global) engine as the rest
-  // of the app. Built here from stable getters (rather than passed in) so the
-  // plugin fully owns its registration path.
-  private engine: InternalDragEngine;
+  // The drag engine, so collection items, the root, and the global monitor all
+  // register through the same (global) engine as the rest of the app. Built here
+  // from stable getters (rather than passed in) so the plugin fully owns its
+  // registration path. Auto-scroll is composed separately by collection wrappers.
+  private engine: DraggableCollectionEngineApi;
 
   private monitorCleanup: (() => void) | null = null;
 
@@ -209,6 +227,8 @@ export class DraggableCollectionPlugin<
   // restoration to refocus a moved item after the drop commits.
   private itemElements = new Map<CollectionItemId, HTMLElement>();
 
+  private itemIdsByElement = new WeakMap<Element, CollectionItemId>();
+
   private displacementCleanups = new Map<CollectionItemId, () => void>();
 
   // Per-item re-registration hooks, so `refreshItemsA11y` can re-apply the
@@ -216,6 +236,8 @@ export class DraggableCollectionPlugin<
   private itemRefreshers = new Map<CollectionItemId, (force?: boolean) => void>();
 
   private itemHandles = new Map<CollectionItemId, HTMLElement>();
+
+  private itemKeyboardHandles = new Map<CollectionItemId, HTMLElement>();
 
   /** An a11y sweep requested mid-drag, deferred to drag end (see `refreshItemsA11y`). */
   private pendingA11yRefresh = false;
@@ -228,7 +250,7 @@ export class DraggableCollectionPlugin<
   ) {
     this.getConfig = getConfig;
     this.getTranslations = getTranslations;
-    this.engine = new DragEngineImpl(getTranslations, getPreviewContext, getCSPContext);
+    this.engine = new DraggableCollectionEngine(getTranslations, getPreviewContext, getCSPContext);
   }
 
   private get config(): UseDraggableCollectionParameters<TItem, TActions> {
@@ -248,10 +270,9 @@ export class DraggableCollectionPlugin<
   /**
    * Cached, and invalidated when the inputs it is derived from change.
    *
-   * This getter is read once per `resolveDropTarget` *and* once per
-   * `dispatchToDropTarget`, for every row — so on the keyboard path over a long
-   * list a fresh array per read is hundreds of thousands of allocations a second,
-   * for a value that only changes when the consumer re-declares `accept` or `kind`.
+   * Target resolution and dispatch read this getter for every row. Cache the
+   * derived array so large keyboard-driven collections do not allocate it
+   * repeatedly for a value that changes only with `accept` or `kind`.
    */
   private get accept(): IncomingKinds<TItem> {
     const configured = this.config.accept;
@@ -638,6 +659,7 @@ export class DraggableCollectionPlugin<
   setupItem(itemId: CollectionItemId, element: HTMLElement): () => void {
     this.retargetActiveSource(itemId, element);
     this.itemElements.set(itemId, element);
+    this.itemIdsByElement.set(element, itemId);
     this.syncDisplacementTracking(itemId, element);
 
     let pendingDraggedItemIds: Set<CollectionItemId> | null = null;
@@ -648,7 +670,7 @@ export class DraggableCollectionPlugin<
       // footprint has to cover the row the user is actually holding.
       this.snapshotDraggedRects(new Set([itemId, ...pendingDraggedItemIds]));
     };
-    const payload = () => {
+    const getPayload = () => {
       const itemIdsSet = pendingDraggedItemIds ?? this.resolveDraggedItemIds(itemId);
       pendingDraggedItemIds = null;
       const actions = this.config.getActions();
@@ -701,9 +723,10 @@ export class DraggableCollectionPlugin<
           const parameters: InternalDraggableParameters<DragSourceData<TItem>> = {
             kind,
             pointerDragHandle: () => this.itemHandles.get(itemId) ?? null,
+            keyboardDragHandle: () => this.itemKeyboardHandles.get(itemId) ?? null,
             // Besides supplying the source's accessible name, this gives the
             // settling clone a stable identity when a cross-collection move
-            // remounts the item under a new registration. The payload callback
+            // remounts the item under a new registration. The `getPayload` callback
             // is necessarily a new function in the destination collection.
             label,
             // `canDrag(itemId)` is declarative (no gesture context), so it maps to
@@ -724,7 +747,7 @@ export class DraggableCollectionPlugin<
             // laid out — a consumer rule may legitimately `display: none` the
             // source. See `isSelfRootDrop`, which needs their footprints.
             onBeforeDragStart,
-            payload,
+            getPayload,
             // The collection owns its preview: it renders into the provider's
             // overlay, so it survives the dragged item reordering or unmounting.
             // Without one, the item falls back to the engine's default clone.
@@ -771,7 +794,7 @@ export class DraggableCollectionPlugin<
       if (!force && nextKey === a11yKey) {
         return;
       }
-      if (selectors.isDraggingElement(dragSessionStore.state, element)) {
+      if (isDraggingElement(dragSessionStore.state, element)) {
         return;
       }
       a11yKey = nextKey;
@@ -792,6 +815,9 @@ export class DraggableCollectionPlugin<
       }
       if (this.itemRefreshers.get(itemId) === refreshA11y) {
         this.itemRefreshers.delete(itemId);
+      }
+      if (this.itemIdsByElement.get(element) === itemId) {
+        this.itemIdsByElement.delete(element);
       }
       // `draggableCleanup` is re-assigned by `refreshA11y`, so read it late.
       runAllCleanups([() => draggableCleanup(), dropTargetCleanup]);
@@ -839,8 +865,7 @@ export class DraggableCollectionPlugin<
         targetInstanceId: this.instanceId,
       },
       canDrop: ({ source }) =>
-        this.config.canDropRoot?.(source as DragSource<unknown>) ??
-        (this.config.onDrop != null || this.config.onRootDrop != null),
+        this.config.canDropRoot?.(source as DragSource<unknown>) ?? this.config.onDrop != null,
       onDragEnter: trackRootDrop,
       onDrag: trackRootDrop,
       onDragLeave: () => {
@@ -856,29 +881,19 @@ export class DraggableCollectionPlugin<
           return;
         }
 
-        const actions = this.config.getActions();
         const onDrop = this.config.onDrop;
-        let committed = false;
-        if (onDrop != null) {
-          committed =
-            onDrop({
-              itemIds: src?.itemIds ?? new Set(),
-              items: src?.items ?? [],
-              target: { itemId: null, position: 'root' },
-              isInternal: src?.sourceInstanceId === this.instanceId,
-              source: source as DragSource<unknown>,
-              actions,
-            }) !== false;
-        } else if (this.config.onRootDrop != null) {
-          this.config.onRootDrop({
+        if (
+          onDrop != null &&
+          onDrop({
             itemIds: src?.itemIds ?? new Set(),
             items: src?.items ?? [],
-            actions,
-          });
-          committed = true;
-        }
-        // Keep keyboard focus restoration with the collection that committed the drop.
-        if (committed) {
+            target: { itemId: null, position: 'root' },
+            isInternal: src?.sourceInstanceId === this.instanceId,
+            source: source as DragSource<unknown>,
+            actions: this.config.getActions(),
+          }) !== false
+        ) {
+          // Keep keyboard focus restoration with the collection that committed the drop.
           committedDropSlot.owner = this;
         }
       },
@@ -900,11 +915,19 @@ export class DraggableCollectionPlugin<
     };
   }
 
-  setupScroller(element: HTMLElement): () => void {
-    // Register unconditionally: whether the element actually scrolls is the loop's
-    // business, resolved once per drag from its computed overflow (`getOverflowFlags`,
-    // cached in `state.overflowCache`) rather than asked of the element here.
-    return this.engine.registerAutoScroller(element, () => EMPTY_AUTO_SCROLLER_PARAMETERS);
+  setupKeyboardHandle(itemId: CollectionItemId, element: HTMLElement): () => void {
+    this.itemKeyboardHandles.set(itemId, element);
+    this.itemRefreshers.get(itemId)?.(true);
+    return () => {
+      if (this.itemKeyboardHandles.get(itemId) === element) {
+        this.itemKeyboardHandles.delete(itemId);
+        this.itemRefreshers.get(itemId)?.(true);
+      }
+    };
+  }
+
+  startKeyboardDrag(itemId: CollectionItemId): boolean {
+    return startRegisteredKeyboardDrag(this.itemElements.get(itemId) ?? null);
   }
 
   /** See {@link LiveDropPositionOwner}. */
@@ -999,7 +1022,7 @@ export class DraggableCollectionPlugin<
     // committed the drop when this collection no longer holds it.
     const itemId = parameters.source.payload.draggedItemId;
     const element =
-      this.itemElements.get(itemId) ?? committedDropSlot.owner?.getItemElement(itemId);
+      this.getItemFocusElement(itemId) ?? committedDropSlot.owner?.getItemFocusElement(itemId);
     if (element && element.isConnected) {
       return element;
     }
@@ -1024,7 +1047,7 @@ export class DraggableCollectionPlugin<
         dropTargetItemId: null,
         dropPosition: null,
       });
-      this.hasNonInitialState = true;
+      this.hasNonInitialState = false;
     }
   }
 
@@ -1033,10 +1056,7 @@ export class DraggableCollectionPlugin<
   // can run before this plugin's monitor receives drag start.
   private dropCapabilities(src: IncomingSourceData<TItem>): DropCapabilities {
     const isInternal = src?.sourceInstanceId === this.instanceId;
-    return (
-      this.config.getDropCapabilities?.({ isInternal }) ??
-      getLegacyDropCapabilities(this.config, isInternal ? 'internal' : 'external')
-    );
+    return this.config.getDropCapabilities?.({ isInternal }) ?? ALL_DROP_CAPABILITIES;
   }
 
   private computeDropPosition(
@@ -1061,25 +1081,36 @@ export class DraggableCollectionPlugin<
    * meant "put it back", not "drop on the root's empty area".
    */
   private isSelfRootDrop(src: IncomingSourceData<TItem>, location: DragLocationHistory): boolean {
-    return this.isPointInDraggedFootprint(src, location.current.input);
+    return this.isPointInDraggedFootprint(src, location.current.input, true);
   }
 
   private isPointInDraggedFootprint(
     src: IncomingSourceData<TItem>,
-    input: { clientX: number; clientY: number },
+    input: DragInput,
+    checkConnectedGeometry = false,
   ): boolean {
     if (src?.sourceInstanceId !== this.instanceId || src.itemIds == null) {
       return false;
+    }
+    if (input.pointerType !== null) {
+      for (let node = getActiveHitElement(); node !== null; node = getComposedParentElement(node)) {
+        const itemId = this.itemIdsByElement.get(node);
+        if (itemId !== undefined && (src.itemIds.has(itemId) || src.draggedItemId === itemId)) {
+          return true;
+        }
+      }
+      // The per-frame pointer path is fully answered by the hit ancestry above.
+      // Terminal drop resolution opts into the geometry fallback because the
+      // sensor has already released its active hit element by then.
+      if (!checkConnectedGeometry) {
+        return false;
+      }
     }
     // The grabbed row is unioned in: `itemIds` is the *pruned* set, which can
     // legitimately exclude it (select a folder and a file inside it, then grab the
     // file), and the row the user is holding is exactly the one they can release
     // back onto.
-    const footprintIds = new Set(src.itemIds);
-    if (src.draggedItemId !== undefined) {
-      footprintIds.add(src.draggedItemId);
-    }
-    for (const id of footprintIds) {
+    const isInsideItem = (id: CollectionItemId) => {
       // Prefer the live rect, which stays valid across scrolling — including this
       // engine's own auto-scroll. `draggedRects` are viewport-coordinate rects
       // frozen at pickup, so any scroll during the drag invalidates them, and
@@ -1095,9 +1126,19 @@ export class DraggableCollectionPlugin<
       // and treating that as a live footprint puts the pointer outside it and
       // turns the put-back into a root drop — the case the snapshot exists for.
       const rect = live && live.width > 0 && live.height > 0 ? live : this.draggedRects.get(id);
-      if (rect && isPointInRect(input.clientX, input.clientY, rect)) {
+      return rect != null && isPointInRect(input.clientX, input.clientY, rect);
+    };
+    for (const id of src.itemIds) {
+      if (isInsideItem(id)) {
         return true;
       }
+    }
+    if (
+      src.draggedItemId !== undefined &&
+      !src.itemIds.has(src.draggedItemId) &&
+      isInsideItem(src.draggedItemId)
+    ) {
+      return true;
     }
     return false;
   }
@@ -1163,11 +1204,10 @@ export class DraggableCollectionPlugin<
 
   private handleDrop(location: DragLocationHistory, source: DragSource<IncomingSourceData<TItem>>) {
     const src = source.payload;
-    // A collection can mount mid-drag (a panel revealed while dragging): its item
-    // targets register synchronously in ref callbacks, but `connect()`, which
-    // seeds the dragged ids and items, runs in a passive effect. A drop landing
-    // in that gap performs the seed itself from the event's own payload rather
-    // than silently no-op on a target the drop indicator showed as valid.
+    // A collection can join an already active drag, or become an eligible
+    // destination after drag start. It can therefore receive `onDrop` without
+    // having received the monitor's `onDragStart`. Seed from the terminal event's
+    // payload before committing rather than silently ignoring a valid drop.
     if (this.currentDraggedItemIds.size === 0 && src?.itemIds != null) {
       this.currentDraggedItemIds = new Set(src.itemIds);
       this.currentDragItems = src.items ?? [];
@@ -1216,22 +1256,16 @@ export class DraggableCollectionPlugin<
       }
     }
     const onDrop = this.config.onDrop;
-    let committed: boolean;
-    if (onDrop != null) {
-      committed =
-        onDrop({
-          itemIds: draggedItemIds,
-          items: this.currentDragItems,
-          target: { itemId: targetItemId, position },
-          isInternal,
-          actions,
-          source,
-        }) !== false;
-    } else if (isInternal) {
-      committed = this.handleInternalDrop(draggedItemIds, targetItemId, position, actions);
-    } else {
-      committed = this.handleExternalDrop(draggedItemIds, targetItemId, position, actions);
-    }
+    const committed =
+      onDrop != null &&
+      onDrop({
+        itemIds: draggedItemIds,
+        items: this.currentDragItems,
+        target: { itemId: targetItemId, position },
+        isInternal,
+        actions,
+        source,
+      }) !== false;
     // This collection now owns the moved rows; the origin's `finalFocus` reads
     // this to find a row it never mounted itself. Claimed only when a handler
     // actually committed, so a no-op route can't point focus at a collection
@@ -1242,88 +1276,21 @@ export class DraggableCollectionPlugin<
   }
 
   /** See {@link CommittedDropOwner}. */
-  getItemElement(itemId: CollectionItemId): HTMLElement | undefined {
-    return this.itemElements.get(itemId);
-  }
-
-  private handleInternalDrop(
-    itemIds: Set<CollectionItemId>,
-    targetItemId: CollectionItemId,
-    position: DropPosition,
-    actions: TActions,
-  ): boolean {
-    if (this.config.onMove) {
-      this.config.onMove({ itemIds, target: { itemId: targetItemId, position }, actions });
-      return true;
-    }
-    if (position === 'on') {
-      return this.routeItemDrop(itemIds, targetItemId, true, actions);
-    }
-    if (this.config.onReorder) {
-      this.config.onReorder({ itemIds, target: { itemId: targetItemId, position }, actions });
-      return true;
-    }
-    return false;
-  }
-
-  private routeItemDrop(
-    itemIds: Set<CollectionItemId>,
-    targetItemId: CollectionItemId,
-    isInternal: boolean,
-    actions: TActions,
-  ): boolean {
-    if (!this.config.onItemDrop) {
-      return false;
-    }
-    this.config.onItemDrop({
-      itemIds,
-      items: this.currentDragItems,
-      target: { itemId: targetItemId },
-      isInternal,
-      actions,
-    });
-    return true;
-  }
-
-  private handleExternalDrop(
-    itemIds: Set<CollectionItemId>,
-    targetItemId: CollectionItemId,
-    position: DropPosition,
-    actions: TActions,
-  ): boolean {
-    if (position === 'on') {
-      return this.routeItemDrop(itemIds, targetItemId, false, actions);
-    }
-    if (this.config.onInsert) {
-      this.config.onInsert({
-        itemIds,
-        items: this.currentDragItems,
-        target: { itemId: targetItemId, position },
-        actions,
-      });
-      return true;
-    }
-    return false;
+  getItemFocusElement(itemId: CollectionItemId): HTMLElement | undefined {
+    return this.itemKeyboardHandles.get(itemId) ?? this.itemElements.get(itemId);
   }
 }
 
 /**
  * Wires a collection (Tree, Kanban, ListBox…) into the drag engine. Returns a
- * `DraggableCollectionPlugin` whose `setupItem` / `setupRoot` / `setupScroller`
- * methods are wired by the collection wrapper to register draggables, drop
- * targets, and scroll containers per item.
+ * `DraggableCollectionPlugin` whose setup methods are wired by the collection
+ * wrapper to register draggables, drop targets, and handles. Collection wrappers
+ * opt into auto-scroll separately when they need it.
  */
 export function useDraggableCollection<
   TItem = unknown,
   TActions extends CollectionActions<TItem> = CollectionActions<TItem>,
 >(params: UseDraggableCollectionParameters<TItem, TActions>) {
-  if (process.env.NODE_ENV !== 'production' && params.onMove && params.onReorder) {
-    warn(
-      'Base UI: a collection was given both `onReorder` and `onMove`. ' +
-        '`onMove` subsumes `onReorder`, so `onReorder` will never fire. ' +
-        'Provide one or the other.',
-    );
-  }
   const getConfig = useStableCallback(() => params);
 
   // Accessibility strings come from the nearest `LocalizationProvider`; kept in
@@ -1352,7 +1319,7 @@ export function useDraggableCollection<
       ),
   );
 
-  React.useEffect(() => {
+  useIsoLayoutEffect(() => {
     const instance = plugin.current;
     instance.connect();
     return () => instance.destroy();
@@ -1396,39 +1363,6 @@ type DropTargetItemData =
       role: 'root';
       targetInstanceId: number;
     };
-
-export interface OnReorderParameters<TActions = unknown> {
-  itemIds: Set<CollectionItemId>;
-  target: { itemId: CollectionItemId; position: 'before' | 'after' };
-  actions: TActions;
-}
-
-export interface OnMoveParameters<TActions = unknown> {
-  itemIds: Set<CollectionItemId>;
-  target: { itemId: CollectionItemId; position: DropPosition };
-  actions: TActions;
-}
-
-export interface OnInsertParameters<TItem, TActions = unknown> {
-  itemIds: Set<CollectionItemId>;
-  items: TItem[];
-  target: { itemId: CollectionItemId; position: 'before' | 'after' };
-  actions: TActions;
-}
-
-export interface OnItemDropParameters<TItem, TActions = unknown> {
-  itemIds: Set<CollectionItemId>;
-  items: TItem[];
-  target: { itemId: CollectionItemId };
-  isInternal: boolean;
-  actions: TActions;
-}
-
-export interface OnRootDropParameters<TItem, TActions = unknown> {
-  itemIds: Set<CollectionItemId>;
-  items: TItem[];
-  actions: TActions;
-}
 
 export interface CollectionDropParameters<TItem, TActions = unknown> {
   /** The ids carried by a collection source, or an empty set for a generic source. */
@@ -1544,16 +1478,6 @@ export interface UseDraggableCollectionParameters<
   TItem = unknown,
   TActions extends CollectionActions<TItem> = CollectionActions<TItem>,
 > {
-  /** Legacy callback for reordering within one collection. */
-  onReorder?: ((parameters: OnReorderParameters<TActions>) => void) | undefined;
-  /** Legacy callback for moving within one collection. */
-  onMove?: ((parameters: OnMoveParameters<TActions>) => void) | undefined;
-  /** Legacy callback for inserting items from another collection. */
-  onInsert?: ((parameters: OnInsertParameters<TItem, TActions>) => void) | undefined;
-  /** Legacy callback for dropping directly on an item. */
-  onItemDrop?: ((parameters: OnItemDropParameters<TItem, TActions>) => void) | undefined;
-  /** Legacy callback for dropping on the collection root. */
-  onRootDrop?: ((parameters: OnRootDropParameters<TItem, TActions>) => void) | undefined;
   /**
    * Receives the normalized item/root drop after final-coordinate resolution.
    * Return `false` when no mutation committed, so focus restoration does not
@@ -1577,7 +1501,7 @@ export interface UseDraggableCollectionParameters<
    * How a keyboard drag is started on an item.
    *
    * - `'auto'`: Space or Enter picks the focused item up.
-   * - `'manual'`: Only `useDragEngine().startKeyboardDrag()` picks an item up, freeing
+   * - `'manual'`: Only `useDragDropManager().startKeyboardDrag()` picks an item up, freeing
    *   Space and Enter for another action such as inline editing while items stay
    *   focusable and announced as draggable.
    * - `'off'`: Items are only pointer-draggable, and the keyboard-drag screen reader

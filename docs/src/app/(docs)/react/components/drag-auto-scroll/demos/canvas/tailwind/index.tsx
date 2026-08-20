@@ -23,11 +23,11 @@ const INITIAL_PINS: Pin[] = [
 const ARCHIVE = { x: 60, y: 520 };
 
 const PIN_CLASS =
-  'absolute box-border cursor-grab border border-neutral-900 bg-white px-2.5 py-1.5 ' +
-  'text-[0.875rem] leading-5 whitespace-nowrap text-neutral-900 ' +
-  'focus-visible:-outline-offset-1 focus-visible:outline-2 focus-visible:outline-neutral-900 ' +
+  'absolute box-border cursor-grab border border-neutral-950 bg-white px-2.5 py-1.5 ' +
+  'text-[0.875rem] leading-5 whitespace-nowrap text-neutral-950 transition-colors hover:bg-neutral-100 ' +
+  'focus-visible:-outline-offset-1 focus-visible:outline-2 focus-visible:outline-neutral-950 ' +
   'data-[dragging]:opacity-40 data-[drag-preview]:shadow-[0.25rem_0.25rem_0_rgb(0_0_0/12%)] ' +
-  'dark:border-white dark:bg-neutral-900 dark:text-white ' +
+  'dark:border-white dark:bg-neutral-950 dark:text-white dark:hover:bg-neutral-800 ' +
   'dark:focus-visible:outline-white dark:data-[drag-preview]:shadow-none';
 
 export default function CanvasPan() {
@@ -49,6 +49,7 @@ export default function CanvasPan() {
         ref={viewportRef}
         accept={pinKind}
         className="relative box-border h-[260px] touch-none overflow-hidden border border-neutral-200 dark:border-neutral-700"
+        // @highlight-start
         applyScroll={({ x, y }) => {
           cameraRef.current = { x: cameraRef.current.x + x, y: cameraRef.current.y + y };
           // Written straight to the DOM, not through state: the engine re-resolves
@@ -58,12 +59,13 @@ export default function CanvasPan() {
             content.style.transform = `translate(${-cameraRef.current.x}px, ${-cameraRef.current.y}px)`;
           }
         }}
+        // @highlight-end
       >
         <div ref={contentRef} className="absolute inset-0 will-change-transform">
           <DropTarget.Root
             label="Archive"
             accept={pinKind}
-            className="absolute box-border flex h-[90px] w-[160px] items-center justify-center border border-dashed border-neutral-400 text-[0.875rem] leading-5 text-neutral-500 data-[drag-over]:border-solid data-[drag-over]:border-neutral-900 data-[drag-over]:text-neutral-900 dark:border-neutral-500 dark:text-neutral-400 dark:data-[drag-over]:border-white dark:data-[drag-over]:text-white"
+            className="absolute box-border flex h-[90px] w-[160px] items-center justify-center border border-dashed border-neutral-400 text-[0.875rem] leading-5 text-neutral-500 data-[drag-over]:border-solid data-[drag-over]:border-neutral-950 data-[drag-over]:text-neutral-950 dark:border-neutral-500 dark:text-neutral-400 dark:data-[drag-over]:border-white dark:data-[drag-over]:text-white"
             style={{ left: ARCHIVE.x, top: ARCHIVE.y }}
             onDrop={({ source }) => {
               setPins((previous) => previous.filter((pin) => pin.id !== source.payload));

@@ -10,7 +10,7 @@ export interface DragSessionState {
   source: DragSource;
   location: DragLocationHistory;
   mode: DragMode;
-  /** Element refs of every drop target in the active stack. Enables O(1) `isOverElement` lookups. */
+  /** Element refs of every drop target in the active stack. Enables O(1) membership lookups. */
   dropTargetElements: ReadonlySet<Element>;
   /**
    * The target whose `canDrop` returned `'reject'` for the current position, or
@@ -24,6 +24,7 @@ interface DragSessionSlot {
   store: Store<DragSessionState | null>;
   sourceStore: Store<DragSource | null>;
   sourceSnapshot: DragSource | null;
+  sourceVersion: number;
   sourceStoreSubscription?: (() => void) | undefined;
   targetListeners: Map<Element, Set<() => void>>;
   allTargetListeners: Set<() => void>;
@@ -33,12 +34,17 @@ const slot = getSharedSlot<DragSessionSlot>('dragSessionStore', () => ({
   store: new Store<DragSessionState | null>(null),
   sourceStore: new Store<DragSource | null>(null),
   sourceSnapshot: null,
+  sourceVersion: 0,
   targetListeners: new Map<Element, Set<() => void>>(),
   allTargetListeners: new Set<() => void>(),
 }));
 // Forward-compatible with a slot created by an older copy during development.
+// Breaking layouts get a new shared-slot protocol; additive fields must be
+// backfilled instead, because bumping the protocol would split the live store
+// and registries between the two copies.
 slot.sourceStore ??= new Store<DragSource | null>(slot.store.state?.source ?? null);
 slot.sourceSnapshot ??= slot.store.state?.source ?? null;
+slot.sourceVersion ??= 0;
 slot.sourceStoreSubscription ??= slot.store.subscribe((state) => {
   const source = state?.source ?? null;
   if (source !== slot.sourceSnapshot) {
@@ -64,6 +70,9 @@ export function selectDragSource(source: DragSource | null): DragSource | null {
 /** Internal: lifecycle-only writer. Not exported from `index.ts`. */
 export function setDragSession(state: DragSessionState | null): void {
   const previous = slot.store.state;
+  if (previous?.source !== state?.source) {
+    slot.sourceVersion += 1;
+  }
   slot.store.setState(state);
 
   const listeners = new Set<() => void>();
@@ -105,6 +114,8 @@ export const DragTargetState = {
   accepting: 8,
 } as const;
 
+export const dragTargetStateStride = DragTargetState.accepting;
+
 export interface DragTargetStateStore extends ReadonlyStore<number> {
   setElement(element: Element | null): void;
 }
@@ -131,7 +142,11 @@ export function createDragTargetStateStore(): DragTargetStateStore {
         value += DragTargetState.innermost;
       }
     }
-    return value;
+    // React 18's `useSyncExternalStoreWithSelector` does not re-run the selector
+    // unless this raw snapshot changes. Include a source revision so `accepting`
+    // can be recomputed at drag start/end; the selector masks it back out, so a
+    // target whose selected state stays false still does not re-render.
+    return value + slot.sourceVersion * dragTargetStateStride;
   };
 
   function removeFromElement(current: Element | null, listener: () => void): void {
@@ -203,54 +218,16 @@ export function updateDragSourceElement(oldElement: Element, newElement: HTMLEle
   return true;
 }
 
-type State = DragSessionState | null;
-
-export const selectors = {
-  /**
-   * Whether `element` is the element currently being dragged. `false` when
-   * `element` is `null` or no drag is active. Drives `Draggable.Root`'s
-   * `isDragging` return value.
-   */
-  isDraggingElement: (state: State, element: Element | null) => {
-    if (!state || !element) {
-      return false;
-    }
-    return state.source.element === element;
-  },
-  /**
-   * Whether `element` is in the active drop-target stack at any depth.
-   * `false` when `element` is `null` or no drag is active. Drives
-   * `DropTarget.Root`'s `over` state.
-   */
-  isOverElement: (state: State, element: Element | null) => {
-    if (!state || !element) {
-      return false;
-    }
-    return state.dropTargetElements.has(element);
-  },
-  /**
-   * Whether `element` is the innermost drop target. A nested ancestor returns
-   * `true` for `isOverElement` but `false` here while a descendant target is
-   * hovered.
-   */
-  isOverInnerElement: (state: State, element: Element | null) => {
-    if (!state || !element) {
-      return false;
-    }
-    return state.location.current.dropTargets[0]?.element === element;
-  },
-  /**
-   * Whether `element` is the target currently refusing the drag (`canDrop`
-   * returned `'reject'` at the current position). Drives `DropTarget.Root`'s
-   * `rejected` state.
-   */
-  isRejectedElement: (state: State, element: Element | null) => {
-    if (!state || !element) {
-      return false;
-    }
-    return state.rejectedTarget === element;
-  },
-};
+/** Whether `element` is the active drag source. */
+export function isDraggingElement(
+  state: DragSessionState | null,
+  element: Element | null,
+): boolean {
+  if (!state || !element) {
+    return false;
+  }
+  return state.source.element === element;
+}
 
 /**
  * Clone a `DragLocationHistory`, giving each entry its own copy of the stack.
