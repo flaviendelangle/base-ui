@@ -17,6 +17,7 @@ import type {
 } from '../../types/drag';
 import {
   useDraggableCollection,
+  useDraggableCollectionTranslations,
   type CollectionDragPreview,
   type DraggableCollectionState,
 } from '../../internals/use-draggable-collection';
@@ -147,10 +148,12 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   const dropHighlightFrame = useAnimationFrame();
   const liveReorderFrame = useAnimationFrame();
   const controlledCommitFrame = useAnimationFrame();
-  const keyboardFocusTimeout = useTimeout();
+  const translations = useDraggableCollectionTranslations();
   const { labelsRef, pointerMoveSuppressedRef } = store.context;
   const draggedItemIdRef = React.useRef<CollectionItemId | null>(null);
-  const dragEventRef = React.useRef<PointerEvent | TouchEvent | null>(null);
+  const draggedItemValueRef = React.useRef<{ value: Value } | null>(null);
+  const dragEventRef = React.useRef<PointerEvent | TouchEvent | KeyboardEvent | null>(null);
+  const dragModeRef = React.useRef<'pointer' | 'keyboard'>('pointer');
   const dragSessionRef = React.useRef(0);
   const transactionRef = React.useRef<LiveReorderTransaction<Value> | null>(null);
   const registeredItems = useRefWithInit(
@@ -265,14 +268,22 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   const notifyReorder = useStableCallback(
     (
       proposal: readonly OrderedItem<Value>[],
-      event: PointerEvent | TouchEvent,
+      event: PointerEvent | TouchEvent | KeyboardEvent,
       change: {
         sourceItems: ListboxDragItem<Value>[];
         targetItem: ListboxDragItem<Value> | null;
         edge: ListboxDropTargetEdge | null;
       },
     ) => {
-      const details = createChangeEventDetails(REASONS.drag, event, undefined, change);
+      const details =
+        dragModeRef.current === 'keyboard'
+          ? createChangeEventDetails(REASONS.keyboard, event as KeyboardEvent, undefined, change)
+          : createChangeEventDetails(
+              REASONS.drag,
+              event as PointerEvent | TouchEvent,
+              undefined,
+              change,
+            );
       const accepted = handleItemsReorder(
         proposal.map(({ item }) => item.value),
         details,
@@ -286,7 +297,7 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       transaction: LiveReorderTransaction<Value>,
       targetItemId: CollectionItemId,
       edge: ListboxDropTargetEdge,
-      event: PointerEvent | TouchEvent,
+      event: PointerEvent | TouchEvent | KeyboardEvent,
     ) => {
       const currentItems = getOrderedItems();
       const proposalSnapshot = getOrderedItemsByIds(
@@ -381,7 +392,7 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
         return;
       }
 
-      if (eventDetails?.reason === 'pointer') {
+      if (eventDetails?.reason === 'pointer' || eventDetails?.reason === 'keyboard') {
         dragEventRef.current = eventDetails.event;
       }
       const dragEvent = dragEventRef.current;
@@ -415,7 +426,8 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
   >({
     orientation: store.state.orientation,
     getActions: () => actions,
-    keyboardActivation: 'off',
+    keyboardActivation: 'manual',
+    keyboardInstructions: translations.listboxDragKeyboardInstructions,
     canDrag: canDragItem,
     canDrop: ({ draggedItemIds, targetItemId, position }) => {
       if (position === 'on') {
@@ -435,9 +447,7 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       }
 
       liveReorderFrame.cancel();
-      // Listbox disables collection keyboard activation, so a committed drop always comes from
-      // the pointer sensor even though the generic collection event also supports keyboard drops.
-      const dragEvent = eventDetails.event as PointerEvent;
+      const dragEvent = eventDetails.event;
       dragEventRef.current = dragEvent;
       const transaction = transactionRef.current;
       if (updateOn === 'drag' && transaction?.stale) {
@@ -528,8 +538,8 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       dropHighlightTimeout.clear();
       dropHighlightFrame.cancel();
       dragSessionRef.current += 1;
-      // `keyboardActivation="off"` makes this event a PointerEvent at runtime.
-      dragEventRef.current = eventDetails.event as PointerEvent;
+      dragModeRef.current = eventDetails.reason;
+      dragEventRef.current = eventDetails.event;
       const payload = source.payload;
       draggedItemIdRef.current =
         typeof payload === 'object' &&
@@ -538,6 +548,9 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
         (typeof payload.draggedItemId === 'string' || typeof payload.draggedItemId === 'number')
           ? payload.draggedItemId
           : null;
+      const draggedItem =
+        draggedItemIdRef.current == null ? undefined : getItem(draggedItemIdRef.current);
+      draggedItemValueRef.current = draggedItem ? { value: draggedItem.value } : null;
       const snapshot = getOrderedItems();
       transactionRef.current = {
         snapshot,
@@ -582,14 +595,24 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
       transactionRef.current = null;
 
       const endedDragItemId = draggedItemIdRef.current;
+      const endedDragItemValue = draggedItemValueRef.current;
       const endedDragSession = dragSessionRef.current;
       draggedItemIdRef.current = null;
+      draggedItemValueRef.current = null;
       afterDomSettle(dropHighlightTimeout, dropHighlightFrame, () => {
         if (dragSessionRef.current !== endedDragSession) {
           return;
         }
-        const target =
+        let target =
           endedDragItemId == null ? undefined : registeredItemElements.get(endedDragItemId);
+        if (!target?.isConnected && endedDragItemValue) {
+          for (const [registeredItemId, itemRef] of registeredItems) {
+            if (store.state.isItemEqualToValue(itemRef.next.value, endedDragItemValue.value)) {
+              target = registeredItemElements.get(registeredItemId);
+              break;
+            }
+          }
+        }
         const options = store.state.listElement?.querySelectorAll<HTMLElement>('[role="option"]');
         const targetIndex = target && options ? Array.prototype.indexOf.call(options, target) : -1;
         if (target && targetIndex >= 0) {
@@ -624,73 +647,21 @@ function ListboxDragProviderInner<Value>(props: ListboxDragProviderInnerProps<Va
     },
   );
 
-  const setupHandle = useStableCallback<ListboxDragContextValue['setupHandle']>((itemId, element) =>
-    dragAndDrop.setupHandle(itemId, element),
-  );
-
   const scheduleItemDisplacementSweep = useStableCallback((element: HTMLElement) =>
     dragAndDrop.scheduleDisplacementSweep(element),
   );
 
-  const restoreFocusAfterKeyboardReorder = useStableCallback(
-    (
-      itemId: CollectionItemId | undefined,
-      itemValue: Value,
-      initiatingElement: HTMLElement | null,
-    ) => {
-      keyboardFocusTimeout.start(0, () => {
-        const listElement = store.state.listElement;
-        if (!listElement) {
-          pointerMoveSuppressedRef.current = false;
-          return;
-        }
-
-        let itemElement = itemId === undefined ? undefined : registeredItemElements.get(itemId);
-        if (!itemElement?.isConnected && initiatingElement?.isConnected) {
-          itemElement = initiatingElement;
-        }
-        if (!itemElement?.isConnected) {
-          for (const [registeredItemId, itemRef] of registeredItems) {
-            if (store.state.isItemEqualToValue(itemRef.next.value, itemValue)) {
-              itemElement = registeredItemElements.get(registeredItemId);
-              break;
-            }
-          }
-        }
-
-        const options = listElement.querySelectorAll<HTMLElement>('[role="option"]');
-        const itemIndex = itemElement ? Array.prototype.indexOf.call(options, itemElement) : -1;
-        if (itemElement && itemIndex >= 0) {
-          store.set('activeIndex', itemIndex);
-          itemElement.focus();
-          itemElement.scrollIntoView?.({ block: 'nearest' });
-        }
-        pointerMoveSuppressedRef.current = false;
-      });
-    },
+  const startKeyboardDrag = useStableCallback<ListboxDragContextValue['startKeyboardDrag']>(
+    (itemId) => dragAndDrop.startKeyboardDrag(itemId),
   );
 
-  const itemsReorderEnabled = onItemsReorder != null;
   const contextValue = React.useMemo(
     () => ({
-      onItemsReorder: itemsReorderEnabled ? handleItemsReorder : undefined,
-      isItemDragDisabled: handleIsItemDragDisabled,
-      canDrop: handleCanDrop,
-      restoreFocusAfterKeyboardReorder,
       scheduleDisplacementSweep: scheduleItemDisplacementSweep,
       setupItem,
-      setupHandle,
+      startKeyboardDrag,
     }),
-    [
-      handleCanDrop,
-      handleIsItemDragDisabled,
-      handleItemsReorder,
-      itemsReorderEnabled,
-      restoreFocusAfterKeyboardReorder,
-      scheduleItemDisplacementSweep,
-      setupHandle,
-      setupItem,
-    ],
+    [scheduleItemDisplacementSweep, setupItem, startKeyboardDrag],
   );
 
   return (

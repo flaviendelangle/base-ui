@@ -5,6 +5,9 @@ export const frFR: LocalizationProviderTranslations = {
   dragKeyboardInstructions:
     'Appuyez sur Espace ou Entrée pour saisir. Utilisez les flèches pour déplacer. ' +
     'Appuyez de nouveau sur Espace ou Entrée pour déposer, ou Échap pour annuler.',
+  listboxDragKeyboardInstructions:
+    'Appuyez sur Alt+Entrée pour saisir. Utilisez les flèches pour déplacer. ' +
+    'Appuyez sur Espace ou Entrée pour déposer, ou Échap pour annuler.',
   dragHandleLabel: ({ label }) => (label ? `Déplacer ${label}` : 'Déplacer'),
   dragDefaultItemLabel: ({ label }) => label || 'élément',
   dragMultipleItemsLabel: ({ count }) => `${count} éléments`,

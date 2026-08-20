@@ -35,22 +35,12 @@ export interface ListboxDragProviderCanDropParameters<Value = any> {
 }
 
 export interface ListboxDragProviderContext {
-  onItemsReorder:
-    | ((items: any[], details: ListboxDragProviderItemsReorderEventDetails) => boolean)
-    | undefined;
-  isItemDragDisabled: (item: ListboxDragItem) => boolean;
-  canDrop: (parameters: ListboxDragProviderCanDropParameters) => boolean;
-  restoreFocusAfterKeyboardReorder: (
-    itemId: CollectionItemId | undefined,
-    itemValue: any,
-    element: HTMLElement | null,
-  ) => void;
+  startKeyboardDrag: (itemId: CollectionItemId) => boolean;
   setupItem: (
     itemId: CollectionItemId,
     element: HTMLElement,
     itemRef: RegisteredListboxDragItem,
   ) => () => void;
-  setupHandle: (itemId: CollectionItemId, element: HTMLElement) => () => void;
   scheduleDisplacementSweep: (element: HTMLElement) => void;
 }
 

@@ -352,7 +352,7 @@ describe('<Listbox.DragProvider />', () => {
     cancel(itemA);
   });
 
-  it('restricts pointer pickup to ItemDragHandle when one is present', async () => {
+  it('keeps pointer pickup on the whole item when ItemDragHandle is present', async () => {
     const handleItemsReorder = vi.fn();
 
     await render(
@@ -373,8 +373,7 @@ describe('<Listbox.DragProvider />', () => {
     const itemB = screen.getByRole('option', { name: 'b' });
     setItemRects([itemA, itemB]);
 
-    await lift(itemA, { expectNoDrag: true });
-    await lift(screen.getByTestId('handle-a'));
+    await lift(itemA);
     await dragEnter(itemB, { clientY: 175 });
     drop(itemB, { clientY: 175 });
     await flushRaf();
@@ -383,6 +382,62 @@ describe('<Listbox.DragProvider />', () => {
       ['b', 'a'],
       expect.objectContaining({ reason: 'drag' }),
     );
+  });
+
+  it('uses Alt+Enter for keyboard pickup without taking over plain Enter', async () => {
+    const handleItemsReorder = vi.fn();
+    const handleCanDrop = vi.fn(() => true);
+
+    await render(
+      <Listbox.Root>
+        <Listbox.DragProvider canDrop={handleCanDrop} onItemsReorder={handleItemsReorder}>
+          <Listbox.List>
+            <Listbox.Item value="a">a</Listbox.Item>
+            <Listbox.Item value="b">b</Listbox.Item>
+          </Listbox.List>
+        </Listbox.DragProvider>
+      </Listbox.Root>,
+    );
+
+    const itemA = screen.getByRole('option', { name: 'a' });
+    const itemB = screen.getByRole('option', { name: 'b' });
+    setItemRects([itemA, itemB]);
+    await act(() => itemA.focus());
+
+    fireEvent.keyDown(itemA, { key: 'Enter' });
+    expect(itemA).toHaveAttribute('aria-selected', 'true');
+    expect(itemA).not.toHaveAttribute('data-dragging');
+
+    fireEvent.keyDown(itemA, { key: 'Enter', altKey: true });
+    expect(itemA).toHaveAttribute('data-dragging', '');
+    expect(itemA).toHaveFocus();
+    await flushRaf();
+    expect(itemA).toHaveFocus();
+    vi.spyOn(document, 'elementFromPoint').mockReturnValue(itemB);
+
+    const arrowEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => itemA.dispatchEvent(arrowEvent));
+    expect(arrowEvent.defaultPrevented).toBe(true);
+    await flushRaf();
+    expect(handleCanDrop).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        targetItem: expect.objectContaining({ value: 'b' }),
+        edge: 'after',
+      }),
+    );
+    await waitFor(() => expect(itemB).toHaveAttribute('data-drop-position', 'after'));
+    fireEvent.keyDown(itemA, { key: 'Enter' });
+    await flushRaf();
+
+    expect(handleItemsReorder).toHaveBeenCalledWith(
+      ['b', 'a'],
+      expect.objectContaining({ reason: 'keyboard' }),
+    );
+    await waitFor(() => expect(itemA).toHaveFocus());
   });
 
   it('keeps the live order when the moved source is under the release point', async () => {

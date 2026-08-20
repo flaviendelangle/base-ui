@@ -33,6 +33,8 @@ type LocalizationProviderTranslations = {
   dragRoleDescription: string;
   /** Keyboard-drag instructions read when a drag handle is focused. */
   dragKeyboardInstructions: string;
+  /** Keyboard-drag instructions for a Listbox item using Alt+Enter pickup. */
+  listboxDragKeyboardInstructions: string;
   /** Accessible name for a drag handle that has none of its own. */
   dragHandleLabel: (params: { label?: string }) => string;
   /** Label for a dragged element in keyboard-drag announcements. */

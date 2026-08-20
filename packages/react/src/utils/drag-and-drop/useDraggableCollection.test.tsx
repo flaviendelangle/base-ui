@@ -1578,6 +1578,20 @@ describe('useDraggableCollection', () => {
       expect(a.hasAttribute('aria-roledescription')).toBe(true);
       expect(a.hasAttribute('aria-describedby')).toBe(false);
     });
+
+    it('supports custom instructions with manual keyboard activation', () => {
+      const keyboardInstructions = 'Press Alt+Enter to pick up.';
+      const { plugin } = setupPlugin(
+        { keyboardActivation: 'manual', keyboardInstructions },
+        { knownItemIds: ['a'] },
+      );
+      const a = createElement({ top: 0, height: 100 });
+      plugin.setupItem('a', a);
+
+      const instructionsId = a.getAttribute('aria-describedby');
+      expect(instructionsId).not.toBeNull();
+      expect(document.getElementById(instructionsId!)?.textContent).toBe(keyboardInstructions);
+    });
   });
 
   describe('localized keyboardAnnouncements', () => {

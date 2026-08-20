@@ -541,9 +541,7 @@ export class DraggableCollectionPlugin<
 
   /**
    * The inputs feeding an item's registration-time static setup, flattened to a
-   * comparable string. The collection declares no per-item aria/instruction
-   * overrides, so the strings come from the locale, through the same resolver the
-   * engine applies — `keyboardActivation: 'manual'` drops the default instructions.
+   * comparable string.
    */
   private itemA11yKey(itemId: CollectionItemId): string {
     return buildStaticSetupKey({
@@ -551,7 +549,10 @@ export class DraggableCollectionPlugin<
       keyboardActivation: this.config.keyboardActivation,
       ariaRoleDescription: this.translations.dragRoleDescription,
       keyboardInstructions: resolveKeyboardInstructions(
-        { keyboardActivation: this.config.keyboardActivation },
+        {
+          keyboardActivation: this.config.keyboardActivation,
+          keyboardInstructions: this.config.keyboardInstructions,
+        },
         this.translations,
       ),
     });
@@ -753,9 +754,7 @@ export class DraggableCollectionPlugin<
             keyboardMovement,
             finalFocus: this.finalFocus,
             ariaRoleDescription,
-            // Unset on purpose: the engine resolves it from `keyboardActivation` and the
-            // locale, and passing the default here would shadow that resolution.
-            keyboardInstructions: undefined,
+            keyboardInstructions: config.keyboardInstructions,
             // Dispatched before the preview is built and before `[data-dragging]`
             // lands, which is the only moment the rows are guaranteed to still be
             // laid out — a consumer rule may legitimately `display: none` the
@@ -1371,7 +1370,13 @@ export function useDraggableCollection<
   // re-registers only the items whose own setup inputs actually changed.
   useIsoLayoutEffect(() => {
     plugin.current.refreshItemsA11y();
-  }, [params.canDrag, params.keyboardActivation, translations, plugin]);
+  }, [
+    params.canDrag,
+    params.keyboardActivation,
+    params.keyboardInstructions,
+    translations,
+    plugin,
+  ]);
 
   useIsoLayoutEffect(() => {
     plugin.current.refreshDisplacementTracking();
@@ -1552,6 +1557,11 @@ export interface UseDraggableCollectionParameters<
    * @default 'auto'
    */
   keyboardActivation?: DragKeyboardActivation | undefined;
+  /**
+   * Keyboard-drag instructions read when an item is focused. This is useful with
+   * `keyboardActivation="manual"`, whose default instructions are empty.
+   */
+  keyboardInstructions?: string | undefined;
   /**
    * Whether a drop is allowed at a given (target item, position) pair.
    *

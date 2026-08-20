@@ -67,8 +67,9 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 ### Drag and drop
 
 Wrap reorderable content in `Listbox.DragProvider` and render the complete value order passed to `onItemsReorder`.
-The whole item is draggable by default. Add `Listbox.ItemDragHandle` to restrict pointer pickup to a handle, use `isItemDragDisabled` to disable pickup for specific items, and use `canDrop` to control their valid targets.
-Items can also be reordered with the keyboard using <kbd>Alt</kbd> + Arrow keys.
+The whole item is pointer-draggable. `Listbox.ItemDragHandle` adds a visual grip without changing the pickup area. Use `isItemDragDisabled` to disable pickup for specific items, and use `canDrop` to control their valid targets.
+
+To reorder with a keyboard, focus an item and press <kbd>Alt</kbd> + <kbd>Enter</kbd> to pick it up. Use the arrow keys to choose its new position, then press <kbd>Enter</kbd> or <kbd>Space</kbd> to drop it. Press <kbd>Escape</kbd> to cancel. Plain <kbd>Enter</kbd> and <kbd>Space</kbd> keep their normal selection behavior.
 
 Use `canDrop` to constrain reordering within a `Listbox.Group` or apply other custom drop rules.
 
@@ -84,7 +85,7 @@ import { DemoListboxLiveReorderDnd } from './demos/live-reorder-dnd';
 
 Add `updateOn="drag"` to reorder items as the pointer moves. A canceled or invalid drag restores the original order. `trackDisplacement` defaults to `true` in this mode, exposing `data-displacing`, `data-starting-style`, `--drag-displacement-x`, and `--drag-displacement-y` for transition styling.
 
-This example also omits `Listbox.ItemDragHandle`, so the full item starts the drag. The drag engine's default preview clones the row, avoiding duplicate preview markup when the preview should match the source.
+The drag engine's default preview clones the row, avoiding duplicate preview markup when the preview should match the source.
 
 <DemoListboxLiveReorderDnd />
 
