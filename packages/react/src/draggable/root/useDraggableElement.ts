@@ -3,14 +3,8 @@ import * as React from 'react';
 import { useStore } from '@base-ui/utils/store';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { warn } from '@base-ui/utils/warn';
-import { useTranslations } from '../../internals/localization-context/LocalizationContext';
-import {
-  resolveKeyboardInstructions,
-  useRegisterDraggable,
-} from '../../utils/drag-and-drop/useInnerDragEngine';
-import { buildStaticSetupKey } from '../../utils/drag-and-drop/draggable';
+import { useRegisterDraggable } from '../../utils/drag-and-drop/useInnerDragEngine';
 import {
   createDragPreviewHandle,
   type DragPreviewHandle,
@@ -21,9 +15,7 @@ import type {
 } from '../../types/dragRegistration';
 import type { DragCleanupFn, DragSource } from '../../types/drag';
 import {
-  dragSessionStore,
   dragSourceStore,
-  selectors,
   updateDragSourceElement,
 } from '../../utils/drag-and-drop/dragSessionStore';
 import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef';
@@ -68,8 +60,6 @@ export function useDraggableElement<TData = undefined>(
   // their client-side ref callback, so the server (and the hydration render) cannot
   // know — starting at `false` there would emit a second tab stop on the root next
   // to every SSR'd handle. The unknown resolves in the mount effect below.
-  const [hasHandle, setHasHandle] = React.useState<boolean | null>(null);
-
   const registrationRef = useRegistrationRef<HTMLElement>((element) => {
     // These accessors only read stable refs, so keep one function per
     // registration instead of rebuilding both on every engine dispatch.
@@ -145,7 +135,6 @@ export function useDraggableElement<TData = undefined>(
   // A re-registration that was skipped mid-drag (handle swap or reconcile-input
   // change while this element was the active source); flushed once `dragging`
   // flips back to false so the swapped-in handle still receives the static setup.
-  const pendingReconcileRef = React.useRef(false);
 
   // Re-run the draggable registration when the handle node attaches or detaches so
   // the static setup follows it.
@@ -171,73 +160,12 @@ export function useDraggableElement<TData = undefined>(
     } else if (index !== -1) {
       handles.splice(index, 1);
     }
-    setHasHandle(handles.length > 0);
-    // Re-registration tears the static setup down and rebuilds it, which mid-gesture
-    // would restore `user-select`/`touch-action` and drop the iOS touchmove guard.
-    // The live `dragHandle` closure already reads `attachedHandlesRef` fresh, so skip
-    // the teardown mid-drag and flush the re-registration when the drag ends.
-    if (selectors.isDraggingElement(dragSessionStore.state, elementRef.current)) {
-      pendingReconcileRef.current = true;
-      return;
-    }
     registrationRef(elementRef.current);
   }).current;
 
-  // Resolve the unknown initial `hasHandle`: a handle's ref callback runs during
-  // the mount commit, before this layout effect, so `attachedHandlesRef` is
-  // already accurate here and the resolving re-render lands before first paint.
-  useIsoLayoutEffect(() => {
-    setHasHandle((previous) => previous ?? attachedHandlesRef.current.length > 0);
-  }, []);
-
-  // The static a11y setup is captured once at registration. Reconcile it when the
-  // inputs that feed it change without a node swap: `keyboardActivation` and
-  // `disabled`, the explicit aria and instruction overrides, and the active locale's
-  // defaults. Skipped while this element is the active drag source so the reconcile
-  // never tears down the live gesture setup mid-drag.
-  const translations = useTranslations();
-  const reconcileKey = buildStaticSetupKey({
-    disabled: parameters.disabled,
-    keyboardActivation: parameters.keyboardActivation,
-    ariaRoleDescription: parameters.ariaRoleDescription ?? translations.dragRoleDescription,
-    keyboardInstructions: resolveKeyboardInstructions(parameters, translations),
-  });
-  const isFirstReconcile = React.useRef(true);
-  useIsoLayoutEffect(() => {
-    if (isFirstReconcile.current) {
-      // The registration ref callback already applied the setup with these
-      // inputs on mount; only re-apply on a *subsequent* change.
-      isFirstReconcile.current = false;
-      return;
-    }
-    const element = elementRef.current;
-    if (!element) {
-      return;
-    }
-    if (selectors.isDraggingElement(dragSessionStore.state, element)) {
-      pendingReconcileRef.current = true;
-      return;
-    }
-    registrationRef(element);
-    // `registrationRef` and `elementRef` are stable; only `reconcileKey` should retrigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reconcileKey]);
-
   const dragging = useStore(dragSourceStore, selectIsDragging, elementRef);
 
-  // Flush a reconcile skipped mid-drag: `dragging` flipping false re-renders this
-  // hook, so the swapped handle (or changed a11y inputs) receives the static
-  // setup as soon as the drag ends.
-  useIsoLayoutEffect(() => {
-    if (!dragging && pendingReconcileRef.current) {
-      pendingReconcileRef.current = false;
-      registrationRef(elementRef.current);
-    }
-    // `registrationRef` and `elementRef` are stable; only `dragging` should retrigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragging]);
-
-  return { ref, dragging, setHandleElement, observeElement, previewHandle, hasHandle };
+  return { ref, dragging, setHandleElement, observeElement, previewHandle };
 }
 
 export interface UseDraggableElementReturnValue<TData = undefined> {
@@ -250,7 +178,6 @@ export interface UseDraggableElementReturnValue<TData = undefined> {
    * commit resolves it (handles attach through client-side ref callbacks, so
    * the server render cannot know).
    */
-  hasHandle: boolean | null;
   /**
    * Attach or detach the child that should be the drag handle — pickup is then
    * restricted to it. Never called means the whole source is draggable. `token`

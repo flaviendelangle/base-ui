@@ -11,10 +11,8 @@ import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef
 
 /**
  * Configures the element the returned `ref` is attached to as an auto-scroll
- * container, and enables auto-scroll when used without a provider. Backs
- * `DragAutoScroll.Root`.
- *
- * Once enabled, the engine also infers nested scroll containers from the DOM.
+ * container and enables auto-scroll. Backs
+ * `Draggable.Viewport`.
  *
  * The parameters are read through a stable getter on every frame, so a re-render never
  * re-registers and the freshest callbacks always apply.
@@ -57,14 +55,7 @@ export function useDragAutoScrollElement<TSourceData = unknown>(
     // disabled or declined scrolling. Stable parameters no longer discard the
     // shared geometry/style caches on every unrelated parent render.
     refreshAutoScroll();
-  }, [
-    parameters.accept,
-    parameters.allowedAxis,
-    parameters.applyScroll,
-    parameters.canScroll,
-    parameters.disabled,
-    parameters.maxSpeed,
-  ]);
+  }, [parameters.accept, parameters.disabled, parameters.maxSpeed, parameters.onDragScroll]);
 
   return { ref: mergedRef };
 }

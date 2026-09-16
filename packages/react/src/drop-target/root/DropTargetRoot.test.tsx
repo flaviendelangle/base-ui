@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, render as rtlRender } from '@testing-library/react';
 import { createDndRenderer, describeConformance } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { DropTarget } from '@base-ui/react/drop-target';
@@ -39,6 +39,12 @@ describe('DropTarget.Root', () => {
     expect(el).toHaveAttribute('data-drop-target', '');
   });
 
+  it('requires Draggable.Provider when accept is omitted', () => {
+    expect(() => rtlRender(<DropTarget.Root data-testid="missing-provider" />)).toThrow(
+      'Draggable.Target must be rendered inside Draggable.Provider when the accept prop is omitted',
+    );
+  });
+
   it('removes the drop-target attribute on unmount', async () => {
     const { unmount } = await renderDnd(
       <DropTarget.Root accept={DropTarget.anyKind} data-testid="target" />,
@@ -52,7 +58,6 @@ describe('DropTarget.Root', () => {
     await renderDnd(
       <DropTarget.Root
         data-testid="target"
-        label="x"
         kind={slotKind}
         accept={cardKind}
         payload={{ id: 'slot-1' }}
@@ -60,7 +65,7 @@ describe('DropTarget.Root', () => {
         disabled={false}
         canDrop={() => true}
         snap={{ y: 4 }}
-        onDrop={() => {}}
+        onDraggableDrop={() => {}}
       />,
     );
     const el = screen.getByTestId('target');
@@ -77,18 +82,17 @@ describe('DropTarget.Root', () => {
 
   it('forwards every engine parameter to the registration', async () => {
     // The component relists each parameter by hand into a cast object, so a dropped
-    // entry is invisible to the type checker. `onDragStart` is absent here: it only
+    // entry is invisible to the type checker. `onDraggableStart` is absent here: it only
     // fires for a source nested inside the target, which the next test pins.
     const calls: string[] = [];
     const record = (name: string) => () => {
       calls.push(name);
     };
-    let observed: { kind?: symbol; label?: string; data?: unknown; snapped?: number } = {};
+    let observed: { kind?: symbol; data?: unknown; snapped?: number } = {};
 
     const { engine } = await renderDnd(
       <DropTarget.Root
         data-testid="target"
-        label="Slot one"
         kind={slotKind}
         accept={cardKind}
         canDrop={() => {
@@ -100,19 +104,17 @@ describe('DropTarget.Root', () => {
           calls.push('snap');
           return { y: 4 };
         }}
-        onDrag={record('onDrag')}
-        onDropTargetChange={record('onDropTargetChange')}
-        onDragEnter={record('onDragEnter')}
-        onDragLeave={record('onDragLeave')}
-        onDrop={({ self }) => {
-          calls.push('onDrop');
+        onDraggableMove={record('onMove')}
+        onDraggableEnter={record('onDraggableEnter')}
+        onDraggableLeave={record('onDraggableLeave')}
+        onDraggableDrop={({ target }) => {
+          calls.push('onDraggableDrop');
           observed = {
-            kind: self.kind,
-            label: self.label,
-            data: self.payload.id,
+            kind: target.kind,
+            data: target.payload.id,
             // 35 / 100 of the stub rect, quantized to 4 steps. The raw fraction
             // (0.35) here would mean `snap` never reached the registration.
-            snapped: self.getSnappedLocalPoint().y,
+            snapped: target.getSnappedLocalPoint().y,
           };
         }}
       />,
@@ -130,25 +132,23 @@ describe('DropTarget.Root', () => {
     fireEvent.drop(target, { clientY: 35 });
 
     expect(observed.kind).toBe(slotKind.id);
-    expect(observed.label).toBe('Slot one');
     expect(observed.data).toBe('slot-1');
     expect(observed.snapped).toBe(0.25);
-    // `onDragLeave` fires terminally on the drop, so the drop drives every entry.
+    // `onDraggableLeave` fires terminally on the drop, so the drop drives every entry.
     for (const name of [
       'canDrop',
       'snap',
-      'onDropTargetChange',
-      'onDragEnter',
-      'onDrag',
-      'onDrop',
-      'onDragLeave',
+      'onDraggableEnter',
+      'onMove',
+      'onDraggableDrop',
+      'onDraggableLeave',
     ]) {
       expect(calls).toContain(name);
     }
   });
 
-  it('receives onDragStart for a source nested inside it, and not for one outside', async () => {
-    // A target only sees `onDragStart` when it is already in the stack as the
+  it('receives onDraggableStart for a source nested inside it, and not for one outside', async () => {
+    // A target only sees `onDraggableStart` when it is already in the stack as the
     // drag begins, which is exactly the nested-source case. Existing coverage
     // supplied the callback without ever pinning that it fires.
     const nestedStart = vi.fn();
@@ -158,14 +158,14 @@ describe('DropTarget.Root', () => {
         <DropTarget.Root
           accept={DropTarget.anyKind}
           data-testid="wrapper"
-          onDragStart={nestedStart}
+          onDraggableStart={nestedStart}
         >
           <div data-testid="nested-source" />
         </DropTarget.Root>
         <DropTarget.Root
           accept={DropTarget.anyKind}
           data-testid="elsewhere"
-          onDragStart={outsideStart}
+          onDraggableStart={outsideStart}
         />
       </React.Fragment>,
     );
@@ -177,7 +177,7 @@ describe('DropTarget.Root', () => {
     engine.registerDraggable(nestedSource, {
       kind: cardKind,
       payload: { id: 'a' },
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
     });
 
     // Raw pointer events rather than the native→synthetic bridge: the bridge
@@ -192,25 +192,25 @@ describe('DropTarget.Root', () => {
     expect(nestedStart).toHaveBeenCalledTimes(1);
     const payload = nestedStart.mock.calls[0][0];
     expect(payload.source.element).toBe(nestedSource);
-    expect(payload.self.element).toBe(wrapper);
+    expect(payload.target.element).toBe(wrapper);
     // The unrelated target was never in the stack, so it saw nothing.
     expect(outsideStart).not.toHaveBeenCalled();
 
     touchUp(10, 10);
   });
 
-  it('fires onDragEnter and onDrop exactly once when mounted under Strict Mode', async () => {
+  it('fires onDraggableEnter and onDraggableDrop exactly once when mounted under Strict Mode', async () => {
     // Strict Mode double-invokes the registration effect (register → cleanup →
     // register); a leaked duplicate hold would run the callbacks once per hold.
-    const onDragEnter = vi.fn();
-    const onDrop = vi.fn();
+    const onDraggableEnter = vi.fn();
+    const onDraggableDrop = vi.fn();
     const { engine } = await renderDnd(
       <React.StrictMode>
         <DropTarget.Root
           accept={DropTarget.anyKind}
           data-testid="target"
-          onDragEnter={onDragEnter}
-          onDrop={onDrop}
+          onDraggableEnter={onDraggableEnter}
+          onDraggableDrop={onDraggableDrop}
         />
       </React.StrictMode>,
     );
@@ -226,8 +226,8 @@ describe('DropTarget.Root', () => {
     await flushRaf();
     fireEvent.drop(target);
 
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
-    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
   });
 
   it('re-registers when the element behind the ref is swapped without remounting', async () => {
@@ -270,11 +270,11 @@ describe('DropTarget.Root', () => {
           key={swapped ? 'after' : 'before'}
           data-testid="target"
           payload={{ id: swapped ? 'after' : 'before' }}
-          onDragEnter={(event) => {
-            log.push(`enter:${(event.self.payload as any).id}`);
+          onDraggableEnter={(event) => {
+            log.push(`enter:${(event.target.payload as any).id}`);
             (swapped ? enterAfter : enterBefore)(event);
           }}
-          onDragLeave={(event) => log.push(`leave:${(event.self.payload as any).id}`)}
+          onDraggableLeave={(event) => log.push(`leave:${(event.target.payload as any).id}`)}
         />
       );
     }
@@ -314,8 +314,8 @@ describe('DropTarget.Root', () => {
     // The next event reads the new render's params, not the previous ones.
     expect(enterAfter).toHaveBeenCalledTimes(1);
     const event = enterAfter.mock.calls[0][0];
-    expect(event.self.element).toBe(second);
-    expect(event.self.payload).toEqual({ id: 'after' });
+    expect(event.target.element).toBe(second);
+    expect(event.target.payload).toEqual({ id: 'after' });
     // The old node is unmounted garbage — React never updates a detached node's
     // attributes, so only its disconnection is assertable.
     expect(first.isConnected).toBe(false);
@@ -331,7 +331,7 @@ describe('DropTarget.Root', () => {
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
-        onDragEnter={firstOnDragEnter}
+        onDraggableEnter={firstOnDragEnter}
       />,
     );
     const source = createElement();
@@ -343,7 +343,7 @@ describe('DropTarget.Root', () => {
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
-        onDragEnter={secondOnDragEnter}
+        onDraggableEnter={secondOnDragEnter}
       />,
     );
 
@@ -415,15 +415,15 @@ describe('DropTarget.Root', () => {
     fireEvent.drop(target);
   });
 
-  it('fires onDragLeave when a hovered target unregisters mid-drag', async () => {
-    const onDragEnter = vi.fn();
-    const onDragLeave = vi.fn();
+  it('fires onDraggableLeave when a hovered target unregisters mid-drag', async () => {
+    const onDraggableEnter = vi.fn();
+    const onDraggableLeave = vi.fn();
     const { rerender, engine } = await renderDnd(
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
+        onDraggableEnter={onDraggableEnter}
+        onDraggableLeave={onDraggableLeave}
       />,
     );
     const source = createElement();
@@ -436,14 +436,14 @@ describe('DropTarget.Root', () => {
     fireEvent.dragEnter(target);
     fireEvent.dragOver(target);
     await flushRaf();
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
 
     // Unmount the hovered target mid-drag (e.g. a virtualizer recycling its row).
     // The leave must still fire even though the target's registry entry is being
     // removed — the registration is kept until after the re-resolve for exactly this.
     await rerender(<div data-testid="placeholder" />);
 
-    expect(onDragLeave).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).toHaveBeenCalledTimes(1);
 
     cancel();
   });
@@ -479,13 +479,13 @@ describe('DropTarget.Root', () => {
   });
 
   it('canDrop returning false prevents this target from receiving callbacks', async () => {
-    const onDragEnter = vi.fn();
+    const onDraggableEnter = vi.fn();
     const { engine } = await renderDnd(
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
         canDrop={() => false}
-        onDragEnter={onDragEnter}
+        onDraggableEnter={onDraggableEnter}
       />,
     );
     const source = createElement();
@@ -499,7 +499,7 @@ describe('DropTarget.Root', () => {
     fireEvent.dragOver(target);
     await flushRaf();
 
-    expect(onDragEnter).not.toHaveBeenCalled();
+    expect(onDraggableEnter).not.toHaveBeenCalled();
     // The target never becomes active, so its drag-over state stays false too.
     expect(target).not.toHaveAttribute('data-drag-over');
     expect(target).not.toHaveAttribute('data-drag-over-innermost');
@@ -517,15 +517,15 @@ describe('DropTarget.Root', () => {
   });
 
   it('a disabled target receives no callbacks and reports no drag-over state', async () => {
-    const onDragEnter = vi.fn();
-    const onDrop = vi.fn();
+    const onDraggableEnter = vi.fn();
+    const onDraggableDrop = vi.fn();
     const { engine } = await renderDnd(
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
         disabled
-        onDragEnter={onDragEnter}
-        onDrop={onDrop}
+        onDraggableEnter={onDraggableEnter}
+        onDraggableDrop={onDraggableDrop}
       />,
     );
     const source = createElement();
@@ -541,8 +541,8 @@ describe('DropTarget.Root', () => {
     fireEvent.drop(target);
 
     // Like `canDrop: () => false`, a disabled target is skipped entirely.
-    expect(onDragEnter).not.toHaveBeenCalled();
-    expect(onDrop).not.toHaveBeenCalled();
+    expect(onDraggableEnter).not.toHaveBeenCalled();
+    expect(onDraggableDrop).not.toHaveBeenCalled();
     expect(target).not.toHaveAttribute('data-drag-over');
   });
 
@@ -550,16 +550,16 @@ describe('DropTarget.Root', () => {
     // A `disabled` flip triggers an eager `refreshDropTargets()` from a layout
     // effect: with a stationary pointer there is no next move to re-resolve on,
     // so the flip itself must deliver the leave (and the re-enable the enter).
-    const onDragEnter = vi.fn();
-    const onDragLeave = vi.fn();
+    const onDraggableEnter = vi.fn();
+    const onDraggableLeave = vi.fn();
     function Fixture({ disabled }: { disabled?: boolean }) {
       return (
         <DropTarget.Root
           accept={DropTarget.anyKind}
           data-testid="target"
           disabled={disabled}
-          onDragEnter={onDragEnter}
-          onDragLeave={onDragLeave}
+          onDraggableEnter={onDraggableEnter}
+          onDraggableLeave={onDraggableLeave}
         />
       );
     }
@@ -575,20 +575,20 @@ describe('DropTarget.Root', () => {
     fireEvent.dragEnter(target);
     fireEvent.dragOver(target);
     await flushRaf();
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
     expect(target).toHaveAttribute('data-drag-over');
 
     // Disable while hovered — no pointer event follows.
     await rerender(<Fixture disabled />);
 
-    expect(onDragLeave).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
     expect(target).not.toHaveAttribute('data-drag-over-innermost');
 
     // Re-enable: the pointer never left, so the eager refresh re-enters it.
     await rerender(<Fixture />);
 
-    expect(onDragEnter).toHaveBeenCalledTimes(2);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(2);
     expect(target).toHaveAttribute('data-drag-over');
 
     fireEvent.drop(target);
@@ -600,8 +600,8 @@ describe('DropTarget.Root', () => {
     // deliver the leave now — not advertise a valid drop until an
     // `outside-release` at drop time. Compared by content, so the inline array
     // identity changing every render doesn't churn the stack.
-    const onDragEnter = vi.fn();
-    const onDragLeave = vi.fn();
+    const onDraggableEnter = vi.fn();
+    const onDraggableLeave = vi.fn();
     function Fixture({
       accepted,
       revision = 0,
@@ -614,8 +614,8 @@ describe('DropTarget.Root', () => {
           accept={accepted === 'both' ? [cardKind, columnKind] : [columnKind]}
           data-testid="target"
           data-revision={revision}
-          onDragEnter={onDragEnter}
-          onDragLeave={onDragLeave}
+          onDraggableEnter={onDraggableEnter}
+          onDraggableLeave={onDraggableLeave}
         />
       );
     }
@@ -631,35 +631,39 @@ describe('DropTarget.Root', () => {
     fireEvent.dragEnter(target);
     fireEvent.dragOver(target);
     await flushRaf();
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
     expect(target).toHaveAttribute('data-drag-over');
 
     // A normal rerender allocates a fresh inline array with the same contents.
     // It must not churn the live target stack.
     await rerender(<Fixture accepted="both" revision={1} />);
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
-    expect(onDragLeave).not.toHaveBeenCalled();
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).not.toHaveBeenCalled();
     expect(target).toHaveAttribute('data-drag-over');
 
     // Narrow `accept` while hovered — no pointer event follows.
     await rerender(<Fixture accepted="columnOnly" revision={1} />);
 
-    expect(onDragLeave).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
 
     // Widen it back: the pointer never left, so the eager refresh re-enters it.
     await rerender(<Fixture accepted="both" revision={1} />);
 
-    expect(onDragEnter).toHaveBeenCalledTimes(2);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(2);
     expect(target).toHaveAttribute('data-drag-over');
 
     fireEvent.drop(target);
   });
 
   it('accept filters which source kinds reach the target', async () => {
-    const onDragEnter = vi.fn();
+    const onDraggableEnter = vi.fn();
     const { engine } = await renderDnd(
-      <DropTarget.Root data-testid="target" accept={cardKind} onDragEnter={onDragEnter} />,
+      <DropTarget.Root
+        data-testid="target"
+        accept={cardKind}
+        onDraggableEnter={onDraggableEnter}
+      />,
     );
     const source = createElement();
     engine.registerDraggable(source, { kind: columnKind });
@@ -672,7 +676,7 @@ describe('DropTarget.Root', () => {
     fireEvent.dragOver(target);
     await flushRaf();
 
-    expect(onDragEnter).not.toHaveBeenCalled();
+    expect(onDraggableEnter).not.toHaveBeenCalled();
     expect(target).not.toHaveAttribute('data-drag-over');
 
     cancel();
@@ -728,15 +732,15 @@ describe('DropTarget.Root', () => {
     fireEvent.drop(outer);
   });
 
-  it('flips drag-over state off and fires onDragLeave when the pointer leaves for empty space, then re-enters', async () => {
-    const onDragEnter = vi.fn();
-    const onDragLeave = vi.fn();
+  it('flips drag-over state off and fires onDraggableLeave when the pointer leaves for empty space, then re-enters', async () => {
+    const onDraggableEnter = vi.fn();
+    const onDraggableLeave = vi.fn();
     const { engine } = await renderDnd(
       <DropTarget.Root
         accept={DropTarget.anyKind}
         data-testid="target"
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
+        onDraggableEnter={onDraggableEnter}
+        onDraggableLeave={onDraggableLeave}
       />,
     );
     const source = createElement();
@@ -749,7 +753,7 @@ describe('DropTarget.Root', () => {
     fireEvent.dragEnter(target);
     fireEvent.dragOver(target);
     await flushRaf();
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
     expect(target).toHaveAttribute('data-drag-over');
     expect(target).toHaveAttribute('data-drag-over-innermost');
 
@@ -757,7 +761,7 @@ describe('DropTarget.Root', () => {
     fireEvent.dragLeave(target);
     await flushRaf();
 
-    expect(onDragLeave).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
     expect(target).not.toHaveAttribute('data-drag-over-innermost');
 
@@ -766,7 +770,7 @@ describe('DropTarget.Root', () => {
     fireEvent.dragOver(target);
     await flushRaf();
 
-    expect(onDragEnter).toHaveBeenCalledTimes(2);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(2);
     expect(target).toHaveAttribute('data-drag-over');
     expect(target).toHaveAttribute('data-drag-over-innermost');
 
@@ -800,16 +804,16 @@ describe('DropTarget.Root', () => {
   });
 
   it('re-resolves a stationary hovered target when canDrop changes', async () => {
-    const onDragEnter = vi.fn();
-    const onDragLeave = vi.fn();
+    const onDraggableEnter = vi.fn();
+    const onDraggableLeave = vi.fn();
     function Fixture({ allowed }: { allowed: boolean }) {
       return (
         <DropTarget.Root
           accept={DropTarget.anyKind}
           data-testid="target"
           canDrop={() => allowed}
-          onDragEnter={onDragEnter}
-          onDragLeave={onDragLeave}
+          onDraggableEnter={onDraggableEnter}
+          onDraggableLeave={onDraggableLeave}
         />
       );
     }
@@ -830,14 +834,14 @@ describe('DropTarget.Root', () => {
     const hitTest = vi.spyOn(document, 'elementFromPoint').mockReturnValue(null);
     await rerender(<Fixture allowed={false} />);
     // A parameter-only refresh must re-resolve from the last event target. A
-    // fresh hit test can observe layout changed by an onDrag state update and
+    // fresh hit test can observe layout changed by an onMove state update and
     // recursively enter another target during the same React commit.
     expect(hitTest).not.toHaveBeenCalled();
-    expect(onDragLeave).toHaveBeenCalledTimes(1);
+    expect(onDraggableLeave).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
 
     await rerender(<Fixture allowed />);
-    expect(onDragEnter).toHaveBeenCalledTimes(2);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(2);
     expect(target).toHaveAttribute('data-drag-over');
   });
 
@@ -1033,13 +1037,13 @@ describe('DropTarget.Root', () => {
   });
 
   it('still fires callbacks when trackDragOver is false', async () => {
-    const onDrop = vi.fn();
+    const onDraggableDrop = vi.fn();
     const { engine } = await renderDnd(
       <DropTarget.Root
         accept={DropTarget.anyKind}
         trackDragOver={false}
         data-testid="target"
-        onDrop={onDrop}
+        onDraggableDrop={onDraggableDrop}
       />,
     );
     const source = createElement();
@@ -1056,7 +1060,7 @@ describe('DropTarget.Root', () => {
 
     // Skipping the drag-over subscription must not skip the registration: the
     // element is still a real drop target, it just renders no feedback.
-    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
     expect(target).not.toHaveAttribute('data-drag-over');
   });
 
@@ -1067,8 +1071,8 @@ describe('DropTarget.Root', () => {
         accept={DropTarget.anyKind}
         data-testid="target"
         getPayload={() => ({ id: 'slot-1' })}
-        onDrop={({ self }) => {
-          observed = self.payload.id;
+        onDraggableDrop={({ target }) => {
+          observed = target.payload.id;
         }}
       />,
     );
@@ -1091,7 +1095,6 @@ describe('DropTarget.Root', () => {
     it('registers both roles on a single element', async () => {
       await renderDnd(
         <Draggable.Root
-          label="card"
           kind={cardKind}
           payload={{ id: 'a' }}
           render={<DropTarget.Root accept={cardKind} />}
@@ -1110,7 +1113,6 @@ describe('DropTarget.Root', () => {
     it('reflects the drop target drag-over state on the composed element', async () => {
       const { engine } = await renderDnd(
         <Draggable.Root
-          label="card"
           kind={cardKind}
           payload={{ id: 'a' }}
           render={<DropTarget.Root data-testid="item" accept={cardKind} />}
@@ -1140,12 +1142,10 @@ describe('DropTarget.Root', () => {
       await renderDnd(
         <React.Fragment>
           <Draggable.Root
-            label="a"
             kind={itemKind}
             render={<DropTarget.Root data-testid="a" accept={itemKind} />}
           />
           <Draggable.Root
-            label="b"
             kind={itemKind}
             render={<DropTarget.Root data-testid="b" accept={itemKind} />}
           />

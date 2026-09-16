@@ -1,0 +1,67 @@
+.Root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.Hint {
+  margin: 0;
+  color: oklch(55.6% 0 0deg);
+  font-size: 0.875rem;
+}
+
+.List {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.Item {
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid oklch(14.5% 0 0deg);
+  background: white;
+  color: oklch(14.5% 0 0deg);
+  cursor: grab;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: background 0.15s;
+}
+
+.Item[data-dragging] {
+  cursor: grabbing;
+  opacity: 0.4;
+}
+
+.Item:hover {
+  background: oklch(97% 0 0deg);
+}
+
+.Item:focus-visible {
+  outline: 2px solid oklch(14.5% 0 0deg);
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .Hint {
+    color: oklch(70.8% 0 0deg);
+  }
+
+  .Item {
+    border-color: white;
+    background: oklch(14.5% 0 0deg);
+    color: white;
+  }
+
+  .Item:hover {
+    background: oklch(26.9% 0 0deg);
+  }
+
+  .Item:focus-visible {
+    outline-color: white;
+  }
+}

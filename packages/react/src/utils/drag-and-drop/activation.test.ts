@@ -3,6 +3,7 @@ import {
   DEFAULT_ACTIVATION,
   evaluateActivation,
   getActivationDelayMs,
+  hasDoubleClickActivation,
   resolveActivation,
 } from './activation';
 
@@ -75,23 +76,36 @@ describe('activation', () => {
   describe('resolveActivation', () => {
     it('returns a single DragActivation when passed directly', () => {
       const explicit = { type: 'immediate' } as const;
-      expect(resolveActivation(explicit, 'touch')).toBe(explicit);
+      expect(resolveActivation(explicit, 'touch')).toEqual([explicit]);
     });
 
     it('uses the per-pointerType override when provided', () => {
       const map = {
         touch: { type: 'distance', distance: 15 } as const,
       };
-      expect(resolveActivation(map, 'touch')).toEqual({ type: 'distance', distance: 15 });
+      expect(resolveActivation(map, 'touch')).toEqual([{ type: 'distance', distance: 15 }]);
       // A pointer type the partial map does not cover falls back to its own
       // per-type default, not to another entry of the map.
-      expect(resolveActivation(map, 'mouse')).toEqual(DEFAULT_ACTIVATION.mouse);
+      expect(resolveActivation(map, 'mouse')).toEqual([DEFAULT_ACTIVATION.mouse]);
     });
 
     it('falls back to defaults by pointer type', () => {
-      expect(resolveActivation(undefined, 'mouse')).toEqual(DEFAULT_ACTIVATION.mouse);
-      expect(resolveActivation(undefined, 'pen')).toEqual(DEFAULT_ACTIVATION.pen);
-      expect(resolveActivation(undefined, 'touch')).toEqual(DEFAULT_ACTIVATION.touch);
+      expect(resolveActivation(undefined, 'mouse')).toEqual([DEFAULT_ACTIVATION.mouse]);
+      expect(resolveActivation(undefined, 'pen')).toEqual([DEFAULT_ACTIVATION.pen]);
+      expect(resolveActivation(undefined, 'touch')).toEqual([DEFAULT_ACTIVATION.touch]);
+    });
+  });
+
+  describe('hasDoubleClickActivation', () => {
+    it('does not enable double-click by default', () => {
+      expect(hasDoubleClickActivation(undefined)).toBe(false);
+    });
+
+    it('only enables double-click when it is included in explicit activation', () => {
+      expect(hasDoubleClickActivation({ type: 'distance', distance: 5 })).toBe(false);
+      expect(
+        hasDoubleClickActivation([{ type: 'distance', distance: 5 }, { type: 'double-click' }]),
+      ).toBe(true);
     });
   });
 });

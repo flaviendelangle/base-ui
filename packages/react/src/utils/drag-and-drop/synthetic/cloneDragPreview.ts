@@ -394,8 +394,6 @@ function prepareDragPreviewClone(
   element.removeAttribute('data-dragging');
   element.removeAttribute('data-displacing');
   element.removeAttribute('data-starting-style');
-  element.style.removeProperty('--drag-displacement-x');
-  element.style.removeProperty('--drag-displacement-y');
 
   return { element, applyPostInsertion };
 }

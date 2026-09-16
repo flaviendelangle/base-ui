@@ -1,11 +1,10 @@
 export * as Draggable from './index.parts';
 
 export type * from './root/DraggableRoot';
+export type { DraggableProviderProps } from './DraggableProvider';
+export type { DraggableCollisionProviderProps } from './CollisionProvider';
 export type * from './handle/DraggableHandle';
 export type * from './preview/DraggablePreview';
-export type * from './preview/DraggableClonedPreview';
-export type * from './displacement/DraggableDisplacement';
-export type * from './preview-provider/DraggablePreviewProvider';
 export type { UseDraggableActiveDragReturnValue } from './use-active-drag';
 
 // The event and option types a `Draggable.*` consumer needs to type extracted
@@ -14,9 +13,8 @@ export type { UseDraggableActiveDragReturnValue } from './use-active-drag';
 // same declarations, so the star exports stay unambiguous).
 export type {
   BaseDragEvent,
-  BeforeDragStartEventDetails,
+  BeforeMoveStartEventDetails,
   DraggablePayload,
-  DraggablePayloadGetter,
   DragAccept,
   DragKind,
   DragModifier,
@@ -26,23 +24,23 @@ export type {
   DragDropEvent,
   DragDropEventDetails,
   DragDropReason,
-  DragEndEvent,
-  DragEndEventDetails,
+  MoveEndEvent,
+  MoveEndEventDetails,
   DragEndReason,
   DragCanceledReason,
   DragCompletedReason,
   DragEventDetails,
-  DragEventDetailsMap,
+  DraggableEventDetailsMap,
   DragHandle,
   DragInput,
   DragLocalPoint,
   DragLocation,
   DragLocationHistory,
-  DragEventMap,
+  DraggableEventMap,
   DragMode,
-  DragMoveEvent,
-  DragMoveEventDetails,
-  DragStartEventDetails,
+  MoveEvent,
+  MoveEventDetails,
+  MoveStartEventDetails,
   DropTargetChangeEventDetails,
   DragPosition,
   DragPreviewContainer,
@@ -53,21 +51,10 @@ export type {
   DragSnappedLocalPointOptions,
   DragSnapSteps,
   DragSource,
-  DragStartContext,
-  DragStartEvent,
+  MoveStartContext,
+  MoveStartEvent,
   DropTargetChangeEvent,
   DropTargetRecord,
-  DragKeyboardActivation,
-  DragKeyboardAnnouncementParameters,
-  DragKeyboardAnnouncements,
-  DragKeyboardArrowKey,
-  DragKeyboardFinalFocus,
-  DragKeyboardFinalFocusParameters,
-  DragKeyboardMoveDetails,
-  DragKeyboardMoveResult,
-  DragKeyboardMoveSuggestion,
-  DragKeyboardMoveTarget,
-  DragKeyboardMovement,
   DragPointerType,
   DragPreviewOffsetParameters,
 } from '../types/drag';

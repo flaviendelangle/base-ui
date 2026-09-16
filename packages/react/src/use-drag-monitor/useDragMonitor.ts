@@ -11,7 +11,7 @@ import type { WithInferredAccept } from '../types/dragRegistration';
  * to `accept`. Use it for cross-cutting concerns — status indicators,
  * analytics, committing a reorder on drop.
  *
- * Documentation: [Base UI useDragMonitor](https://base-ui.com/react/utils/use-drag-monitor)
+ * Documentation: [Base UI useDragMonitor](https://base-ui.com/react/components/drag-drop#usedragmonitor)
  *
  * @public
  */
@@ -48,13 +48,13 @@ export type {
   BaseDragEvent,
   DragDropEvent,
   DragDropEventDetails,
-  DragEndEvent,
-  DragEndEventDetails,
-  DragEventMap,
-  DragMoveEvent,
-  DragMoveEventDetails,
-  DragStartEvent,
-  DragStartEventDetails,
+  MoveEndEvent,
+  MoveEndEventDetails,
+  DraggableEventMap,
+  MoveEvent,
+  MoveEventDetails,
+  MoveStartEvent,
+  MoveStartEventDetails,
   DropTargetChangeEvent,
   DropTargetChangeEventDetails,
 } from '../types/drag';

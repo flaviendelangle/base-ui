@@ -53,14 +53,18 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     const source = createBox(0, 0);
     const target = createBox(0, 200);
 
-    const onDragEnter = vi.fn();
+    const onDraggableEnter = vi.fn();
     const onDrop = vi.fn();
     engine.registerDraggable(source, {
       kind: cardKind,
       payload: 'card-1',
-      pointerActivation: { mouse: { type: 'immediate' } },
+      activation: { mouse: { type: 'immediate' } },
     });
-    engine.registerDropTarget(target, { accept: cardKind, onDragEnter, onDrop });
+    engine.registerDropTarget(target, {
+      accept: cardKind,
+      onDraggableEnter,
+      onDraggableDrop: onDrop,
+    });
 
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
@@ -71,13 +75,13 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
     await flushRaf();
 
-    expect(onDragEnter).toHaveBeenCalled();
+    expect(onDraggableEnter).toHaveBeenCalled();
 
     pointer('pointerup', source, 50, 225);
     await flushRaf();
 
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][0].self.element).toBe(target);
+    expect(onDrop.mock.calls[0][0].target.element).toBe(target);
   });
 
   it('resolves a target inside a closed shadow root', async () => {
@@ -89,14 +93,18 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     target.style.cssText = 'display: block; width: 100%; height: 100%;';
     shadowRoot.appendChild(target);
 
-    const onDragEnter = vi.fn();
+    const onDraggableEnter = vi.fn();
     const onDrop = vi.fn();
     engine.registerDraggable(source, {
       kind: cardKind,
       payload: 'card-1',
-      pointerActivation: { mouse: { type: 'immediate' } },
+      activation: { mouse: { type: 'immediate' } },
     });
-    engine.registerDropTarget(target, { accept: cardKind, onDragEnter, onDrop });
+    engine.registerDropTarget(target, {
+      accept: cardKind,
+      onDraggableEnter,
+      onDraggableDrop: onDrop,
+    });
 
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
@@ -104,12 +112,12 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
     await flushRaf();
 
-    expect(onDragEnter).toHaveBeenCalledTimes(1);
+    expect(onDraggableEnter).toHaveBeenCalledTimes(1);
 
     pointer('pointerup', source, 50, 225);
     await flushRaf();
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][0].self.element).toBe(target);
+    expect(onDrop.mock.calls[0][0].target.element).toBe(target);
   });
 
   it('resolves the innermost target when they nest', async () => {
@@ -128,10 +136,10 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     engine.registerDraggable(source, {
       kind: cardKind,
       payload: 'card-1',
-      pointerActivation: { mouse: { type: 'immediate' } },
+      activation: { mouse: { type: 'immediate' } },
     });
-    engine.registerDropTarget(outer, { accept: cardKind, onDrop: onOuterDrop });
-    engine.registerDropTarget(inner, { accept: cardKind, onDrop: onInnerDrop });
+    engine.registerDropTarget(outer, { accept: cardKind, onDraggableDrop: onOuterDrop });
+    engine.registerDropTarget(inner, { accept: cardKind, onDraggableDrop: onInnerDrop });
 
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
@@ -153,14 +161,14 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     const target = createBox(0, 200);
 
     const onDrop = vi.fn();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(source, {
       kind: cardKind,
       payload: 'card-1',
-      pointerActivation: { mouse: { type: 'immediate' } },
-      onDragEnd,
+      activation: { mouse: { type: 'immediate' } },
+      onMoveEnd,
     });
-    engine.registerDropTarget(target, { accept: cardKind, onDrop });
+    engine.registerDropTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
@@ -172,9 +180,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
 
     expect(onDrop).not.toHaveBeenCalled();
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(false);
-    expect(onDragEnd.mock.calls[0][0].dropTarget).toBeNull();
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(false);
+    expect(onMoveEnd.mock.calls[0][0].dropTarget).toBeNull();
   });
 
   /**
@@ -192,9 +200,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
+        activation: { mouse: { type: 'immediate' } },
       });
-      engine.registerDropTarget(target, { accept: cardKind, onDrop });
+      engine.registerDropTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
@@ -206,7 +214,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
 
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop.mock.calls[0][0].self.getLocalPoint()).toEqual({ x: 0.25, y: 0.6 });
+      expect(onDrop.mock.calls[0][0].target.getLocalPoint()).toEqual({ x: 0.25, y: 0.6 });
     });
 
     it('quantizes the snapped point against real geometry, on both anchors', async () => {
@@ -218,9 +226,13 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
+        activation: { mouse: { type: 'immediate' } },
       });
-      engine.registerDropTarget(target, { accept: cardKind, snap: { x: 4, y: 10 }, onDrop });
+      engine.registerDropTarget(target, {
+        accept: cardKind,
+        snap: { x: 4, y: 10 },
+        onDraggableDrop: onDrop,
+      });
 
       // Grabbed at (10, 20) inside the 100×50 source, so the source anchor
       // trails the pointer by that much.
@@ -233,7 +245,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
 
       expect(onDrop).toHaveBeenCalledTimes(1);
-      const record = onDrop.mock.calls[0][0].self;
+      const record = onDrop.mock.calls[0][0].target;
       // Pointer: (0.35, 0.66) → nearest of (4, 10) steps.
       expect(record.getSnappedLocalPoint()).toEqual({ x: 0.25, y: 0.7 });
       // Source's leading edges: ((35−10)/100, (233−20−200)/50) = (0.25, 0.26).
@@ -251,12 +263,12 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
         'position: absolute; left: 10px; top: 10px; width: 60px; height: 30px; background: rgb(120 120 120);';
       outer.appendChild(inner);
 
-      const onDrag = vi.fn();
+      const onMove = vi.fn();
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDrag,
+        activation: { mouse: { type: 'immediate' } },
+        onMove,
       });
       engine.registerDropTarget(outer, { accept: cardKind });
       engine.registerDropTarget(inner, { accept: cardKind });
@@ -268,7 +280,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
       await flushRaf();
 
-      const { dropTargets } = onDrag.mock.calls.at(-1)![0].location.current;
+      const { dropTargets } = onMove.mock.calls.at(-1)![0].location.current;
       expect(dropTargets).toHaveLength(2);
       // Innermost first.
       expect(dropTargets[0].element).toBe(inner);
@@ -286,9 +298,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
+        activation: { mouse: { type: 'immediate' } },
       });
-      engine.registerDropTarget(target, { accept: cardKind, onDrop });
+      engine.registerDropTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
@@ -298,12 +310,12 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerup', source, 50, 225);
       await flushRaf();
 
-      const { self } = onDrop.mock.calls[0][0];
-      const first = self.getLocalPoint();
+      const { target: dropTarget } = onDrop.mock.calls[0][0];
+      const first = dropTarget.getLocalPoint();
 
       // Armed only after the first call, which is the one that is meant to measure.
       const measure = vi.spyOn(target, 'getBoundingClientRect');
-      const second = self.getLocalPoint();
+      const second = dropTarget.getLocalPoint();
 
       expect(second).toBe(first);
       expect(measure).not.toHaveBeenCalled();
@@ -318,7 +330,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
+        activation: { mouse: { type: 'immediate' } },
       });
       engine.registerDropTarget(target, { accept: cardKind });
 
@@ -348,7 +360,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
 
       const onDrop = vi.fn();
       engine.registerDraggable(source, { kind: cardKind, payload: 'card-1' });
-      engine.registerDropTarget(target, { accept: cardKind, onDrop });
+      engine.registerDropTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
       const press = (key: string) => {
         act(() => {
@@ -367,7 +379,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       // The record's input is the aim point the sensor committed, not a pointer
       // position, so a plain zone entered by arrow key reports its center.
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop.mock.calls[0][0].self.getLocalPoint()).toEqual({ x: 0.5, y: 0.5 });
+      expect(onDrop.mock.calls[0][0].target.getLocalPoint()).toEqual({ x: 0.5, y: 0.5 });
     });
 
     it('reports the origin for a target with no extent', async () => {
@@ -379,9 +391,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       engine.registerDraggable(source, {
         kind: cardKind,
         payload: 'card-1',
-        pointerActivation: { mouse: { type: 'immediate' } },
+        activation: { mouse: { type: 'immediate' } },
       });
-      engine.registerDropTarget(target, { accept: cardKind, onDrop });
+      engine.registerDropTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
@@ -393,10 +405,10 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
 
       // Detached after the record was made and before it is read, which measures as all
       // zeros: the case that would otherwise divide by zero.
-      const { self } = onDrop.mock.calls[0][0];
-      target.remove();
+      const { target: dropTarget } = onDrop.mock.calls[0][0];
+      dropTarget.remove();
 
-      expect(self.getLocalPoint()).toEqual({ x: 0, y: 0 });
+      expect(dropTarget.getLocalPoint()).toEqual({ x: 0, y: 0 });
     });
   });
 });

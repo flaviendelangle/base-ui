@@ -10,21 +10,20 @@ export {
 
 /**
  * Returns the page-global drag-and-drop manager: the registration methods that
- * `Draggable.Root`, `DropTarget.Root`, `DragAutoScroll.Root`, and `useDragMonitor`
- * are built on, plus `startKeyboardDrag` to open a keyboard drag from your own
- * trigger and `cancelDrag` to end the drag in progress.
+ * `Draggable.Root`, `Draggable.Target`, `Draggable.Viewport`, and `Draggable.useDragMonitor`
+ * are built on, plus `cancelDrag` to end the drag in progress.
  *
  * Reach for it to drive drag and drop from your own code rather than the components and hooks:
  * registering an element you already hold, bridging a non-React widget,
  * or centralizing every registration in one place.
  *
  * Every call controls the same page-global manager. The two React-context inputs (the locale used
- * for default announcements and the nearest `Draggable.PreviewProvider`) are read
- * at *this hook's* call site, not at each element's position in the tree. Put both
+ * for default announcements and the nearest preview boundary) are read at *this
+ * hook's* call site, not at each element's position in the tree. Put the relevant
  * providers above the component that calls `useDragDropManager`, even when the elements
  * it registers render further down.
  *
- * Documentation: [Base UI useDragDropManager](https://base-ui.com/react/utils/use-drag-drop-manager)
+ * Documentation: [Base UI useDragDropManager](https://base-ui.com/react/components/drag-drop#usedragdropmanager)
  *
  * @public
  */
@@ -39,7 +38,7 @@ export namespace useDragDropManager {
 /**
  * The page-global imperative API returned by {@link useDragDropManager}:
  * `registerDraggable`, `registerDropTarget`, `registerAutoScroller`,
- * `registerMonitor`, `startKeyboardDrag`, and `cancelDrag`.
+ * `registerMonitor`, and `cancelDrag`.
  */
 export interface UseDragDropManagerReturnValue extends DragDropManager {}
 

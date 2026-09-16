@@ -46,9 +46,9 @@ expectType<DragKind, typeof observedKind>(observedKind);
 engine.registerDraggable(element, () => ({
   kind: card,
   payload: { id: 'a' },
-  onDragStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
-  onDrag: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
-  onDragEnd: ({ source, canceled, dropTarget }) => {
+  onMoveStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
+  onMove: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
+  onMoveEnd: ({ source, canceled, dropTarget }) => {
     expectType<CardPayload, typeof source.payload>(source.payload);
     expectType<boolean, typeof canceled>(canceled);
     expectType<DropTargetRecord | null, typeof dropTarget>(dropTarget);
@@ -77,13 +77,13 @@ const wrongParameters: RegisterDraggableParameters<CardPayload> = {
   kind: card,
   payload: { id: 'a' },
   // @ts-expect-error the handler must match the kind's payload.
-  onDrag: wrongDrag,
+  onMove: wrongDrag,
 };
 
 // A kind declaring no payload leaves it `undefined`, and `payload` may be omitted.
 engine.registerDraggable(element, () => ({
   kind: marker,
-  onDragStart: ({ source }) => expectType<undefined, typeof source.payload>(source.payload),
+  onMoveStart: ({ source }) => expectType<undefined, typeof source.payload>(source.payload),
 }));
 
 // @ts-expect-error every draggable is of some kind.
@@ -113,7 +113,7 @@ engine.registerDropTarget(element, () => ({
     expectType<CardPayload, typeof source.payload>(source.payload);
     return true;
   },
-  onDrop: ({ source }) => {
+  onDraggableDrop: ({ source }) => {
     expectType<CardPayload, typeof source.payload>(source.payload);
   },
 }));
@@ -123,26 +123,26 @@ engine.registerDropTarget(element, () => ({
 engine.registerDropTarget(element, () => ({
   accept: card,
   payload: { slot: 1 },
-  onDrop: ({ source, self }) => {
+  onDraggableDrop: ({ source, target }) => {
     expectType<CardPayload, typeof source.payload>(source.payload);
-    expectType<{ slot: number }, typeof self.payload>(self.payload);
+    expectType<{ slot: number }, typeof target.payload>(target.payload);
   },
 }));
 
 engine.registerDropTarget(element, () => ({
   accept: card,
   getPayload: ({ source }) => ({ slot: source.payload.id.length }),
-  onDrop: ({ self }) => {
-    expectType<{ slot: number }, typeof self.payload>(self.payload);
+  onDraggableDrop: ({ target }) => {
+    expectType<{ slot: number }, typeof target.payload>(target.payload);
   },
 }));
 
 engine.registerDropTarget<typeof card, { slot: number }>(element, () => ({
   accept: card,
   payload: { slot: 1 },
-  onDrop: ({ source, self }) => {
+  onDraggableDrop: ({ source, target }) => {
     expectType<CardPayload, typeof source.payload>(source.payload);
-    expectType<{ slot: number }, typeof self.payload>(self.payload);
+    expectType<{ slot: number }, typeof target.payload>(target.payload);
   },
 }));
 
@@ -179,7 +179,7 @@ engine.registerDropTarget<typeof card, { slot: number }>(element, () => ({
 // A monitor observes every drag, so it takes a getter only — no element.
 engine.registerMonitor(() => ({
   accept: card,
-  onDragStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
+  onMoveStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
 }));
 
 // @ts-expect-error `registerMonitor` takes no element.
@@ -189,30 +189,13 @@ engine.registerMonitor(element, () => ({}));
 // `accept` rather than asserted with a bare type argument.
 engine.registerAutoScroller(element, () => ({
   accept: card,
-  allowedAxis: 'vertical',
-  canScroll: ({ source }) => {
+  onDragScroll: (_event, { source }) => {
     expectType<CardPayload, typeof source.payload>(source.payload);
-    return true;
   },
 }));
 
-// @ts-expect-error `allowedAxis` is a fixed union, not an arbitrary string.
-engine.registerAutoScroller(element, () => ({ allowedAxis: 'diagonal' }));
-
 // ---------------------------------------------------------------------------
-// cancelDrag / startKeyboardDrag
+// cancelDrag
 // ---------------------------------------------------------------------------
 
-// The two methods that register nothing. `cancelDrag` takes nothing and returns
-// nothing; `startKeyboardDrag` names the source and reports whether it started.
 expectType<() => void, typeof engine.cancelDrag>(engine.cancelDrag);
-expectType<(element: HTMLElement | null) => boolean, typeof engine.startKeyboardDrag>(
-  engine.startKeyboardDrag,
-);
-
-// A ref that has emptied is accepted, so a deferred pickup needs no guard.
-const maybeElement: HTMLElement | null = null;
-engine.startKeyboardDrag(maybeElement);
-
-// @ts-expect-error the element is required — there is no "whichever is focused" default.
-engine.startKeyboardDrag();

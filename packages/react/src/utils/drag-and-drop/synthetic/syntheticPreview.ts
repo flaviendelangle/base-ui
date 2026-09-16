@@ -25,7 +25,6 @@ const DRAGGING_ATTR = 'data-dragging';
  * preview's `translate` for keyboard drags — which jump between discrete positions —
  * while leaving pointer drags to track the cursor without lag.
  */
-const DRAG_MODE_ATTR = 'data-drag-mode';
 const ENDING_STYLE_ATTR = 'data-ending-style';
 
 // A new pickup from the same source interrupts its previous drop transition.
@@ -101,11 +100,6 @@ export function createSyntheticPreview(
   let lastX = 0;
   let lastY = 0;
   let hasPosition = false;
-  // The preview is tagged with `data-drag-mode` only after it has been positioned
-  // once, so easing a keyboard drag's `translate` never animates the jump from the
-  // preview's off-screen parking spot to the pickup point. Reset when a new preview
-  // element is adopted.
-  let previewModeApplied = false;
   // Opt-in preview-level `modifiers`, compiled to a non-empty list, or
   // `null` for none. Constrains where the preview is drawn without touching the
   // drag itself (the root's `modifiers` does that).
@@ -195,17 +189,6 @@ export function createSyntheticPreview(
         positionedX = proposedX;
         positionedY = proposedY;
       }
-      if (!previewModeApplied) {
-        previewModeApplied = true;
-        // Wait a frame so this first position is committed before the transition
-        // turns on — otherwise a keyboard drag would ease in from off-screen.
-        const { element } = previewElement;
-        AnimationFrame.request(() => {
-          if (!destroyed && previewElement?.element === element) {
-            element.setAttribute(DRAG_MODE_ATTR, mode);
-          }
-        }, ownerWindow(element));
-      }
     }
   }
 
@@ -216,7 +199,6 @@ export function createSyntheticPreview(
 
     const previousSource = sourceElement;
     previousSource.removeAttribute(DRAGGING_ATTR);
-    previousSource.removeAttribute(DRAG_MODE_ATTR);
     previousSource.removeAttribute(ENDING_STYLE_ATTR);
     if (endingCleanup && endingPreviews.get(previousSource) === endingCleanup) {
       endingPreviews.delete(previousSource);
@@ -233,7 +215,6 @@ export function createSyntheticPreview(
       endingPreviews.set(sourceElement, endingCleanup);
     }
     sourceElement.setAttribute(DRAGGING_ATTR, '');
-    sourceElement.setAttribute(DRAG_MODE_ATTR, mode);
     if (endingCleanup) {
       sourceElement.setAttribute(ENDING_STYLE_ATTR, '');
     }
@@ -260,7 +241,6 @@ export function createSyntheticPreview(
       positionedElement = null;
       previewScale = DEFAULT_SCALE;
       previewScaleMeasured = false;
-      previewModeApplied = false;
       previewOffsetX = offset?.x ?? 0;
       previewOffsetY = offset?.y ?? 0;
       initialProposed = null;
@@ -274,7 +254,6 @@ export function createSyntheticPreview(
       // the source's geometry (or hides it outright) would otherwise corrupt the
       // measurement the clone is sized from.
       sourceElement.setAttribute(DRAGGING_ATTR, '');
-      sourceElement.setAttribute(DRAG_MODE_ATTR, mode);
     },
     retargetSource,
     setPreviewOffset(offset: DragPosition): void {
@@ -337,7 +316,6 @@ export function createSyntheticPreview(
           if (endingPreviews.get(sourceElement) === cleanup) {
             endingPreviews.delete(sourceElement);
             sourceElement.removeAttribute(DRAGGING_ATTR);
-            sourceElement.removeAttribute(DRAG_MODE_ATTR);
             sourceElement.removeAttribute(ENDING_STYLE_ATTR);
           }
           endingCleanup = null;
@@ -389,7 +367,6 @@ export function createSyntheticPreview(
 
       endingPreview?.destroy();
       sourceElement.removeAttribute(DRAGGING_ATTR);
-      sourceElement.removeAttribute(DRAG_MODE_ATTR);
     },
   };
 }

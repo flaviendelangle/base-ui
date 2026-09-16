@@ -8,21 +8,27 @@ import { useDeclaredPreview } from './useDeclaredPreview';
 import { createDragPreviewHostElement } from '../../utils/drag-and-drop/synthetic/cloneDragPreview';
 
 /**
- * Customizes what follows the pointer while the draggable is dragged, replacing
- * the default clone of the source.
+ * Customizes what follows the pointer while the draggable is dragged.
+ * When no children are provided, the source is cloned automatically. Providing
+ * children replaces that clone with custom preview content.
  * Renders a `<div>` element.
  *
- * Renders nothing where you write it: the content renders in the nearest
- * `Draggable.PreviewProvider`, which is required, and is portaled into an
- * engine-owned element next to the drag source, where your CSS reaches it.
+ * Renders nothing where you write it. Custom preview content renders through
+ * `Draggable.Provider`; the default clone does not require React rendering.
  *
- * Documentation: [Base UI Draggable](https://base-ui.com/react/components/draggable)
+ * Documentation: [Base UI Draggable](https://base-ui.com/react/utils/draggable)
  */
 export function DraggablePreview<TData>(props: DraggablePreviewTypedProps<TData>): React.ReactNode;
 export function DraggablePreview(props: DraggablePreviewProps): React.ReactNode;
 export function DraggablePreview<TData = unknown>(
   props: DraggablePreviewProps | DraggablePreviewTypedProps<TData>,
 ): React.ReactNode {
+  return <DraggablePreviewDeclaration {...props} />;
+}
+
+function DraggablePreviewDeclaration<TData = unknown>(
+  props: DraggablePreviewProps | DraggablePreviewTypedProps<TData>,
+): null {
   const getProps = useStableCallback(() => props);
 
   // Resolved per drag, not per render.
@@ -49,8 +55,8 @@ export function DraggablePreview<TData = unknown>(
 
   useDeclaredPreview<TData>(
     getProps,
-    render,
-    createDragPreviewHostElement,
+    props.children === undefined ? null : render,
+    props.children === undefined ? undefined : createDragPreviewHostElement,
     props.disabled === true,
   );
 
@@ -75,9 +81,10 @@ export interface DraggablePreviewProps
    */
   disabled?: boolean | undefined;
   /**
-   * The preview content. Pass a function to build it from the drag payload, which
-   * is resolved once at drag start. Its payload is `unknown` until a `kind` is
-   * supplied through {@link DraggablePreviewTypedProps}.
+   * The preview content. Omit it to use a clone of the draggable source. Pass a
+   * function to build custom content from the drag payload, which is resolved
+   * once at drag start. Its payload is `unknown` until a `kind` is supplied
+   * through {@link DraggablePreviewTypedProps}.
    */
   children?:
     | React.ReactNode
@@ -94,7 +101,7 @@ export interface DraggablePreviewProps
 export type DraggablePreviewTypedProps<TData> = Omit<DraggablePreviewProps, 'children' | 'kind'> & {
   /** The source kind whose payload the render callback accepts. */
   kind: DragKind<TData>;
-  /** Preview content, resolved once at drag start with the kind's payload type. */
+  /** Preview content, or omit it to use a clone, resolved once at drag start with the kind's payload type. */
   children?:
     | React.ReactNode
     | ((parameters: DragPreviewRenderEvent<TData>) => React.ReactNode)

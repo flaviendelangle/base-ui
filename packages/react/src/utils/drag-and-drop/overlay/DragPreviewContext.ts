@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import type { Store } from '@base-ui/utils/store';
-import type { DragPreviewContainer } from '../../../types/drag';
 import type { DragPreviewState } from './dragPreviewStore';
 
 /** Store of the active drag's preview content for one provider. */
@@ -10,12 +9,6 @@ export type DragPreviewStore = Store<DragPreviewState | null>;
 export interface DragPreviewContext {
   /** The store this provider's overlay renders the active drag's preview content from. */
   previewStore: DragPreviewStore;
-  /**
-   * Subtree default for `container`; a preview's own `container` wins over it.
-   * A getter (read at drag start) so the provider's context value keeps a stable
-   * identity when an inline `container` callback changes identity every render.
-   */
-  getContainer: () => DragPreviewContainer | undefined;
 }
 
 /**

@@ -69,25 +69,14 @@ describe('Draggable.Preview', () => {
     expect(document.querySelector('[data-drag-preview]')).toBeNull();
   });
 
-  it('does not require a PreviewProvider while disabled and validates when enabled', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      const { rerender } = rtlRender(
+  it('requires Draggable.Provider for custom content', () => {
+    expect(() =>
+      rtlRender(
         <Draggable.Root kind={testDragKind}>
-          <Draggable.Preview disabled>Preview</Draggable.Preview>
+          <Draggable.Preview>Preview</Draggable.Preview>
         </Draggable.Root>,
-      );
-
-      expect(() =>
-        rerender(
-          <Draggable.Root kind={testDragKind}>
-            <Draggable.Preview>Preview</Draggable.Preview>
-          </Draggable.Root>,
-        ),
-      ).toThrow(/Draggable\.PreviewProvider/);
-    } finally {
-      errorSpy.mockRestore();
-    }
+      ),
+    ).toThrow(/Draggable\.Provider/);
   });
 
   it('does not call a typed render callback for a mismatched source kind', () => {
@@ -107,29 +96,6 @@ describe('Draggable.Preview', () => {
 
     expect(renderPreview).not.toHaveBeenCalled();
     expect(document.querySelector('[data-drag-preview]')).toBeNull();
-  });
-
-  it('throws when the nearest PreviewProvider does not wrap the Draggable.Root', () => {
-    // The engine publishes through the provider seen from the root's position; a
-    // provider mounted between the root and the part can never receive the
-    // content, and the drag would fail mid-gesture instead of at render.
-    // React 18's dev error path logs the uncaught render error via console.error.
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      expect(() =>
-        rtlRender(
-          <DraggablePreviewProvider>
-            <Draggable.Root kind={testDragKind}>
-              <DraggablePreviewProvider>
-                <Draggable.Preview>Preview</Draggable.Preview>
-              </DraggablePreviewProvider>
-            </Draggable.Root>
-          </DraggablePreviewProvider>,
-        ),
-      ).toThrow(/is inside its <Draggable\.Root>/);
-    } finally {
-      errorSpy.mockRestore();
-    }
   });
 
   it('accepts a provider that wraps the Draggable.Root', () => {

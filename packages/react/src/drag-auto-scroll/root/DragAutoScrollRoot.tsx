@@ -11,20 +11,14 @@ import { useDragAutoScrollElement } from './useDragAutoScrollElement';
 import type { UseDragAutoScrollElementParameters } from './useDragAutoScrollElement';
 
 /**
- * Configures how its element scrolls during a drag, enabling auto-scroll if no
- * `DragAutoScroll.Provider` is mounted.
- * Renders a `<div>` element.
+ * Use for a scrollable or pannable surface. Place it inside a drop target when
+ * the surface itself is the drop target, or place drop targets inside it when
+ * the surface contains multiple destinations. Renders a `<div>` element.
  *
- * `DragAutoScroll.Provider` enables inferred scrolling without annotating each
- * container. Configure a particular region with this root, using
- * `applyScroll` for a surface that has no scroll offsets to move, `disabled` or
- * `canScroll` to leave it alone, and `allowedAxis`, `maxSpeed`, or `accept` to
- * tune the rest.
+ * For a custom surface that moves its content without native scrolling, use
+ * `onDragScroll` to connect the viewport to that surface's pan or camera logic.
  *
- * Nested containers scroll innermost-first, the outer one taking over only on
- * the axes the inner one leaves unconsumed.
- *
- * Documentation: [Base UI Drag Auto Scroll](https://base-ui.com/react/components/drag-auto-scroll)
+ * Documentation: [Base UI Draggable](https://base-ui.com/react/utils/draggable)
  */
 export const DragAutoScrollRoot = React.forwardRef(function DragAutoScrollRoot<
   TSourceData = unknown,
@@ -42,11 +36,9 @@ export const DragAutoScrollRoot = React.forwardRef(function DragAutoScrollRoot<
     // `elementProps` is spread onto the `<div>`, where an engine parameter would
     // land as an attribute.
     accept,
-    allowedAxis,
-    applyScroll,
-    canScroll,
     disabled,
     maxSpeed,
+    onDragScroll,
     // Props forwarded to the DOM element
     ...elementProps
   } = componentProps;
@@ -55,11 +47,9 @@ export const DragAutoScrollRoot = React.forwardRef(function DragAutoScrollRoot<
   // through a ref and never compares it.
   const params = {
     accept,
-    allowedAxis,
-    applyScroll,
-    canScroll,
     disabled,
     maxSpeed,
+    onDragScroll,
   } as UseDragAutoScrollElementParameters<TSourceData>;
 
   const { ref } = useDragAutoScrollElement<TSourceData>(params);
@@ -69,7 +59,7 @@ export const DragAutoScrollRoot = React.forwardRef(function DragAutoScrollRoot<
   return useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, ref],
-    props: [{ children }, elementProps],
+    props: [{ children, style: { overflow: 'auto' } }, elementProps],
   });
   // `React.forwardRef` erases the payload type argument, so the generic signature
   // is restored by hand.

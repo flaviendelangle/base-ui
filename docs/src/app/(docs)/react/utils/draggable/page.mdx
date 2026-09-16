@@ -1,0 +1,269 @@
+# Draggable
+
+<Subtitle>Enables drag-and-drop for Base UI Components.</Subtitle>
+<Meta
+  name="description"
+  content="Unstyled primitives for building pointer-based drag-and-drop interactions with Base UI."
+/>
+
+import { DemoDraggableHero } from './demos/hero';
+import { DemoDragHandle } from './demos/handle';
+import { DemoActivation } from './demos/activation';
+import { DemoBadgePreview } from './demos/badge';
+import { DemoContainedDrag } from './demos/containment';
+import { DemoShapeSorter } from './demos/shapes';
+import { DemoSortableList } from './demos/sortable';
+import { DemoDragAutoScrollCanvas } from './demos/custom-scroll';
+import { Draggable } from '@base-ui/react/draggable';
+
+<DemoDraggableHero />
+
+## Usage guidelines
+
+- **Use drag and drop for spatial interactions:** It works well for reordering lists, moving items between regions, and positioning items on a surface.
+- **Treat drag and drop as a progressive enhancement:** Draggable is pointer-only. Before adding it, ensure the UI is already fully accessible via keyboard, simple controls, and workflows that do not depend on drag and drop—for example, provide a sort button in a table column header.
+
+## Anatomy
+
+Import the component and assemble its parts:
+
+```jsx title="Anatomy"
+import { Draggable } from '@base-ui/react/draggable';
+
+<Draggable.Provider>
+  <Draggable.Root>
+    <Draggable.Handle />
+    <Draggable.Preview />
+  </Draggable.Root>
+
+  <Draggable.Target />
+  <Draggable.Viewport />
+</Draggable.Provider>;
+```
+
+## Examples
+
+### Drag handle
+
+Use `Draggable.Handle` when only part of the draggable should initiate the drag, so the rest of the component remains available for buttons, links, and other interactive content.
+
+<DemoDragHandle />
+
+### Activation
+
+Configure when a pointer gesture becomes a drag using distance, press-and-hold, immediate, or double-click activation. Pass multiple methods in the `activation` array. Double-click activation is opt-in.
+
+<DemoActivation />
+
+### With payload
+
+Use a typed kind when the drop handler needs data from the dragged item. The
+drop event also includes `location.grabOffset`, the point where the pointer was
+pressed inside the draggable. This is useful when the dropped item's position
+should not match the pointer position.
+
+```tsx
+type Card = { id: string };
+const card = Draggable.createKind<Card>('card');
+
+<Draggable.Provider>
+  <Draggable.Root kind={card} payload={cardData} />
+  <Draggable.Target
+    accept={card}
+    onDraggableDrop={({ source, location }) => {
+      const { clientX, clientY } = location.current.input;
+      const { x, y } = location.grabOffset ?? { x: 0, y: 0 };
+      save({
+        id: source.payload.id,
+        x: clientX - x,
+        y: clientY - y,
+      });
+    }}
+  />
+</Draggable.Provider>;
+```
+
+### Custom preview
+
+Render `Draggable.Preview` when the dragged representation should differ from the
+draggable itself.
+
+<DemoBadgePreview />
+
+### Reject draggable types
+
+Use distinct kinds when a drop target should reject unrelated draggables. Each
+drop target below accepts only its matching shape kind; other draggables are ignored.
+
+<DemoShapeSorter />
+
+### Sortable list
+
+This example sketches the collision-based composition for sortable interfaces.
+`Draggable.CollisionProvider` will coordinate collisions between the draggable
+items; the sorting behavior will be implemented in the collision provider.
+
+<DemoSortableList />
+
+### Custom scrolling
+
+For surfaces that use custom pan or camera logic, use `onDragScroll` to control
+movement—for example, to pan a canvas or zoomable board.
+
+<DemoDragAutoScrollCanvas />
+
+### Containment
+
+Constrain movement to a containing element with a modifier.
+
+<DemoContainedDrag />
+
+## API reference
+
+The complete prop, state, data-attribute, and type references are generated from the consolidated `Draggable` namespace:
+
+import { TypesDraggable } from './types';
+
+### Provider
+
+<TypesDraggable.Provider />
+
+### Root
+
+<TypesDraggable.Root />
+
+### Handle
+
+<TypesDraggable.Handle />
+
+### Preview
+
+<TypesDraggable.Preview />
+
+### Target
+
+<TypesDraggable.Target />
+
+### Viewport
+
+<TypesDraggable.Viewport />
+
+Pass one modifier or an array to `Draggable.Root`’s `modifiers` prop to constrain
+or adjust movement.
+
+### restrictToVerticalAxis
+
+<TypesDraggable.restrictToVerticalAxis />
+
+### restrictToHorizontalAxis
+
+<TypesDraggable.restrictToHorizontalAxis />
+
+### restrictToWindowEdges
+
+<TypesDraggable.restrictToWindowEdges />
+
+### restrictToParentElement
+
+<TypesDraggable.restrictToParentElement />
+
+### restrictToElement
+
+<TypesDraggable.restrictToElement />
+
+### snapToGrid
+
+<TypesDraggable.snapToGrid />
+
+## useActiveDrag
+
+Reads the draggable involved in the active drag, or `null` when no drag is in progress.
+
+<TypesDraggable.useActiveDrag hideDescription />
+
+## useDragMonitor
+
+Observes matching drags and runs callbacks for shared UI such as insertion indicators.
+
+<TypesDraggable.useDragMonitor hideDescription />
+
+## useDragDropManager
+
+Provides the imperative drag-and-drop manager for custom integrations and
+non-React elements. The manager is shared by every `Draggable.Provider` on the
+page.
+
+<TypesDraggable.useDragDropManager hideDescription />
+
+### `registerDraggable` method
+
+Registers an existing element as a draggable. Call the returned cleanup
+function when the element is removed.
+
+```tsx
+const unregister = manager.registerDraggable(element, () => ({
+  kind,
+  payload: card,
+}));
+```
+
+### `registerDropTarget` method
+
+Registers an existing element as a drop target. Pass the kinds it accepts and
+handle drops through `onDraggableDrop`.
+
+```tsx
+const unregister = manager.registerDropTarget(element, () => ({
+  accept: kind,
+  onDraggableDrop: ({ source }) => save(source.payload),
+}));
+```
+
+### `registerMonitor` method
+
+Observes matching drags without rendering a component. Use it for shared UI,
+analytics, or coordinating state across several drop targets.
+
+```tsx
+const unregister = manager.registerMonitor(() => ({
+  accept: kind,
+  onMoveStart: ({ source }) => setActive(source.payload),
+  onMoveEnd: () => setActive(null),
+}));
+```
+
+### `registerAutoScroller` method
+
+Registers an existing element as an auto-scroll region when a
+`Draggable.Viewport` cannot be used directly.
+
+```tsx
+const unregister = manager.registerAutoScroller(element, () => ({
+  accept: kind,
+  onDragScroll: (event, { x, y }) => {
+    panCanvas(x, y);
+    event.stopPropagation();
+  },
+}));
+```
+
+### `cancelDrag` method
+
+Cancels the active drag, if any.
+
+```tsx
+manager.cancelDrag();
+```
+
+export const metadata =
+  /** @type {import('@mui/internal-docs-infra/createSitemap/types').NextMetadata} */ ({
+    keywords: [
+      'React Drag and Drop',
+      'Draggable',
+      'Drop Target',
+      'Kanban Board',
+      'Accessible Drag and Drop',
+      'Base UI',
+    ],
+    robots: { index: true },
+  });

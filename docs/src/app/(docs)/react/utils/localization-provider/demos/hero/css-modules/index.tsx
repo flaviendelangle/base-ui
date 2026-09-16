@@ -8,14 +8,15 @@ const cardKind = Draggable.createKind('card');
 
 export default function LocalizationProviderHero() {
   return (
-    <LocalizationProvider translations={frFR}>
-      <div className={styles.Root} lang="fr">
-        <Draggable.Root className={styles.Card} kind={cardKind} label="la carte">
-          Déplacez-moi
-          <Draggable.ClonedPreview />
-        </Draggable.Root>
-        <p className={styles.Hint}>Utilisez Espace et les touches fléchées.</p>
-      </div>
-    </LocalizationProvider>
+    <Draggable.Provider>
+      <LocalizationProvider translations={frFR}>
+        <div className={styles.Root} lang="fr">
+          <Draggable.Root className={styles.Card} kind={cardKind} label="la carte">
+            Déplacez-moi
+          </Draggable.Root>
+          <p className={styles.Hint}>Utilisez Espace et les touches fléchées.</p>
+        </div>
+      </LocalizationProvider>
+    </Draggable.Provider>
   );
 }

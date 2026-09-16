@@ -10,11 +10,13 @@ import type {
   DropEvent,
   DropTargetEvent,
   DropTargetResolutionContext,
-  DropTargetSelf,
+  DropTargetEventTarget,
   DropTargetRecord,
   DragSource,
-  DragEventDetailsMap,
-  DragEventMap,
+  DraggableEventDetailsMap,
+  DraggableEventMap,
+  DropTargetEventDetailsMap,
+  DropTargetEventMap,
 } from '../../types/drag';
 import { matchesAccept } from './dragKind';
 import { createGetterStackRegistry } from './getterStackRegistry';
@@ -166,7 +168,7 @@ function getActiveRegistration(element: Element): DropTargetGetter | undefined {
 
 /**
  * Getters for targets that unregistered while still hovered, held only until the
- * `onDragLeave` they are owed has gone out.
+ * `onDraggableLeave` they are owed has gone out.
  *
  * `registrations.ts` routes a hovered target's unregister to the *synchronous*
  * refresh precisely so the leave dispatches while its registration is still
@@ -375,7 +377,6 @@ function resolveDropTargetOutcome(
   }
   return {
     element,
-    label: registration.label,
     kind: registration.kind?.id,
     payload,
     ...createLocalPointReaders(element, fullFeedback, registration.snap),
@@ -553,13 +554,13 @@ export function getDropTargetsOver(
   return result;
 }
 
-// `onDragEnd` is source/monitor only, so it is excluded from the indexable key set.
-type DropTargetEventName = keyof DragEventMap & keyof RegisterDropTargetParameters;
+// `onMoveEnd` is source/monitor only, so it is excluded from the indexable key set.
+type DropTargetEventName = keyof DropTargetEventMap & keyof RegisterDropTargetParameters;
 
 /**
  * Pre-capture the active registration getter for a record so a later dispatch
  * survives the target unregistering in between. Used by the drop path: the
- * source's `onDragEnd` (told the drop landed first) may synchronously tear
+ * source's `onMoveEnd` (told the drop landed first) may synchronously tear
  * down its zones, and the drop it was just told about must still be delivered.
  */
 export function captureDropTargetRegistration(
@@ -571,8 +572,8 @@ export function captureDropTargetRegistration(
 export function dispatchToDropTarget<K extends DropTargetEventName>(
   record: DropTargetRecord,
   eventName: K,
-  payload: DragEventMap[K],
-  eventDetails: DragEventDetailsMap[K],
+  payload: DropTargetEventMap[K],
+  eventDetails: DropTargetEventDetailsMap[K],
   capturedRegistration?: () => RegisterDropTargetParameters<any, any>,
 ): void {
   const getRegistration =
@@ -591,9 +592,12 @@ export function dispatchToDropTarget<K extends DropTargetEventName>(
     return;
   }
   const handler = registration[eventName] as
-    | ((parameters: DragEventMap[K] & DropTargetSelf, eventDetails: DragEventDetailsMap[K]) => void)
+    | ((
+        parameters: DropTargetEventMap[K] & DropTargetEventTarget,
+        eventDetails: DropTargetEventDetailsMap[K],
+      ) => void)
     | undefined;
-  handler?.({ ...payload, self: record }, eventDetails);
+  handler?.({ ...payload, target: record }, eventDetails);
 }
 
 /** Remove the record held against `element` from the hovered bookkeeping. */
@@ -619,8 +623,8 @@ function replaceHoveredRecord(hovered: DropTargetRecord[], fresh: DropTargetReco
  * matched by element, without adding or removing entries. Used by the lifecycle on
  * frames where the resolved stack is element-equal to the previous one: no change
  * dispatch runs there, yet the terminal `onDragLeave` on drop or cancel reads these
- * records — without the swap it would report the `self.payload` resolved at entry
- * time while every intermediate `onDrag` reported fresh ones.
+ * records — without the swap it would report the `target.payload` resolved at entry
+ * time while every intermediate `onMove` reported fresh ones.
  */
 export function refreshHoveredRecords(
   hovered: DropTargetRecord[],
@@ -644,8 +648,8 @@ export function refreshHoveredRecords(
 }
 
 /**
- * Dispatch `onDropTargetChange` to every previous and current target, plus
- * `onDragLeave` for targets that left and `onDragEnter` for targets that entered.
+ * Dispatch `onDraggableLeave` for targets that left and `onDraggableEnter` for
+ * targets that entered.
  *
  * `shouldContinue` is re-checked before every delivery: a handler can cancel the
  * drag re-entrantly, and the remaining targets must then receive nothing, as the
@@ -657,8 +661,8 @@ export function refreshHoveredRecords(
 export function dispatchDropTargetChange(
   previous: readonly DropTargetRecord[],
   current: readonly DropTargetRecord[],
-  payload: DragEventMap['onDropTargetChange'],
-  eventDetails: DragEventDetailsMap['onDropTargetChange'],
+  payload: DraggableEventMap['onTargetChange'],
+  eventDetails: DraggableEventDetailsMap['onTargetChange'],
   shouldContinue?: (() => boolean) | undefined,
   hovered?: DropTargetRecord[] | undefined,
 ): void {
@@ -671,24 +675,19 @@ export function dispatchDropTargetChange(
       return;
     }
     visited.add(record.element);
-    // For a persisting target, dispatch the fresh record so `self.payload` reflects this frame.
+    // For a persisting target, dispatch the fresh record so `target.payload` reflects this frame.
     const fresh = currByElement.get(record.element);
     if (fresh) {
       if (hovered) {
         replaceHoveredRecord(hovered, fresh);
       }
-      dispatchToDropTarget(fresh, 'onDropTargetChange', payload, eventDetails);
     } else {
-      dispatchToDropTarget(record, 'onDropTargetChange', payload, eventDetails);
-      if (!live()) {
-        return;
-      }
       // Removed before the leave is delivered: if the leave handler cancels the
       // drag, the terminal dispatch must not re-leave this target.
       if (hovered) {
         removeHoveredRecord(hovered, record.element);
       }
-      dispatchToDropTarget(record, 'onDragLeave', payload, eventDetails);
+      dispatchToDropTarget(record, 'onDraggableLeave', payload, eventDetails);
       // The leave this element was owed has now gone out, so a retiring hold kept
       // for it has done its job.
       releaseRetiringDropTarget(record.element);
@@ -707,11 +706,7 @@ export function dispatchDropTargetChange(
     if (hovered) {
       hovered.push(record);
     }
-    dispatchToDropTarget(record, 'onDropTargetChange', payload, eventDetails);
-    if (!live()) {
-      return;
-    }
-    dispatchToDropTarget(record, 'onDragEnter', payload, eventDetails);
+    dispatchToDropTarget(record, 'onDraggableEnter', payload, eventDetails);
   }
 
   // Fully delivered: sync the bookkeeping to the canonical, bubble-ordered stack.
@@ -724,8 +719,8 @@ export function dispatchDropTargetChange(
 export function dispatchToAllDropTargets<K extends DropTargetEventName>(
   targets: readonly DropTargetRecord[],
   eventName: K,
-  payload: DragEventMap[K],
-  eventDetails: DragEventDetailsMap[K],
+  payload: DropTargetEventMap[K],
+  eventDetails: DropTargetEventDetailsMap[K],
   shouldContinue?: (() => boolean) | undefined,
 ): void {
   for (const record of targets) {
@@ -739,15 +734,15 @@ export function dispatchToAllDropTargets<K extends DropTargetEventName>(
 }
 
 /**
- * Parameters accepted by `DropTarget.Root` and `registerDropTarget`, except the element.
+ * Parameters accepted by `Draggable.Target` and `registerDropTarget`, except the element.
  *
  * `TSourceData` is the payload the accepted kinds carry and `TLocalData` this target's
- * own. `DropTarget.Root` and `registerDropTarget` infer both, from `accept` and
+ * own. `Draggable.Target` and `registerDropTarget` infer both, from `accept` and
  * `payload` respectively.
  */
 export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unknown> = {
   /**
-   * The data to attach to this target, read back as `self.payload` in its own
+   * The data to attach to this target, read back as `target.payload` in its own
    * callbacks and on its record in `location.dropTargets`. Use it to identify which
    * cell, row, or column a drag is over. Functions are preserved as ordinary
    * payload values.
@@ -761,13 +756,8 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
     | ((context: DropTargetResolutionContext<NoInfer<TSourceData>>) => TLocalData)
     | undefined;
   /**
-   * Human-readable name of this drop target, used by the default screen-reader
-   * announcements for keyboard drags to name where the item is and where it landed.
-   */
-  label?: string | undefined;
-  /**
    * What this drop target is, created with `Draggable.createKind`. It identifies the
-   * target on its own records — `self.kind` and the entries of `location.dropTargets` —
+   * target on its own records — `target.kind` and the entries of `location.dropTargets` —
    * so a handler watching several kinds of target can tell them apart with the kind's
    * `matches`. Its payload type must match this target's `payload`.
    *
@@ -777,10 +767,10 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
   /**
    * The kinds of drag source this target accepts: one kind, or an array of them.
    *
-   * Required on a drop target. Every registration joins the same page-global engine
-   * with no subtree scoping, so a target written without one would take every drag in
-   * the application. Pass `DropTarget.anyKind` to opt into exactly that — at the cost
-   * of `source.payload` being `unknown`.
+   * When using `Draggable.Provider`, omit this prop to accept the Provider's default
+   * no-payload drag kind. Outside a Provider, omit it to accept every drag, or pass
+   * `Draggable.anyKind` to make that choice explicit. Pass a kind (or kinds) to limit
+   * the target to a specific drag type and infer the corresponding `source.payload`.
    *
    * A source whose kind isn't accepted is ignored by this target, and an ancestor target
    * can still claim it. Runs before `canDrop`.
@@ -790,7 +780,7 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
    * Whether the drop target should ignore user interaction. A disabled target is
    * skipped by target resolution as if it weren't registered, so drags fall through
    * to ancestor targets. A hovered target disabled mid-drag leaves the active stack,
-   * with its `onDragLeave`, on the next resolution.
+   * with its `onDraggableLeave`, on the next resolution.
    * @default false
    */
   disabled?: boolean | undefined;
@@ -800,7 +790,7 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
    *
    * Returning `false` makes the engine treat this target as if it weren't registered
    * for this dispatch: the DOM walk continues outward and a parent drop target
-   * underneath can claim the drop. Use this rather than blocking inside an `onDrop`
+   * underneath can claim the drop. Use this rather than blocking inside an `onDraggableDrop`
    * body, which would discard the drop without letting an outer target receive it.
    *
    * Returning `'reject'` refuses the drop outright instead of abstaining: no target
@@ -835,47 +825,28 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
   /**
    * Event handler called when a matching drag starts while this target is already
    * under the pointer. It does not fire for drags that start elsewhere; use a
-   * monitor's `onDragStart` to observe every drag.
+   * monitor's `onMoveStart` to observe every drag.
    */
-  onDragStart?:
+  onDraggableStart?:
     | ((
-        parameters: DropTargetEvent<'onDragStart', NoInfer<TSourceData>, NoInfer<TLocalData>>,
-        eventDetails: DragEventDetailsMap['onDragStart'],
+        parameters: DropTargetEvent<'onDraggableStart', NoInfer<TSourceData>, NoInfer<TLocalData>>,
+        eventDetails: DropTargetEventDetailsMap['onDraggableStart'],
       ) => void)
     | undefined;
   /**
-   * Event handler called on the frame this target enters the active stack, right
-   * after `onDragEnter`, and on every rAF tick the pointer moves while the target
-   * remains in the stack. Put hover-tracking work here and use `onDragEnter` for
-   * enter-only side effects.
+   * Responds while a matching draggable is moving over this drop target.
    */
-  onDrag?:
+  onDraggableMove?:
     | ((
-        parameters: DropTargetEvent<'onDrag', NoInfer<TSourceData>, NoInfer<TLocalData>>,
-        eventDetails: DragEventDetailsMap['onDrag'],
-      ) => void)
-    | undefined;
-  /**
-   * Event handler called when the active drop targets change, including changes that
-   * don't affect this target's own membership, such as a nested descendant entering
-   * or leaving while this ancestor stays in the stack. Use `onDragEnter` and
-   * `onDragLeave` for this target's own enter and leave.
-   */
-  onDropTargetChange?:
-    | ((
-        parameters: DropTargetEvent<
-          'onDropTargetChange',
-          NoInfer<TSourceData>,
-          NoInfer<TLocalData>
-        >,
-        eventDetails: DragEventDetailsMap['onDropTargetChange'],
+        parameters: DropTargetEvent<'onDraggableMove', NoInfer<TSourceData>, NoInfer<TLocalData>>,
+        eventDetails: DropTargetEventDetailsMap['onDraggableMove'],
       ) => void)
     | undefined;
   /** Event handler called when this target enters the active stack. */
-  onDragEnter?:
+  onDraggableEnter?:
     | ((
-        parameters: DropTargetEvent<'onDragEnter', NoInfer<TSourceData>, NoInfer<TLocalData>>,
-        eventDetails: DragEventDetailsMap['onDragEnter'],
+        parameters: DropTargetEvent<'onDraggableEnter', NoInfer<TSourceData>, NoInfer<TLocalData>>,
+        eventDetails: DropTargetEventDetailsMap['onDraggableEnter'],
       ) => void)
     | undefined;
   /**
@@ -883,22 +854,22 @@ export type RegisterDropTargetParameters<TSourceData = unknown, TLocalData = unk
    * pointer moved off it or the drag ended. `eventDetails.reason` tells the two
    * apart: a modality for a hover-out, a drag end reason for the drag ending.
    */
-  onDragLeave?:
+  onDraggableLeave?:
     | ((
-        parameters: DropTargetEvent<'onDragLeave', NoInfer<TSourceData>, NoInfer<TLocalData>>,
-        eventDetails: DragEventDetailsMap['onDragLeave'],
+        parameters: DropTargetEvent<'onDraggableLeave', NoInfer<TSourceData>, NoInfer<TLocalData>>,
+        eventDetails: DropTargetEventDetailsMap['onDraggableLeave'],
       ) => void)
     | undefined;
   /**
    * Event handler called on the innermost active drop target only, when the user
    * releases the drag over it. Ancestor targets in the same stack do not receive
-   * `onDrop`, and it never fires on a cancel. To observe every drag end regardless of
-   * target depth or cancellation, use the source's or a monitor's `onDragEnd`.
+   * `onDraggableDrop`, and it never fires on a cancel. To observe every drag end regardless of
+   * target depth or cancellation, use the source's or a monitor's `onMoveEnd`.
    */
-  onDrop?:
+  onDraggableDrop?:
     | ((
         parameters: DropEvent<NoInfer<TSourceData>, NoInfer<TLocalData>>,
-        eventDetails: DragEventDetailsMap['onDrop'],
+        eventDetails: DropTargetEventDetailsMap['onDraggableDrop'],
       ) => void)
     | undefined;
 };

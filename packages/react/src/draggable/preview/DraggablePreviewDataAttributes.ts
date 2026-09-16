@@ -8,13 +8,6 @@ export enum DraggablePreviewDataAttributes {
    */
   dragPreview = 'data-drag-preview',
   /**
-   * The input modality driving the drag: `'pointer'` or `'keyboard'`. Use it to ease
-   * the preview's `translate` for keyboard drags, which jump between discrete
-   * positions, while pointer drags track the cursor without a transition.
-   * @type {'pointer' | 'keyboard'}
-   */
-  dragMode = 'data-drag-mode',
-  /**
    * Present on an engine-owned cloned preview after a deliberate release while
    * it moves to its final position. This also applies when a drag is released
    * outside a target and returns to its source. The clone remains mounted until

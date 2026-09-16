@@ -17,17 +17,17 @@ describe('useDragMonitor', () => {
   const { renderDnd } = createDndRenderer();
 
   it('registers a monitor that receives events during a drag', async () => {
-    const onDragStart = vi.fn();
-    const onDragEnd = vi.fn();
-    const { engine } = await renderDnd(<Monitor onDragStart={onDragStart} onDragEnd={onDragEnd} />);
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
+    const { engine } = await renderDnd(<Monitor onMoveStart={onMoveStart} onMoveEnd={onMoveEnd} />);
     const el = createElement();
     engine.registerDraggable(el, {});
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart).toHaveBeenCalledWith(
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledWith(
       expect.objectContaining({
         source: expect.objectContaining({ element: el }),
       }),
@@ -36,16 +36,16 @@ describe('useDragMonitor', () => {
 
     fireEvent.drop(el);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
   it('re-renders keep the registration but events read the latest callbacks', async () => {
     const firstOnDragStart = vi.fn();
     const secondOnDragStart = vi.fn();
-    const { rerender, engine } = await renderDnd(<Monitor onDragStart={firstOnDragStart} />);
+    const { rerender, engine } = await renderDnd(<Monitor onMoveStart={firstOnDragStart} />);
     const registrationsBefore = Array.from(monitorRegistry);
 
-    await rerender(<Monitor onDragStart={secondOnDragStart} />);
+    await rerender(<Monitor onMoveStart={secondOnDragStart} />);
 
     // Same getters, same order: the re-render did not re-register the monitor.
     const registrationsAfter = Array.from(monitorRegistry);
@@ -69,12 +69,12 @@ describe('useDragMonitor', () => {
     // Strict Mode double-invokes the registration effect (register → cleanup →
     // register); a leaked duplicate registration would run every callback once
     // per hold.
-    const onDragStart = vi.fn();
-    const onDragEnd = vi.fn();
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
     const sizeBefore = monitorRegistry.size;
     const { engine } = await renderDnd(
       <React.StrictMode>
-        <Monitor onDragStart={onDragStart} onDragEnd={onDragEnd} />
+        <Monitor onMoveStart={onMoveStart} onMoveEnd={onMoveEnd} />
       </React.StrictMode>,
     );
 
@@ -86,13 +86,13 @@ describe('useDragMonitor', () => {
     await flushRaf();
     fireEvent.drop(el);
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
   it('unmounting the monitor stops it from receiving events', async () => {
-    const onDragStart = vi.fn();
-    const { rerender, engine } = await renderDnd(<Monitor onDragStart={onDragStart} />);
+    const onMoveStart = vi.fn();
+    const { rerender, engine } = await renderDnd(<Monitor onMoveStart={onMoveStart} />);
 
     await rerender(<div />);
 
@@ -101,7 +101,7 @@ describe('useDragMonitor', () => {
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
 
     fireEvent.drop(el);
   });

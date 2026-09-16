@@ -48,17 +48,57 @@ function dispatch(target: EventTarget, event: Event): void {
 describe('syntheticDrag sensor', () => {
   const { renderDnd } = createDndRenderer();
 
+  it('picks up on double-click and drops on the next click', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const target = createElement();
+    const onBeforeMoveStart = vi.fn();
+    const onDrop = vi.fn();
+    const onMove = vi.fn();
+    engine.registerDraggable(source, {
+      activation: [{ type: 'double-click' }],
+      onBeforeMoveStart,
+      onDrop,
+      onMove,
+    });
+    engine.registerDropTarget(target, {});
+
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = (() => target) as typeof document.elementFromPoint;
+    registerCleanup(() => {
+      document.elementFromPoint = originalElementFromPoint;
+    });
+
+    dispatch(source, new MouseEvent('dblclick', { bubbles: true, clientX: 20, clientY: 20 }));
+    await flushRaf();
+
+    expect(onBeforeMoveStart).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ activation: 'double-click' }),
+    );
+
+    dispatch(document, new MouseEvent('mousemove', { bubbles: true, clientX: 80, clientY: 40 }));
+    await flushRaf();
+    expect(onMove.mock.lastCall?.[0].location.current.input).toMatchObject({
+      clientX: 80,
+      clientY: 40,
+    });
+
+    dispatch(target, new MouseEvent('click', { bubbles: true, clientX: 20, clientY: 20 }));
+    expect(onDrop).toHaveBeenCalledTimes(1);
+  });
+
   it('pen pointerdown alone does not start a drag — distance activation defers', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
 
     penDown(el, 50, 50);
     await flushRaf();
 
     // Default pen activation is `distance: 5px`; no movement → no drag.
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // Source is reserved while a pending pen session is alive: the engine
     // flips `draggable="false"` to keep a native HTML5 hand-off (which iPadOS
     // Safari triggers from a long-press) from racing the synthetic gesture.
@@ -80,16 +120,16 @@ describe('syntheticDrag sensor', () => {
     const source = document.createElement('div');
     source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
     shadow.appendChild(source);
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(source, {
-      pointerActivation: { pen: { type: 'immediate' } },
-      onDragStart,
+      activation: { pen: { type: 'immediate' } },
+      onMoveStart,
     });
 
     penDown(source, 50, 50);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
     expect(dragSessionStore.getSnapshot()?.source.element).toBe(source);
     act(() => cancelDrag());
   });
@@ -100,10 +140,10 @@ describe('syntheticDrag sensor', () => {
     // A consumer-declared `draggable="true"` (their own HTML5 drag integration)
     // must come back after the engine's temporary `draggable="false"` reservation.
     el.setAttribute('draggable', 'true');
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     // Pending abort: the default pen activation (5px distance) keeps the
@@ -118,7 +158,7 @@ describe('syntheticDrag sensor', () => {
     await flushRaf();
     expect(el.getAttribute('draggable')).toBe('false');
     dispatch(window, new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(el.getAttribute('draggable')).toBe('true');
   });
 
@@ -127,7 +167,7 @@ describe('syntheticDrag sensor', () => {
     const el = createElement();
     el.setAttribute('draggable', 'true');
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
     });
 
     penDown(el, 50, 50);
@@ -160,41 +200,41 @@ describe('syntheticDrag sensor', () => {
   it('pen activates after moving past the distance threshold', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
 
     penDown(el, 50, 50);
     penMove(53, 53); // ~4.2px diagonal — under the 5px default
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
 
     penMove(60, 50); // 10px from origin — clears 5px threshold
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart.mock.calls[0][0].location.current.input.pointerType).toBe('pen');
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart.mock.calls[0][0].location.current.input.pointerType).toBe('pen');
     // A pointer drag reports `mode: 'pointer'` on the payload.
-    expect(onDragStart.mock.calls[0][0].mode).toBe('pointer');
+    expect(onMoveStart.mock.calls[0][0].mode).toBe('pointer');
 
     penUp(60, 50);
   });
 
-  it('pen drop fires onDragEnd with pointerType "pen"', async () => {
+  it('pen drop fires onMoveEnd with pointerType "pen"', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
       // Use immediate so the test does not need to clear the distance
       // threshold first.
-      pointerActivation: { pen: { type: 'immediate' } },
-      onDragEnd,
+      activation: { pen: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     penDown(el, 50, 50);
     await flushRaf();
     penUp(120, 80);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    const payload = onDragEnd.mock.calls[0][0];
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    const payload = onMoveEnd.mock.calls[0][0];
     expect(payload.location.current.input.pointerType).toBe('pen');
     expect(payload.location.current.input.clientX).toBe(120);
     expect(payload.location.current.input.clientY).toBe(80);
@@ -212,7 +252,7 @@ describe('syntheticDrag sensor', () => {
       document.body.setPointerCapture = original;
     });
     engine.registerDraggable(el, {
-      pointerActivation: { pen: { type: 'immediate' } },
+      activation: { pen: { type: 'immediate' } },
     });
 
     penDown(el, 50, 50, 7);
@@ -255,7 +295,7 @@ describe('syntheticDrag sensor', () => {
       body.hasPointerCapture = originalHas;
     });
     engine.registerDraggable(el, {
-      pointerActivation: { pen: { type: 'immediate' } },
+      activation: { pen: { type: 'immediate' } },
     });
 
     penDown(el, 50, 50, 7);
@@ -271,10 +311,10 @@ describe('syntheticDrag sensor', () => {
   it('swallows the DOMException a stale releasePointerCapture throws, so the drop still lands', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     const body = document.body;
@@ -296,17 +336,17 @@ describe('syntheticDrag sensor', () => {
     touchUp(60, 60);
 
     // The teardown swallowed the capture-release error and completed the drop.
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(false);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(false);
   });
 
   it('rethrows a non-DOMException from releasePointerCapture', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     const body = document.body;
@@ -342,7 +382,7 @@ describe('syntheticDrag sensor', () => {
     // ends the lifecycle in a `finally`, so the terminal events still go out and
     // the engine is startable again. Without that, one throw out of the sensor's
     // own teardown would leave `canStart()` false for the rest of the page's life.
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(dragSessionStore.getSnapshot()).toBe(null);
   });
 
@@ -350,16 +390,16 @@ describe('syntheticDrag sensor', () => {
     const { engine } = await renderDnd();
     const src = createElement();
     const tgt = createElement();
-    const onDropTargetChange = vi.fn();
-    const onDragEnd = vi.fn();
+    const onTargetChange = vi.fn();
+    const onMoveEnd = vi.fn();
     const onDrop = vi.fn();
     engine.registerDraggable(src, {
-      pointerActivation: { pen: { type: 'immediate' } },
-      onDragEnd,
+      activation: { pen: { type: 'immediate' } },
+      onMoveEnd,
       onDrop,
     });
     engine.registerDropTarget(tgt, {});
-    engine.registerMonitor({ onDropTargetChange });
+    engine.registerMonitor({ onTargetChange });
 
     const originalEFP = document.elementFromPoint;
     const hit = { current: null as Element | null };
@@ -371,7 +411,7 @@ describe('syntheticDrag sensor', () => {
     penDown(src, 50, 50, 7);
     await flushRaf();
     await flushRaf();
-    const changesBefore = onDropTargetChange.mock.calls.length;
+    const changesBefore = onTargetChange.mock.calls.length;
 
     // A live reorder / virtualizer unmounts the dragged element mid-drag.
     src.remove();
@@ -399,7 +439,7 @@ describe('syntheticDrag sensor', () => {
 
     // The move was processed after the removal: the engine re-resolved the drop
     // target under the new point.
-    expect(onDropTargetChange.mock.calls.length).toBeGreaterThan(changesBefore);
+    expect(onTargetChange.mock.calls.length).toBeGreaterThan(changesBefore);
 
     dispatch(
       document,
@@ -413,7 +453,7 @@ describe('syntheticDrag sensor', () => {
     );
 
     // And the gesture completes as a real drop over the target, not a teardown.
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onDrop).toHaveBeenCalledTimes(1);
     expect(onDrop.mock.calls[0][0].dropTarget.element).toBe(tgt);
   });
@@ -421,10 +461,10 @@ describe('syntheticDrag sensor', () => {
   it('lostpointercapture (a genuine OS hand-off) still cancels the drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { pen: { type: 'immediate' } },
-      onDragEnd,
+      activation: { pen: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     penDown(el, 50, 50, 7);
@@ -438,10 +478,10 @@ describe('syntheticDrag sensor', () => {
     // A later release is a no-op: the gesture is already torn down.
     penUp(50, 50, 7);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].location.current.dropTargets).toHaveLength(0);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].location.current.dropTargets).toHaveLength(0);
     // A hand-off is a cancel, not a drop over nothing.
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
   });
 
   // jsdom-only: a real browser fires `blur` on the iframe window when the frame
@@ -464,17 +504,17 @@ describe('syntheticDrag sensor', () => {
       iframeDoc.body.appendChild(iframeEl);
       const onIframeDragEnd = vi.fn();
       engine.registerDraggable(iframeEl, {
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDragEnd: onIframeDragEnd,
+        activation: { mouse: { type: 'immediate' } },
+        onMoveEnd: onIframeDragEnd,
       });
 
       const topEl = createElement();
-      const onDragStart = vi.fn();
-      const onDragEnd = vi.fn();
+      const onMoveStart = vi.fn();
+      const onMoveEnd = vi.fn();
       engine.registerDraggable(topEl, {
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDragStart,
-        onDragEnd,
+        activation: { mouse: { type: 'immediate' } },
+        onMoveStart,
+        onMoveEnd,
       });
 
       // Start a pointer drag inside the iframe...
@@ -519,8 +559,8 @@ describe('syntheticDrag sensor', () => {
 
       expect(onIframeDragEnd).toHaveBeenCalledTimes(1);
       expect(onIframeDragEnd.mock.calls[0][0].canceled).toBe(true);
-      expect(onDragStart).toHaveBeenCalledTimes(1);
-      expect(onDragStart.mock.calls[0][0].source.element).toBe(topEl);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart.mock.calls[0][0].source.element).toBe(topEl);
 
       // The fresh drag completes normally.
       dispatch(
@@ -534,7 +574,7 @@ describe('syntheticDrag sensor', () => {
           cancelable: true,
         }),
       );
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
     },
   );
 
@@ -542,11 +582,11 @@ describe('syntheticDrag sensor', () => {
     const { engine } = await renderDnd();
     const src = createElement();
     const tgt = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     const onDrop = vi.fn();
     engine.registerDraggable(src, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
       onDrop,
     });
     engine.registerDropTarget(tgt, {});
@@ -574,21 +614,21 @@ describe('syntheticDrag sensor', () => {
     // `lostpointercapture` right before the first move. The anchor still holds
     // the pointer, so this must NOT cancel the drag (the Android bug).
     dispatch(window, new PointerEvent('lostpointercapture', { pointerId: 7, bubbles: true }));
-    expect(onDragEnd).not.toHaveBeenCalled();
+    expect(onMoveEnd).not.toHaveBeenCalled();
 
     // The drag survives and drops normally over the target.
     touchUp(60, 60, 7);
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onDrop).toHaveBeenCalledTimes(1);
   });
 
   it('active-phase window blur cancels the drag and returns the engine to idle', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -596,23 +636,23 @@ describe('syntheticDrag sensor', () => {
 
     dispatch(window, new Event('blur'));
 
-    // Blur ends the drag with cancel semantics: onDragEnd fires canceled, with no targets.
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    // Blur ends the drag with cancel semantics: onMoveEnd fires canceled, with no targets.
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
 
     // The engine is idle again, so a fresh drag can start and drop.
     touchDown(el, 50, 50);
     await flushRaf();
     touchUp(60, 60);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(2);
+    expect(onMoveEnd).toHaveBeenCalledTimes(2);
   });
 
   it('blocks native touch scrolling during a pen drag (Apple Pencil emits touch events)', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    engine.registerDraggable(el, { pointerActivation: { pen: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { pen: { type: 'immediate' } } });
 
     penDown(el, 50, 50);
     await flushRaf();
@@ -633,7 +673,7 @@ describe('syntheticDrag sensor', () => {
     const immediate = createElement();
     // Default touch activation is a 250ms press-hold, so the gesture stays pending.
     engine.registerDraggable(pending, {});
-    engine.registerDraggable(immediate, { pointerActivation: { touch: { type: 'immediate' } } });
+    engine.registerDraggable(immediate, { activation: { touch: { type: 'immediate' } } });
     const root = document.documentElement;
     const previousTouchAction = root.style.touchAction;
 
@@ -664,20 +704,20 @@ describe('syntheticDrag sensor', () => {
   it('pen pointercancel cancels an active drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { pen: { type: 'immediate' } },
-      onDragEnd,
+      activation: { pen: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     penDown(el, 50, 50);
     await flushRaf();
     penCancel();
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
     // A browser cancellation is a cancel, not a drop over nothing.
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
   });
 
   it('prevents contextmenu after a touch drag candidate is cancelled by the browser', async () => {
@@ -714,7 +754,7 @@ describe('syntheticDrag sensor', () => {
   it('keeps contextmenu suppressed after an active touch drag is cancelled by the browser', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
     touchDown(el, 50, 50);
     await flushRaf();
@@ -731,7 +771,7 @@ describe('syntheticDrag sensor', () => {
   it('releases contextmenu suppression after a clean touch drop', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
     touchDown(el, 50, 50);
     await flushRaf();
@@ -775,7 +815,7 @@ describe('syntheticDrag sensor', () => {
     const el = createElement();
     const child = document.createElement('div');
     el.appendChild(child);
-    engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
     touchDown(child, 50, 50);
     el.remove();
@@ -788,52 +828,52 @@ describe('syntheticDrag sensor', () => {
     touchCancel();
   });
 
-  it('onBeforeDragStart fires at activation commit with the pointer details', async () => {
+  it('onBeforeMoveStart fires at activation commit with the pointer details', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const trigger = document.createElement('span');
     el.appendChild(trigger);
-    const onBeforeDragStart = vi.fn();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onBeforeDragStart, onDragStart });
+    const onBeforeMoveStart = vi.fn();
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onBeforeMoveStart, onMoveStart });
 
     penDown(trigger, 50, 50);
     await flushRaf();
     // Not at pointerdown: the veto waits for the activation modifier.
-    expect(onBeforeDragStart).not.toHaveBeenCalled();
+    expect(onBeforeMoveStart).not.toHaveBeenCalled();
 
     penMove(60, 50); // 10px from origin — clears the 5px distance threshold
     await flushRaf();
-    expect(onBeforeDragStart).toHaveBeenCalledTimes(1);
-    const [parameters, eventDetails] = onBeforeDragStart.mock.calls[0];
+    expect(onBeforeMoveStart).toHaveBeenCalledTimes(1);
+    const [parameters, eventDetails] = onBeforeMoveStart.mock.calls[0];
     expect(parameters.element).toBe(el);
     expect(eventDetails.reason).toBe('pointer');
     expect(eventDetails.event).toBeInstanceOf(PointerEvent);
     expect(eventDetails.trigger).toBe(trigger);
     // Not canceled, so the drag started right after.
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     penUp(60, 50);
   });
 
-  it('onBeforeDragStart canceling blocks the synthetic drag and frees the gesture', async () => {
+  it('onBeforeMoveStart canceling blocks the synthetic drag and frees the gesture', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let block = true;
     engine.registerDraggable(el, {
-      onBeforeDragStart: (_, eventDetails) => {
+      onBeforeMoveStart: (_, eventDetails) => {
         if (block) {
           eventDetails.cancel();
         }
       },
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // The canceled commit tore the pending phase down and restored the source's
     // `draggable` attribute.
     expect(el.hasAttribute('draggable')).toBe(false);
@@ -845,24 +885,24 @@ describe('syntheticDrag sensor', () => {
     block = false;
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     touchUp(50, 50);
   });
 
-  it('a throwing onBeforeDragStart tears the pending phase down', async () => {
+  it('a throwing onBeforeMoveStart tears the pending phase down', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let shouldThrow = true;
     engine.registerDraggable(el, () => ({
-      onBeforeDragStart: () => {
+      onBeforeMoveStart: () => {
         if (shouldThrow) {
           throw new Error('veto failed');
         }
       },
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     }));
 
     // The consumer throw escapes the sensor (after its cleanup ran) and is
@@ -880,7 +920,7 @@ describe('syntheticDrag sensor', () => {
     }
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // The pending phase was torn down before the rethrow, restoring the source.
     expect(el.hasAttribute('draggable')).toBe(false);
 
@@ -888,7 +928,7 @@ describe('syntheticDrag sensor', () => {
     shouldThrow = false;
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     touchUp(50, 50);
   });
@@ -896,14 +936,14 @@ describe('syntheticDrag sensor', () => {
   it('a live registration getter throwing at activation tears the pending phase down', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let throwOnNextRead = false;
     engine.registerDraggable(el, () => {
       if (throwOnNextRead) {
         throwOnNextRead = false;
         throw new Error('live getter failed');
       }
-      return { onDragStart };
+      return { onMoveStart };
     });
 
     penDown(el, 50, 50);
@@ -919,23 +959,23 @@ describe('syntheticDrag sensor', () => {
     }
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(el.hasAttribute('draggable')).toBe(false);
 
     penDown(el, 50, 50);
     penMove(60, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
     penUp(60, 50);
   });
 
   it('a throwing preview build tears the whole pickup down and frees the engine', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let shouldThrow = true;
     engine.registerDraggable(el, () => ({
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
       dragPreview: {
         render: () => {
           if (shouldThrow) {
@@ -944,7 +984,7 @@ describe('syntheticDrag sensor', () => {
           return null;
         },
       },
-      onDragStart,
+      onMoveStart,
     }));
 
     // The throw escapes the sensor (after its cleanup ran) and surfaces as an
@@ -961,7 +1001,7 @@ describe('syntheticDrag sensor', () => {
     }
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // The aborted commit undid everything the pickup had acquired: the source's
     // reservation and the root scroll lock.
     expect(el.hasAttribute('draggable')).toBe(false);
@@ -972,7 +1012,7 @@ describe('syntheticDrag sensor', () => {
     shouldThrow = false;
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     touchUp(50, 50);
   });
@@ -980,17 +1020,17 @@ describe('syntheticDrag sensor', () => {
   it('disabled never arms the pending phase', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
       disabled: true,
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(el, 50, 50);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // No pending phase: the source was never reserved.
     expect(el.hasAttribute('draggable')).toBe(false);
     // A long-press contextmenu is not suppressed either, unlike during a pending
@@ -1005,16 +1045,16 @@ describe('syntheticDrag sensor', () => {
   it('disabled flipping on during the press aborts the commit', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let disabled = false;
-    engine.registerDraggable(el, () => ({ disabled, onDragStart }));
+    engine.registerDraggable(el, () => ({ disabled, onMoveStart }));
 
     penDown(el, 50, 50);
     disabled = true;
     penMove(60, 50); // clears the threshold, but the commit re-checks `disabled`
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // The aborted commit tore the pending phase down.
     expect(el.hasAttribute('draggable')).toBe(false);
 
@@ -1024,8 +1064,8 @@ describe('syntheticDrag sensor', () => {
   it('unregistering during the press aborts the commit', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const cleanup = engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    const cleanup = engine.registerDraggable(el, { onMoveStart });
 
     penDown(el, 50, 50);
     // The draggable unregisters mid-press (unmount, feature flag flip); the
@@ -1034,7 +1074,7 @@ describe('syntheticDrag sensor', () => {
     penMove(60, 50); // clears the threshold
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // The aborted commit tore the pending phase down, restoring the source.
     expect(el.hasAttribute('draggable')).toBe(false);
 
@@ -1050,9 +1090,9 @@ describe('syntheticDrag sensor', () => {
     const handleB = document.createElement('div');
     handleB.getBoundingClientRect = () => new DOMRect(20, 0, 20, 20);
     el.appendChild(handleB);
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     let handle = handleA;
-    engine.registerDraggable(el, () => ({ dragHandle: () => handle, onDragStart }));
+    engine.registerDraggable(el, () => ({ dragHandle: () => handle, onMoveStart }));
 
     penDown(handleA, 10, 10);
     // The draggable swaps its handle during the press: the press that armed this
@@ -1062,7 +1102,7 @@ describe('syntheticDrag sensor', () => {
     penMove(20, 10); // clears the threshold
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(el.hasAttribute('draggable')).toBe(false);
 
     penUp(20, 10);
@@ -1075,16 +1115,16 @@ describe('syntheticDrag sensor', () => {
     handle.getBoundingClientRect = () => new DOMRect(0, 0, 20, 20);
     el.appendChild(handle);
 
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
       dragHandle: () => handle,
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(el, 100, 50); // target is el, not handle
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
 
     touchUp(100, 50);
   });
@@ -1095,23 +1135,23 @@ describe('syntheticDrag sensor', () => {
     const input = document.createElement('input');
     el.appendChild(input);
 
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     // Pressing an inline rename input and moving to select text must stay a text
     // selection: the drag would `preventDefault()` it away.
     touchDown(input, 50, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     touchUp(50, 50);
 
     // The draggable itself still picks up.
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
     act(() => cancelDrag());
     touchUp(50, 50);
   });
@@ -1131,16 +1171,16 @@ describe('syntheticDrag sensor', () => {
     const el = createElement();
     const control = createControl();
     el.appendChild(control);
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(control, 50, 50);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     touchUp(50, 50);
   });
 
@@ -1151,20 +1191,20 @@ describe('syntheticDrag sensor', () => {
     link.href = '/destination';
     el.appendChild(link);
 
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(link, 50, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     touchUp(50, 50);
 
     touchDown(el, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
     act(() => cancelDrag());
     touchUp(50, 50);
   });
@@ -1176,18 +1216,18 @@ describe('syntheticDrag sensor', () => {
     handle.getBoundingClientRect = () => new DOMRect(0, 0, 20, 20);
     el.appendChild(handle);
 
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
       dragHandle: () => handle,
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     // The nested-control rule excludes the pickup node itself, or the common
     // `<button>` drag handle would be permanently inert.
     touchDown(handle, 10, 10);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     act(() => cancelDrag());
     touchUp(10, 10);
@@ -1200,16 +1240,16 @@ describe('syntheticDrag sensor', () => {
     button.disabled = true;
     el.appendChild(button);
 
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     // A disabled control owns no gesture of its own, so it stays transparent.
     touchDown(button, 50, 50);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     act(() => cancelDrag());
     touchUp(50, 50);
@@ -1218,10 +1258,10 @@ describe('syntheticDrag sensor', () => {
   it('Escape cancels an active synthetic drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1229,10 +1269,10 @@ describe('syntheticDrag sensor', () => {
 
     dispatch(window, new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
-    expect(onDragEnd.mock.calls[0][1].reason).toBe('escape-key');
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd.mock.calls[0][1].reason).toBe('escape-key');
   });
 
   it.each([
@@ -1246,27 +1286,27 @@ describe('syntheticDrag sensor', () => {
   ])('names %s as the drag end reason', async (expected, endTheDrag) => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
     await flushRaf();
     act(() => endTheDrag(el));
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][1].reason).toBe(expected);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][1].reason).toBe(expected);
   });
 
   it('the Escape that cancels a drag does not reach other listeners', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     // A dialog-style consumer listening for Escape on the same document: the
@@ -1282,7 +1322,7 @@ describe('syntheticDrag sensor', () => {
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     dispatch(document, escape);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(escape.defaultPrevented).toBe(true);
     expect(overlayKeyDown).not.toHaveBeenCalled();
 
@@ -1294,10 +1334,10 @@ describe('syntheticDrag sensor', () => {
   it('Escape during the pending phase abandons the candidate before it activates', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     // Default pen activation is `distance: 5px`, so the gesture stays pending
     // until the stylus clears the threshold.
-    engine.registerDraggable(el, { onDragStart });
+    engine.registerDraggable(el, { onMoveStart });
 
     penDown(el, 50, 50);
     dispatch(window, new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -1309,14 +1349,14 @@ describe('syntheticDrag sensor', () => {
     // threshold after Escape does nothing.
     penMove(60, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
   });
 
   it('a pending-phase pointermove with no buttons pressed abandons the candidate (missed release)', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
 
     penDown(el, 50, 50);
 
@@ -1338,14 +1378,14 @@ describe('syntheticDrag sensor', () => {
     );
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     // Not left armed: the pending phase released the source it had reserved.
     expect(el.hasAttribute('draggable')).toBe(false);
 
     // A later move can't resurrect it either.
     penMove(80, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
   });
 
   it('suppresses the native dragstart a natively-draggable descendant starts from the same press', async () => {
@@ -1373,7 +1413,7 @@ describe('syntheticDrag sensor', () => {
     const el = createElement();
     // Mouse: no post-gesture contextmenu suppression is armed for it (that net
     // is touch/pen only), so this exercises the active phase's own listener.
-    engine.registerDraggable(el, { pointerActivation: { mouse: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { mouse: { type: 'immediate' } } });
 
     dispatch(
       el,
@@ -1411,7 +1451,7 @@ describe('syntheticDrag sensor', () => {
   it('locks the drag root while a drag is active and restores it on drop', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+    engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
     const root = document.documentElement;
     const previousTouchAction = root.style.touchAction;
@@ -1436,10 +1476,10 @@ describe('syntheticDrag sensor', () => {
   it('cancelDrag() cancels an active pointer drag and is a no-op when idle', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1448,14 +1488,14 @@ describe('syntheticDrag sensor', () => {
     act(() => {
       cancelDrag();
     });
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
 
     // Idle: cancelling again does nothing.
     act(() => {
       cancelDrag();
     });
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
   it('anchors the source grab offset at the press, not the activation input', async () => {
@@ -1482,7 +1522,7 @@ describe('syntheticDrag sensor', () => {
     await flushRaf();
 
     expect(onDrop).toHaveBeenCalledTimes(1);
-    const record = onDrop.mock.calls[0][0].self as DropTargetRecord;
+    const record = onDrop.mock.calls[0][0].target as DropTargetRecord;
     // Press-anchored: (95 − 30) / 200 = 0.325 → nearest of 8 steps is 0.375.
     // Activation-anchored would read (95 − 40) / 200 = 0.275 → 0.25.
     expect(record.getSnappedLocalPoint({ anchor: 'source' }).x).toBe(0.375);
@@ -1491,11 +1531,11 @@ describe('syntheticDrag sensor', () => {
   it('cancelDrag() during the pending phase abandons the candidate before it activates', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const onDragEnd = vi.fn();
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
     // Default pen activation is `distance: 5px`, so the gesture stays pending
     // until the stylus clears the threshold.
-    engine.registerDraggable(el, { onDragStart, onDragEnd });
+    engine.registerDraggable(el, { onMoveStart, onMoveEnd });
 
     penDown(el, 50, 50);
     act(() => {
@@ -1506,20 +1546,20 @@ describe('syntheticDrag sensor', () => {
     // gone: the source is released and clearing the threshold does nothing. A
     // consumer cancelling on, say, a dialog opening must not have the gesture
     // start a drag on the next move anyway.
-    expect(onDragEnd).not.toHaveBeenCalled();
+    expect(onMoveEnd).not.toHaveBeenCalled();
     expect(el.hasAttribute('draggable')).toBe(false);
     penMove(60, 50);
     await flushRaf();
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
   });
 
   it('reports an outside release (not canceled) when released outside any drop target', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1527,20 +1567,20 @@ describe('syntheticDrag sensor', () => {
     // Release over empty space — no drop target was ever entered.
     touchUp(60, 60);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(false);
-    expect(onDragEnd.mock.calls[0][0].dropTarget).toBeNull();
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].location.current.dropTargets).toEqual([]);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(false);
+    expect(onMoveEnd.mock.calls[0][0].dropTarget).toBeNull();
   });
 
   it('treats a pointermove with no buttons pressed as a cancel (missed release)', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
       modifiers: restrictToVerticalAxis,
-      onDragEnd,
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1563,8 +1603,8 @@ describe('syntheticDrag sensor', () => {
       }),
     );
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    const payload = onDragEnd.mock.calls[0][0];
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    const payload = onMoveEnd.mock.calls[0][0];
     expect(payload.canceled).toBe(true);
     // Constrained like every reported input: the axis lock pins x at the
     // activation x, so the cancel doesn't leak a raw coordinate the drag never
@@ -1576,28 +1616,28 @@ describe('syntheticDrag sensor', () => {
   it('pointercancel cancels the active drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
     await flushRaf();
     touchCancel();
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     // A browser cancellation is a cancel, not a drop over nothing.
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
   });
 
   it('pointercancel reports the last good input, not its own (0,0) coordinates', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1608,8 +1648,8 @@ describe('syntheticDrag sensor', () => {
     // the last reported input rather than snap the cancel to the origin.
     touchCancel();
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    const payload = onDragEnd.mock.calls[0][0];
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    const payload = onMoveEnd.mock.calls[0][0];
     expect(payload.canceled).toBe(true);
     expect(payload.location.current.input.clientX).toBe(80);
     expect(payload.location.current.input.clientY).toBe(90);
@@ -1618,10 +1658,10 @@ describe('syntheticDrag sensor', () => {
   it('visibility hidden cancels an active drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
@@ -1634,9 +1674,9 @@ describe('syntheticDrag sensor', () => {
     try {
       dispatch(document, new Event('visibilitychange'));
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
       // Hiding the tab is a cancel, not a drop over nothing.
-      expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+      expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
     } finally {
       // Restore in `finally` so a failed assertion can't leave the document stuck
       // `hidden` and cascade into every later test.
@@ -1650,18 +1690,18 @@ describe('syntheticDrag sensor', () => {
   it('pointerup invokes the drop lifecycle', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50);
     await flushRaf();
     touchUp(120, 80);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    const dropPayload = onDragEnd.mock.calls[0][0];
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    const dropPayload = onMoveEnd.mock.calls[0][0];
     expect(dropPayload.location.current.input.clientX).toBe(120);
     expect(dropPayload.location.current.input.clientY).toBe(80);
   });
@@ -1669,30 +1709,30 @@ describe('syntheticDrag sensor', () => {
   it('payload pointerType is "touch" for synthetic drags', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
     });
 
     touchDown(el, 10, 10);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    const payload = onDragStart.mock.calls[0][0];
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    const payload = onMoveStart.mock.calls[0][0];
     expect(payload.location.current.input.pointerType).toBe('touch');
 
     touchUp(10, 10);
   });
 
-  it('synthetic drag surfaces onDrag to monitors', async () => {
+  it('synthetic drag surfaces onMove to monitors', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDrag = vi.fn();
+    const onMove = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
     });
-    engine.registerMonitor({ onDrag });
+    engine.registerMonitor({ onMove });
 
     touchDown(el, 10, 10);
     await flushRaf();
@@ -1707,13 +1747,13 @@ describe('syntheticDrag sensor', () => {
     // a stationary pointer, so the last delivered event is asserted, plus the
     // invariant that no event reports a point the pointer never visited. (The
     // first delivered event is the pickup-position resolve, at 10,10.)
-    expect(onDrag).toHaveBeenCalled();
+    expect(onMove).toHaveBeenCalled();
     const sampled = ['10,10', '30,30'];
-    for (const [payload] of onDrag.mock.calls) {
+    for (const [payload] of onMove.mock.calls) {
       const { clientX, clientY } = payload.location.current.input;
       expect(sampled).toContain(`${clientX},${clientY}`);
     }
-    const lastMonitorInput = onDrag.mock.lastCall![0].location.current.input;
+    const lastMonitorInput = onMove.mock.lastCall![0].location.current.input;
     expect(lastMonitorInput.clientX).toBe(30);
     expect(lastMonitorInput.clientY).toBe(30);
 
@@ -1727,10 +1767,10 @@ describe('syntheticDrag sensor', () => {
     ])('a %s-button pointerdown never arms a gesture', async (_name, button) => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
+      const onMoveStart = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDragStart,
+        activation: { mouse: { type: 'immediate' } },
+        onMoveStart,
       });
 
       dispatch(
@@ -1751,15 +1791,15 @@ describe('syntheticDrag sensor', () => {
       );
       await flushRaf();
 
-      expect(onDragStart).not.toHaveBeenCalled();
+      expect(onMoveStart).not.toHaveBeenCalled();
     });
 
     it('a non-primary pointerup during the pending phase does not clear the candidate', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
+      const onMoveStart = vi.fn();
       // Default pen activation: 5px distance, so the gesture stays pending.
-      engine.registerDraggable(el, { onDragStart });
+      engine.registerDraggable(el, { onMoveStart });
 
       penDown(el, 50, 50);
       // A right-button release while the primary is still held: on `pointerup`,
@@ -1781,7 +1821,7 @@ describe('syntheticDrag sensor', () => {
       // The candidate survived: clearing the distance threshold still activates.
       penMove(60, 50);
       await flushRaf();
-      expect(onDragStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
 
       penUp(60, 50);
     });
@@ -1789,8 +1829,8 @@ describe('syntheticDrag sensor', () => {
     it('a chorded primary release during the pending phase clears the candidate', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
-      engine.registerDraggable(el, { onDragStart });
+      const onMoveStart = vi.fn();
+      engine.registerDraggable(el, { onMoveStart });
 
       penDown(el, 50, 50);
       // The primary button comes up while another is still held: the browser
@@ -1814,13 +1854,13 @@ describe('syntheticDrag sensor', () => {
       // The abandoned candidate cannot activate later...
       penMove(60, 50);
       await flushRaf();
-      expect(onDragStart).not.toHaveBeenCalled();
+      expect(onMoveStart).not.toHaveBeenCalled();
 
       // ...and a fresh pickup still drags.
       penDown(el, 50, 50);
       penMove(60, 50);
       await flushRaf();
-      expect(onDragStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
 
       penUp(60, 50);
     });
@@ -1828,10 +1868,10 @@ describe('syntheticDrag sensor', () => {
     it('a secondary-button pointerup mid-drag does not end the drag', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragEnd = vi.fn();
+      const onMoveEnd = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDragEnd,
+        activation: { mouse: { type: 'immediate' } },
+        onMoveEnd,
       });
 
       dispatch(
@@ -1867,7 +1907,7 @@ describe('syntheticDrag sensor', () => {
       );
       await flushRaf();
 
-      expect(onDragEnd).not.toHaveBeenCalled();
+      expect(onMoveEnd).not.toHaveBeenCalled();
 
       // The primary release still drops, so the drag was live all along.
       dispatch(
@@ -1885,18 +1925,18 @@ describe('syntheticDrag sensor', () => {
       );
       await flushRaf();
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
     });
 
     it('a chorded primary release mid-drag drops at that position (not a cancel)', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
-      const onDragEnd = vi.fn();
+      const onMoveStart = vi.fn();
+      const onMoveEnd = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { mouse: { type: 'immediate' } },
-        onDragStart,
-        onDragEnd,
+        activation: { mouse: { type: 'immediate' } },
+        onMoveStart,
+        onMoveEnd,
       });
 
       dispatch(
@@ -1913,7 +1953,7 @@ describe('syntheticDrag sensor', () => {
         }),
       );
       await flushRaf();
-      expect(onDragStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
 
       // The primary button comes up while the right button is still held: the
       // browser reports it as a pointermove whose `buttons` lost the primary
@@ -1932,8 +1972,8 @@ describe('syntheticDrag sensor', () => {
         }),
       );
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
-      const payload = onDragEnd.mock.calls[0][0];
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
+      const payload = onMoveEnd.mock.calls[0][0];
       // Released over empty space, so the drop lands on no target (`dropTarget`
       // is `null`) — crucially not canceled.
       expect(payload.canceled).toBe(false);
@@ -1956,7 +1996,7 @@ describe('syntheticDrag sensor', () => {
         }),
       );
       await flushRaf();
-      expect(onDragStart).toHaveBeenCalledTimes(2);
+      expect(onMoveStart).toHaveBeenCalledTimes(2);
 
       dispatch(
         el,
@@ -1971,7 +2011,7 @@ describe('syntheticDrag sensor', () => {
           cancelable: true,
         }),
       );
-      expect(onDragEnd).toHaveBeenCalledTimes(2);
+      expect(onMoveEnd).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1982,7 +2022,7 @@ describe('syntheticDrag sensor', () => {
 
     const onDrop = vi.fn();
     engine.registerDraggable(src, {
-      pointerActivation: { touch: { type: 'immediate' } },
+      activation: { touch: { type: 'immediate' } },
     });
     engine.registerDropTarget(tgt, { onDrop });
 
@@ -2006,21 +2046,21 @@ describe('syntheticDrag sensor', () => {
   it('ignores a second pointerdown while a drag is already active (multi-touch)', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const onDragEnd = vi.fn();
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragStart,
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart,
+      onMoveEnd,
     });
 
     // First finger lands and immediately activates.
     touchDown(el, 50, 50, 1);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     // Second finger lands on the same draggable. The active session should
-    // ignore it: no second drag, no extra onDragStart fires.
+    // ignore it: no second drag, no extra onMoveStart fires.
     const secondFinger = new PointerEvent('pointerdown', {
       pointerType: 'touch',
       pointerId: 2,
@@ -2033,7 +2073,7 @@ describe('syntheticDrag sensor', () => {
     });
     dispatch(el, secondFinger);
     await flushRaf();
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
 
     // Pointer move from the second finger must NOT update the drag (which
     // tracks pointerId === 1).
@@ -2057,15 +2097,15 @@ describe('syntheticDrag sensor', () => {
       cancelable: true,
     });
     dispatch(getTouchDownTarget(), secondUp);
-    expect(onDragEnd).not.toHaveBeenCalled();
+    expect(onMoveEnd).not.toHaveBeenCalled();
 
     // Ending the original finger ends the drag, at that finger's position — not
     // at the second finger's (80, 80).
     touchUp(50, 50, 1);
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    const dropInput = onDragEnd.mock.calls[0][0].location.current.input;
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    const dropInput = onMoveEnd.mock.calls[0][0].location.current.input;
     expect(dropInput.clientX).toBe(50);
     expect(dropInput.clientY).toBe(50);
   });
@@ -2073,10 +2113,10 @@ describe('syntheticDrag sensor', () => {
   it('does not end an active touch drag on a stray touchend (pointer stream owns termination)', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     touchDown(el, 50, 50, 1);
@@ -2086,20 +2126,20 @@ describe('syntheticDrag sensor', () => {
     // for that finger. The drag follows the pointer stream (filtered by
     // `pointerId`), so a stray touch event must not end it at the wrong spot.
     dispatchTouchEvent('touchend', 80, 80);
-    expect(onDragEnd).not.toHaveBeenCalled();
+    expect(onMoveEnd).not.toHaveBeenCalled();
 
     // The dragging finger's pointerup still ends the drag.
     touchUp(50, 50, 1);
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
   it('drops correctly when pointerup fires outside the original drop target (off-window)', async () => {
     const { engine } = await renderDnd();
     const src = createElement();
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(src, {
-      pointerActivation: { touch: { type: 'immediate' } },
-      onDragEnd,
+      activation: { touch: { type: 'immediate' } },
+      onMoveEnd,
     });
 
     // Force `elementFromPoint` to return null — mimics a pointerup whose
@@ -2115,12 +2155,12 @@ describe('syntheticDrag sensor', () => {
       await flushRaf();
 
       // pointerup with a target-less elementFromPoint result must still
-      // fire `onDragEnd` (cancel-shaped: dropTargets empty), not leave the
+      // fire `onMoveEnd` (cancel-shaped: dropTargets empty), not leave the
       // engine stuck.
       touchUp(-50, -50);
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
-      const payload = onDragEnd.mock.calls[0][0];
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
+      const payload = onMoveEnd.mock.calls[0][0];
       expect(payload.location.current.dropTargets).toEqual([]);
     } finally {
       document.elementFromPoint = originalEFP;
@@ -2130,12 +2170,12 @@ describe('syntheticDrag sensor', () => {
   it('routes a mouse pointerdown through the synthetic path', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const onDragEnd = vi.fn();
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerDraggable(el, {
-      onDragStart,
-      onDragEnd,
-      pointerActivation: { mouse: { type: 'immediate' } },
+      onMoveStart,
+      onMoveEnd,
+      activation: { mouse: { type: 'immediate' } },
     });
 
     // Explicit `immediate` activation, so pointerdown commits the drag at once.
@@ -2152,12 +2192,12 @@ describe('syntheticDrag sensor', () => {
     dispatch(el, mouse);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart).toHaveBeenCalledWith(
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledWith(
       expect.objectContaining({ mode: 'pointer' }),
       expect.objectContaining({ reason: 'pointer' }),
     );
-    expect(onDragStart.mock.calls[0][0].location.current.input.pointerType).toBe('mouse');
+    expect(onMoveStart.mock.calls[0][0].location.current.input.pointerType).toBe('mouse');
 
     // Pointerup on the original target ends the drag via the synthetic path.
     dispatch(
@@ -2171,7 +2211,7 @@ describe('syntheticDrag sensor', () => {
         cancelable: true,
       }),
     );
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
   it('completes a real mouse drop over a target despite the trailing lostpointercapture', async () => {
@@ -2182,8 +2222,8 @@ describe('syntheticDrag sensor', () => {
     const sourceOnDrop = vi.fn();
     const targetOnDrop = vi.fn();
     engine.registerDraggable(src, {
-      onDragEnd: sourceOnDrop,
-      pointerActivation: { mouse: { type: 'immediate' } },
+      onMoveEnd: sourceOnDrop,
+      activation: { mouse: { type: 'immediate' } },
     });
     engine.registerDropTarget(tgt, { onDrop: targetOnDrop });
 
@@ -2262,151 +2302,15 @@ describe('syntheticDrag sensor', () => {
 
     // The refusal also undid every pointer-phase resource the commit had
     // acquired: the root scroll lock is off (the keyboard sensor never takes
-    // it) and no drag cursor is pinned.
+    // it).
     expect(document.documentElement.style.getPropertyValue('touch-action')).toBe('');
     expect(document.documentElement.style.userSelect).toBe('');
-    expect(document.documentElement.classList.contains('baseui-dragging')).toBe(false);
-  });
-
-  describe('drag cursor', () => {
-    /**
-     * The cursor forced across the document while a drag is active, or `null`
-     * when none is pinned. The engine keeps one scoped `html.baseui-dragging *`
-     * rule injected and toggles the `baseui-dragging` class plus the
-     * `--drag-cursor` variable per drag, so the active cursor is read off the
-     * document root rather than from the (persistent) stylesheet text.
-     */
-    function activeCursorRule(): string | null {
-      const root = document.documentElement;
-      if (!root.classList.contains('baseui-dragging')) {
-        return null;
-      }
-      return root.style.getPropertyValue('--drag-cursor') || null;
-    }
-
-    function mouseDown(target: EventTarget, x: number, y: number): void {
-      dispatch(
-        target,
-        new PointerEvent('pointerdown', {
-          pointerType: 'mouse',
-          pointerId: 9,
-          clientX: x,
-          clientY: y,
-          button: 0,
-          buttons: 1,
-          bubbles: true,
-          cancelable: true,
-        }),
-      );
-    }
-
-    function mouseUp(target: EventTarget, x: number, y: number): void {
-      dispatch(
-        target,
-        new PointerEvent('pointerup', {
-          pointerType: 'mouse',
-          pointerId: 9,
-          clientX: x,
-          clientY: y,
-          bubbles: true,
-          cancelable: true,
-        }),
-      );
-    }
-
-    it('pins "grabbing" across the document during a mouse drag and clears it on drop', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { mouse: { type: 'immediate' } } });
-
-      expect(activeCursorRule()).toBeNull();
-
-      mouseDown(el, 50, 50);
-      await flushRaf();
-      expect(activeCursorRule()).toBe('grabbing');
-
-      mouseUp(el, 80, 80);
-      expect(activeCursorRule()).toBeNull();
-    });
-
-    it('never pins the cursor for a drag that ends inside its own lift frame', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { mouse: { type: 'immediate' } } });
-
-      // The lock is deferred a frame so its document-wide style invalidation does
-      // not land on the frame that builds the clone. A drag that is over before
-      // that frame runs must cancel it — otherwise it applies after teardown, at
-      // lock depth 0, and `grabbing` stays pinned over the page for good.
-      mouseDown(el, 50, 50);
-      mouseUp(el, 50, 50);
-      await flushRaf();
-      await flushRaf();
-
-      expect(activeCursorRule()).toBeNull();
-    });
-
-    it('clears the cursor when a drag is cancelled', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { mouse: { type: 'immediate' } } });
-
-      mouseDown(el, 50, 50);
-      await flushRaf();
-      expect(activeCursorRule()).not.toBeNull();
-
-      // Escape cancels the active drag.
-      dispatch(window, new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      expect(activeCursorRule()).toBeNull();
-    });
-
-    it('applies a custom dragCursor value', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, {
-        dragCursor: 'move',
-        pointerActivation: { mouse: { type: 'immediate' } },
-      });
-
-      mouseDown(el, 50, 50);
-      await flushRaf();
-      expect(activeCursorRule()).toBe('move');
-
-      mouseUp(el, 80, 80);
-    });
-
-    it('does not pin a cursor when dragCursor is false', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, {
-        dragCursor: false,
-        pointerActivation: { mouse: { type: 'immediate' } },
-      });
-
-      mouseDown(el, 50, 50);
-      await flushRaf();
-      expect(activeCursorRule()).toBeNull();
-
-      mouseUp(el, 80, 80);
-    });
-
-    it('does not pin a cursor during a touch drag (touch has no cursor)', async () => {
-      const { engine } = await renderDnd();
-      const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
-
-      touchDown(el, 50, 50);
-      await flushRaf();
-      expect(activeCursorRule()).toBeNull();
-
-      touchUp(50, 50);
-    });
   });
 
   // The active-phase rAF re-resolves the drop target from the *last* pointer
   // sample every frame. A stationary pointer must not keep re-resolving:
   // otherwise a reorder sliding a new element under the stale point re-fires
-  // onDrag → consumer reorder → runaway (forward/down-right biased). Resolution
+  // onMove → consumer reorder → runaway (forward/down-right biased). Resolution
   // is gated on real change — the pointer moving, or content scrolling.
   describe('idle-frame gating', () => {
     async function setupStationaryDrag() {
@@ -2414,11 +2318,11 @@ describe('syntheticDrag sensor', () => {
       const src = createElement();
       const tgtA = createElement();
       const tgtB = createElement();
-      const onDropTargetChange = vi.fn();
-      engine.registerDraggable(src, { pointerActivation: { touch: { type: 'immediate' } } });
+      const onTargetChange = vi.fn();
+      engine.registerDraggable(src, { activation: { touch: { type: 'immediate' } } });
       engine.registerDropTarget(tgtA, {});
       engine.registerDropTarget(tgtB, {});
-      engine.registerMonitor({ onDropTargetChange });
+      engine.registerMonitor({ onTargetChange });
 
       const originalEFP = document.elementFromPoint;
       const state = { hit: tgtA as Element };
@@ -2428,18 +2332,18 @@ describe('syntheticDrag sensor', () => {
         document.elementFromPoint = originalEFP;
       });
 
-      return { src, tgtA, tgtB, onDropTargetChange, efp, state };
+      return { src, tgtA, tgtB, onTargetChange, efp, state };
     }
 
     it('does not re-resolve while the pointer is stationary and content shifts', async () => {
-      const { src, tgtB, onDropTargetChange, efp, state } = await setupStationaryDrag();
+      const { src, tgtB, onTargetChange, efp, state } = await setupStationaryDrag();
 
       touchDown(src, 10, 10);
       await flushRaf();
       await flushRaf();
 
       const efpCalls = efp.mock.calls.length;
-      const changes = onDropTargetChange.mock.calls.length;
+      const changes = onTargetChange.mock.calls.length;
 
       // Simulate a reorder sliding a new element under the *stationary* point.
       state.hit = tgtB;
@@ -2449,20 +2353,20 @@ describe('syntheticDrag sensor', () => {
 
       // No pointer move, no scroll → no re-resolution, no target-stack churn.
       expect(efp.mock.calls.length).toBe(efpCalls);
-      expect(onDropTargetChange.mock.calls.length).toBe(changes);
+      expect(onTargetChange.mock.calls.length).toBe(changes);
 
       touchUp(10, 10);
     });
 
     it('re-resolves exactly once after a scroll while the pointer is stationary', async () => {
-      const { src, tgtB, onDropTargetChange, efp, state } = await setupStationaryDrag();
+      const { src, tgtB, onTargetChange, efp, state } = await setupStationaryDrag();
 
       touchDown(src, 10, 10);
       await flushRaf();
       await flushRaf();
 
       const efpCalls = efp.mock.calls.length;
-      const changes = onDropTargetChange.mock.calls.length;
+      const changes = onTargetChange.mock.calls.length;
 
       // Content scrolls a new element under the stationary point.
       state.hit = tgtB;
@@ -2472,7 +2376,7 @@ describe('syntheticDrag sensor', () => {
 
       // The scroll forced one re-resolution, which moved the target stack.
       expect(efp.mock.calls.length).toBe(efpCalls + 1);
-      expect(onDropTargetChange.mock.calls.length).toBe(changes + 1);
+      expect(onTargetChange.mock.calls.length).toBe(changes + 1);
 
       // The flag is single-shot: a later idle frame does not re-resolve again.
       const efpAfterScroll = efp.mock.calls.length;
@@ -2483,14 +2387,14 @@ describe('syntheticDrag sensor', () => {
     });
 
     it('re-resolves exactly once after notifyExternalScroll() while the pointer is stationary', async () => {
-      const { src, tgtB, onDropTargetChange, efp, state } = await setupStationaryDrag();
+      const { src, tgtB, onTargetChange, efp, state } = await setupStationaryDrag();
 
       touchDown(src, 10, 10);
       await flushRaf();
       await flushRaf();
 
       const efpCalls = efp.mock.calls.length;
-      const changes = onDropTargetChange.mock.calls.length;
+      const changes = onTargetChange.mock.calls.length;
 
       // A scroll inside a shadow root doesn't compose, so the document capture
       // listener never sees it; the auto-scroller reports it through this hook.
@@ -2500,7 +2404,7 @@ describe('syntheticDrag sensor', () => {
       await flushRaf();
 
       expect(efp.mock.calls.length).toBe(efpCalls + 1);
-      expect(onDropTargetChange.mock.calls.length).toBe(changes + 1);
+      expect(onTargetChange.mock.calls.length).toBe(changes + 1);
 
       touchUp(10, 10);
     });
@@ -2520,7 +2424,7 @@ describe('syntheticDrag sensor', () => {
       inner.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
       scroller.appendChild(inner);
       const onDragEnter = vi.fn();
-      engine.registerDraggable(src, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(src, { activation: { touch: { type: 'immediate' } } });
       engine.registerDropTarget(inner, { onDragEnter });
 
       const originalEFP = document.elementFromPoint;
@@ -2564,7 +2468,7 @@ describe('syntheticDrag sensor', () => {
       const sibling = document.createElement('div');
       scroller.append(inner, sibling);
       const onDragEnter = vi.fn();
-      engine.registerDraggable(src, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(src, { activation: { touch: { type: 'immediate' } } });
       const releaseSibling = engine.registerDropTarget(sibling, {});
       engine.registerDropTarget(inner, { onDragEnter });
 
@@ -2593,14 +2497,14 @@ describe('syntheticDrag sensor', () => {
     });
 
     it('re-resolves when the pointer actually moves', async () => {
-      const { src, tgtB, onDropTargetChange, efp, state } = await setupStationaryDrag();
+      const { src, tgtB, onTargetChange, efp, state } = await setupStationaryDrag();
 
       touchDown(src, 10, 10);
       await flushRaf();
       await flushRaf();
 
       const efpCalls = efp.mock.calls.length;
-      const changes = onDropTargetChange.mock.calls.length;
+      const changes = onTargetChange.mock.calls.length;
 
       // A genuine move opens the gate and re-resolves.
       state.hit = tgtB;
@@ -2609,20 +2513,20 @@ describe('syntheticDrag sensor', () => {
       await flushRaf();
 
       expect(efp.mock.calls.length).toBeGreaterThan(efpCalls);
-      expect(onDropTargetChange.mock.calls.length).toBe(changes + 1);
+      expect(onTargetChange.mock.calls.length).toBe(changes + 1);
 
       touchUp(10, 40);
     });
 
     it('re-resolves on a move reporting the same coordinates as the previous one', async () => {
-      const { src, tgtB, onDropTargetChange, efp, state } = await setupStationaryDrag();
+      const { src, tgtB, onTargetChange, efp, state } = await setupStationaryDrag();
 
       touchDown(src, 10, 10);
       await flushRaf();
       await flushRaf();
 
       const efpCalls = efp.mock.calls.length;
-      const changes = onDropTargetChange.mock.calls.length;
+      const changes = onTargetChange.mock.calls.length;
 
       // Gating is on pointer *activity*, not on a coordinate delta: a browser
       // can report a move at the coordinates it last reported (sub-pixel
@@ -2635,7 +2539,7 @@ describe('syntheticDrag sensor', () => {
       await flushRaf();
 
       expect(efp.mock.calls.length).toBeGreaterThan(efpCalls);
-      expect(onDropTargetChange.mock.calls.length).toBe(changes + 1);
+      expect(onTargetChange.mock.calls.length).toBe(changes + 1);
 
       touchUp(10, 10);
     });
@@ -2700,7 +2604,7 @@ describe('syntheticDrag sensor', () => {
       const el = createElement();
       const { modifier, seen } = makeShiftProbe();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: modifier,
       });
 
@@ -2716,7 +2620,7 @@ describe('syntheticDrag sensor', () => {
       const el = createElement();
       const { modifier, seen } = makeShiftProbe();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: modifier,
       });
 
@@ -2743,9 +2647,9 @@ describe('syntheticDrag sensor', () => {
       // would leave the second stale while the first still looked right.
       const reported: Array<{ input: boolean; event: boolean }> = [];
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: modifier,
-        onDrag: ({ location }, eventDetails) => {
+        onMove: ({ location }, eventDetails) => {
           reported.push({
             input: location.current.input.shiftKey,
             event: (eventDetails.event as KeyboardEvent | PointerEvent).shiftKey,
@@ -2781,7 +2685,7 @@ describe('syntheticDrag sensor', () => {
       const el = createElement();
       const { modifier, seen } = makeShiftProbe();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: modifier,
       });
 
@@ -2800,20 +2704,20 @@ describe('syntheticDrag sensor', () => {
     it('constrains every reported input, shifting pageX by the same delta as clientX', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
-      const onDrag = vi.fn();
+      const onMoveStart = vi.fn();
+      const onMove = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: restrictToVerticalAxis,
-        onDragStart,
+        onMoveStart,
       });
-      engine.registerMonitor({ onDrag });
+      engine.registerMonitor({ onMove });
 
       touchDown(el, 50, 50);
       await flushRaf();
 
-      expect(onDragStart).toHaveBeenCalledTimes(1);
-      const startInput = onDragStart.mock.calls[0][0].location.current.input;
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
+      const startInput = onMoveStart.mock.calls[0][0].location.current.input;
       // The reference the page-coordinate assertion below compares against: the
       // raw events all share one page/client delta, and `remapInput` must
       // preserve it by shifting pageX exactly as far as it shifted clientX.
@@ -2823,19 +2727,19 @@ describe('syntheticDrag sensor', () => {
       await flushRaf();
       touchMove(120, 130);
       await flushRaf();
-      // The sensor's frame resolves the move; `onDrag` is dispatched from the
+      // The sensor's frame resolves the move; `onMove` is dispatched from the
       // lifecycle's own frame after it.
       await flushRaf();
 
-      expect(onDrag).toHaveBeenCalled();
-      for (const [payload] of onDrag.mock.calls) {
+      expect(onMove).toHaveBeenCalled();
+      for (const [payload] of onMove.mock.calls) {
         const input = payload.location.current.input;
         // The axis lock pins x at the activation x; y follows the pointer.
         expect(input.clientX).toBe(50);
         expect(input.pageX - input.clientX).toBe(pageDelta);
         expect(input.pageY - input.clientY).toBe(pageDelta);
       }
-      const lastInput = onDrag.mock.lastCall![0].location.current.input;
+      const lastInput = onMove.mock.lastCall![0].location.current.input;
       expect(lastInput.clientY).toBe(130);
 
       touchUp(120, 130);
@@ -2845,12 +2749,12 @@ describe('syntheticDrag sensor', () => {
       const { engine } = await renderDnd();
       const el = createElement();
       const tgt = createElement();
-      const onDragEnd = vi.fn();
+      const onMoveEnd = vi.fn();
       const onDrop = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: restrictToVerticalAxis,
-        onDragEnd,
+        onMoveEnd,
       });
       engine.registerDropTarget(tgt, { onDrop });
 
@@ -2869,8 +2773,8 @@ describe('syntheticDrag sensor', () => {
 
       expect(efp).toHaveBeenLastCalledWith(50, 80);
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
-      const dropInput = onDragEnd.mock.calls[0][0].location.current.input;
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
+      const dropInput = onMoveEnd.mock.calls[0][0].location.current.input;
       expect(dropInput.clientX).toBe(50);
       expect(dropInput.clientY).toBe(80);
     });
@@ -2878,14 +2782,14 @@ describe('syntheticDrag sensor', () => {
     it('contains a throwing modifier and commits the move unconstrained', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDrag = vi.fn();
+      const onMove = vi.fn();
       engine.registerDraggable(el, {
-        pointerActivation: { touch: { type: 'immediate' } },
+        activation: { touch: { type: 'immediate' } },
         modifiers: () => {
           throw new Error('modifier boom');
         },
       });
-      engine.registerMonitor({ onDrag });
+      engine.registerMonitor({ onMove });
 
       // The throw must be contained (logged, not uncaught): an uncaught throw
       // inside the sensor's frame would strand the whole gesture.
@@ -2895,7 +2799,7 @@ describe('syntheticDrag sensor', () => {
         await flushRaf();
         touchMove(80, 90);
         await flushRaf();
-        // The sensor's frame resolves the move; `onDrag` is dispatched from the
+        // The sensor's frame resolves the move; `onMove` is dispatched from the
         // lifecycle's own frame after it.
         await flushRaf();
         touchUp(80, 90);
@@ -2909,8 +2813,8 @@ describe('syntheticDrag sensor', () => {
       }
 
       // The drag proceeded, with each move committed unconstrained.
-      expect(onDrag).toHaveBeenCalled();
-      const lastInput = onDrag.mock.lastCall![0].location.current.input;
+      expect(onMove).toHaveBeenCalled();
+      const lastInput = onMove.mock.lastCall![0].location.current.input;
       expect(lastInput.clientX).toBe(80);
       expect(lastInput.clientY).toBe(90);
     });
@@ -2918,33 +2822,33 @@ describe('syntheticDrag sensor', () => {
     it('anchors an axis lock at the activation point, not the pointerdown point', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      const onDragStart = vi.fn();
-      const onDrag = vi.fn();
+      const onMoveStart = vi.fn();
+      const onMove = vi.fn();
       // Default pen activation is `distance: 5px`, so the drag activates on the
       // move that clears the threshold — at (60, 50), not the (50, 50) press.
       engine.registerDraggable(el, {
         modifiers: restrictToVerticalAxis,
-        onDragStart,
+        onMoveStart,
       });
-      engine.registerMonitor({ onDrag });
+      engine.registerMonitor({ onMove });
 
       penDown(el, 50, 50);
       penMove(60, 50); // 10px from origin — clears the 5px threshold
       await flushRaf();
-      expect(onDragStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
       // The session's first input is the (constrained) activation point.
-      expect(onDragStart.mock.calls[0][0].location.current.input.clientX).toBe(60);
+      expect(onMoveStart.mock.calls[0][0].location.current.input.clientX).toBe(60);
 
       penMove(100, 90);
       await flushRaf();
-      await flushRaf(); // see the pageX test: `onDrag` lands a frame later
+      await flushRaf(); // see the pageX test: `onMove` lands a frame later
 
       // Every move stays pinned to the activation x (60), not the press x (50).
-      expect(onDrag).toHaveBeenCalled();
-      for (const [payload] of onDrag.mock.calls) {
+      expect(onMove).toHaveBeenCalled();
+      for (const [payload] of onMove.mock.calls) {
         expect(payload.location.current.input.clientX).toBe(60);
       }
-      const lastInput = onDrag.mock.lastCall![0].location.current.input;
+      const lastInput = onMove.mock.lastCall![0].location.current.input;
       expect(lastInput.clientY).toBe(90);
 
       penUp(100, 90);
@@ -2999,8 +2903,8 @@ describe('syntheticDrag sensor', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const other = createElement();
-    const onBeforeDragStart = vi.fn();
-    engine.registerDraggable(el, { onBeforeDragStart });
+    const onBeforeMoveStart = vi.fn();
+    engine.registerDraggable(el, { onBeforeMoveStart });
     engine.registerDraggable(other, {});
 
     // Press and hold without crossing the threshold: the gesture is pending.
@@ -3038,7 +2942,7 @@ describe('syntheticDrag sensor', () => {
     );
     await flushRaf();
 
-    expect(onBeforeDragStart).not.toHaveBeenCalled();
+    expect(onBeforeMoveStart).not.toHaveBeenCalled();
     expect(dragSessionStore.getSnapshot()?.source.element).toBe(other);
 
     act(() => cancelDrag());
@@ -3048,7 +2952,7 @@ describe('syntheticDrag sensor', () => {
     it('swallows the compatibility click that follows a drag', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
       // An outside-press dismisser: document-level, capture — exactly what the
       // retargeted click would otherwise reach.
@@ -3075,7 +2979,7 @@ describe('syntheticDrag sensor', () => {
     it('disarms itself after the click window when no click and no further gesture arrive', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
       const onClick = vi.fn();
       document.addEventListener('click', onClick, { capture: true });
@@ -3161,7 +3065,7 @@ describe('syntheticDrag sensor', () => {
     it('keeps the held-pointer suppression through a second finger tapping', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
       const onClick = vi.fn();
       document.addEventListener('click', onClick, { capture: true });
@@ -3226,7 +3130,7 @@ describe('syntheticDrag sensor', () => {
     it('does not swallow a click from the next gesture when no compatibility click arrives', async () => {
       const { engine } = await renderDnd();
       const el = createElement();
-      engine.registerDraggable(el, { pointerActivation: { touch: { type: 'immediate' } } });
+      engine.registerDraggable(el, { activation: { touch: { type: 'immediate' } } });
 
       const onClick = vi.fn();
       document.addEventListener('click', onClick, { capture: true });
@@ -3334,8 +3238,8 @@ describe('syntheticDrag sensor', () => {
     it('drops when every move carries buttons: 1', async () => {
       const { engine } = await renderDnd();
       const source = createElement();
-      const onDragEnd = vi.fn();
-      engine.registerDraggable(source, { onDragEnd });
+      const onMoveEnd = vi.fn();
+      engine.registerDraggable(source, { onMoveEnd });
 
       pointerDown(source);
       pointerMove(40, 1);
@@ -3345,17 +3249,17 @@ describe('syntheticDrag sensor', () => {
         new PointerEvent('pointerup', { pointerId: 1, clientX: 0, clientY: 120, bubbles: true }),
       );
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
       // jsdom cannot hit-test, so the drop resolves to no target rather than throwing.
-      expect(onDragEnd.mock.calls[0][1].reason).toBe('outside-release');
+      expect(onMoveEnd.mock.calls[0][1].reason).toBe('outside-release');
     });
 
     it('never starts a drag when the move that would commit it omits buttons', async () => {
       const { engine } = await renderDnd();
       const source = createElement();
-      const onDragStart = vi.fn();
-      const onDragEnd = vi.fn();
-      engine.registerDraggable(source, { onDragStart, onDragEnd });
+      const onMoveStart = vi.fn();
+      const onMoveEnd = vi.fn();
+      engine.registerDraggable(source, { onMoveStart, onMoveEnd });
 
       pointerDown(source);
       pointerMove(40, 0);
@@ -3363,21 +3267,21 @@ describe('syntheticDrag sensor', () => {
 
       // The pending gesture is abandoned before it commits, so nothing fires at
       // all — not even a cancel.
-      expect(onDragStart).not.toHaveBeenCalled();
-      expect(onDragEnd).not.toHaveBeenCalled();
+      expect(onMoveStart).not.toHaveBeenCalled();
+      expect(onMoveEnd).not.toHaveBeenCalled();
     });
 
     it('cancels with missed-release when buttons drops to 0 mid-drag', async () => {
       const { engine } = await renderDnd();
       const source = createElement();
-      const onDragEnd = vi.fn();
-      engine.registerDraggable(source, { onDragEnd });
+      const onMoveEnd = vi.fn();
+      engine.registerDraggable(source, { onMoveEnd });
 
       pointerDown(source);
       pointerMove(40, 1);
       pointerMove(80, 0);
 
-      expect(onDragEnd.mock.calls.map((call) => call[1].reason)).toEqual(['missed-release']);
+      expect(onMoveEnd.mock.calls.map((call) => call[1].reason)).toEqual(['missed-release']);
     });
   });
 });

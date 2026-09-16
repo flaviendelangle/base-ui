@@ -25,7 +25,6 @@ interface DragSessionSlot {
   sourceStore: Store<DragSource | null>;
   sourceSnapshot: DragSource | null;
   sourceVersion: number;
-  sourceStoreSubscription?: (() => void) | undefined;
   targetListeners: Map<Element, Set<() => void>>;
   allTargetListeners: Set<() => void>;
 }
@@ -38,19 +37,13 @@ const slot = getSharedSlot<DragSessionSlot>('dragSessionStore', () => ({
   targetListeners: new Map<Element, Set<() => void>>(),
   allTargetListeners: new Set<() => void>(),
 }));
-// Forward-compatible with a slot created by an older copy during development.
-slot.sourceStore ??= new Store<DragSource | null>(slot.store.state?.source ?? null);
-slot.sourceSnapshot ??= slot.store.state?.source ?? null;
-slot.sourceVersion ??= 0;
-slot.sourceStoreSubscription ??= slot.store.subscribe((state) => {
+slot.store.subscribe((state) => {
   const source = state?.source ?? null;
   if (source !== slot.sourceSnapshot) {
     slot.sourceSnapshot = source;
     slot.sourceStore.setState(source);
   }
 });
-slot.targetListeners ??= new Map<Element, Set<() => void>>();
-slot.allTargetListeners ??= new Set<() => void>();
 
 /**
  * Read-only handle to the singleton drag-session store. Subscribe with
@@ -232,7 +225,7 @@ export const selectors = {
   /**
    * Whether `element` is in the active drop-target stack at any depth.
    * `false` when `element` is `null` or no drag is active. Drives
-   * `DropTarget.Root`'s `over` state.
+   * `Draggable.Target`'s `over` state.
    */
   isOverElement: (state: State, element: Element | null) => {
     if (!state || !element) {
@@ -253,7 +246,7 @@ export const selectors = {
   },
   /**
    * Whether `element` is the target currently refusing the drag (`canDrop`
-   * returned `'reject'` at the current position). Drives `DropTarget.Root`'s
+   * returned `'reject'` at the current position). Drives `Draggable.Target`'s
    * `rejected` state.
    */
   isRejectedElement: (state: State, element: Element | null) => {
@@ -273,6 +266,7 @@ export const selectors = {
  */
 export function cloneLocationHistory(location: DragLocationHistory): DragLocationHistory {
   return {
+    grabOffset: location.grabOffset,
     initial: { input: location.initial.input, dropTargets: location.initial.dropTargets.slice() },
     current: { input: location.current.input, dropTargets: location.current.dropTargets.slice() },
     previous: {

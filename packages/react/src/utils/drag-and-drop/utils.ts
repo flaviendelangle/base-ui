@@ -1,7 +1,7 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isShadowRoot } from '@floating-ui/utils/dom';
 import { contains } from '@base-ui/utils/shadowDom';
-import type { DragInput, DragModifierKeys, DragPointerType, DragPosition } from '../../types/drag';
+import type { DragInput, DragPointerType, DragPosition } from '../../types/drag';
 import { getParentElement as getComposedParentElement } from '../getParentElement';
 import {
   identityLinearTransform,
@@ -252,63 +252,12 @@ export function remapInput(input: DragInput, point: DragPosition): DragInput {
   };
 }
 
-/** No modifier key held: what an input synthesized without an event reports. */
-export const NO_MODIFIER_KEYS: DragModifierKeys = {
+export const NO_MODIFIER_KEYS = {
   ctrlKey: false,
   shiftKey: false,
   altKey: false,
   metaKey: false,
-};
-
-/** Just the four modifier flags of an event, for handing on to a synthesized input. */
-export function getModifierKeys(event: KeyboardEvent | MouseEvent): DragModifierKeys {
-  return {
-    ctrlKey: event.ctrlKey,
-    shiftKey: event.shiftKey,
-    altKey: event.altKey,
-    metaKey: event.metaKey,
-  };
-}
-
-/** Whether two key snapshots differ, so a no-op key press can be ignored. */
-export function modifierKeysChanged(a: DragModifierKeys, b: DragModifierKeys): boolean {
-  return (
-    a.ctrlKey !== b.ctrlKey ||
-    a.shiftKey !== b.shiftKey ||
-    a.altKey !== b.altKey ||
-    a.metaKey !== b.metaKey
-  );
-}
-
-/**
- * Build a synthetic `DragInput` for the keyboard sensor, which has no real pointer
- * event. `pointerType` is `null` (there is no pointer device); the keyboard
- * modality is carried by `DragMode` instead.
- *
- * `keys` are the modifier flags of the keydown that drove the move, so a keyboard drag
- * reports the same key state a pointer drag does. Omit them where no event is in hand.
- */
-export function createSyntheticInput(
-  reference: Element,
-  clientX: number,
-  clientY: number,
-  keys: DragModifierKeys = NO_MODIFIER_KEYS,
-): DragInput {
-  const win = ownerWindow(reference);
-  return {
-    button: 0,
-    buttons: 0,
-    clientX,
-    clientY,
-    pageX: clientX + win.scrollX,
-    pageY: clientY + win.scrollY,
-    pointerType: null,
-    ctrlKey: keys.ctrlKey,
-    shiftKey: keys.shiftKey,
-    altKey: keys.altKey,
-    metaKey: keys.metaKey,
-  };
-}
+} as const;
 
 /**
  * Run a consumer-supplied callback with an error boundary: a throw is caught,

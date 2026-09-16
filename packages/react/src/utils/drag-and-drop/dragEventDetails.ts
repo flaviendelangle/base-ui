@@ -10,8 +10,8 @@
  * have already happened and cannot be canceled. Hence this local factory:
  * `reason` and the native `event`, nothing else.
  *
- * Reasons reuse Base UI's canonical strings wherever one fits (`'escape-key'`,
- * `'focus-out'`, `'imperative-action'`, `'pointer'`, `'keyboard'`), so
+ * Reasons reuse Base UI's canonical strings wherever one fits (`'imperative-action'`,
+ * `'pointer'`), so
  * `ReasonToEvent` types the native event correctly for those.
  */
 

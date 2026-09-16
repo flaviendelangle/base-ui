@@ -75,12 +75,12 @@ describe('useDragDropManager', () => {
     const first = vi.fn();
     const second = vi.fn();
 
-    function Harness({ onDragStart }: { onDragStart: () => void }) {
+    function Harness({ onMoveStart }: { onMoveStart: () => void }) {
       const engine = useDragDropManager();
-      const paramsRef = React.useRef({ kind: itemKind, onDragStart });
+      const paramsRef = React.useRef({ kind: itemKind, onMoveStart });
       // Keep the object identity stable: the imperative getter contract is
       // value-live, so internal React registration caching must not leak here.
-      paramsRef.current.onDragStart = onDragStart;
+      paramsRef.current.onMoveStart = onMoveStart;
       const cleanupRef = React.useRef<(() => void) | null>(null);
       const ref = React.useCallback(
         (node: HTMLDivElement | null) => {
@@ -96,8 +96,8 @@ describe('useDragDropManager', () => {
       return <div ref={ref} data-testid="source" />;
     }
 
-    const { rerender } = await renderDnd(<Harness onDragStart={first} />);
-    await rerender(<Harness onDragStart={second} />);
+    const { rerender } = await renderDnd(<Harness onMoveStart={first} />);
+    await rerender(<Harness onMoveStart={second} />);
 
     const source = screen.getByTestId('source');
     source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
@@ -141,11 +141,11 @@ describe('useDragDropManager', () => {
   });
 
   it('registers a monitor from a getter alone, with no element', async () => {
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
 
     function Harness() {
       const engine = useDragDropManager();
-      React.useEffect(() => engine.registerMonitor(() => ({ onDragStart })), [engine]);
+      React.useEffect(() => engine.registerMonitor(() => ({ onMoveStart })), [engine]);
       return null;
     }
 
@@ -156,15 +156,15 @@ describe('useDragDropManager', () => {
     fireEvent.dragStart(source);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
   });
 
   it('ends the drag in progress through cancelDrag', async () => {
-    const onDragEnd = vi.fn();
+    const onMoveEnd = vi.fn();
 
     const { engine } = await renderDnd();
     const source = createElement();
-    engine.registerDraggable(source, { onDragEnd });
+    engine.registerDraggable(source, { onMoveEnd });
 
     fireEvent.dragStart(source);
     await flushRaf();
@@ -173,7 +173,7 @@ describe('useDragDropManager', () => {
       engine.cancelDrag();
     });
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDragEnd.mock.calls[0][0].canceled).toBe(true);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd.mock.calls[0][0].canceled).toBe(true);
   });
 });

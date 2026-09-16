@@ -25,7 +25,7 @@ import { frFR } from '@base-ui/react/locale-frFR';
 
 Without a provider, Base UI uses the English translations exported from `@base-ui/react/locale-enUS`.
 
-The provider currently translates the accessibility text owned by the drag-and-drop components: the draggable role description, keyboard instructions, handle labels, and live-region announcements. Visible content and consumer-provided labels remain under your control.
+The provider translates text owned by components that opt into localization. Visible content and consumer-provided labels remain under your control.
 
 ## Custom translations
 
@@ -35,10 +35,7 @@ Pass a partial translation object to override only the strings you need. It is u
 import { LocalizationProvider } from '@base-ui/react/localization-provider';
 import { enUS } from '@base-ui/react/locale-enUS';
 
-const translations = {
-  ...enUS,
-  dragRoleDescription: 'movable',
-};
+const translations = { ...enUS };
 
 <LocalizationProvider translations={translations}>
   {/* Your drag-and-drop interface */}
@@ -52,7 +49,7 @@ Providers can be nested. An inner provider inherits the outer translations and r
 ```jsx title="Nested providers"
 <LocalizationProvider translations={frFR}>
   <FrenchBoard />
-  <LocalizationProvider translations={{ dragRoleDescription: 'movable' }}>
+  <LocalizationProvider translations={{}}>
     <EnglishTerminologyBoard />
   </LocalizationProvider>
 </LocalizationProvider>

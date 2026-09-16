@@ -6,13 +6,11 @@ import type { BaseUIComponentProps } from '../../internals/types';
 import type {
   NativeDragEventProps,
   RegisterDraggableParameters,
-  WithOptionalPayload,
-  WithRequiredPayload,
 } from '../../types/dragRegistration';
-import type { DraggablePayload, DraggablePayloadGetter } from '../../types/drag';
+import type { DragKind, DraggablePayload } from '../../types/drag';
 import { useDraggableElement } from './useDraggableElement';
 import { DraggableRootContext } from './DraggableRootContext';
-import { useDragPreviewContext } from '../../utils/drag-and-drop/overlay/DragPreviewContext';
+import { useDraggableContext } from '../DraggableContext';
 
 const stateAttributesMapping: StateAttributesMapping<DraggableRootState> = {
   // The engine owns `data-dragging`: it lands only once the preview has been built
@@ -26,22 +24,17 @@ const stateAttributesMapping: StateAttributesMapping<DraggableRootState> = {
 // and leaves the pickup gesture undiscoverable. A polymorphic render target keeps
 // its native semantics instead. Passed before `elementProps`, so an explicit role
 // still wins.
-const KEYBOARD_FOCUSABLE_PROPS = { tabIndex: 0 } as const;
-const DEFAULT_KEYBOARD_ROLE_PROPS = { role: 'button' } as const;
 
 /**
- * Makes its element a drag source, so it can be picked up with the pointer or the
- * keyboard and dropped on matching drop targets.
+ * Makes its element a drag source that can be picked up with the pointer and
+ * dropped on matching drop targets.
  * Renders a `<div>` element.
  *
- * While dragging, a clone of the element follows the pointer by default.
- *
- * Documentation: [Base UI Draggable](https://base-ui.com/react/components/draggable)
+ * Documentation: [Base UI Draggable](https://base-ui.com/react/utils/draggable)
  */
 export const DraggableRoot = React.forwardRef(function DraggableRoot<TData = undefined>(
   componentProps: DraggableRootPropsBase<TData> & {
     payload?: DraggablePayload<TData> | undefined;
-    getPayload?: DraggablePayloadGetter<TData> | undefined;
   },
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
@@ -54,100 +47,62 @@ export const DraggableRoot = React.forwardRef(function DraggableRoot<TData = und
     // Drag source props. Listed explicitly because whatever stays in
     // `elementProps` is spread onto the `<div>`, where an engine parameter would
     // land as an attribute.
-    label,
     kind,
     payload,
-    getPayload,
     previewKey,
     disabled,
-    pointerActivation,
+    activation,
     dragCursor,
-    // Accessibility props
-    ariaRoleDescription,
-    keyboardInstructions,
-    keyboardAnnouncements,
-    keyboardActivation,
-    keyboardMovement,
     modifiers,
-    finalFocus,
     // Event handlers
-    onBeforeDragStart,
-    onDragStart,
-    onDrag,
-    onDropTargetChange,
-    onDrop,
-    onDragEnd,
+    onBeforeMoveStart,
+    onMoveStart,
+    onMove,
+    onTargetChange,
+    onMoveEnd,
     // Props forwarded to the DOM element
     ...elementProps
   } = componentProps;
 
+  const draggableContext = useDraggableContext();
+  const resolvedKind = kind ?? draggableContext.defaultKind;
+
   // A fresh object per render is fine: `useDraggableElement` reads it through a
   // ref and never compares it.
   const params = {
-    label,
-    kind,
+    kind: resolvedKind,
     payload,
-    getPayload,
     previewKey,
     disabled,
-    pointerActivation,
+    activation,
     dragCursor,
-    ariaRoleDescription,
-    keyboardInstructions,
-    keyboardAnnouncements,
-    keyboardActivation,
-    keyboardMovement,
     modifiers,
-    finalFocus,
-    onBeforeDragStart,
-    onDragStart,
-    onDrag,
-    onDropTargetChange,
-    onDrop,
-    onDragEnd,
+    onBeforeMoveStart,
+    onMoveStart,
+    onMove,
+    onTargetChange,
+    onMoveEnd,
   } as RegisterDraggableParameters<TData>;
 
-  const { ref, dragging, setHandleElement, observeElement, previewHandle, hasHandle } =
+  const { ref, dragging, setHandleElement, observeElement, previewHandle } =
     useDraggableElement<TData>(params);
 
   const state: DraggableRoot.State = { dragging, disabled: disabled ?? false };
-
-  // The provider seen from here is the one the engine publishes preview content
-  // through; `Draggable.Preview` compares its own nearest provider against it.
-  const previewContext = useDragPreviewContext();
 
   const contextValue = React.useMemo(
     () => ({
       setHandleElement,
       observeElement,
       previewHandle,
-      previewContext,
-      label,
       disabled: disabled ?? false,
     }),
-    [setHandleElement, observeElement, previewHandle, previewContext, label, disabled],
+    [setHandleElement, observeElement, previewHandle, disabled],
   );
-
-  // Focusable whenever the element is keyboard-draggable at all: with `'auto'` screen
-  // readers are told "press Space or Enter to pick up", and with `'manual'` the
-  // consumer's own pickup route starts from focus too. Either way the element must be
-  // reachable with Tab. With a handle attached, pickup and the a11y attributes live on
-  // the handle instead, so the root stays out of the tab order.
-  // `hasHandle` is `null` until the mount commit resolves it, and an unconfirmed
-  // root stays unfocusable: the server can't see handles, so SSR HTML and the
-  // hydration render would otherwise put a second tab stop next to every handle.
-  // A user-supplied `tabIndex` in the spread props overrides this.
-  const keyboardFocusable = !disabled && keyboardActivation !== 'off' && hasHandle === false;
 
   const element = useRenderElement('div', componentProps, {
     state,
     ref: [forwardedRef, ref],
-    props: [
-      { children },
-      keyboardFocusable ? KEYBOARD_FOCUSABLE_PROPS : undefined,
-      keyboardFocusable && render === undefined ? DEFAULT_KEYBOARD_ROLE_PROPS : undefined,
-      elementProps,
-    ],
+    props: [{ children }, elementProps],
     stateAttributesMapping,
   });
 
@@ -160,11 +115,10 @@ export const DraggableRoot = React.forwardRef(function DraggableRoot<TData = und
   // would make it a deferred conditional a generic wrapper can't spread into.
 }) as {
   <TData>(
-    props: DraggableRootPropsBase<TData> & RequiredDraggablePayload<TData>,
+    props: DraggableRootPropsWithKind<TData> & RequiredDraggablePayload<TData>,
   ): React.JSX.Element;
   (
-    props: DraggableRootPropsBase<undefined> &
-      WithOptionalPayload<DraggablePayloadParameters<undefined>>,
+    props: DraggableRootPropsBase<undefined> & DraggablePayloadParameters<undefined>,
   ): React.JSX.Element;
 };
 
@@ -187,41 +141,53 @@ type DraggableRootPropsBase<TData> = Omit<
   // - the whole native HTML5 drag event family is replaced by this engine
   'children' | 'draggable' | NativeDragEventProps
 > &
-  // The preview is described by a `Draggable.Preview` or a `Draggable.ClonedPreview`
+  // The preview is described by a `Draggable.Preview`. An empty Preview uses the
+  // default clone, so no separate clone part is needed.
   // rendered inside this component, and the drag handle by a `Draggable.Handle`,
   // never from here.
-  Omit<
-    RegisterDraggableParameters<TData>,
-    'dragPreview' | 'dragHandle' | 'payload' | 'getPayload'
-  > & { children?: React.ReactNode | undefined };
+  Omit<RegisterDraggableParameters<TData>, 'dragPreview' | 'dragHandle' | 'kind' | 'payload'> & {
+    children?: React.ReactNode | undefined;
+    kind?: DragKind<TData> | undefined;
+  };
 
-export type DraggableRootProps<TData = undefined> = DraggableRootPropsBase<TData> &
-  DraggableRootPayloadField<TData>;
+export type DraggableRootProps<TData = undefined> = [TData] extends [undefined]
+  ? DraggableRootPropsBase<undefined> & DraggableRootPayloadField<undefined>
+  : DraggableRootPropsWithKind<TData> & DraggableRootPayloadField<TData>;
 
 /**
  * Props for a generic `Draggable.Root` wrapper whose payload is always required.
  * Use this alias when spreading props with an unbound payload type into the root.
  */
-export type DraggableRootPropsWithPayload<TData> = DraggableRootPropsBase<TData> &
-  RequiredDraggablePayload<TData>;
+export type DraggableRootPropsWithPayload<TData> = DraggableRootPropsBase<TData> & {
+  kind: DragKind<TData>;
+} & RequiredDraggablePayload<TData>;
 
-type DraggablePayloadParameters<TData> = Pick<
-  RegisterDraggableParameters<TData>,
-  'payload' | 'getPayload'
->;
+type DraggableRootPropsWithKind<TData> = Omit<DraggableRootPropsBase<TData>, 'kind'> & {
+  kind: DragKind<TData>;
+};
 
-type RequiredDraggablePayload<TData> = WithRequiredPayload<
-  DraggablePayloadParameters<TData>,
-  DraggablePayload<TData>,
-  DraggablePayloadGetter<TData>
->;
+type DraggablePayloadParameters<TData> = {
+  /**
+   * Data to attach to this drag. It is available as `source.payload` on every
+   * drag-and-drop event.
+   */
+  payload?: DraggablePayload<TData> | undefined;
+};
+
+type RequiredDraggablePayload<TData> = {
+  /**
+   * Data to attach to this drag. It is available as `source.payload` on every
+   * drag-and-drop event.
+   */
+  payload: DraggablePayload<TData>;
+};
 
 /**
  * Requires `payload` when the caller declares a payload type. Generic wrappers
  * use {@link DraggableRootPropsWithPayload} instead.
  */
 type DraggableRootPayloadField<TData> = [TData] extends [undefined]
-  ? WithOptionalPayload<DraggablePayloadParameters<TData>>
+  ? DraggablePayloadParameters<TData>
   : RequiredDraggablePayload<TData>;
 
 export namespace DraggableRoot {

@@ -1,0 +1,181 @@
+.Root {
+  width: 100%;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  -webkit-user-select: none;
+  user-select: none;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    .Panel {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .Surface {
+      grid-column: 2;
+      grid-row: 1;
+    }
+  }
+}
+
+/*
+ * CSS Modules demos revert Tailwind's preflight with `all: revert-layer`, which
+ * also drops the page's font smoothing and renders text heavier than the
+ * Tailwind variant. Restore it so both variants render text identically.
+ */
+.Root,
+.Root * {
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.Panel {
+  order: 1;
+  box-sizing: border-box;
+  display: flex;
+  height: 12rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(92.2% 0 0deg);
+  padding: 1rem;
+
+  @media (prefers-color-scheme: dark) {
+    border-color: oklch(37.1% 0 0deg);
+  }
+}
+
+.Reset {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: oklch(55.6% 0 0deg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: oklch(14.5% 0 0deg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid oklch(14.5% 0 0deg);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    color: oklch(70.8% 0 0deg);
+
+    &:hover,
+    &:focus-visible {
+      color: white;
+    }
+  }
+}
+
+/* The dotted drop target. */
+.Surface {
+  order: 2;
+  box-sizing: border-box;
+  display: flex;
+  height: 12rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(92.2% 0 0deg);
+  background-color: oklch(98.5% 0 0deg);
+  background-image: radial-gradient(oklch(87% 0 0deg) 1px, transparent 1px);
+  background-size: 20px 20px;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: oklch(55.6% 0 0deg);
+
+  @media (prefers-color-scheme: dark) {
+    border-color: oklch(37.1% 0 0deg);
+    background-color: oklch(20.5% 0 0deg);
+    background-image: radial-gradient(oklch(37.1% 0 0deg) 1px, transparent 1px);
+    color: oklch(70.8% 0 0deg);
+  }
+
+  &[data-drag-over] {
+    border-color: oklch(14.5% 0 0deg);
+    background-color: oklch(97% 0 0deg);
+
+    @media (prefers-color-scheme: dark) {
+      border-color: white;
+      background-color: oklch(26.9% 0 0deg);
+    }
+  }
+}
+
+.Card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(14.5% 0 0deg);
+  background-color: white;
+  /* Inherit the page font; CSS Modules demos revert Tailwind's preflight. */
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: oklch(14.5% 0 0deg);
+  cursor: grab;
+  /* Not `opacity`: it would fade the card back in at its new position on drop. */
+  transition: background-color 0.15s;
+
+  @media (min-width: 640px) {
+    /* Center the initial card in the first grid cell, accounting for the gap. */
+    left: calc(25% - 0.1875rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    border-color: white;
+    background-color: oklch(14.5% 0 0deg);
+    color: white;
+  }
+
+  &:hover {
+    background-color: oklch(97% 0 0deg);
+
+    @media (prefers-color-scheme: dark) {
+      background-color: oklch(26.9% 0 0deg);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid oklch(14.5% 0 0deg);
+    outline-offset: -1px;
+
+    @media (prefers-color-scheme: dark) {
+      outline-color: white;
+    }
+  }
+
+  &[data-dragging] {
+    cursor: grabbing;
+    opacity: 0;
+  }
+
+  /* The preview is a clone of the card and keeps its classes, so the source's own
+   * selector styles it. Only the shadow differs, to raise it above the canvas. */
+  &[data-drag-preview] {
+    box-shadow: 0.25rem 0.25rem 0 rgb(0 0 0 / 12%);
+
+    @media (prefers-color-scheme: dark) {
+      box-shadow: none;
+    }
+  }
+}

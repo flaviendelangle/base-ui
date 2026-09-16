@@ -3,7 +3,7 @@ import { fireEvent } from '@testing-library/react';
 import { createDndRenderer } from '#test-utils';
 import { createElement, flushRaf, setupDragEngineTests } from '../../test/dnd';
 import { dragSessionStore } from '../utils/drag-and-drop/dragSessionStore';
-import type { DragStartContext, BeforeDragStartEventDetails } from '../types/drag';
+import type { MoveStartContext, BeforeMoveStartEventDetails } from '../types/drag';
 
 setupDragEngineTests();
 
@@ -87,14 +87,14 @@ describe('engine.registerDraggable', () => {
     // would leave the element silently draggable.
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const cleanup = engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    const cleanup = engine.registerDraggable(el, { onMoveStart });
     cleanup();
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(dragSessionStore.getSnapshot()).toBeNull();
   });
 
@@ -107,38 +107,38 @@ describe('engine.registerDraggable', () => {
     expect(el.style.touchAction).toBe('');
   });
 
-  it('onBeforeDragStart canceling prevents the drag', async () => {
+  it('onBeforeMoveStart canceling prevents the drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    const onBeforeDragStart = vi.fn(
-      (_: DragStartContext, eventDetails: BeforeDragStartEventDetails) => eventDetails.cancel(),
+    const onMoveStart = vi.fn();
+    const onBeforeMoveStart = vi.fn(
+      (_: MoveStartContext, eventDetails: BeforeMoveStartEventDetails) => eventDetails.cancel(),
     );
     engine.registerDraggable(el, {
-      onBeforeDragStart,
-      onDragStart,
+      onBeforeMoveStart,
+      onMoveStart,
     });
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onBeforeDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onBeforeMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).not.toHaveBeenCalled();
   });
 
   it('disabled prevents the drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     engine.registerDraggable(el, {
       disabled: true,
-      onDragStart,
+      onMoveStart,
     });
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
   });
 
   it('a nested draggable wins pickup over its draggable ancestor', async () => {
@@ -149,8 +149,8 @@ describe('engine.registerDraggable', () => {
     outer.appendChild(inner);
     const onOuterStart = vi.fn();
     const onInnerStart = vi.fn();
-    engine.registerDraggable(outer, { onDragStart: onOuterStart });
-    engine.registerDraggable(inner, { onDragStart: onInnerStart });
+    engine.registerDraggable(outer, { onMoveStart: onOuterStart });
+    engine.registerDraggable(inner, { onMoveStart: onInnerStart });
 
     // The gesture begins on the inner element: pickup resolves the innermost
     // registered ancestor, so the inner draggable claims the drag.
@@ -171,8 +171,8 @@ describe('engine.registerDraggable', () => {
     outer.appendChild(inner);
     const onOuterStart = vi.fn();
     const onInnerStart = vi.fn();
-    engine.registerDraggable(outer, { onDragStart: onOuterStart });
-    engine.registerDraggable(inner, { disabled: true, onDragStart: onInnerStart });
+    engine.registerDraggable(outer, { onMoveStart: onOuterStart });
+    engine.registerDraggable(inner, { disabled: true, onMoveStart: onInnerStart });
 
     fireEvent.dragStart(inner);
     await flushRaf();
@@ -306,67 +306,28 @@ describe('engine.registerDraggable', () => {
     expect(outer.getAttribute('aria-roledescription')).toBe('outer renamed');
   });
 
-  it('calls getPayload with the gesture, once, and snapshots the result', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const payload = vi.fn((_: DragStartContext) => ({ key: 'value' }));
-    const onDragStart = vi.fn();
-    const onDrag = vi.fn();
-    engine.registerDraggable(el, { getPayload: payload, onDragStart, onDrag });
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-
-    const parameters = payload.mock.calls[0][0];
-    expect(parameters.element).toBe(el);
-    expect(parameters.input).toHaveProperty('clientX');
-    expect(parameters).toHaveProperty('dragHandle');
-    expect(onDragStart.mock.calls[0][0].source.payload).toEqual({ key: 'value' });
-
-    // A drop target's payload re-resolves on each dispatch; a source's must not.
-    fireEvent.dragOver(el, { clientX: 40, clientY: 40 });
-    await flushRaf();
-    fireEvent.dragOver(el, { clientX: 80, clientY: 80 });
-    await flushRaf();
-
-    expect(payload).toHaveBeenCalledTimes(1);
-    expect(onDrag.mock.calls.at(-1)![0].source.payload).toBe(
-      onDragStart.mock.calls[0][0].source.payload,
-    );
-  });
-
-  it('keeps a function payload as data and resolves getPayload separately', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const other = createElement();
-    const myFunction = vi.fn(() => 'command result');
-    const onDragStart = vi.fn();
-    const onOtherDragStart = vi.fn();
-    engine.registerDraggable(el, { getPayload: () => 'called', onDragStart });
-    engine.registerDraggable(other, { payload: myFunction, onDragStart: onOtherDragStart });
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-    fireEvent.dragEnd(el);
-    await flushRaf();
-    fireEvent.dragStart(other);
-    await flushRaf();
-
-    expect(onDragStart.mock.calls[0][0].source.payload).toBe('called');
-    expect(onOtherDragStart.mock.calls[0][0].source.payload).toBe(myFunction);
-    expect(myFunction).not.toHaveBeenCalled();
-  });
-
   it('attaches a value payload without calling anything', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { payload: { key: 'value' }, onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { payload: { key: 'value' }, onMoveStart });
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart.mock.calls[0][0].source.payload).toEqual({ key: 'value' });
+    expect(onMoveStart.mock.calls[0][0].source.payload).toEqual({ key: 'value' });
+  });
+
+  it('includes the pickup grab offset in drag locations', async () => {
+    const { engine } = await renderDnd();
+    const el = createElement({ left: 10, top: 20 });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
+
+    fireEvent.dragStart(el, { clientX: 35, clientY: 50 });
+    await flushRaf();
+
+    expect(onMoveStart.mock.calls[0][0].location.grabOffset).toEqual({ x: 25, y: 30 });
   });
 
   // A falsy static value survives instead of being replaced by a stand-in.
@@ -378,44 +339,44 @@ describe('engine.registerDraggable', () => {
   ])('attaches %s payload as-is', async (_label, value) => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { payload: value, onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { payload: value, onMoveStart });
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart.mock.calls[0][0].source.payload).toBe(value);
+    expect(onMoveStart.mock.calls[0][0].source.payload).toBe(value);
   });
 
   it('leaves the payload undefined when none is declared', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStart.mock.calls[0][0].source.payload).toBe(undefined);
+    expect(onMoveStart.mock.calls[0][0].source.payload).toBe(undefined);
   });
 
-  it('fires onDragStart synchronously at drag start', async () => {
+  it('fires onMoveStart synchronously at drag start', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStart = vi.fn();
-    engine.registerDraggable(el, { onDragStart });
+    const onMoveStart = vi.fn();
+    engine.registerDraggable(el, { onMoveStart });
 
     // Fires within the dragStart dispatch, no frame wait.
     fireEvent.dragStart(el);
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
   });
 
-  it('fires onDragEnd when drop occurs', async () => {
+  it('fires onMoveEnd when drop occurs', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const target = createElement();
-    const onDragEnd = vi.fn();
-    engine.registerDraggable(el, { onDragEnd });
+    const onMoveEnd = vi.fn();
+    engine.registerDraggable(el, { onMoveEnd });
     engine.registerDropTarget(target, {});
 
     fireEvent.dragStart(el);
@@ -425,15 +386,15 @@ describe('engine.registerDraggable', () => {
     await flushRaf();
     fireEvent.drop(target);
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards onDrag during a drag', async () => {
+  it('forwards onMove during a drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const target = createElement();
-    const onDrag = vi.fn();
-    engine.registerDraggable(el, { onDrag });
+    const onMove = vi.fn();
+    engine.registerDraggable(el, { onMove });
     engine.registerDropTarget(target, {});
 
     fireEvent.dragStart(el);
@@ -442,8 +403,8 @@ describe('engine.registerDraggable', () => {
     fireEvent.dragOver(target);
     await flushRaf();
 
-    expect(onDrag).toHaveBeenCalled();
-    expect(onDrag).toHaveBeenLastCalledWith(
+    expect(onMove).toHaveBeenCalled();
+    expect(onMove).toHaveBeenLastCalledWith(
       expect.objectContaining({
         source: expect.objectContaining({ element: el }),
       }),
@@ -457,37 +418,37 @@ describe('engine.registerDraggable', () => {
     // while A stays. The next drag must read A's parameters, not B's stale ones.
     const { engine } = await renderDnd();
     const el = createElement();
-    const onDragStartA = vi.fn();
-    const onDragStartB = vi.fn();
-    engine.registerDraggable(el, { onDragStart: onDragStartA });
-    const cleanupB = engine.registerDraggable(el, { onDragStart: onDragStartB });
+    const onMoveStartA = vi.fn();
+    const onMoveStartB = vi.fn();
+    engine.registerDraggable(el, { onMoveStart: onMoveStartA });
+    const cleanupB = engine.registerDraggable(el, { onMoveStart: onMoveStartB });
 
     cleanupB();
 
     fireEvent.dragStart(el);
     await flushRaf();
 
-    expect(onDragStartA).toHaveBeenCalledTimes(1);
-    expect(onDragStartB).not.toHaveBeenCalled();
+    expect(onMoveStartA).toHaveBeenCalledTimes(1);
+    expect(onMoveStartB).not.toHaveBeenCalled();
   });
 
   it('prevents concurrent drags (only one at a time)', async () => {
     const { engine } = await renderDnd();
     const el1 = createElement();
     const el2 = createElement();
-    const onDragStart1 = vi.fn();
-    const onDragStart2 = vi.fn();
+    const onMoveStart1 = vi.fn();
+    const onMoveStart2 = vi.fn();
 
-    engine.registerDraggable(el1, { onDragStart: onDragStart1 });
-    engine.registerDraggable(el2, { onDragStart: onDragStart2 });
+    engine.registerDraggable(el1, { onMoveStart: onMoveStart1 });
+    engine.registerDraggable(el2, { onMoveStart: onMoveStart2 });
 
     fireEvent.dragStart(el1);
     await flushRaf();
-    expect(onDragStart1).toHaveBeenCalledTimes(1);
+    expect(onMoveStart1).toHaveBeenCalledTimes(1);
 
     fireEvent.dragStart(el2);
     await flushRaf();
-    expect(onDragStart2).not.toHaveBeenCalled();
+    expect(onMoveStart2).not.toHaveBeenCalled();
   });
 
   // Type-level regression guard. Never executes.
@@ -500,19 +461,19 @@ describe('engine.registerDraggable', () => {
     const el = createElement();
 
     engine.registerDraggable<MyData>(el, {
-      getPayload: () => ({ foo: 'bar', count: 1 }),
-      onDragStart: ({ source }) => {
+      payload: () => ({ foo: 'bar', count: 1 }),
+      onMoveStart: ({ source }) => {
         source.payload.foo.toUpperCase();
         source.payload.count.toFixed();
       },
-      onDragEnd: ({ source }) => {
+      onMoveEnd: ({ source }) => {
         source.payload.foo.toUpperCase();
       },
     });
 
     engine.registerDraggable<MyData>(el, {
       // @ts-expect-error - returned object is missing required `count`
-      getPayload: () => ({ foo: 'bar' }),
+      payload: () => ({ foo: 'bar' }),
     });
   });
 });

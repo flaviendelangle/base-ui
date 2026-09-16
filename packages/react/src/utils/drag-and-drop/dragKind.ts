@@ -75,7 +75,7 @@ export function createGlobalKind<TPayload = undefined>(key: string): DragKind<TP
  * The explicit catch-all for `accept`: a drop target that takes every drag on the page.
  *
  * ```tsx
- * <DropTarget.Root accept={DropTarget.anyKind} onDrop={commit} />
+ * <Draggable.Target accept={Draggable.anyKind} onDraggableDrop={commit} />
  * ```
  *
  * The accepted source's payload is `unknown` until narrowed with a specific kind.

@@ -1,7 +1,7 @@
 /**
  * Core drag lifecycle state machine.
  *
- * Drop-target resolution, monitor dispatch, the rAF-throttled `onDrag`
+ * Drop-target resolution, monitor dispatch, the rAF-throttled `onMove`
  * scheduler, and the session snapshot all live here. The pointer-events sensor
  * starts a session with `start()` and drives the returned controller
  * (`update` / `drop` / `cancel`) from its own listeners. The preview itself is
@@ -15,14 +15,15 @@ import type {
   DragCanceledReason,
   DragCleanupFn,
   DragDropReason,
+  DragDropEvent,
   DragEndReason,
   DragLocation,
   DragLocationHistory,
   DragMode,
   DropTargetRecord,
   DragSource,
-  DragEventDetailsMap,
-  DragEventMap,
+  DraggableEventDetailsMap,
+  DraggableEventMap,
   DragInput,
   DragPreviewRenderEvent,
 } from '../../../types/drag';
@@ -127,7 +128,7 @@ export function isHoveredDropTarget(element: Element): boolean {
  * Cancel the active session at the lifecycle level. Fallback for
  * `engine.cancelDrag()`: the sensors record their session only after `start()` returns,
  * so a `cancelDrag()` from one of the synchronous start dispatches
- * (`onGenerateDragPreview` / `onDragStart`) can reach the session only through
+ * (`onGenerateDragPreview` / `onMoveStart`) can reach the session only through
  * this hook. A sensor-owned cancel tears the lifecycle down first, which makes
  * this a no-op.
  */
@@ -186,6 +187,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   };
 
   const location: DragLocationHistory = {
+    grabOffset,
     initial: initialLocation,
     current: initialLocation,
     // No prior event yet, so `previous.input` seeds from the pickup point: a
@@ -212,7 +214,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
 
   // The location snapshot at the last *delivered* event. `location.previous` is
   // documented as "the location at the prior event", but raw pointer samples
-  // arrive several times per rAF-throttled `onDrag` — so `previous` is
+  // arrive several times per rAF-throttled `onMove` — so `previous` is
   // reassigned from this snapshot right before each dispatch, never per raw
   // sample, keeping a consumer's `current` vs `previous` diff the movement
   // since the last event it actually saw.
@@ -240,8 +242,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   let refreshPending = false;
   let pendingRefreshNeedsHitTest = false;
 
-  // Whether the terminal `onDragEnd` has been delivered. The recovery path below
-  // reads it so a throw *from* `onDragEnd` doesn't produce a second one.
+  // Whether the terminal `onMoveEnd` has been delivered. The recovery path below
+  // reads it so a throw *from* `onMoveEnd` doesn't produce a second one.
   let endDispatched = false;
 
   // The outcome the committed end sequence reported, recorded before the
@@ -250,10 +252,10 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   // focus restore) reads it here rather than misreading the drop as a cancel.
   let committedOutcome: DropOutcome | null = null;
 
-  // Whether `onDragStart` has gone out. A refresh requested before that — a
+  // Whether `onMoveStart` has gone out. A refresh requested before that — a
   // consumer unregistering a target from `onGenerateDragPreview` — would resolve
-  // and dispatch `onDropTargetChange`/`onDrag` to targets that have not had
-  // `onDragStart` yet, so it queues like a mid-round one.
+  // and dispatch `onTargetChange`/`onMove` to targets that have not had
+  // `onMoveStart` yet, so it queues like a mid-round one.
   let startDispatched = false;
 
   // The targets whose hover state has actually been delivered. Mutated by
@@ -274,9 +276,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
    * Best-effort terminal dispatch before an error tears the session down.
    *
    * `tearDown()` alone restores the *engine*, but says nothing to consumers: an
-   * app that pairs `onDragStart` with `onDragEnd` — a page-level dragging class,
+   * app that pairs `onMoveStart` with `onMoveEnd` — a page-level dragging class,
    * a drop indicator, an optimistic reorder — would be stranded in its dragging
-   * state by any handler that throws. Deliver one contained `onDragEnd` first, so
+   * state by any handler that throws. Deliver one contained `onMoveEnd` first, so
    * that pairing always closes. Contained because a handler that throws again
    * here must not replace the original error being rethrown.
    */
@@ -291,8 +293,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     const departedDropTargets = hoveredDropTargets.slice();
     if (departedDropTargets.length > 0) {
       const leaveLocation = snapshotLocation();
-      const leavePayload: DragEventMap['onDropTargetChange'] = {
+      const leavePayload: DraggableEventMap['onTargetChange'] = {
         location: {
+          grabOffset: leaveLocation.grabOffset,
           initial: leaveLocation.initial,
           previous: leaveLocation.current,
           current: { input: leaveLocation.current.input, dropTargets: [] },
@@ -320,7 +323,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     location.previous = lastDispatched;
     location.current = { input: recoveryInput, dropTargets: [] };
     endDispatched = true;
-    const endPayload: DragEventMap['onDragEnd'] = {
+    const endPayload: DraggableEventMap['onMoveEnd'] = {
       location: snapshotLocation(),
       source,
       mode,
@@ -329,11 +332,11 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     };
     containConsumerError(
       'Base UI: a drag handler threw, so the drag was torn down. ' +
-        'The terminal onDragEnd is best-effort.',
+        'The terminal onMoveEnd is best-effort.',
       null,
       () => {
-        getSourceHandlers?.()?.onDragEnd?.(endPayload, endDetails);
-        dispatchToMonitors('onDragEnd', endPayload, endDetails);
+        getSourceHandlers?.()?.onMoveEnd?.(endPayload, endDetails);
+        dispatchToMonitors('onMoveEnd', endPayload, endDetails);
       },
       undefined,
     );
@@ -356,7 +359,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
    *
    * Everywhere else in the engine a broken consumer costs only its own callback —
    * `containConsumerError` per monitor, `safeCall` per drop target. The source's
-   * `onDrop`/`onDragEnd` were the exception: an uncontained throw there skipped
+   * `onDrop`/`onMoveEnd` were the exception: an uncontained throw there skipped
    * the drop target's `onDrop`, both monitor dispatches, and every terminal
    * `onDragLeave` — and `dispatchRecoveryEnd` cannot make up for it, since
    * `endDispatched` is already latched by then. So the throw is captured, the
@@ -385,10 +388,10 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     }
   }
 
-  // Keeps `onDragStart` ahead of any onDrop/onDragEnter: a collection that hasn't
-  // seen onDragStart has an empty dragged-item set and would swallow the drop.
+  // Keeps `onMoveStart` ahead of any onDrop/onDragEnter: a collection that hasn't
+  // seen onMoveStart has an empty dragged-item set and would swallow the drop.
   function dispatchDragStart(): void {
-    const dragStartPayload: DragEventMap['onDragStart'] = {
+    const dragStartPayload: DraggableEventMap['onMoveStart'] = {
       location: snapshotLocation(),
       source,
       mode,
@@ -396,8 +399,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     const startDetails = createDragEventDetails(mode, lastInputEvent);
     dispatching = true;
     try {
-      getSourceHandlers?.()?.onDragStart?.(dragStartPayload, startDetails);
-      // A source `onDragStart` can synchronously cancel the drag (public
+      getSourceHandlers?.()?.onMoveStart?.(dragStartPayload, startDetails);
+      // A source `onMoveStart` can synchronously cancel the drag (public
       // `cancelDrag()`); the cancel already delivered the terminal events, so
       // the targets/monitors must not see a start for a drag that just ended.
       if (tornDown) {
@@ -405,18 +408,18 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       }
       dispatchToAllDropTargets(
         location.current.dropTargets,
-        'onDragStart',
+        'onDraggableStart',
         dragStartPayload,
         startDetails,
         isLive,
       );
-      dispatchToMonitors('onDragStart', dragStartPayload, startDetails);
+      dispatchToMonitors('onMoveStart', dragStartPayload, startDetails);
       // The stack under the pickup point is published in `dropTargetElements` and
       // owed a terminal `onDragLeave` by `doDrop`/`doCancel`, so it has to be told
       // it was entered too. The only other emitter of `onDragEnter` is
       // `dispatchDropTargetChange`, which never runs for this first stack: there
       // is no previous stack to diff it against. Last in the round, so
-      // `onDragStart` stays ahead of every enter.
+      // `onMoveStart` stays ahead of every enter.
       //
       // Each record joins `hoveredDropTargets` immediately before its own enter,
       // never as a batch: a handler here can cancel the drag re-entrantly, and
@@ -427,7 +430,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
           break;
         }
         hoveredDropTargets.push(record);
-        dispatchToDropTarget(record, 'onDragEnter', dragStartPayload, startDetails);
+        dispatchToDropTarget(record, 'onDraggableEnter', dragStartPayload, startDetails);
       }
     } catch (error) {
       dispatchRecoveryEnd();
@@ -462,24 +465,24 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     // See `lastDispatched`: `previous` reflects the last delivered event, so
     // several coalesced raw samples read as one movement here.
     location.previous = lastDispatched;
-    const dragPayload: DragEventMap['onDrag'] = { location: snapshotLocation(), source, mode };
+    const dragPayload: DraggableEventMap['onMove'] = { location: snapshotLocation(), source, mode };
     const dragDetails = createDragEventDetails(mode, lastInputEvent);
     dispatching = true;
     // recover on throw (see dispatchDragStart)
     try {
-      getSourceHandlers?.()?.onDrag?.(dragPayload, dragDetails);
-      // A source `onDrag` can synchronously cancel; deliver nothing further.
+      getSourceHandlers?.()?.onMove?.(dragPayload, dragDetails);
+      // A source `onMove` can synchronously cancel; deliver nothing further.
       if (tornDown) {
         return;
       }
       dispatchToAllDropTargets(
         dragPayload.location.current.dropTargets,
-        'onDrag',
+        'onDraggableMove',
         dragPayload,
         dragDetails,
         isLive,
       );
-      dispatchToMonitors('onDrag', dragPayload, dragDetails);
+      dispatchToMonitors('onMove', dragPayload, dragDetails);
     } catch (error) {
       dispatchRecoveryEnd();
       reset();
@@ -497,13 +500,13 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   function scheduleDrag(): void {
     dragPending = true;
     // Only arm a frame when none is pending; further moves in the same frame just
-    // re-set `dragPending`, coalescing into one onDrag per frame.
+    // re-set `dragPending`, coalescing into one onMove per frame.
     if (dragFrame.currentId === null) {
       dragFrame.request(dispatchPendingDrag);
     }
   }
 
-  // Dispatch any pending throttled `onDrag` immediately (see DragSessionController.flushDrag).
+  // Dispatch any pending throttled `onMove` immediately (see DragSessionController.flushDrag).
   function flushDrag(): void {
     dragFrame.cancel();
     dispatchPendingDrag();
@@ -562,10 +565,10 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   function dispatchChangeRound(
     previousTargets: readonly DropTargetRecord[],
     currentTargets: readonly DropTargetRecord[],
-    changePayload: DragEventMap['onDropTargetChange'],
-    changeDetails: DragEventDetailsMap['onDropTargetChange'],
+    changePayload: DraggableEventMap['onTargetChange'],
+    changeDetails: DraggableEventDetailsMap['onTargetChange'],
   ): boolean {
-    getSourceHandlers?.()?.onDropTargetChange?.(changePayload, changeDetails);
+    getSourceHandlers?.()?.onTargetChange?.(changePayload, changeDetails);
     if (tornDown) {
       return false;
     }
@@ -580,7 +583,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     if (tornDown) {
       return false;
     }
-    dispatchToMonitors('onDropTargetChange', changePayload, changeDetails);
+    dispatchToMonitors('onTargetChange', changePayload, changeDetails);
     return !tornDown;
   }
 
@@ -618,7 +621,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       // See `lastDispatched`: `previous` moves only when an event is delivered,
       // not on every raw sample this function absorbs.
       location.previous = lastDispatched;
-      const changePayload: DragEventMap['onDropTargetChange'] = {
+      const changePayload: DraggableEventMap['onTargetChange'] = {
         location: snapshotLocation(),
         source,
         mode,
@@ -631,22 +634,28 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
           return;
         }
 
-        // Cancel stale onDrag only when this change came from genuine new pointer
+        // Cancel stale onMove only when this change came from genuine new pointer
         // input; a stack change from an unrelated `refreshDropTargets()` (e.g. a
-        // virtualizer unregister) must not discard a queued real-movement onDrag.
+        // virtualizer unregister) must not discard a queued real-movement onMove.
         if (input !== previousInput) {
           cancelPendingDrag();
         }
 
-        // Sync onDrag to current targets on the entering frame so target-side
-        // hover logic lives in `onDrag` only (source `onDrag` stays throttled).
+        // Sync onMove to current targets on the entering frame so target-side
+        // hover logic lives in `onMove` only (source `onMove` stays throttled).
         if (newDropTargets.length > 0) {
-          const dragPayload: DragEventMap['onDrag'] = {
+          const dragPayload: DraggableEventMap['onMove'] = {
             location: snapshotLocation(),
             source,
             mode,
           };
-          dispatchToAllDropTargets(newDropTargets, 'onDrag', dragPayload, moveDetails, isLive);
+          dispatchToAllDropTargets(
+            newDropTargets,
+            'onDraggableMove',
+            dragPayload,
+            moveDetails,
+            isLive,
+          );
         }
       } catch (error) {
         dispatchRecoveryEnd();
@@ -668,8 +677,8 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     } else {
       // Element-equal stack, freshly resolved records: no change dispatch runs,
       // so swap the hovered bookkeeping's records here — the terminal leave on
-      // drop/cancel reads them, and must report the last-resolved `self.payload`
-      // like the intermediate `onDrag`s did.
+      // drop/cancel reads them, and must report the last-resolved `target.payload`
+      // like the intermediate `onMove`s did.
       refreshHoveredRecords(hoveredDropTargets, newDropTargets);
       // A rejection flip with an element-equal stack (empty -> empty) publishes
       // on its own, or `data-rejected` could never appear or clear.
@@ -746,13 +755,13 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       return { canceled: true, dropTarget: null };
     }
     // Snapshot the drop recipient now, before any end dispatch can mutate the
-    // stack. `onDragEnd` running earlier could re-resolve `location.current` (via
+    // stack. `onMoveEnd` running earlier could re-resolve `location.current` (via
     // an unregister-triggered refresh), and re-reading `[0]` there could hand the
     // drop to a different target than the one this end was resolved against.
     // `null` here — released over no target — is the `outside-release` outcome
     // (`canceled: false`, `dropTarget: null`).
     const innermostDropTarget = freshDropTargets[0] ?? null;
-    // Captured with the snapshot: the source's `onDragEnd` (which is told the
+    // Captured with the snapshot: the source's `onMoveEnd` (which is told the
     // drop landed first) may synchronously unregister the target while tearing
     // down its zones — the drop it was just told about must still reach the
     // target's `onDrop` below rather than silently no-op on a re-read.
@@ -779,13 +788,13 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     // recover on throw (see dispatchDragStart)
     try {
       if (!areArraysEqual(previousDropTargets, freshDropTargets, dropTargetRecordsEqual)) {
-        const changePayload: DragEventMap['onDropTargetChange'] = {
+        const changePayload: DraggableEventMap['onTargetChange'] = {
           location: snapshotLocation(),
           source,
           mode,
         };
         // A dead round means a consumer canceled re-entrantly; the cancel path
-        // already ran `onDragEnd`/teardown, so skip the drop.
+        // already ran `onMoveEnd`/teardown, so skip the drop.
         if (
           !dispatchChangeRound(previousDropTargets, freshDropTargets, changePayload, endDetails)
         ) {
@@ -805,7 +814,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
         return { canceled: true, dropTarget: null };
       }
 
-      // Disarm `refreshDropTargets` for the end dispatch: an `onDragEnd` that
+      // Disarm `refreshDropTargets` for the end dispatch: an `onMoveEnd` that
       // unregisters a target would otherwise re-enter `updateDropTargets` and
       // shift `location.current` out from under the onDrop/leave dispatch below.
       // `tearDown()` nulls it anyway, so restoring right after the try is fine.
@@ -816,44 +825,27 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
       // dispatches below must be a no-op, not a recursive second end.
       state.dragCancel = null;
 
-      const endPayload: DragEventMap['onDragEnd'] = {
+      const endPayload: DraggableEventMap['onMoveEnd'] = {
         location: snapshotLocation(),
         source,
         mode,
         canceled: false,
         dropTarget: innermostDropTarget,
       };
-      // The source's own `onDrop` fires first and only for a committed drop, so
-      // the common "commit the move" handler never has to test `canceled` or
-      // null-check `dropTarget`. `onDragEnd` still follows for cleanup.
-      if (innermostDropTarget) {
-        const sourceDropPayload: DragEventMap['onDrop'] = {
-          location: snapshotLocation(),
-          source,
-          mode,
-          dropTarget: innermostDropTarget,
-        };
-        captureTerminalError(() => getSourceHandlers?.()?.onDrop?.(sourceDropPayload, dropDetails));
-      }
-      // Latched immediately before the dispatch it guards, not above `onDrop`:
-      // `onDrop` is the handler the docs steer consumers to for committing a
-      // move, so it is the likeliest to throw — and latching earlier would make
-      // `dispatchRecoveryEnd` bail, leaving an app that pairs `onDragStart` with
-      // `onDragEnd` stranded in its dragging state. `doCancel` latches here too.
       endDispatched = true;
       committedOutcome = { canceled: false, dropTarget: innermostDropTarget };
       if (!tornDown) {
-        captureTerminalError(() => getSourceHandlers?.()?.onDragEnd?.(endPayload, endDetails));
+        captureTerminalError(() => getSourceHandlers?.()?.onMoveEnd?.(endPayload, endDetails));
       }
-      // A consumer `onDragEnd` can synchronously tear the session down; teardown
+      // A consumer `onMoveEnd` can synchronously tear the session down; teardown
       // then already notified the targets/monitors, so don't double-dispatch.
       if (!tornDown) {
         // A drop target's `onDrop` only fires on a real drop, and only on the
         // innermost target so ancestors don't double-handle the deepest target's
-        // drop. Monitors see the end of every drag via `onDragEnd`. Uses the
+        // drop. Monitors see the end of every drag via `onMoveEnd`. Uses the
         // pre-dispatch snapshot so a re-entrant refresh can't redirect the drop.
         if (innermostDropTarget) {
-          const dropPayload: DragEventMap['onDrop'] = {
+          const dropPayload: DragDropEvent = {
             location: snapshotLocation(),
             source,
             mode,
@@ -861,26 +853,27 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
           };
           dispatchToDropTarget(
             innermostDropTarget,
-            'onDrop',
+            'onDraggableDrop',
             dropPayload,
             dropDetails,
             innermostRegistration,
           );
           dispatchToMonitors('onDrop', dropPayload, dropDetails);
         }
-        dispatchToMonitors('onDragEnd', endPayload, endDetails);
+        dispatchToMonitors('onMoveEnd', endPayload, endDetails);
 
         // Fire final `onDragLeave` for any targets still hovered so imperative
         // hover state clears (the success path never emits a change to empty).
         // Dispatched with a forked location so the leave reports the same shape
         // as the cancel path — the departing targets already out of
         // `current.dropTargets` — without mutating the location `onDrop` /
-        // `onDragEnd` handlers saw (and may have stashed) with the drop stack.
+        // `onMoveEnd` handlers saw (and may have stashed) with the drop stack.
         const departedDropTargets = hoveredDropTargets.slice();
         if (departedDropTargets.length > 0) {
           const leaveLocation = snapshotLocation();
-          const leavePayload: DragEventMap['onDropTargetChange'] = {
+          const leavePayload: DraggableEventMap['onTargetChange'] = {
             location: {
+              grabOffset: leaveLocation.grabOffset,
               initial: leaveLocation.initial,
               previous: leaveLocation.current,
               current: { input, dropTargets: [] },
@@ -951,22 +944,22 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     // recover on throw (see dispatchDragStart)
     try {
       if (departedDropTargets.length > 0) {
-        const changePayload: DragEventMap['onDropTargetChange'] = {
+        const changePayload: DraggableEventMap['onTargetChange'] = {
           location: snapshotLocation(),
           source,
           mode,
         };
         // A dead round means a consumer tore the session down re-entrantly and
-        // the terminal `onDragEnd` already fired; don't dispatch again.
+        // the terminal `onMoveEnd` already fired; don't dispatch again.
         if (!dispatchChangeRound(departedDropTargets, [], changePayload, endDetails)) {
           return;
         }
       }
 
       // `canceled: true` (with a `null` `dropTarget` and the empty `dropTargets`
-      // stack) lets source/monitor `onDragEnd` handlers distinguish a cancel
+      // stack) lets source/monitor `onMoveEnd` handlers distinguish a cancel
       // from a real drop.
-      const endPayload: DragEventMap['onDragEnd'] = {
+      const endPayload: DraggableEventMap['onMoveEnd'] = {
         location: snapshotLocation(),
         source,
         mode,
@@ -974,9 +967,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
         dropTarget: null,
       };
       endDispatched = true;
-      captureTerminalError(() => getSourceHandlers?.()?.onDragEnd?.(endPayload, endDetails));
+      captureTerminalError(() => getSourceHandlers?.()?.onMoveEnd?.(endPayload, endDetails));
       if (!tornDown) {
-        dispatchToMonitors('onDragEnd', endPayload, endDetails);
+        dispatchToMonitors('onMoveEnd', endPayload, endDetails);
       }
     } catch (error) {
       dispatchRecoveryEnd();
@@ -988,7 +981,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     }
 
     tearDown();
-    // See `doDrop`: a source `onDragEnd` that threw is rethrown only once the
+    // See `doDrop`: a source `onMoveEnd` that threw is rethrown only once the
     // monitors have been told and the engine is back to a startable state.
     rethrowTerminalError();
   }
@@ -997,7 +990,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
     update(input, target, event) {
       updateDropTargets(input, target, event);
       // `updateDropTargets` can re-enter `cancelDrag()` via a consumer callback and
-      // tear the session down; scheduling an onDrag after teardown would re-arm a
+      // tear the session down; scheduling an onMove after teardown would re-arm a
       // dead session, so only schedule while still live.
       if (!tornDown) {
         scheduleDrag();
@@ -1014,7 +1007,7 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
   state.dragCleanup = tearDown;
   // Armed before the start-time dispatches below: the sensors record their
   // session only after `start()` returns, so a `cancelDrag()` from
-  // `onGenerateDragPreview`/`onDragStart` can reach the session only through
+  // `onGenerateDragPreview`/`onMoveStart` can reach the session only through
   // this hook (see `cancelLifecycleDrag`).
   state.dragCancel = doCancel;
 
@@ -1035,9 +1028,9 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
 
     // Installed before the synchronous `onGenerateDragPreview` dispatch so a
     // consumer that unregisters an initial drop target during it gets the stale
-    // target dropped from the stack rather than published onDragStart.
+    // target dropped from the stack rather than published onMoveStart.
     state.refreshDropTargets = (rehitTest) => {
-      // Requested from inside a consumer fan-out, or before `onDragStart` has
+      // Requested from inside a consumer fan-out, or before `onMoveStart` has
       // been delivered: queue it (see `dispatching` and `startDispatched`).
       if (dispatching || !startDispatched) {
         refreshPending = true;
@@ -1066,10 +1059,10 @@ export function start(parameters: StartParameters): DragSessionHandle | null {
 
   // Dispatch only now, after the session snapshot, `controller`, and
   // `state.dragCleanup` are live, so a consumer that cancels or updates from
-  // within `onDragStart` acts on a fully-initialized session.
+  // within `onMoveStart` acts on a fully-initialized session.
   dispatchDragStart();
 
-  // Same as above: a cancel from within `onDragStart` already tore the session
+  // Same as above: a cancel from within `onMoveStart` already tore the session
   // down; hand the sensor `null` rather than a dead controller.
   return tornDown ? null : { controller };
 }
@@ -1091,59 +1084,59 @@ export interface SourceHandlers {
    * omit it.
    */
   onGenerateDragPreview?: ((parameters: DragPreviewRenderEvent) => void) | undefined;
-  onDragStart?:
+  onMoveStart?:
     | ((
-        parameters: DragEventMap['onDragStart'],
-        eventDetails: DragEventDetailsMap['onDragStart'],
+        parameters: DraggableEventMap['onMoveStart'],
+        eventDetails: DraggableEventDetailsMap['onMoveStart'],
       ) => void)
     | undefined;
-  onDrag?:
-    | ((parameters: DragEventMap['onDrag'], eventDetails: DragEventDetailsMap['onDrag']) => void)
-    | undefined;
-  onDropTargetChange?:
+  onMove?:
     | ((
-        parameters: DragEventMap['onDropTargetChange'],
-        eventDetails: DragEventDetailsMap['onDropTargetChange'],
+        parameters: DraggableEventMap['onMove'],
+        eventDetails: DraggableEventDetailsMap['onMove'],
       ) => void)
     | undefined;
-  onDrop?:
-    | ((parameters: DragEventMap['onDrop'], eventDetails: DragEventDetailsMap['onDrop']) => void)
-    | undefined;
-  onDragEnd?:
+  onTargetChange?:
     | ((
-        parameters: DragEventMap['onDragEnd'],
-        eventDetails: DragEventDetailsMap['onDragEnd'],
+        parameters: DraggableEventMap['onTargetChange'],
+        eventDetails: DraggableEventDetailsMap['onTargetChange'],
+      ) => void)
+    | undefined;
+  onMoveEnd?:
+    | ((
+        parameters: DraggableEventMap['onMoveEnd'],
+        eventDetails: DraggableEventDetailsMap['onMoveEnd'],
       ) => void)
     | undefined;
 }
 
 /**
- * What a `drop()` resolved to, mirroring the `onDragEnd` payload it produced:
+ * What a `drop()` resolved to, mirroring the `onMoveEnd` payload it produced:
  * `canceled` is `true` only when a consumer handler re-entrantly canceled
  * mid-drop, and `dropTarget` is the target the release landed on (`null` for an
  * outside release or a cancel).
  */
-export type DropOutcome = Pick<DragEventMap['onDragEnd'], 'canceled' | 'dropTarget'>;
+export type DropOutcome = Pick<DraggableEventMap['onMoveEnd'], 'canceled' | 'dropTarget'>;
 
 export interface DragSessionController {
   /**
    * `event` is the native input this sample came from — the `pointermove` or
    * `keydown` the sensor is reacting to. It reaches `eventDetails.event` on
-   * `onDrag`, `onDropTargetChange`, `onDragEnter` and `onDragLeave`, so those
+   * `onMove`, `onTargetChange`, `onDragEnter` and `onDragLeave`, so those
    * handlers can read modifier keys off a real event rather than a placeholder.
-   * Several raw samples coalesce into one `onDrag`, which then reports the last
+   * Several raw samples coalesce into one `onMove`, which then reports the last
    * one's event — the same sample its `location.current` came from.
    */
   update(input: DragInput, target: Element | null, event?: Event): void;
   /**
-   * Flush the throttled `onDrag` synchronously so logic that runs right after a
+   * Flush the throttled `onMove` synchronously so logic that runs right after a
    * move (e.g. keyboard announcements) observes the just-resolved hover state
    * rather than the previous frame's.
    */
   flushDrag(): void;
   /**
    * End the drag as a release at `input` over `target`. Returns the outcome the
-   * resulting `onDragEnd` reported. See {@link DropOutcome}.
+   * resulting `onMoveEnd` reported. See {@link DropOutcome}.
    */
   drop(
     input: DragInput,
@@ -1160,7 +1153,7 @@ export interface DragSessionController {
   readonly committedOutcome: DropOutcome | null;
   /**
    * End the drag as an abort. `reason` names the exact cause for
-   * `onDragEnd`'s `eventDetails`; it defaults to the programmatic one because
+   * `onMoveEnd`'s `eventDetails`; it defaults to the programmatic one because
    * the public `cancelDrag()` is the only caller that doesn't pass one.
    */
   cancel(input?: DragInput, reason?: DragCanceledReason, event?: Event): void;
@@ -1176,7 +1169,7 @@ export interface StartParameters {
   /**
    * Getter for the drag source's latest event handlers, read fresh on every
    * dispatch so a draggable that re-renders mid-drag runs its current closures
-   * rather than the ones captured at drag start (only `label`/`kind` stay
+   * rather than the ones captured at drag start (only `kind` stays
    * start-time — see the payload snapshot).
    */
   getSourceHandlers?: (() => SourceHandlers | undefined) | undefined;
@@ -1185,7 +1178,7 @@ export interface StartParameters {
   /**
    * The native event the pickup committed on — the `pointermove` that crossed
    * the activation threshold, or the `keydown` that lifted the item. Reported as
-   * `eventDetails.event` on `onDragStart` and on the initial stack's
+   * `eventDetails.event` on `onMoveStart` and on the initial stack's
    * `onDragEnter`, so those aren't handed a placeholder either.
    */
   initialEvent?: Event | undefined;

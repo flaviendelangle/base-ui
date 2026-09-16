@@ -16,14 +16,14 @@ describe('dragSessionStore', () => {
   it('publishes a snapshot at drag start and clears on drop', async () => {
     const { engine } = await renderDnd();
     const source = createElement();
-    engine.registerDraggable(source, { getPayload: () => ({ kind: 'card' }) });
+    engine.registerDraggable(source, { payload: () => ({ kind: 'card' }) });
     const target = createElement();
     engine.registerDropTarget(target, {});
 
     fireEvent.dragStart(source);
 
     // start() publishes the session snapshot synchronously, just before it
-    // dispatches onDragStart.
+    // dispatches onMoveStart.
     const startSnapshot = dragSessionStore.state;
     expect(startSnapshot).not.toBeNull();
     expect(startSnapshot!.source.element).toBe(source);

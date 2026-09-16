@@ -19,7 +19,7 @@ import type { DragMode, DragSource, DragInput } from '../../../types/drag';
 
 export interface StartSensorSessionParameters {
   mode: DragMode;
-  /** The draggable's latest parameters (label/kind/payload/event handlers). */
+  /** The draggable's latest parameters (kind/payload/event handlers). */
   draggableParameters: DraggableConfig<any>;
   element: HTMLElement;
   dragHandle: Element | null;
@@ -27,7 +27,7 @@ export interface StartSensorSessionParameters {
   initialTarget: Element | null;
   /**
    * The native event the pickup committed on (see `StartParameters.initialEvent`),
-   * so `onDragStart` reports a real event rather than a placeholder.
+   * so `onMoveStart` reports a real event rather than a placeholder.
    */
   initialEvent?: Event | undefined;
   /** The engine-managed preview, so the lifecycle can skip it when hit-testing. */
@@ -61,13 +61,10 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
     onForceCleanup,
   } = parameters;
 
-  const payload = source.getPayload
-    ? source.getPayload({ input: initialInput, element, dragHandle })
-    : source.payload;
+  const payload = source.payload;
 
   const dragSource: DragSource = {
     element,
-    label: source.label,
     kind: source.kind.id,
     dragHandle,
     payload,
@@ -76,7 +73,7 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
   // Read the draggable's latest parameters live on each dispatch so a source that
   // re-renders mid-drag runs its current handler closures. Falls back to the
   // start-time `source` snapshot if the element unregisters mid-drag.
-  // `label`/`kind`/`payload` stay start-time (they live in `dragSource`); only
+  // `kind`/`payload` stay start-time (they live in `dragSource`); only
   // handlers are read fresh.
   //
   // Read `dragSource.element` rather than the start-time `element`: a virtualizer

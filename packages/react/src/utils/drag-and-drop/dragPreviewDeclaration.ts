@@ -10,8 +10,8 @@ import type { DragPreviewElementFactory } from './synthetic/cloneDragPreview';
  * the source component when a virtualizer or a live reorder unmounts it mid-drag.
  */
 export interface DragPreviewDeclaration<TData = unknown> extends DragPreviewSettings {
-  /** Builds the engine-owned preview element. @internal */
-  createPreviewElement: DragPreviewElementFactory;
+  /** Builds the engine-owned preview element. Omit it to use the default clone. @internal */
+  createPreviewElement?: DragPreviewElementFactory;
   /**
    * Resolves the preview content at drag start. Returning `null` or `false`
    * declines the preview for this drag.
@@ -46,7 +46,7 @@ export function createDragPreviewHandle<TData = unknown>(): DragPreviewHandle<TD
       if (process.env.NODE_ENV !== 'production') {
         if (current !== null) {
           // Warn rather than throw, matching the duplicate-`Draggable.Handle`
-          // mistake: a wrapper component composing its own `ClonedPreview` around a
+          // mistake: a wrapper component composing its own `Preview` around a
           // consumer-passed `Preview` is a plausible mistake, and white-screening
           // production over it is out of proportion. Last declaration wins, which
           // at least makes the outcome deterministic.
@@ -54,8 +54,8 @@ export function createDragPreviewHandle<TData = unknown>(): DragPreviewHandle<TD
             'Base UI: a Draggable.Root contains more than one preview part. ' +
               'A draggable has one preview, so the last one mounted wins and the others are ignored. ' +
               'Keep either the Draggable.Preview that renders your own content, or the ' +
-              'Draggable.ClonedPreview that configures the clone of the source. ' +
-              'See https://base-ui.com/react/components/draggable',
+              'Draggable.Preview that configures the clone of the source. ' +
+              'See https://base-ui.com/react/utils/draggable',
           );
         }
       }

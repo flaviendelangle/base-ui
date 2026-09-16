@@ -2,7 +2,7 @@
  * Render helper for driving drag-and-drop through the React engine.
  *
  * `createDndRenderer()` wraps the usual `createRenderer()` and adds `renderDnd`,
- * which renders the tree inside a `Draggable.PreviewProvider`, captures the drag engine,
+ * which renders the tree inside a `Draggable.Provider`, captures the drag engine,
  * and returns it alongside everything `render` returns. Tests register
  * their fixtures (drag sources, drop targets, monitors, auto-scrollers) through
  * the returned `engine` rather than the engine's internal functions — the
@@ -13,9 +13,9 @@ import type { CreateRendererOptions, RenderOptions } from '@mui/internal-test-ut
 import { createRenderer, type BaseUIRenderResult } from './createRenderer';
 import { installDndTestEnv, registerCleanup } from './dnd';
 import { anyDragKind, createKind } from '../src/utils/drag-and-drop/dragKind';
-import { DraggablePreviewProvider } from '../src/draggable/preview-provider/DraggablePreviewProvider';
+import { DraggableProvider } from '../src/draggable/DraggableProvider';
 import { useDragDropManager } from '../src/use-drag-drop-manager';
-import type { DragAccept, DragKind, DragStartContext } from '../src/types/drag';
+import type { DragAccept, DragKind } from '../src/types/drag';
 import type {
   DragDropManager,
   RegisterDraggableParameters,
@@ -38,11 +38,10 @@ export const testDragKind = createKind<any>('base-ui-test/item');
  */
 type TestDraggableParameters<TData> = Omit<
   RegisterDraggableParameters<TData>,
-  'kind' | 'payload' | 'getPayload'
+  'kind' | 'payload'
 > & {
   kind?: DragKind<TData> | undefined;
   payload?: TData | undefined;
-  getPayload?: ((context: DragStartContext) => TData) | undefined;
 };
 
 /** A plain value or a getter for it — a test-only convenience (see {@link asGetter}). */
@@ -81,7 +80,6 @@ export interface DndTestEngine {
     parameters: MaybeGetter<RegisterMonitorParameters<TSourceData>>,
   ) => ReturnType<DragDropManager['registerMonitor']>;
   cancelDrag: DragDropManager['cancelDrag'];
-  startKeyboardDrag: DragDropManager['startKeyboardDrag'];
 }
 
 export interface DndRenderResult extends BaseUIRenderResult {
@@ -183,7 +181,6 @@ function withAutoCleanup(engine: DragDropManager): DndTestEngine {
     },
     // Nothing to queue: they register nothing.
     cancelDrag: engine.cancelDrag,
-    startKeyboardDrag: engine.startKeyboardDrag,
   };
 }
 
@@ -194,10 +191,10 @@ function NoUi(): null {
 
 export interface DndTestRenderer extends ReturnType<typeof createRenderer> {
   /**
-   * Render `ui` inside a `Draggable.PreviewProvider` and return the render result
+   * Render `ui` inside a `Draggable.Provider` and return the render result
    * plus the `engine` itself. Call with no element to mount just
    * the provider (for engine-level tests that need nothing rendered). An
-   * `options.wrapper`, if given, wraps *outside* the `Draggable.PreviewProvider` —
+   * `options.wrapper`, if given, wraps *outside* the `Draggable.Provider` —
    * e.g. a `LocalizationProvider` so the drag engine reads its translations.
    *
    * The provider is required for any preview with content, so it is the default
@@ -208,7 +205,7 @@ export interface DndTestRenderer extends ReturnType<typeof createRenderer> {
 }
 
 /**
- * Like `createRenderer()`, plus a `renderDnd` that mounts a `Draggable.PreviewProvider` and
+ * Like `createRenderer()`, plus a `renderDnd` that mounts a `Draggable.Provider` and
  * exposes the engine's drag engine. Call once per `describe`.
  */
 export function createDndRenderer(globalOptions?: CreateRendererOptions): DndTestRenderer {
@@ -231,10 +228,10 @@ export function createDndRenderer(globalOptions?: CreateRendererOptions): DndTes
     function Wrapper({ children }: { children?: React.ReactNode }): React.ReactElement {
       return (
         <Outer>
-          <DraggablePreviewProvider>
+          <DraggableProvider>
             <Capture />
             {children}
-          </DraggablePreviewProvider>
+          </DraggableProvider>
         </Outer>
       );
     }
@@ -242,9 +239,7 @@ export function createDndRenderer(globalOptions?: CreateRendererOptions): DndTes
     const result = await renderer.render(ui ?? <NoUi />, { ...options, wrapper: Wrapper });
 
     if (!captured) {
-      throw new Error(
-        'renderDnd: DraggablePreviewProvider did not mount; engine was not captured.',
-      );
+      throw new Error('renderDnd: Draggable.Provider did not mount; engine was not captured.');
     }
 
     return { ...result, engine: withAutoCleanup(captured) };

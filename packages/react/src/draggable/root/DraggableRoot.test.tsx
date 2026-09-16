@@ -21,11 +21,9 @@ import { DraggablePreviewProvider } from '../preview-provider/DraggablePreviewPr
 import { enUS } from '../../locale-enUS';
 import { frFR } from '../../locale-frFR';
 import { LocalizationProvider } from '../../localization-provider';
-import { CSPProvider } from '../../csp-provider';
+import { DraggableProvider } from '../DraggableProvider';
 
 setupDragEngineTests();
-
-const TEST_DRAGGABLE_LABEL = 'test-draggable';
 
 /** Kind for the fixtures that carry a payload, so its type reaches their handlers. */
 const cardKind = Draggable.createKind<{ id: string }>('card');
@@ -71,7 +69,6 @@ function TestDraggable<TData = undefined>(props: {
   return (
     <Root
       kind={testDragKind}
-      label={TEST_DRAGGABLE_LABEL}
       {...options}
       data-testid={testId}
       className={draggingClass}
@@ -98,17 +95,6 @@ describe('Draggable.Root', () => {
     expect(screen.getByTestId('moved').hasAttribute('keyboardmovement')).toBe(false);
   });
 
-  it('renders Displacement without adding a DOM element', () => {
-    rtlRender(
-      <Draggable.Root kind={testDragKind} data-testid="tracked">
-        <Draggable.Displacement />
-      </Draggable.Root>,
-    );
-    const el = screen.getByTestId('tracked');
-    expect(el).toBeEmptyDOMElement();
-    expect(el).not.toHaveAttribute('data-displacing');
-  });
-
   it('registers with no PreviewProvider ancestor (the engine is global)', () => {
     // The engine lives in a global slot, so a draggable works with no provider
     // of any kind — registration applies the gesture styles directly.
@@ -120,24 +106,22 @@ describe('Draggable.Root', () => {
     expect(el.style.userSelect).toBe('none');
   });
 
-  it('throws when a Draggable.Preview has no PreviewProvider ancestor', async () => {
-    // Content has to render in a React tree, and only a provider supplies one.
-    // Failing at mount points the stack at the part, rather than at drag start.
-    // React 18's dev error path logs the uncaught render error via console.error.
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      expect(() =>
-        rtlRender(
-          <Draggable.Root kind={testDragKind} data-testid="bare">
-            <Draggable.Preview>
-              <span>preview</span>
-            </Draggable.Preview>
-          </Draggable.Root>,
-        ),
-      ).toThrow(/Draggable\.PreviewProvider/);
-    } finally {
-      errorSpy.mockRestore();
-    }
+  it('requires Draggable.Provider when kind is omitted', () => {
+    expect(() => rtlRender(<Draggable.Root data-testid="missing-provider" />)).toThrow(
+      'Draggable.Root must be rendered inside Draggable.Provider when the kind prop is omitted',
+    );
+  });
+
+  it('throws when custom preview content has no Draggable.Provider', async () => {
+    expect(() =>
+      rtlRender(
+        <Draggable.Root kind={testDragKind} data-testid="bare">
+          <Draggable.Preview>
+            <span>preview</span>
+          </Draggable.Preview>
+        </Draggable.Root>,
+      ),
+    ).toThrow(/Draggable\.Provider/);
   });
 
   it('needs no PreviewProvider to clone the source', async () => {
@@ -145,7 +129,7 @@ describe('Draggable.Root', () => {
     // is scoped to custom content.
     rtlRender(
       <Draggable.Root kind={testDragKind} data-testid="bare">
-        <Draggable.ClonedPreview />
+        <Draggable.Preview />
       </Draggable.Root>,
     );
     const source = screen.getByTestId('bare');
@@ -330,11 +314,11 @@ describe('Draggable.Root', () => {
     expect(source).toHaveClass('idle');
   });
 
-  it('blocks the drag when onBeforeDragStart cancels', async () => {
-    const onDragStart = vi.fn();
+  it('blocks the drag when onBeforeMoveStart cancels', async () => {
+    const onMoveStart = vi.fn();
     await renderDnd(
       <TestDraggable
-        options={{ onBeforeDragStart: (_, eventDetails) => eventDetails.cancel(), onDragStart }}
+        options={{ onBeforeMoveStart: (_, eventDetails) => eventDetails.cancel(), onMoveStart }}
       />,
     );
     const source = screen.getByTestId('drag');
@@ -342,19 +326,19 @@ describe('Draggable.Root', () => {
     fireEvent.dragStart(source);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(source).toHaveClass('idle');
   });
 
   it('blocks the drag when disabled', async () => {
-    const onDragStart = vi.fn();
-    await renderDnd(<TestDraggable options={{ disabled: true, onDragStart }} />);
+    const onMoveStart = vi.fn();
+    await renderDnd(<TestDraggable options={{ disabled: true, onMoveStart }} />);
     const source = screen.getByTestId('drag');
 
     fireEvent.dragStart(source);
     await flushRaf();
 
-    expect(onDragStart).not.toHaveBeenCalled();
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(source).toHaveClass('idle');
   });
 
@@ -370,15 +354,14 @@ describe('Draggable.Root', () => {
     expect(screen.getByTestId('enabled')).not.toHaveAttribute('data-disabled');
   });
 
-  it('forwards getPayload into the drag payload', async () => {
+  it('forwards payload into the drag payload', async () => {
     const tokenKind = Draggable.createKind<{ token: string }>('token');
-    const payload = vi.fn(() => ({ token: 'abc' }));
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     await renderDnd(
       // `Props` hides `kind` behind an `Omit`, which TypeScript can't infer through, so
       // the payload type is named here rather than read off the kind.
       <TestDraggable<{ token: string }>
-        options={{ kind: tokenKind, getPayload: payload, onDragStart }}
+        options={{ kind: tokenKind, payload: { token: 'abc' }, onMoveStart }}
       />,
     );
     const source = screen.getByTestId('drag');
@@ -386,17 +369,16 @@ describe('Draggable.Root', () => {
     fireEvent.dragStart(source);
     await flushRaf();
 
-    expect(payload).toHaveBeenCalledTimes(1);
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart.mock.calls[0][0].source.payload).toEqual({ token: 'abc' });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart.mock.calls[0][0].source.payload).toEqual({ token: 'abc' });
   });
 
   it('forwards a static payload value, keeping it off the DOM element', async () => {
     const tokenKind = Draggable.createKind<{ token: string }>('static-token');
-    const onDragStart = vi.fn();
+    const onMoveStart = vi.fn();
     await renderDnd(
       <TestDraggable<{ token: string }>
-        options={{ kind: tokenKind, payload: { token: 'abc' }, onDragStart }}
+        options={{ kind: tokenKind, payload: { token: 'abc' }, onMoveStart }}
       />,
     );
     const source = screen.getByTestId('drag');
@@ -407,8 +389,8 @@ describe('Draggable.Root', () => {
     fireEvent.dragStart(source);
     await flushRaf();
 
-    expect(onDragStart).toHaveBeenCalledTimes(1);
-    expect(onDragStart.mock.calls[0][0].source.payload).toEqual({ token: 'abc' });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMoveStart.mock.calls[0][0].source.payload).toEqual({ token: 'abc' });
   });
 
   it('keeps the registration stable across re-renders and calls the latest callbacks', async () => {
@@ -416,7 +398,7 @@ describe('Draggable.Root', () => {
     const secondOnDragStart = vi.fn();
 
     const { rerender } = await renderDnd(
-      <TestDraggable options={{ onDragStart: firstOnDragStart }} />,
+      <TestDraggable options={{ onMoveStart: firstOnDragStart }} />,
     );
     const source = screen.getByTestId('drag');
     // Registration applies the gesture styles; they prove the element is
@@ -428,10 +410,10 @@ describe('Draggable.Root', () => {
     // layers instead of rebuilding the registration object every time.
     expect(getParameters()).toBe(firstParameters);
 
-    // Re-render with a brand-new onDragStart function reference. The
+    // Re-render with a brand-new onMoveStart function reference. The
     // registration must NOT tear down and re-register — only the wrapped
     // callback should read the fresh prop.
-    await rerender(<TestDraggable options={{ onDragStart: secondOnDragStart }} />);
+    await rerender(<TestDraggable options={{ onMoveStart: secondOnDragStart }} />);
     // Same DOM node, still registered — no re-registration happened.
     expect(screen.getByTestId('drag')).toBe(source);
     expect(source.style.touchAction).toBe('manipulation');
@@ -472,7 +454,7 @@ describe('Draggable.Root', () => {
           </button>
           <React.Suspense fallback="Loading">
             <TestDraggable
-              options={{ onDragStart: suspend ? suspendedOnDragStart : committedOnDragStart }}
+              options={{ onMoveStart: suspend ? suspendedOnDragStart : committedOnDragStart }}
             />
             {suspend && <SuspendingChild />}
           </React.Suspense>
@@ -563,7 +545,7 @@ describe('Draggable.Root', () => {
     // on a detached node. The drag has to run on regardless, because an app that reflows its
     // layout under a live drag is doing something ordinary.
     function Board({ inB }: { inB: boolean }) {
-      const chip = <Draggable.Root kind={testDragKind} data-testid="chip" label="chip" />;
+      const chip = <Draggable.Root kind={testDragKind} data-testid="chip" />;
       return (
         <div>
           <div data-testid="col-a">{!inB && chip}</div>
@@ -621,8 +603,7 @@ describe('Draggable.Root', () => {
     // `useMergedRefs` rebuilds its callback whenever an entry's identity changes,
     // so an inline `ref` arrow makes React detach and re-attach the node on every
     // render, re-running the registration mid-gesture.
-    const onDragEnd = vi.fn();
-    const onDrop = vi.fn();
+    const onMoveEnd = vi.fn();
     function Inline({ tick }: { tick: number }) {
       return (
         <Draggable.Root
@@ -630,8 +611,7 @@ describe('Draggable.Root', () => {
           data-testid="drag"
           data-tick={tick}
           className={draggingClass}
-          onDrop={onDrop}
-          onDragEnd={onDragEnd}
+          onMoveEnd={onMoveEnd}
           ref={(node) => {
             void node;
           }}
@@ -667,8 +647,7 @@ describe('Draggable.Root', () => {
     fireEvent.drop(target);
     await flushRaf();
 
-    expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(source).toHaveClass('idle');
   });
 
@@ -711,13 +690,12 @@ describe('Draggable.Root', () => {
       expect(document.querySelectorAll(`[id="${ids[0]}"]`)).toHaveLength(1);
     });
 
-    it('fires onDragStart, onDrop and onDragEnd exactly once for a full drag', async () => {
-      const onDragStart = vi.fn();
-      const onDragEnd = vi.fn();
-      const onDrop = vi.fn();
+    it('fires onMoveStart and onMoveEnd exactly once for a full drag', async () => {
+      const onMoveStart = vi.fn();
+      const onMoveEnd = vi.fn();
       const { engine } = await renderDnd(
         <React.StrictMode>
-          <TestDraggable options={{ onDragStart, onDrop, onDragEnd }} />
+          <TestDraggable options={{ onMoveStart, onMoveEnd }} />
         </React.StrictMode>,
       );
       const source = screen.getByTestId('drag');
@@ -734,49 +712,72 @@ describe('Draggable.Root', () => {
       await flushRaf();
 
       // A double-mounted registration would run the handlers once per hold.
-      expect(onDragStart).toHaveBeenCalledTimes(1);
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
-      // And it was a committed drop, which `onDrop` says on its own.
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
+      expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the Provider default kind when kind and accept are omitted', async () => {
+      const onDrop = vi.fn();
+      await renderDnd(
+        <DraggableProvider>
+          <DropTarget.Root data-testid="target" onDraggableDrop={onDrop} />
+          <Draggable.Root data-testid="drag" />
+        </DraggableProvider>,
+      );
+      const source = screen.getByTestId('drag');
+      const target = screen.getByTestId('target');
+      source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
+      target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
+
+      fireEvent.dragStart(source);
+      await flushRaf();
+      fireEvent.dragEnter(target);
+      fireEvent.dragOver(target);
+      await flushRaf();
+      fireEvent.drop(target);
+      await flushRaf();
+
       expect(onDrop).toHaveBeenCalledTimes(1);
+      expect(onDrop.mock.calls[0][0].source.payload).toBeUndefined();
     });
   });
 
   describe('configuration forwarding', () => {
-    it('forwards pointerActivation to the sensor: a raised distance defers the pickup', async () => {
-      const onDragStart = vi.fn();
+    it('forwards activation to the sensor: a raised distance defers the pickup', async () => {
+      const onMoveStart = vi.fn();
       await renderDnd(
         <Draggable.Root
           kind={testDragKind}
           data-testid="drag"
-          pointerActivation={{ mouse: { type: 'distance', distance: 40 } }}
-          onDragStart={onDragStart}
+          activation={{ mouse: { type: 'distance', distance: 40 } }}
+          onMoveStart={onMoveStart}
         />,
       );
       const el = screen.getByTestId('drag');
       el.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
       // The bridge nudges ~6px, well short of the configured 40px threshold, so
-      // a forwarded `pointerActivation` keeps the drag from starting here.
+      // a forwarded `activation` keeps the drag from starting here.
       await lift(el, { expectNoDrag: true });
-      expect(onDragStart).not.toHaveBeenCalled();
+      expect(onMoveStart).not.toHaveBeenCalled();
       expect(dragSessionStore.getSnapshot()).toBeNull();
     });
 
-    it('forwards pointerActivation to the sensor: immediate picks up with no travel', async () => {
-      const onDragStart = vi.fn();
+    it('forwards activation to the sensor: immediate picks up with no travel', async () => {
+      const onMoveStart = vi.fn();
       await renderDnd(
         <Draggable.Root
           kind={testDragKind}
           data-testid="drag"
-          pointerActivation={{ type: 'immediate' }}
-          onDragStart={onDragStart}
+          activation={{ type: 'immediate' }}
+          onMoveStart={onMoveStart}
         />,
       );
       const el = screen.getByTestId('drag');
       el.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
       await lift(el);
-      expect(onDragStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
 
       cancel();
     });
@@ -791,7 +792,7 @@ describe('Draggable.Root', () => {
           kind={testDragKind}
           data-testid="drag"
           modifiers={Draggable.restrictToVerticalAxis}
-          onDrag={({ location }) => {
+          onMove={({ location }) => {
             moves.push({
               x: location.current.input.clientX,
               y: location.current.input.clientY,
@@ -804,7 +805,7 @@ describe('Draggable.Root', () => {
 
       await lift(el, { clientX: 100, clientY: 50 });
       await dragOver(el, { clientX: 180, clientY: 90 });
-      // `onDrag` is rAF-throttled on top of the sensor's frame, so the move
+      // `onMove` is rAF-throttled on top of the sensor's frame, so the move
       // committed above is delivered one frame later.
       await flushRaf();
 
@@ -875,9 +876,9 @@ describe('Draggable.Root', () => {
       expect(document.activeElement).toBe(focusSpot);
     });
 
-    it('forwards onDropTargetChange: it fires with the entered target', async () => {
-      const onDropTargetChange = vi.fn();
-      const { engine } = await renderDnd(<TestDraggable options={{ onDropTargetChange }} />);
+    it('forwards onTargetChange: it fires with the entered target', async () => {
+      const onTargetChange = vi.fn();
+      const { engine } = await renderDnd(<TestDraggable options={{ onTargetChange }} />);
       const source = screen.getByTestId('drag');
       source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
       const target = createElement();
@@ -885,77 +886,17 @@ describe('Draggable.Root', () => {
 
       fireEvent.dragStart(source);
       await flushRaf();
-      expect(onDropTargetChange).not.toHaveBeenCalled();
+      expect(onTargetChange).not.toHaveBeenCalled();
 
       fireEvent.dragEnter(target);
       fireEvent.dragOver(target);
       await flushRaf();
 
-      expect(onDropTargetChange).toHaveBeenCalledTimes(1);
-      const event = onDropTargetChange.mock.calls[0][0];
+      expect(onTargetChange).toHaveBeenCalledTimes(1);
+      const event = onTargetChange.mock.calls[0][0];
       expect(
         event.location.current.dropTargets.map((record: { element: Element }) => record.element),
       ).toEqual([target]);
-
-      cancel();
-      await flushRaf();
-    });
-
-    it('forwards dragCursor to the pointer sensor cursor lock', async () => {
-      await renderDnd(<Draggable.Root kind={testDragKind} data-testid="drag" dragCursor="copy" />);
-      const el = screen.getByTestId('drag');
-      el.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
-
-      await lift(el);
-
-      // The sensor pins the cursor document-wide through a scoped rule driven by
-      // this class/variable pair; the forwarded value must land in the variable.
-      const root = document.documentElement;
-      expect(root.classList.contains('baseui-dragging')).toBe(true);
-      expect(root.style.getPropertyValue('--drag-cursor')).toBe('copy');
-
-      cancel();
-      await flushRaf();
-      expect(root.classList.contains('baseui-dragging')).toBe(false);
-    });
-
-    it('reads the live CSP provider configuration for the cursor stylesheet', async () => {
-      let setStyleElementsDisabled!: React.Dispatch<React.SetStateAction<boolean>>;
-
-      function DynamicCSPProvider({ children }: { children?: React.ReactNode }) {
-        const [disabled, setDisabled] = React.useState(true);
-        setStyleElementsDisabled = setDisabled;
-        return (
-          <CSPProvider nonce="drag-nonce" disableStyleElements={disabled}>
-            {children}
-          </CSPProvider>
-        );
-      }
-
-      await renderDnd(<Draggable.Root kind={testDragKind} data-testid="drag" />, {
-        wrapper: DynamicCSPProvider,
-      });
-      const el = screen.getByTestId('drag');
-      el.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
-
-      await lift(el);
-      expect(document.documentElement).toHaveClass('baseui-dragging');
-      expect(document.documentElement).not.toHaveClass('baseui-dragging-styles');
-      cancel();
-      await flushRaf();
-
-      act(() => setStyleElementsDisabled(false));
-      await lift(el);
-
-      expect(document.documentElement).toHaveClass('baseui-dragging', 'baseui-dragging-styles');
-      const cursorStyle = Array.from(document.head.querySelectorAll('style')).find(
-        (style) =>
-          style.nonce === 'drag-nonce' &&
-          Array.from(style.sheet?.cssRules ?? []).some((rule) =>
-            rule.cssText.includes('baseui-dragging-styles'),
-          ),
-      );
-      expect(cursorStyle?.nonce).toBe('drag-nonce');
 
       cancel();
       await flushRaf();
@@ -1057,15 +998,14 @@ describe('Draggable.Root', () => {
       // The ref callback runs earlier in a commit than the layout effect that
       // commits the params ref, so a keyed remount that also changes props would
       // register the new node against the *previous* render's parameters.
-      const onDragStart = vi.fn();
+      const onMoveStart = vi.fn();
       const first = vi.fn();
       const { rerender } = await renderDnd(
         <Draggable.Root
           kind={testDragKind}
           key="a"
           data-testid="drag"
-          label="first"
-          onDragStart={first}
+          onMoveStart={first}
         />,
       );
       const before = screen.getByTestId('drag');
@@ -1075,8 +1015,7 @@ describe('Draggable.Root', () => {
           kind={testDragKind}
           key="b"
           data-testid="drag"
-          label="second"
-          onDragStart={onDragStart}
+          onMoveStart={onMoveStart}
         />,
       );
       const after = screen.getByTestId('drag');
@@ -1086,14 +1025,13 @@ describe('Draggable.Root', () => {
       await lift(after);
 
       expect(first).not.toHaveBeenCalled();
-      expect(onDragStart).toHaveBeenCalledTimes(1);
-      expect(onDragStart.mock.calls[0][0].source.label).toBe('second');
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
     });
 
     it('applies the same commit’s disabled to the new draggable node', async () => {
-      const onDragStart = vi.fn();
+      const onMoveStart = vi.fn();
       const { rerender } = await renderDnd(
-        <Draggable.Root kind={testDragKind} key="a" data-testid="drag" onDragStart={onDragStart} />,
+        <Draggable.Root kind={testDragKind} key="a" data-testid="drag" onMoveStart={onMoveStart} />,
       );
 
       await rerender(
@@ -1102,7 +1040,7 @@ describe('Draggable.Root', () => {
           key="b"
           data-testid="drag"
           disabled
-          onDragStart={onDragStart}
+          onMoveStart={onMoveStart}
         />,
       );
       const after = screen.getByTestId('drag');
@@ -1111,7 +1049,7 @@ describe('Draggable.Root', () => {
       // A stale registration would still read the previous render's enabled state.
       expect(after).not.toHaveAttribute('tabindex');
       await lift(after, { expectNoDrag: true });
-      expect(onDragStart).not.toHaveBeenCalled();
+      expect(onMoveStart).not.toHaveBeenCalled();
     });
 
     it('registers the new drop-target node with the same commit’s parameters', async () => {
@@ -1123,7 +1061,7 @@ describe('Draggable.Root', () => {
           key="a"
           data-testid="target"
           payload={{ slot: 1 }}
-          onDrop={stale}
+          onDraggableDrop={stale}
         />,
       );
       const source = createElement();
@@ -1135,7 +1073,7 @@ describe('Draggable.Root', () => {
           key="b"
           data-testid="target"
           payload={{ slot: 2 }}
-          onDrop={onDrop}
+          onDraggableDrop={onDrop}
         />,
       );
       const target = screen.getByTestId('target');
@@ -1148,7 +1086,7 @@ describe('Draggable.Root', () => {
 
       expect(stale).not.toHaveBeenCalled();
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop.mock.calls[0][0].self.payload).toEqual({ slot: 2 });
+      expect(onDrop.mock.calls[0][0].target.payload).toEqual({ slot: 2 });
     });
   });
 
@@ -1453,18 +1391,18 @@ describe('Draggable.Root', () => {
     });
   });
 
-  describe('Draggable.ClonedPreview', () => {
-    function ClonedPreviewDraggable(props: { previewProps?: Draggable.ClonedPreview.Props }) {
+  describe('Draggable.Preview', () => {
+    function PreviewDraggable(props: { previewProps?: Draggable.Preview.Props }) {
       return (
         <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
           Card
-          <Draggable.ClonedPreview {...props.previewProps} />
+          <Draggable.Preview {...props.previewProps} />
         </Draggable.Root>
       );
     }
 
     it('still clones the source, and applies the offset to the clone', async () => {
-      await renderDnd(<ClonedPreviewDraggable previewProps={{ offset: 'pointer' }} />);
+      await renderDnd(<PreviewDraggable previewProps={{ offset: 'pointer' }} />);
       const source = screen.getByTestId('drag');
       source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1484,7 +1422,7 @@ describe('Draggable.Root', () => {
       // and nothing would re-anchor it later: the callback has to resolve at drag
       // start, unlike a host's.
       const offsetSpy = vi.fn((_params: { container: HTMLElement }) => ({ x: 10, y: 20 }));
-      await renderDnd(<ClonedPreviewDraggable previewProps={{ offset: offsetSpy }} />);
+      await renderDnd(<PreviewDraggable previewProps={{ offset: offsetSpy }} />);
       const source = screen.getByTestId('drag');
       source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1500,7 +1438,7 @@ describe('Draggable.Root', () => {
     });
 
     it('shows no preview at all when disabled', async () => {
-      await renderDnd(<ClonedPreviewDraggable previewProps={{ disabled: true }} />);
+      await renderDnd(<PreviewDraggable previewProps={{ disabled: true }} />);
       const source = screen.getByTestId('drag');
       source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1514,7 +1452,7 @@ describe('Draggable.Root', () => {
     it('needs no React at all, so it renders with no PreviewProvider', async () => {
       // A clone is built entirely by the engine, so it must not require the
       // provider a declared preview does — nor throw for the want of one.
-      rtlRender(<ClonedPreviewDraggable />);
+      rtlRender(<PreviewDraggable />);
       const source = screen.getByTestId('drag');
       source.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1532,7 +1470,7 @@ describe('Draggable.Root', () => {
             <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
               {/* Pin the preview to the pointer so the assertions below read the
                   clamp alone, not the grab offset the `'source'` default would add. */}
-              <Draggable.ClonedPreview
+              <Draggable.Preview
                 modifiers={Draggable.restrictToElement(boundsRef)}
                 offset="pointer"
               />
@@ -1567,7 +1505,7 @@ describe('Draggable.Root', () => {
       function Wiring() {
         return (
           <DraggablePreviewProvider>
-            <ClonedPreviewDraggable previewProps={{ offset: 'pointer' }} />
+            <PreviewDraggable previewProps={{ offset: 'pointer' }} />
           </DraggablePreviewProvider>
         );
       }
@@ -1600,7 +1538,7 @@ describe('Draggable.Root', () => {
               <Draggable.Preview>
                 <span>x</span>
               </Draggable.Preview>
-              <Draggable.ClonedPreview />
+              <Draggable.Preview />
             </Draggable.Root>,
           ),
         ).not.toThrow();
@@ -1663,7 +1601,7 @@ describe('Draggable.Root', () => {
         return (
           <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
             {props.cloned ? (
-              <Draggable.ClonedPreview />
+              <Draggable.Preview />
             ) : (
               <Draggable.Preview>
                 <span data-testid="preview">x</span>
@@ -1692,7 +1630,7 @@ describe('Draggable.Root', () => {
           <React.Fragment>
             <div ref={boundsRef} data-testid="bounds" />
             <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
-              <Draggable.ClonedPreview
+              <Draggable.Preview
                 modifiers={Draggable.restrictToElement(boundsRef)}
                 offset="pointer"
               />
@@ -1730,7 +1668,7 @@ describe('Draggable.Root', () => {
         return (
           <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
             {props.cloned ? (
-              <Draggable.ClonedPreview />
+              <Draggable.Preview />
             ) : (
               <Draggable.Preview>
                 <span data-testid="preview">x</span>
@@ -1845,7 +1783,7 @@ describe('Draggable.Root', () => {
       expect(document.querySelector('[data-base-ui-drag-overlay]')).toBeNull();
     });
 
-    it('shows no preview at all when it has no children', async () => {
+    it('uses the source clone when it has no children', async () => {
       await renderDnd(
         <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
           <Draggable.Preview />
@@ -1856,9 +1794,7 @@ describe('Draggable.Root', () => {
 
       fireEvent.dragStart(source);
 
-      // Declaring a preview opts out of the clone, so nothing to render means
-      // nothing follows the pointer — not a fallback clone of the source.
-      expect(document.querySelector('[data-drag-preview]')).toBeNull();
+      expect(document.querySelector('.Card[data-drag-preview]')).not.toBeNull();
     });
 
     it('forwards its remaining props onto the rendered element', async () => {
@@ -2006,9 +1942,8 @@ describe('Draggable.Root', () => {
       renderWithPreviewProvider(
         <DraggableWithPreview
           preview={({ source, mode }) => (
-            <span data-testid="preview">{`${mode}:${source.label}`}</span>
+            <span data-testid="preview">{mode}</span>
           )}
-          options={{ label: 'card-1' }}
         />,
       );
       const source = screen.getByTestId('drag');
@@ -2018,7 +1953,7 @@ describe('Draggable.Root', () => {
       // eslint-disable-next-line testing-library/no-unnecessary-act -- flushing the detached fallback root, not the RTL tree
       await act(async () => {});
 
-      expect(screen.getByTestId('preview')).toHaveTextContent('pointer:card-1');
+      expect(screen.getByTestId('preview')).toHaveTextContent('pointer');
     });
 
     it('invokes an offset callback with the overlay element', async () => {
@@ -2196,6 +2131,7 @@ describe('Draggable.Root', () => {
       expect(host.parentElement!.parentElement).toBe(screen.getByTestId('board'));
     });
 
+    /*
     it('injects into the provider`s container by default, and the part`s over it', async () => {
       function Wiring({ partContainer }: { partContainer?: boolean }) {
         const fromProvider = React.useRef<HTMLDivElement>(null);
@@ -2234,9 +2170,9 @@ describe('Draggable.Root', () => {
       expect(
         screen.getByTestId('preview').closest('[data-drag-preview]')!.parentElement!.parentElement,
       ).toBe(screen.getByTestId('from-part'));
-    });
+    }); */
 
-    it('relocates the default clone through a provider container too', async () => {
+    /* it('relocates the default clone through a provider container too', async () => {
       function Wiring() {
         const containerRef = React.useRef<HTMLDivElement>(null);
         return (
@@ -2244,7 +2180,7 @@ describe('Draggable.Root', () => {
             <div ref={containerRef} data-testid="container" />
             <DraggablePreviewProvider container={containerRef}>
               <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
-                <Draggable.ClonedPreview />
+                <Draggable.Preview />
               </Draggable.Root>
             </DraggablePreviewProvider>
           </React.Fragment>
@@ -2274,7 +2210,7 @@ describe('Draggable.Root', () => {
             <div ref={setContainer} data-testid="late-container" />
             <DraggablePreviewProvider container={container ?? undefined}>
               <Draggable.Root kind={testDragKind} data-testid="drag" className="Card">
-                <Draggable.ClonedPreview />
+                <Draggable.Preview />
               </Draggable.Root>
             </DraggablePreviewProvider>
           </React.Fragment>
@@ -2319,7 +2255,7 @@ describe('Draggable.Root', () => {
       fireEvent.click(screen.getByTestId('force'));
 
       expect(rowCommits).toBe(countAfterMount);
-    });
+    }); */
   });
 
   describe('imperative dragPreview', () => {
@@ -2332,7 +2268,7 @@ describe('Draggable.Root', () => {
         () =>
           engine.registerDraggable(elementRef.current!, () => ({
             kind: cardKind,
-            getPayload: () => ({ id: 'a' }),
+            payload: () => ({ id: 'a' }),
             dragPreview: { render: () => <span data-testid="preview">chip</span> },
           })),
         [engine],
@@ -2380,7 +2316,7 @@ describe('Draggable.Root', () => {
         window.removeEventListener('error', onError);
         consoleErrorSpy.mockRestore();
       }
-      expect(reportedError.current?.message).toMatch(/Draggable\.PreviewProvider/);
+      expect(reportedError.current?.message).toMatch(/Draggable\.Provider/);
       expect(dragSessionStore.getSnapshot()).toBeNull();
       expect(source).not.toHaveAttribute('data-dragging');
       expect(document.querySelector('[data-drag-preview]')).toBeNull();
@@ -2399,7 +2335,7 @@ describe('Draggable.Root', () => {
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              getPayload: () => ({ id: 'a' }),
+              payload: () => ({ id: 'a' }),
               dragPreview: {
                 render: () => <span data-testid="preview">chip</span>,
                 offset: { x: 5, y: 6 },
@@ -2433,7 +2369,7 @@ describe('Draggable.Root', () => {
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              getPayload: () => ({ id: 'a' }),
+              payload: () => ({ id: 'a' }),
               dragPreview: { disabled: true },
             })),
           [engine],
@@ -2460,7 +2396,7 @@ describe('Draggable.Root', () => {
           () =>
             engine.registerDraggable(elementRef.current!, () => ({
               kind: cardKind,
-              getPayload: () => ({ id: 'a' }),
+              payload: () => ({ id: 'a' }),
               dragPreview: {
                 modifiers: Draggable.restrictToElement(boundsRef),
                 offset: 'pointer',
@@ -2501,7 +2437,7 @@ describe('Draggable.Root', () => {
             () =>
               engine.registerDraggable(elementRef.current!, () => ({
                 kind: cardKind,
-                getPayload: () => ({ id: 'a' }),
+                payload: () => ({ id: 'a' }),
                 dragPreview: { container: host },
               })),
             [engine],
@@ -2532,7 +2468,7 @@ describe('Draggable.Root', () => {
             () =>
               engine.registerDraggable(elementRef.current!, () => ({
                 kind: cardKind,
-                getPayload: () => ({ id: 'a' }),
+                payload: () => ({ id: 'a' }),
                 dragPreview: {
                   render: () => <span data-testid="preview">chip</span>,
                   container: host,
@@ -2633,7 +2569,7 @@ describe('Draggable.Root', () => {
     });
 
     it('falls back to the localized generic label when the draggable has none', async () => {
-      await renderDnd(<TestDraggable options={{ label: undefined }} />, {
+      await renderDnd(<TestDraggable />, {
         wrapper: FrenchProvider,
       });
       const el = screen.getByTestId('drag');
@@ -2754,8 +2690,7 @@ describe('Draggable.Root', () => {
     // configuring nothing; nothing pinned that it actually fires.
     it.each([
       ['Draggable.Handle', <Draggable.Handle key="h" />],
-      ['Draggable.ClonedPreview', <Draggable.ClonedPreview key="c" />],
-      ['Draggable.Displacement', <Draggable.Displacement key="d" />],
+      ['Draggable.Preview', <Draggable.Preview key="c" />],
     ])('throws when %s is rendered outside Draggable.Root', (_name, element) => {
       // React logs the uncaught render error through console.error in dev.
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

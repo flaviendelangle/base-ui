@@ -11,46 +11,24 @@ import { registerDraggable as registerDraggableInRegistry } from './draggableReg
 import { registerAutoScroller, registerDropTarget, registerMonitor } from './registrations';
 import { onceCleanup } from './utils';
 import { cancelDrag } from './cancelDrag';
-import { startKeyboardDrag } from './keyboard/keyboardSensor';
 import { clearPublishedDragPreview, publishDragPreview } from './overlay/dragPreviewStore';
 import { useDragPreviewContext } from './overlay/DragPreviewContext';
 import type { DragPreviewContext } from './overlay/DragPreviewContext';
-import { throwMissingPreviewProvider } from './overlay/missingPreviewProvider';
 import {
   getActiveDragPreviewSettings,
   getActivePreview,
   removeActivePreview,
 } from './activePreview';
 import { retargetEndingPreviewSource } from './synthetic/syntheticPreview';
-import { buildDefaultAnnouncements, mergeKeyboardAnnouncements } from './a11y/defaultAnnouncements';
 import type {
   InternalDragEngine,
   InternalDraggableParameters,
   RegisterDraggableParameters,
 } from '../../types/dragRegistration';
 import type { DragCleanupFn } from '../../types/drag';
-import { useTranslations } from '../../internals/localization-context/LocalizationContext';
-import type { LocalizationProviderTranslations } from '../../localization-provider/types';
+import { useDraggableContext } from '../../draggable/DraggableContext';
 
 import type { LatestGetter } from './useRegistrationRef';
-
-/**
- * The keyboard instructions to announce when the draggable is focused.
- *
- * The localized default promises "press Space to lift", which is what
- * `keyboardActivation: 'manual'` takes away — only the consumer knows the real route, so
- * `'manual'` says nothing unless they wrote it. Empty text means no instructions
- * node downstream (see `applyStaticSetup`).
- */
-export function resolveKeyboardInstructions(
-  parameters: Pick<RegisterDraggableParameters<any>, 'keyboardInstructions' | 'keyboardActivation'>,
-  translations: LocalizationProviderTranslations,
-): string {
-  if (parameters.keyboardInstructions !== undefined) {
-    return parameters.keyboardInstructions;
-  }
-  return parameters.keyboardActivation === 'manual' ? '' : translations.dragKeyboardInstructions;
-}
 
 /**
  * The half of the engine that depends on React context: `registerDraggable`,
@@ -62,19 +40,14 @@ export function resolveKeyboardInstructions(
  * in it shipped the drop-target and monitor registries too. Keeping them off
  * this base class is what lets a bundler drop them.
  *
- * Auto-scroll is armed independently by `DragAutoScroll.Root` or an imperative
+ * Auto-scroll is armed independently by `Draggable.Viewport` or an imperative
  * auto-scroller registration, so it also stays outside the draggable leaf.
  */
 export class DragEngineBase {
   constructor(
-    private readonly getTranslations: LatestGetter<LocalizationProviderTranslations>,
     private readonly getPreviewContext: LatestGetter<DragPreviewContext | null>,
     private readonly getCSPContext: LatestGetter<CSPContextValue>,
   ) {}
-
-  private get translations(): LocalizationProviderTranslations {
-    return this.getTranslations();
-  }
 
   // The nearest `Draggable.PreviewProvider`, or `null` when there is none.
   private get previewContext(): DragPreviewContext | null {
@@ -83,27 +56,12 @@ export class DragEngineBase {
 
   cancelDrag = cancelDrag;
 
-  startKeyboardDrag = startKeyboardDrag;
-
   registerDraggable = <TData = undefined>(
     element: HTMLElement,
     get: () => RegisterDraggableParameters<TData>,
     cacheParameters = false,
   ): DragCleanupFn => {
     const initial = get();
-
-    // Built per announcement so a language change applies to the next drag.
-    // Announcements fire a handful of times per keyboard drag, so the rebuild is
-    // negligible — unlike `getNormalized`, which the engine reads on every dispatch.
-    const getDefaults = () => buildDefaultAnnouncements<TData>(this.translations);
-
-    // Hoisted to registration scope, with the preview publisher below: these only
-    // read live getters, so rebuilding them inside `getNormalized` on every engine
-    // dispatch would be pure garbage churn.
-    const keyboardAnnouncements = mergeKeyboardAnnouncements<TData>(
-      () => get().keyboardAnnouncements,
-      getDefaults,
-    );
 
     // Always defined so every drag start clears any preview the previous drag left
     // behind. A drop and the next pickup can land in one React flush, so the
@@ -129,13 +87,7 @@ export class DragEngineBase {
         previewContext?.previewStore.setState(null);
         return;
       }
-      // Authoritative: `useDeclaredPreview` throws earlier for a part, but an
-      // imperative source's `render` only surfaces here, and either way the
-      // params getter could have grown a `render` since registration.
-      if (previewContext == null) {
-        throwMissingPreviewProvider();
-      }
-      const { previewStore } = previewContext;
+      const { previewStore } = previewContext!;
       previewStore.setState(null);
       const preview = getActivePreview();
       const previewNode = preview ? settings.render(payload) : null;
@@ -162,41 +114,26 @@ export class DragEngineBase {
     // while all inputs are unchanged: the lifecycle reads this getter on every
     // event, while those callers only replace `params` on a render.
     let lastParams: InternalDraggableParameters<TData> | null = null;
-    let lastTranslations: LocalizationProviderTranslations | null = null;
-    let lastPreviewContainer: DraggableConfig<TData>['previewContainerDefault'];
     let lastCSPContext: CSPContextValue | null = null;
     let normalized: DraggableConfig<TData> | null = null;
     const getNormalized = (): DraggableConfig<TData> => {
       // `Draggable.Root` adds the preview-declaration channel to what it returns
       // here; the public parameter type hides it, since consumers never set it.
       const params = get() as InternalDraggableParameters<TData>;
-      const translations = this.translations;
-      const previewContainerDefault = this.previewContext?.getContainer();
       const cspContext = this.getCSPContext();
       if (
         cacheParameters &&
         normalized !== null &&
         params === lastParams &&
-        translations === lastTranslations &&
-        previewContainerDefault === lastPreviewContainer &&
         cspContext === lastCSPContext
       ) {
         return normalized;
       }
       lastParams = params;
-      lastTranslations = translations;
-      lastPreviewContainer = previewContainerDefault;
       lastCSPContext = cspContext;
       normalized = {
         ...params,
         element,
-        ariaRoleDescription: params.ariaRoleDescription ?? translations.dragRoleDescription,
-        keyboardInstructions: resolveKeyboardInstructions(params, translations),
-        keyboardAnnouncements,
-        // A provider is a React concept the engine can't see, so its subtree default
-        // has to be passed down. Read through the provider's stable ref, which keeps
-        // the provider's context identity independent of `container`.
-        previewContainerDefault,
         styleNonce: cspContext.nonce,
         disableStyleElements: cspContext.disableStyleElements,
         onGenerateDragPreview,
@@ -208,9 +145,6 @@ export class DragEngineBase {
     const restoreStatic = applyDraggableStaticSetup({
       element,
       dragHandle: initial.dragHandle,
-      ariaRoleDescription: initial.ariaRoleDescription ?? this.translations.dragRoleDescription,
-      keyboardInstructions: resolveKeyboardInstructions(initial, this.translations),
-      keyboardActivation: initial.keyboardActivation,
       disabled: initial.disabled,
     });
     const unregister = registerDraggableInRegistry(element, getNormalized);
@@ -245,35 +179,32 @@ export class DragEngineImpl extends DragEngineBase implements InternalDragEngine
  * `Draggable.Root`.
  */
 export function useRegisterDraggable(): DragEngineBase['registerDraggable'] {
-  const translations = useTranslations();
+  useDraggableContext();
   const previewContext = useDragPreviewContext();
   const cspContext = useCSPContext();
-  const getTranslations = useStableCallback(() => translations);
   const getPreviewContext = useStableCallback(() => previewContext);
   const getCSPContext = useStableCallback(() => cspContext);
 
-  return useRefWithInit(() => new DragEngineBase(getTranslations, getPreviewContext, getCSPContext))
-    .current.registerDraggable;
+  return useRefWithInit(() => new DragEngineBase(getPreviewContext, getCSPContext)).current
+    .registerDraggable;
 }
 
 /**
  * The engine's imperative API, used internally by `Draggable.Root`,
- * `DropTarget.Root`, `DragAutoScroll.Root` and `useDragMonitor`, and publicly by
+ * `Draggable.Target`, `Draggable.Viewport` and `Draggable.useDragMonitor`, and publicly by
  * `useDragDropManager`. The collection plugin builds its own {@link DragEngineImpl}
  * directly rather than calling this hook.
  *
- * The engine needs no provider: the registries, lifecycle and sensors live in a
- * global, cross-bundle slot. The React layer does: a preview with content renders
- * in the nearest `Draggable.PreviewProvider`'s tree, and throws without one.
+ * The registries, lifecycle and sensors live in a global, cross-bundle slot, but
+ * the React-facing API requires `Draggable.Provider` for its shared context and
+ * preview boundary.
  */
 export function useInnerDragEngine(): InternalDragEngine {
-  const translations = useTranslations();
+  useDraggableContext();
   const previewContext = useDragPreviewContext();
   const cspContext = useCSPContext();
-  const getTranslations = useStableCallback(() => translations);
   const getPreviewContext = useStableCallback(() => previewContext);
   const getCSPContext = useStableCallback(() => cspContext);
 
-  return useRefWithInit(() => new DragEngineImpl(getTranslations, getPreviewContext, getCSPContext))
-    .current;
+  return useRefWithInit(() => new DragEngineImpl(getPreviewContext, getCSPContext)).current;
 }
