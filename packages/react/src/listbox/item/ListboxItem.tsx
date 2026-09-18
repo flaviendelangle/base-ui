@@ -5,6 +5,7 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
 import { isMouseWithinBounds } from '@base-ui/utils/isMouseWithinBounds';
 import { useTimeout } from '@base-ui/utils/useTimeout';
+import type { Draggable } from '../../draggable';
 import type {
   BaseUIComponentProps,
   BaseUIEvent,
@@ -20,9 +21,9 @@ import { useCompositeListItem } from '../../internals/composite';
 import { findItemIndex } from '../../internals/itemEquality';
 import { useListboxRootContext } from '../root/ListboxRootContext';
 import { ListboxItemContext } from './ListboxItemContext';
-import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
+import { ListboxSortingContext, ListboxSortableContext } from '../sorting/ListboxSortingContext';
 import { useListboxGroupContext } from '../group/ListboxGroupContext';
-import { useDragAndDrop } from '../utils/useDragAndDrop';
+import { useListboxSortingItem } from '../sorting/useListboxSortingItem';
 import { selectionReducer, isMultipleSelectionMode } from '../utils/selectionReducer';
 import type { SelectionAction } from '../utils/selectionReducer';
 
@@ -76,6 +77,7 @@ export const ListboxItem = React.memo(
       label,
       disabled = false,
       nativeButton = false,
+      draggableProps,
       ...elementProps
     } = componentProps;
 
@@ -89,7 +91,8 @@ export const ListboxItem = React.memo(
     const store = useListboxRootContext();
 
     const groupContext = useListboxGroupContext(true);
-    const dragContext = useListboxDragProviderContext(true);
+    const sorting = React.useContext(ListboxSortingContext);
+    const sortable = React.useContext(ListboxSortableContext);
     const highlightTimeout = useTimeout();
 
     const selectionMode = store.useState('selectionMode');
@@ -113,17 +116,17 @@ export const ListboxItem = React.memo(
 
     const itemRef = React.useRef<HTMLDivElement | null>(null);
     const indexRef = useValueAsRef(index);
-    const dragEnabled = dragContext != null && hasRegistered && !rootDisabled;
+    const dragEnabled = sortable != null && hasRegistered && !rootDisabled;
     const preventContextMenuOnAndroid = platform.os.android && dragEnabled && !disabled;
     const handleContextMenu = React.useCallback((event: BaseUIEvent<React.MouseEvent>) => {
       event.preventDefault();
     }, []);
 
-    const dragItemId = useDragAndDrop({
+    const dragItemId = useListboxSortingItem({
       index,
       itemValue,
       itemRef,
-      enabled: dragEnabled,
+      enabled: hasRegistered,
       disabled,
       groupId,
     });
@@ -237,17 +240,11 @@ export const ListboxItem = React.memo(
     }
 
     function handleItemKeyDown(event: BaseUIEvent<React.KeyboardEvent>) {
-      if (
-        event.key === 'Enter' &&
-        event.altKey &&
-        !event.shiftKey &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        dragItemId !== undefined &&
-        dragContext?.startKeyboardDrag(dragItemId)
-      ) {
-        event.preventDefault();
-        return;
+      if (dragItemId !== undefined) {
+        sorting?.handleKeyDown(event, dragItemId);
+        if (event.defaultPrevented) {
+          return;
+        }
       }
 
       lastKeyRef.current = event.key;
@@ -257,9 +254,14 @@ export const ListboxItem = React.memo(
       store.set('activeIndex', resolvedIndex);
     }
 
+    const sortKeys =
+      store.state.orientation === 'horizontal'
+        ? 'Alt+ArrowLeft Alt+ArrowRight'
+        : 'Alt+ArrowUp Alt+ArrowDown';
     const defaultProps: HTMLProps = {
       role: 'option',
       'aria-selected': selected,
+      'aria-keyshortcuts': sorting && !sorting.disabled && !disabled ? sortKeys : undefined,
       tabIndex: highlighted ? 0 : -1,
       onFocus() {
         store.set('activeIndex', index);
@@ -334,7 +336,11 @@ export const ListboxItem = React.memo(
     );
 
     return (
-      <ListboxItemContext.Provider value={contextValue}>{element}</ListboxItemContext.Provider>
+      <ListboxItemContext.Provider value={contextValue}>
+        {sortable && dragItemId !== undefined
+          ? sortable.renderItem(element, dragItemId, disabled || rootDisabled, draggableProps)
+          : element}
+      </ListboxItemContext.Provider>
     );
   }),
 );
@@ -371,6 +377,8 @@ export interface ListboxItemProps
     NonNativeButtonProps,
     Omit<BaseUIComponentProps<'div', ListboxItemState>, 'id' | 'draggable'> {
   children?: React.ReactNode;
+  /** Configures the underlying Draggable.Root without replacing managed sorting. */
+  draggableProps?: ListboxItemDraggableProps | undefined;
   /**
    * A unique value that identifies this listbox item.
    * @default null
@@ -386,6 +394,11 @@ export interface ListboxItemProps
    */
   label?: string | undefined;
 }
+
+export type ListboxItemDraggableProps = Omit<
+  Draggable.Root.Props<unknown>,
+  'children' | 'render' | 'kind' | 'payload' | 'getPayload' | 'collisionPayload' | 'collision'
+>;
 
 export namespace ListboxItem {
   export type State = ListboxItemState;

@@ -4,55 +4,55 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useId } from '@base-ui/utils/useId';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
 import type { CollectionItemId } from '../../types/collection';
-import { useListboxDragProviderContext } from '../drag-provider/ListboxDragProviderContext';
+import { ListboxSortingContext } from './ListboxSortingContext';
 
 /**
- * Parameters for {@link useDragAndDrop}.
+ * Parameters for {@link useListboxSortingItem}.
  */
-export interface UseDragAndDropParameters {
+export interface UseListboxSortingItemParameters {
   /** Composite index of the item within the current listbox. */
   index: number;
   /** Value associated with the current item. */
   itemValue: any;
   /** Ref to the item's DOM element. */
   itemRef: React.RefObject<HTMLElement | null>;
-  /** Whether drag-and-drop registration is enabled for the item. */
+  /** Whether sorting registration is enabled for the item. */
   enabled: boolean;
   /** Whether the item is disabled. */
   disabled: boolean;
   /**
-   * Group ID metadata exposed to provider drag-and-drop predicates.
+   * Group ID metadata exposed to provider sorting predicates.
    */
   groupId: string | undefined;
 }
 
 /**
- * Wires a listbox item into `Listbox.DragProvider`.
+ * Wires a listbox item into `Listbox.KeyboardSortableProvider or Listbox.SortableProvider`.
  *
  * @param params Configuration for the current draggable item.
- * @returns The stable identifier used by the collection drag engine.
+ * @returns The stable identifier used by the sorting provider.
  */
-export function useDragAndDrop(params: UseDragAndDropParameters): CollectionItemId | undefined {
+export function useListboxSortingItem(
+  params: UseListboxSortingItemParameters,
+): CollectionItemId | undefined {
   const { index, itemValue, itemRef, enabled, disabled, groupId } = params;
 
   const itemId = useId();
   const item = useValueAsRef({ value: itemValue, index, groupId, disabled });
-  const dragContext = useListboxDragProviderContext(true);
+  const sorting = React.useContext(ListboxSortingContext);
 
+  const setupItem = sorting?.setupItem;
   useIsoLayoutEffect(() => {
     const element = itemRef.current;
-    if (!dragContext || itemId === undefined || !element || !enabled) {
+    if (!setupItem || itemId === undefined || !element || !enabled) {
       return undefined;
     }
 
-    return dragContext.setupItem(itemId, element, item);
-  }, [dragContext, enabled, itemId, item, itemRef]);
+    return setupItem(itemId, element, item);
+  }, [setupItem, enabled, itemId, item, itemRef]);
 
   useIsoLayoutEffect(() => {
-    const element = itemRef.current;
-    if (dragContext && itemId !== undefined && element && enabled) {
-      dragContext.scheduleDisplacementSweep(element);
-    }
+    sorting?.reconcile();
   });
 
   return itemId;

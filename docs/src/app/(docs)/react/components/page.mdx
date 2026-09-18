@@ -932,20 +932,26 @@ An always-visible list for selecting one or more options.
   - Examples
     - Selection modes
     - Lazy loading
-    - Drag and drop
-    - Live reorder
-    - Drag within groups
+    - Sorting
+    - Pointer sorting
+    - Live sorting
+    - Sorting within groups
+    - Moving between groups
+    - Drop positions
+    - Preview and drag options
+    - Drag and drop outside the list
     - Custom keyboard shortcuts
   - API reference
     - Root
     - Label
     - List
-    - DragProvider
-    - DragPreview
+    - KeyboardSortableProvider
+    - SortableProvider
+    - SortPreview
     - Item
     - ItemText
     - ItemIndicator
-    - ItemDragHandle
+    - SortHandle
     - Group
     - GroupLabel
     - LoadingTrigger
@@ -956,9 +962,8 @@ An always-visible list for selecting one or more options.
     - Props: className, render, style
     - Data Attributes: data-disabled, data-orientation
   - Listbox - Item
-    - Props: children, className, disabled, label, nativeButton, render, style, value
-    - Data Attributes: data-disabled, data-displacing, data-drag-over, data-dragging, data-drop-position, data-highlighted, data-selected, data-starting-style
-    - CSS Variables: --drag-displacement-x, --drag-displacement-y
+    - Props: children, className, disabled, draggableProps, label, nativeButton, render, style, value
+    - Data Attributes: data-disabled, data-drag-over, data-dragging, data-drop-position, data-highlighted, data-selected
   - Listbox - Group
     - Props: className, render, style
   - Listbox - GroupLabel
@@ -969,15 +974,17 @@ An always-visible list for selecting one or more options.
     - Props: className, render, style
   - Listbox - ItemIndicator
     - Props: children, className, keepMounted, render, style
-  - Listbox - DragPreview
-    - Props: children, className, container, disabled, modifiers, offset, render, style
-  - Listbox - DragProvider
-    - Props: canDrop, children, isItemDragDisabled, onItemsReorder, trackDisplacement, updateOn
-  - Listbox - ItemDragHandle
-    - Props: className, render, style
+  - Listbox - KeyboardSortableProvider
+    - Props: canMoveItems, children, disabled, getAnnouncement, isItemSortingDisabled, onItemsReorder
   - Listbox - LoadingTrigger
     - Props: className, keepMounted, render, style
-- Types: Listbox.DragPreview.Props, Listbox.DragPreview.State, Listbox.DragProvider.CanDropParameters, Listbox.DragProvider.Item, Listbox.DragProvider.ItemsReorderEventDetails, Listbox.DragProvider.Props, Listbox.DragProvider.ReorderChange, Listbox.DragProvider.State, Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemDragHandle.Props, Listbox.ItemDragHandle.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State
+  - Listbox - SortableProvider
+    - Props: canMoveItems, children, disabled, getAnnouncement, getDragPayload, getDropPosition, isItemSortingDisabled, kind, onDropPositionChange, onItemsReorder, onSortEnd, reorderOn
+  - Listbox - SortHandle
+    - Props: className, disabled, render, style
+  - Listbox - SortPreview
+    - Props: children, className, container, disabled, modifiers, offset, render, style
+- Types: Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.KeyboardSortableProvider.ItemsReorderEventDetails, Listbox.KeyboardSortableProvider.MoveItemsParameters, Listbox.KeyboardSortableProvider.Props, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State, Listbox.SortHandle.Props, Listbox.SortHandle.State, Listbox.SortPreview.Props, Listbox.SortPreview.State, Listbox.SortableProvider.DragPayload, Listbox.SortableProvider.DropContext, Listbox.SortableProvider.DropPosition, Listbox.SortableProvider.ItemsReorderEventDetails, Listbox.SortableProvider.MoveItemsParameters, Listbox.SortableProvider.Props
 
 </details>
 

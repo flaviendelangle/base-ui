@@ -32,9 +32,9 @@ export default function ExampleListboxDragWithinGroups() {
     <div className={styles.Field}>
       <Listbox.Root defaultValue={['billie-jean']}>
         <Listbox.Label className={styles.Label}>Playlist</Listbox.Label>
-        <Listbox.DragProvider
-          canDrop={({ sourceItems, targetItem }) =>
-            sourceItems.every((item) => item.groupId === targetItem.groupId)
+        <Listbox.SortableProvider
+          canMoveItems={({ items: movedItems, destination }) =>
+            movedItems.every((item) => item.groupId === destination.groupId)
           }
           onItemsReorder={(order) => {
             setItems((prev) => reorderItems(prev, order));
@@ -46,9 +46,9 @@ export default function ExampleListboxDragWithinGroups() {
                 <Listbox.GroupLabel className={styles.GroupLabel}>{group.label}</Listbox.GroupLabel>
                 {group.items.map(({ title, artist, value }) => (
                   <Listbox.Item key={value} value={value} className={styles.Item}>
-                    <Listbox.ItemDragHandle className={styles.DragHandle}>
+                    <Listbox.SortHandle className={styles.DragHandle}>
                       <GripIcon />
-                    </Listbox.ItemDragHandle>
+                    </Listbox.SortHandle>
                     <Listbox.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Listbox.ItemIndicator>
@@ -61,7 +61,7 @@ export default function ExampleListboxDragWithinGroups() {
               </Listbox.Group>
             ))}
           </Listbox.List>
-        </Listbox.DragProvider>
+        </Listbox.SortableProvider>
       </Listbox.Root>
     </div>
   );

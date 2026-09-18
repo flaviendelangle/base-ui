@@ -129,36 +129,28 @@ Renders a `<div>` element.
 
 **Item Props:**
 
-| Prop         | Type                                                                                       | Default | Description                                                                                                                                                                                   |
-| :----------- | :----------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| label        | `string`                                                                                   | -       | Specifies the text label to use when the item is matched during keyboard text navigation.                                                                                                     |
-| value        | `any`                                                                                      | `null`  | A unique value that identifies this listbox item.                                                                                                                                             |
-| nativeButton | `boolean`                                                                                  | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
-| disabled     | `boolean`                                                                                  | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
-| children     | `React.ReactNode`                                                                          | -       | -                                                                                                                                                                                             |
-| className    | `string \| ((state: Listbox.Item.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style        | `React.CSSProperties \| ((state: Listbox.Item.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render       | `ReactElement \| ((props: HTMLProps, state: Listbox.Item.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+| Prop           | Type                                                                                       | Default | Description                                                                                                                                                                                   |
+| :------------- | :----------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| label          | `string`                                                                                   | -       | Specifies the text label to use when the item is matched during keyboard text navigation.                                                                                                     |
+| value          | `any`                                                                                      | `null`  | A unique value that identifies this listbox item.                                                                                                                                             |
+| draggableProps | `ListboxItemDraggableProps`                                                                | -       | Configures the underlying Draggable.Root without replacing managed sorting.                                                                                                                   |
+| nativeButton   | `boolean`                                                                                  | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
+| disabled       | `boolean`                                                                                  | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
+| children       | `React.ReactNode`                                                                          | -       | -                                                                                                                                                                                             |
+| className      | `string \| ((state: Listbox.Item.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style          | `React.CSSProperties \| ((state: Listbox.Item.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| render         | `ReactElement \| ((props: HTMLProps, state: Listbox.Item.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
 
 **Item Data Attributes:**
 
-| Attribute           | Type | Description                                                                                 |
-| :------------------ | :--- | :------------------------------------------------------------------------------------------ |
-| data-selected       | -    | Present when the listbox item is selected.                                                  |
-| data-highlighted    | -    | Present when the listbox item is highlighted.                                               |
-| data-dragging       | -    | Present when the listbox item is being dragged.                                             |
-| data-disabled       | -    | Present when the listbox item is disabled.                                                  |
-| data-displacing     | -    | Present while `trackDisplacement` animates the item from a previous layout position.        |
-| data-drag-over      | -    | Present when a dragged item is over the listbox item.                                       |
-| data-drop-position  | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`. |
-| data-starting-style | -    | Present on the first frame of a displacement animation.                                     |
-
-**Item CSS Variables:**
-
-| Variable                | Type     | Description                                                                                                             |
-| :---------------------- | :------- | :---------------------------------------------------------------------------------------------------------------------- |
-| `--drag-displacement-x` | `number` | The horizontal distance from the item's new position back to its previous position.&#xA;Present with `data-displacing`. |
-| `--drag-displacement-y` | `number` | The vertical distance from the item's new position back to its previous position.&#xA;Present with `data-displacing`.   |
+| Attribute          | Type | Description                                                                                 |
+| :----------------- | :--- | :------------------------------------------------------------------------------------------ |
+| data-selected      | -    | Present when the listbox item is selected.                                                  |
+| data-highlighted   | -    | Present when the listbox item is highlighted.                                               |
+| data-dragging      | -    | Present when the listbox item is being dragged.                                             |
+| data-disabled      | -    | Present when the listbox item is disabled.                                                  |
+| data-drag-over     | -    | Present when a dragged item is over the listbox item.                                       |
+| data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`. |
 
 ### Item.Props
 
@@ -318,91 +310,31 @@ type ListboxItemIndicatorState = {
 };
 ```
 
-### DragPreview
+### KeyboardSortableProvider
 
-Describes what follows the pointer while listbox items are dragged.
-Renders nothing where you write it.
+Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announcement region.
 
-**DragPreview Props:**
+**KeyboardSortableProvider Props:**
 
-| Prop      | Type                                                                                              | Default     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| :-------- | :------------------------------------------------------------------------------------------------ | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| modifiers | `DragModifiers`                                                                                   | -           | Constrains the preview without affecting the drag. The resolved drop target and&#xA;`location.current.input` remain unchanged.&#xA;Here the modifier's `point` is the preview's proposed top-left and `input` is the&#xA;cursor. Runs on every positioned frame, so keep modifiers cheap. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                                                                                             |
-| offset    | `DragPreviewOffset`                                                                               | `'pointer'` | Where to place the preview relative to the pointer.                                                                                                                                                                                                                                                                                                                                                                                                      |
-| container | `DragPreviewContainer`                                                                            | -           | Determines where the preview is injected in the DOM.&#xA;Defaults to the source's own parent, so the app's CSS still applies to it. Pass a container to keep structural selectors such as `:nth-child` and&#xA;`:last-child` unchanged, or to keep the preview mounted if the source subtree&#xA;unmounts. CSS selectors based on the source's ancestors may no longer match.&#xA;`Draggable.PreviewProvider` can set the container for a whole subtree. |
-| disabled  | `boolean`                                                                                         | `false`     | Whether to hide the preview. The drag continues while no preview is shown.                                                                                                                                                                                                                                                                                                                                                                               |
-| children  | `React.ReactNode \| ((items: Value[]) => React.ReactNode)`                                        | -           | The preview content. Pass a function to render the dragged item values in list order.&#xA;Omit it to render the item label, or a localized item count for a multi-item drag.                                                                                                                                                                                                                                                                             |
-| className | `string \| ((state: Listbox.DragPreview.State) => string \| undefined)`                           | -           | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                                                                                                 |
-| style     | `React.CSSProperties \| ((state: Listbox.DragPreview.State) => React.CSSProperties \| undefined)` | -           | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                                                                                              |
-| render    | `ReactElement \| ((props: HTMLProps, state: Listbox.DragPreview.State) => ReactElement)`          | -           | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                                                                                            |
+| Prop                  | Type                                                                          | Default | Description                                                                                        |
+| :-------------------- | :---------------------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                | -       | Applies the same movement rules to keyboard and pointer sorting.                                   |
+| getAnnouncement       | `((parameters: ListboxMoveItemsParameters<Value>) => string)`                 | -       | Customizes the announcement after an accepted keyboard move.                                       |
+| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                              | -       | Disables sorting for an item without disabling selection.                                          |
+| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)` | -       | Called with all values in their proposed order. Render the items in this order to accept the move. |
+| disabled              | `boolean`                                                                     | `false` | Disables keyboard and pointer sorting.                                                             |
+| children              | `React.ReactNode`                                                             | -       | -                                                                                                  |
 
-### DragPreview.Props
+### KeyboardSortableProvider.Props
 
-Re-export of [DragPreview](#dragpreview) props.
+Re-export of [KeyboardSortableProvider](#keyboardsortableprovider) props.
 
-### DragPreview.State
+### KeyboardSortableProvider.ItemsReorderEventDetails
 
 ```typescript
-type ListboxDragPreviewState = {
-  /** Present when several items are dragged together. */
-  multiple: boolean;
-};
-```
-
-### DragProvider
-
-Enables managed drag-and-drop on the nearest `Listbox.Root`.
-Renders no DOM element of its own.
-
-**DragProvider Props:**
-
-| Prop               | Type                                                                                      | Default  | Description                                                                                                                          |
-| :----------------- | :---------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
-| canDrop            | `((parameters: ListboxDragProviderCanDropParameters<Value>) => boolean)`                  | -        | Returns whether the dragged items can be dropped relative to a target item.                                                          |
-| isItemDragDisabled | `((item: ListboxDragItem<Value>) => boolean)`                                             | -        | Declaratively disables drag pickup for an item without disabling its other interactions.                                             |
-| onItemsReorder     | `((items: Value[], details: ListboxDragProviderItemsReorderEventDetails<Value>) => void)` | -        | Called with all item values in their proposed visual order.&#xA;Render the items in this order synchronously when `updateOn="drag"`. |
-| trackDisplacement  | `boolean`                                                                                 | -        | Enables displacement attributes and CSS variables on items. Defaults to `true` in live mode.                                         |
-| updateOn           | `ListboxDragUpdateOn`                                                                     | `'drop'` | Applies reordering on release or live as the active target changes.                                                                  |
-| children           | `React.ReactNode`                                                                         | -        | The listbox content and optional preview part.                                                                                       |
-
-### DragProvider.Props
-
-Re-export of [DragProvider](#dragprovider) props.
-
-### DragProvider.State
-
-```typescript
-type ListboxDragProviderState = {};
-```
-
-### DragProvider.CanDropParameters
-
-```typescript
-type ListboxDragProviderCanDropParameters<Value = any> = {
-  sourceItems: ListboxDragItem<Value>[];
-  targetItem: ListboxDragItem<Value>;
-  edge: ListboxDropTargetEdge;
-};
-```
-
-### DragProvider.Item
-
-```typescript
-type ListboxDragProviderItem<Value = any> = {
-  value: Value;
-  index: number;
-  groupId: string | undefined;
-  disabled: boolean;
-};
-```
-
-### DragProvider.ItemsReorderEventDetails
-
-```typescript
-type ListboxDragProviderItemsReorderEventDetails<Value = any> = (
-  | { reason: 'keyboard'; event: KeyboardEvent }
-  | { reason: 'drag'; event: PointerEvent | TouchEvent }
-) & {
+type ListboxKeyboardSortableProviderItemsReorderEventDetails<Value = any> = {
+  /** The native event associated with the custom event. */
+  event: Event;
   /** Cancels Base UI from handling the event. */
   cancel: () => void;
   /** Allows the event to propagate in cases where Base UI will stop the propagation. */
@@ -413,46 +345,21 @@ type ListboxDragProviderItemsReorderEventDetails<Value = any> = (
   isPropagationAllowed: boolean;
   /** The element that triggered the event, if applicable. */
   trigger: Element | undefined;
-  sourceItems: ListboxDragItem<Value>[];
-  targetItem: ListboxDragItem<Value> | null;
-  edge: ListboxDropTargetEdge | null;
+  items: ListboxSortingItem<Value>[];
+  destination: ListboxSortingDestination;
+  reason: 'keyboard' | 'drag';
+  /** Complete proposed order, including group membership. Use this when moving items between groups. */
+  order: ListboxSortingItem<Value>[];
 };
 ```
 
-### DragProvider.ReorderChange
+### KeyboardSortableProvider.MoveItemsParameters
 
 ```typescript
-type ListboxDragProviderReorderChange<Value = any> = {
-  sourceItems: ListboxDragItem<Value>[];
-  targetItem: ListboxDragItem<Value> | null;
-  edge: ListboxDropTargetEdge | null;
+type ListboxKeyboardSortableProviderMoveItemsParameters<Value = any> = {
+  items: ListboxSortingItem<Value>[];
+  destination: ListboxSortingDestination;
 };
-```
-
-### ItemDragHandle
-
-A visual drag affordance within a listbox item.
-Renders a `<div>` element.
-
-Pointer dragging remains available from the whole item. Keyboard users start
-dragging the focused item with Alt+Enter.
-
-**ItemDragHandle Props:**
-
-| Prop      | Type                                                                                                 | Default | Description                                                                                                                                                                                   |
-| :-------- | :--------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| className | `string \| ((state: Listbox.ItemDragHandle.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style     | `React.CSSProperties \| ((state: Listbox.ItemDragHandle.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render    | `ReactElement \| ((props: HTMLProps, state: Listbox.ItemDragHandle.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-### ItemDragHandle.Props
-
-Re-export of [ItemDragHandle](#itemdraghandle) props.
-
-### ItemDragHandle.State
-
-```typescript
-type ListboxItemDragHandleState = {};
 ```
 
 ### LoadingTrigger
@@ -485,12 +392,289 @@ type ListboxLoadingTriggerState = {
 };
 ```
 
-## Additional Types
+### SortableProvider
 
-### ListboxDragUpdateOn
+Enables keyboard and pointer sorting with automatic item registration.
+
+**SortableProvider Props:**
+
+| Prop                  | Type                                                                                                         | Default  | Description                                                                                        |
+| :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                   |
+| getAnnouncement       | `((parameters: ListboxMoveItemsParameters<Value>) => string)`                                                | -        | Customizes the announcement after an accepted keyboard move.                                       |
+| getDragPayload        | `((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => unknown)`                                 | -        | Returns application data stored in the drag payload's data field.                                  |
+| getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                    |
+| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                          |
+| kind                  | `DragKind<ListboxSortingDragPayload<Value>>`                                                                 | -        | An explicit kind for integrating sorting with external drag sources and targets.                   |
+| onDropPositionChange  | `((position: ListboxSortingDropPosition \| null) => void)`                                                   | -        | Called when pointer placement changes, including when sorting ends.                                |
+| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)`                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move. |
+| onSortEnd             | `((parameters: { itemIds: CollectionItemId[]; canceled: boolean }) => void)`                                 | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.               |
+| reorderOn             | `'drop' \| 'move'`                                                                                           | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                   |
+| disabled              | `boolean`                                                                                                    | `false`  | Disables keyboard and pointer sorting.                                                             |
+| children              | `React.ReactNode`                                                                                            | -        | -                                                                                                  |
+
+### SortableProvider.Props
+
+Re-export of [SortableProvider](#sortableprovider) props.
+
+### SortableProvider.DragPayload
 
 ```typescript
-type ListboxDragUpdateOn = 'drop' | 'drag';
+type ListboxSortableProviderDragPayload<Value = any> = {
+  id: CollectionItemId;
+  itemIds: CollectionItemId[];
+  items: Value[];
+  /** Identifies the list that owns this drag. */
+  listId: {};
+  /** Application data supplied by getDragPayload. */
+  data?: unknown;
+};
+```
+
+### SortableProvider.DropContext
+
+```typescript
+type ListboxSortableProviderDropContext<Value = any> = {
+  item: ListboxSortingItem<Value>;
+  itemId: CollectionItemId;
+  /** Coordinates relative to the row, normalized to its width and height. */
+  point: { x: number; y: number };
+  collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
+  source: ListboxSortingDragPayload<Value>;
+};
+```
+
+### SortableProvider.DropPosition
+
+```typescript
+type ListboxSortableProviderDropPosition = {
+  id: CollectionItemId;
+  placement: 'before' | 'after';
+  /** Override the insertion index, before removing the moved items. */
+  index?: number;
+};
+```
+
+### SortableProvider.ItemsReorderEventDetails
+
+```typescript
+type ListboxSortableProviderItemsReorderEventDetails<Value = any> = {
+  /** The native event associated with the custom event. */
+  event: Event;
+  /** Cancels Base UI from handling the event. */
+  cancel: () => void;
+  /** Allows the event to propagate in cases where Base UI will stop the propagation. */
+  allowPropagation: () => void;
+  /** Indicates whether the event has been canceled. */
+  isCanceled: boolean;
+  /** Indicates whether the event is allowed to propagate. */
+  isPropagationAllowed: boolean;
+  /** The element that triggered the event, if applicable. */
+  trigger: Element | undefined;
+  items: ListboxSortingItem<Value>[];
+  destination: ListboxSortingDestination;
+  reason: 'keyboard' | 'drag';
+  /** Complete proposed order, including group membership. Use this when moving items between groups. */
+  order: ListboxSortingItem<Value>[];
+};
+```
+
+### SortableProvider.MoveItemsParameters
+
+```typescript
+type ListboxSortableProviderMoveItemsParameters<Value = any> = {
+  items: ListboxSortingItem<Value>[];
+  destination: ListboxSortingDestination;
+};
+```
+
+### SortHandle
+
+Limits pointer sorting to this handle. Render inside a sortable item.
+
+**SortHandle Props:**
+
+| Prop      | Type                                                                                         | Default | Description                                                                                                                                                                                   |
+| :-------- | :------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| disabled  | `undefined`                                                                                  | -       | A handle has no independent disabled state. Setting `disabled` here would&#xA;leave the root draggable. Set `disabled` on `Draggable.Root` instead.                                           |
+| className | `string \| ((state: DraggableHandleState) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style     | `React.CSSProperties \| ((state: DraggableHandleState) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| render    | `ReactElement \| ((props: HTMLProps, state: DraggableHandleState) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+
+### SortHandle.Props
+
+Re-export of [SortHandle](#sorthandle) props.
+
+### SortHandle.State
+
+```typescript
+type ListboxSortHandleState = {
+  /** Whether the draggable is disabled. */
+  disabled: boolean;
+};
+```
+
+### SortPreview
+
+Customizes or hides the pointer preview. Render inside a sortable item.
+
+**SortPreview Props:**
+
+| Prop      | Type                                                                                                    | Default    | Description                                                                                                                                                                                                                                                                                                                                                                   |
+| :-------- | :------------------------------------------------------------------------------------------------------ | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| modifiers | `DragModifiers`                                                                                         | -          | Constrains the preview without affecting the drag. The resolved drop target and&#xA;`location.current.input` remain unchanged.&#xA;Here the modifier's `point` is the preview's proposed top-left and `input` is the&#xA;cursor. Runs on every positioned frame, so keep modifiers cheap. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                  |
+| offset    | `DragPreviewOffset`                                                                                     | `'source'` | Determines where the preview sits relative to the pointer. See&#xA;`DragPreviewOffset` for the supported values.                                                                                                                                                                                                                                                              |
+| container | `DragPreviewContainer`                                                                                  | -          | Determines where the preview is injected in the DOM.&#xA;Defaults to the source's own parent, so the app's CSS still applies to it. Pass a container to keep structural selectors such as `:nth-child` and&#xA;`:last-child` unchanged, or to keep the preview mounted if the source subtree&#xA;unmounts. CSS selectors based on the source's ancestors may no longer match. |
+| disabled  | `boolean`                                                                                               | `false`    | Whether to hide the preview. The drag continues while no preview is shown.                                                                                                                                                                                                                                                                                                    |
+| children  | `React.ReactNode \| ((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview.                                                                                                                                                                                                                                                                                                                 |
+| className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                     | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                      |
+| style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`           | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                   |
+| render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                    | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                 |
+
+### SortPreview.Props
+
+Re-export of [SortPreview](#sortpreview) props.
+
+### SortPreview.State
+
+```typescript
+type ListboxSortPreviewState = {};
+```
+
+## Additional Types
+
+### ListboxItemDraggableProps
+
+```typescript
+type ListboxItemDraggableProps = {
+  /**
+   * Whether to disable dragging. Pointer presses keep their native behavior.
+   * Use `onBeforeMoveStart` instead when the decision depends on the gesture.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * CSS class applied to the element, or a function that
+   * returns a class based on the component's state.
+   */
+  className?: string | ((state: DraggableRootState) => string | undefined);
+  /**
+   * Style applied to the element, or a function that
+   * returns a style object based on the component's state.
+   */
+  style?: React.CSSProperties | ((state: DraggableRootState) => React.CSSProperties | undefined);
+  /**
+   * Stable identity used to reconnect a settling cloned preview to this source
+   * after it remounts. Use the same key for the same logical item across the move.
+   * Static payload identity is used as a fallback when it is referentially stable.
+   */
+  previewKey?: string | number;
+  /**
+   * Event handler called when a drag is about to start, once the activation condition
+   * is met and before the preview is built and `getPayload` runs.
+   * Call `eventDetails.cancel()` to prevent the drag from starting.
+   */
+  onBeforeMoveStart?: (
+    context: MoveStartContext,
+    eventDetails: BeforeMoveStartEventDetails,
+  ) => void;
+  /**
+   * Determines when a pointer press starts a drag. Mouse and pen use a 5px distance
+   * by default. Touch uses a 250ms press and hold. Pass one `DragActivation` for
+   * every pointer type or a map with per-type values. An array allows any of its
+   * activation methods. Double-click pickup follows the mouse until the next click;
+   * on touch and pen, the second tap of a double-tap picks up and the release drops.
+   */
+  activation?: DragActivationConfig | DragActivationConfig[];
+  /**
+   * Constrains pointer movement with one modifier or an array applied
+   * in order. See [DragModifier](https://base-ui.com/react/utils/draggable#dragmodifier) and the exported modifier presets.
+   */
+  modifiers?: DragModifiers;
+  /**
+   * CSS cursor applied across the document during a pointer drag. The drag preview
+   * has `pointer-events: none`, so otherwise the cursor would depend on the element
+   * under the pointer. Touch drags ignore this value.
+   * Pass `false` to manage the cursor yourself.
+   * @default 'grabbing'
+   */
+  dragCursor?: string | false;
+  /**
+   * Event handler called once, synchronously when the drag starts. The drag preview
+   * has already been resolved by then, so it is safe to measure or restyle the
+   * source from here.
+   */
+  onMoveStart?: (parameters: MoveStartEvent, eventDetails: MoveStartEventDetails) => void;
+  /**
+   * Event handler called as the pointer moves or a modifier key changes, limited
+   * to one call per animation frame. Drop target stack changes do not call this handler.
+   * Use the drop target's `onDraggableMove` for hover behavior.
+   */
+  onMove?: (parameters: MoveEvent, eventDetails: MoveEventDetails) => void;
+  /**
+   * Event handler called when the active drop targets change,
+   * because one was entered or left.
+   */
+  onTargetChange?: (
+    parameters: DropTargetChangeEvent,
+    eventDetails: DropTargetChangeEventDetails,
+  ) => void;
+  /**
+   * Event handler called once when the drag ends after a drop, outside release, or
+   * cancellation. Commit changes when `eventDetails.reason` is `'drop'`. Use
+   * `try/finally` when cleanup must run even if committing throws or returns early.
+   */
+  onMoveEnd?: (parameters: MoveEndEvent, eventDetails: MoveEndEventDetails) => void;
+  /**
+   * Divides the collision element into equal steps for `getSnappedLocalPoint()`.
+   * Accepts step counts or a callback returning them. Does not affect the drag preview's position.
+   */
+  snap?: DragSnapSteps | ((context: DropTargetResolutionContext) => DragSnapSteps | undefined);
+  /**
+   * Returns the element used to detect collisions and measure pointer coordinates.
+   * Defaults to this root's element. Use a row wrapper to include padding around the item.
+   * Changing this callback alone does not change the measured element.
+   */
+  collisionElement?: (element: HTMLElement) => HTMLElement;
+};
+```
+
+### ListboxSortingDragPayload
+
+```typescript
+type ListboxSortingDragPayload<Value = any> = {
+  id: CollectionItemId;
+  itemIds: CollectionItemId[];
+  items: Value[];
+  /** Identifies the list that owns this drag. */
+  listId: {};
+  /** Application data supplied by getDragPayload. */
+  data?: unknown;
+};
+```
+
+### ListboxSortingDropContext
+
+```typescript
+type ListboxSortingDropContext<Value = any> = {
+  item: ListboxSortingItem<Value>;
+  itemId: CollectionItemId;
+  /** Coordinates relative to the row, normalized to its width and height. */
+  point: { x: number; y: number };
+  collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
+  source: ListboxSortingDragPayload<Value>;
+};
+```
+
+### ListboxSortingDropPosition
+
+```typescript
+type ListboxSortingDropPosition = {
+  id: CollectionItemId;
+  placement: 'before' | 'after';
+  /** Override the insertion index, before removing the moved items. */
+  index?: number;
+};
 ```
 
 ### SelectionMode
@@ -509,10 +693,10 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 
 ## External Types
 
-### ListboxDropTargetEdge
+### CollectionItemId
 
 ```typescript
-type ListboxDropTargetEdge = 'before' | 'after';
+type CollectionItemId = string | number;
 ```
 
 ## Export Groups
@@ -523,13 +707,14 @@ type ListboxDropTargetEdge = 'before' | 'after';
 - `Listbox.Item`: `Listbox.Item`, `Listbox.Item.State`, `Listbox.Item.Props`
 - `Listbox.ItemIndicator`: `Listbox.ItemIndicator`, `Listbox.ItemIndicator.State`, `Listbox.ItemIndicator.Props`
 - `Listbox.ItemText`: `Listbox.ItemText`, `Listbox.ItemText.State`, `Listbox.ItemText.Props`
-- `Listbox.ItemDragHandle`: `Listbox.ItemDragHandle`, `Listbox.ItemDragHandle.State`, `Listbox.ItemDragHandle.Props`
-- `Listbox.DragProvider`: `Listbox.DragProvider`, `Listbox.DragProvider.Props`, `Listbox.DragProvider.State`, `Listbox.DragProvider.Item`, `Listbox.DragProvider.ReorderChange`, `Listbox.DragProvider.CanDropParameters`, `Listbox.DragProvider.ItemsReorderEventDetails`
-- `Listbox.DragPreview`: `Listbox.DragPreview`, `Listbox.DragPreview.State`, `Listbox.DragPreview.Props`
 - `Listbox.Group`: `Listbox.Group`, `Listbox.Group.State`, `Listbox.Group.Props`
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
-- `Default`: `SelectionMode`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxItemDragHandleState`, `ListboxItemDragHandleProps`, `ListboxDragUpdateOn`, `ListboxDragProviderProps`, `ListboxDragProviderState`, `ListboxDragPreviewState`, `ListboxDragPreviewProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`
+- `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.Props`, `Listbox.KeyboardSortableProvider.ItemsReorderEventDetails`, `Listbox.KeyboardSortableProvider.MoveItemsParameters`
+- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
+- `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
+- `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
+- `Default`: `SelectionMode`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
 
 ## Canonical Types
 
@@ -550,15 +735,13 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.ItemIndicator.Props`: `ListboxItemIndicatorProps`
 - `Listbox.ItemText.State`: `ListboxItemTextState`
 - `Listbox.ItemText.Props`: `ListboxItemTextProps`
-- `Listbox.ItemDragHandle.State`: `ListboxItemDragHandleState`
-- `Listbox.ItemDragHandle.Props`: `ListboxItemDragHandleProps`
-- `Listbox.DragProvider.Props`: `ListboxDragProviderProps`
-- `Listbox.DragProvider.State`: `ListboxDragProviderState`
-- `Listbox.DragPreview.State`: `ListboxDragPreviewState`
-- `Listbox.DragPreview.Props`: `ListboxDragPreviewProps`
 - `Listbox.Group.State`: `ListboxGroupState`
 - `Listbox.Group.Props`: `ListboxGroupProps`
 - `Listbox.GroupLabel.State`: `ListboxGroupLabelState`
 - `Listbox.GroupLabel.Props`: `ListboxGroupLabelProps`
 - `Listbox.LoadingTrigger.State`: `ListboxLoadingTriggerState`
 - `Listbox.LoadingTrigger.Props`: `ListboxLoadingTriggerProps`
+- `Listbox.KeyboardSortableProvider.Props`: `ListboxKeyboardSortableProviderProps`
+- `Listbox.SortableProvider.Props`: `ListboxSortableProviderProps`
+- `Listbox.SortHandle.Props`: `ListboxSortHandleProps`
+- `Listbox.SortPreview.Props`: `ListboxSortPreviewProps`

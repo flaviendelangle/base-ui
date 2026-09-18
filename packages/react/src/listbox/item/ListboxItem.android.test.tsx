@@ -1,4 +1,4 @@
-import { expect, vi } from 'vitest';
+import { expect, vi, describe, beforeEach, it } from 'vitest';
 import { Listbox } from '@base-ui/react/listbox';
 import { fireEvent, flushMicrotasks, screen } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
@@ -19,14 +19,14 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
   it('prevents the native context menu for draggable items', async () => {
     await render(
       <Listbox.Root>
-        <Listbox.DragProvider onItemsReorder={vi.fn()}>
+        <Listbox.SortableProvider onItemsReorder={vi.fn()}>
           <Listbox.List>
             <Listbox.Item value="a">
-              <Listbox.ItemDragHandle data-testid="handle">drag</Listbox.ItemDragHandle>
+              <Listbox.SortHandle data-testid="handle">drag</Listbox.SortHandle>
               <Listbox.ItemText>a</Listbox.ItemText>
             </Listbox.Item>
           </Listbox.List>
-        </Listbox.DragProvider>
+        </Listbox.SortableProvider>
       </Listbox.Root>,
     );
 

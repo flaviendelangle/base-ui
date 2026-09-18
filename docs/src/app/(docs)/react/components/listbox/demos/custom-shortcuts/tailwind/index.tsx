@@ -67,7 +67,7 @@ export default function ExampleListboxCustomShortcuts() {
         <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
           Layers
         </Listbox.Label>
-        <Listbox.DragProvider
+        <Listbox.KeyboardSortableProvider
           onItemsReorder={(order) =>
             setItems((prev) => {
               const itemsByValue = new Map(prev.map((item) => [item.value, item]));
@@ -90,7 +90,7 @@ export default function ExampleListboxCustomShortcuts() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragProvider>
+        </Listbox.KeyboardSortableProvider>
       </Listbox.Root>
     </div>
   );

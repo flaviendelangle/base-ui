@@ -20,8 +20,8 @@ const ITEM_CLASS =
   'relative grid cursor-grab grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-gray-900 outline-hidden select-none ' +
   'data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-gray-100 ' +
   'data-[dragging]:opacity-0 ' +
-  'motion-safe:data-displacing:data-starting-style:[translate:var(--drag-displacement-x)_var(--drag-displacement-y)] ' +
-  'motion-safe:data-displacing:not-data-starting-style:[transition:translate_0.2s_ease] ' +
+  'motion-safe: ' +
+  'motion-safe: ' +
   'pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]';
 
 export default function ExampleListboxLiveReorderDnd() {
@@ -33,7 +33,7 @@ export default function ExampleListboxLiveReorderDnd() {
         <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
           Queue
         </Listbox.Label>
-        <Listbox.DragProvider updateOn="drag" onItemsReorder={setItems}>
+        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
           <Listbox.List className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-gray-200 dark:outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800">
             {items.map((item) => (
               <Listbox.Item key={item.value} value={item} className={ITEM_CLASS}>
@@ -53,7 +53,7 @@ export default function ExampleListboxLiveReorderDnd() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragProvider>
+        </Listbox.SortableProvider>
       </Listbox.Root>
     </div>
   );

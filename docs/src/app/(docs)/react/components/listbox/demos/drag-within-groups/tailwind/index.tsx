@@ -33,9 +33,9 @@ export default function ExampleListboxDragWithinGroups() {
         <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
           Playlist
         </Listbox.Label>
-        <Listbox.DragProvider
-          canDrop={({ sourceItems, targetItem }) =>
-            sourceItems.every((item) => item.groupId === targetItem.groupId)
+        <Listbox.SortableProvider
+          canMoveItems={({ items: movedItems, destination }) =>
+            movedItems.every((item) => item.groupId === destination.groupId)
           }
           onItemsReorder={(order) => {
             setItems((prev) => reorderItems(prev, order));
@@ -53,9 +53,9 @@ export default function ExampleListboxDragWithinGroups() {
                     value={value}
                     className="relative grid cursor-default grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-gray-900 outline-hidden select-none data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-gray-100 data-[disabled]:text-gray-400 data-[disabled]:data-[highlighted]:before:bg-gray-200 data-[dragging]:opacity-50 data-[drop-position=before]:after:absolute data-[drop-position=before]:after:top-[-1px] data-[drop-position=before]:after:left-1 data-[drop-position=before]:after:right-1 data-[drop-position=before]:after:h-0.5 data-[drop-position=before]:after:bg-blue-800 data-[drop-position=before]:after:content-[''] data-[drop-position=after]:after:absolute data-[drop-position=after]:after:right-1 data-[drop-position=after]:after:bottom-[-1px] data-[drop-position=after]:after:left-1 data-[drop-position=after]:after:h-0.5 data-[drop-position=after]:after:bg-blue-800 data-[drop-position=after]:after:content-[''] pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]"
                   >
-                    <Listbox.ItemDragHandle className="col-start-1 flex w-6 shrink-0 items-center justify-center cursor-grab text-gray-400 active:cursor-grabbing">
+                    <Listbox.SortHandle className="col-start-1 flex w-6 shrink-0 items-center justify-center cursor-grab text-gray-400 active:cursor-grabbing">
                       <GripIcon />
-                    </Listbox.ItemDragHandle>
+                    </Listbox.SortHandle>
                     <Listbox.ItemIndicator className="col-start-2">
                       <CheckIcon className="size-3" />
                     </Listbox.ItemIndicator>
@@ -68,7 +68,7 @@ export default function ExampleListboxDragWithinGroups() {
               </Listbox.Group>
             ))}
           </Listbox.List>
-        </Listbox.DragProvider>
+        </Listbox.SortableProvider>
       </Listbox.Root>
     </div>
   );
