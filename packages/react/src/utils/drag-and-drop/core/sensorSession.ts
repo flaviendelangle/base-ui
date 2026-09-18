@@ -1,13 +1,11 @@
 /**
- * Shared session bootstrap for the pointer and keyboard sensors.
+ * Session bootstrap for the pointer sensor.
  *
- * Both sensors build the same preview, drag payload, and source-handler map
- * from a draggable's parameters and hand them to the lifecycle
- * ({@link createPreviewAndStartSession}). Sensor-specific resources (the
- * pointer sensor's root lock) plug in through `acquire`/`release`.
+ * It builds the preview, drag payload, and source-handler map from a draggable's
+ * parameters and hands them to the lifecycle.
  */
 
-import { start, type DragSessionHandle, type SourceHandlers } from './lifecycleManager';
+import { start, type DragSessionHandle } from './lifecycleManager';
 import { getRegistration } from '../draggableRegistry';
 import { setActivePreviewHandle } from '../activePreview';
 import { resolveDragPreview } from '../synthetic/dragPreviewSettings';
@@ -15,11 +13,10 @@ import { compileDragModifiers } from '../dragModifiers';
 import { attachDefaultDragPreview } from '../synthetic/defaultDragPreview';
 import { createSyntheticPreview, type SyntheticPreviewHandle } from '../synthetic/syntheticPreview';
 import type { DraggableConfig } from '../draggable';
-import type { DragMode, DragSource, DragInput } from '../../../types/drag';
+import type { DragSource, DragInput, DragStartReason } from '../../../types/drag';
 
 export interface StartSensorSessionParameters {
-  mode: DragMode;
-  /** The draggable's latest parameters (label/kind/payload/event handlers). */
+  /** The draggable's latest parameters (kind/payload/event handlers). */
   draggableParameters: DraggableConfig<any>;
   element: HTMLElement;
   dragHandle: Element | null;
@@ -27,35 +24,39 @@ export interface StartSensorSessionParameters {
   initialTarget: Element | null;
   /**
    * The native event the pickup committed on (see `StartParameters.initialEvent`),
-   * so `onDragStart` reports a real event rather than a placeholder.
+   * so `onMoveStart` reports a real event rather than a placeholder.
    */
   initialEvent?: Event | undefined;
+  /** Why the pickup started (see `StartParameters.startReason`). */
+  startReason?: DragStartReason | undefined;
   /** The engine-managed preview, so the lifecycle can skip it when hit-testing. */
   preview: SyntheticPreviewHandle;
   /** The pickup grab offset (see `StartParameters.grabOffset`). */
   grabOffset?: { x: number; y: number } | undefined;
   /** Sensor-side force-cleanup, run from the lifecycle's teardown path. */
   onForceCleanup: () => void;
+  /** Whether the sensor still owns the pickup after consumer callbacks. */
+  isPickupCurrent?: (() => boolean) | undefined;
 }
 
 /**
  * Resolve the draggable's `payload`, build the `DragSource` and the
  * source-handler map, then start the lifecycle. Returns the session handle, or
  * `null` when the lifecycle declined to start (a concurrent drag is already
- * active).
+ * active, or a resolver or start handler canceled pickup).
  *
  * Module-private: sensors go through `createPreviewAndStartSession` below, which
  * wraps this with the preview and undo handling a bare session start skips.
  */
 function startSensorSession(parameters: StartSensorSessionParameters): DragSessionHandle | null {
   const {
-    mode,
     draggableParameters: source,
     element,
     dragHandle,
     initialInput,
     initialTarget,
     initialEvent,
+    startReason,
     preview,
     grabOffset,
     onForceCleanup,
@@ -65,9 +66,11 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
     ? source.getPayload({ input: initialInput, element, dragHandle })
     : source.payload;
 
+  if (parameters.isPickupCurrent?.() === false) {
+    return null;
+  }
   const dragSource: DragSource = {
     element,
-    label: source.label,
     kind: source.kind.id,
     dragHandle,
     payload,
@@ -75,32 +78,31 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
 
   // Read the draggable's latest parameters live on each dispatch so a source that
   // re-renders mid-drag runs its current handler closures. Falls back to the
-  // start-time `source` snapshot if the element unregisters mid-drag.
-  // `label`/`kind`/`payload` stay start-time (they live in `dragSource`); only
+  // last compatible snapshot if the element unregisters or changes kind mid-drag.
+  // `kind`/`payload` stay start-time (they live in `dragSource`); only
   // handlers are read fresh.
   //
   // Read `dragSource.element` rather than the start-time `element`: a virtualizer
   // can remount the source to a fresh node mid-drag, which re-registers under
   // the new element and re-points `dragSource.element` at it (see
-  // `updateDragSourceElement`). The old element's registration is gone, so
+  // `retargetDragSource`). The old element's registration is gone, so
   // resolving against the live node keeps the fresh handler closures flowing.
-  const getLatestParameters = (): DraggableConfig<any> =>
-    getRegistration(dragSource.element)?.() ?? source;
-
-  const getSourceHandlers = (): SourceHandlers => {
-    // `DraggableConfig` is a structural superset of `SourceHandlers`. Returning
-    // the live registration directly avoids copying its six callbacks into a
-    // short-lived object on every drag dispatch.
-    return getLatestParameters();
+  let compatibleParameters = { ...source };
+  const getLatestParameters = (): DraggableConfig<any> => {
+    const current = getRegistration(dragSource.element)?.();
+    if (current?.kind.id === dragSource.kind) {
+      compatibleParameters = { ...current };
+    }
+    return compatibleParameters;
   };
 
   return start({
-    mode,
     payload: dragSource,
-    getSourceHandlers,
+    getSourceHandlers: getLatestParameters,
     initialInput,
     initialTarget,
     initialEvent,
+    startReason,
     grabOffset,
     synthetic: {
       getPreviewElement: () => preview.getPreviewElement()?.element ?? null,
@@ -113,18 +115,13 @@ export interface CreatePreviewSessionParameters extends Omit<
   StartSensorSessionParameters,
   'initialTarget' | 'preview'
 > {
-  /**
-   * Resolve the initial drop target. Called once the preview exists, so the
-   * keyboard sensor can hit-test around its own preview element; the pointer
-   * sensor resolves the target before the preview is built and ignores the
-   * argument.
-   */
-  getInitialTarget: (preview: SyntheticPreviewHandle) => Element | null;
+  /** The initial drop target, resolved before the preview is built and moved under the pointer. */
+  initialTarget: Element | null;
   /**
    * Where the user pressed, when the gesture has a press. The grab offset
    * anchors here rather than at `initialInput`: the activation threshold puts
    * the committed input a few pixels past the press, and the point the user
-   * took hold of is the press. Omitted (keyboard), the seed input stands in.
+   * took hold of is the press.
    */
   pressPoint?: { x: number; y: number } | undefined;
   /**
@@ -145,7 +142,7 @@ export interface PreviewSessionHandle {
  * Build the engine-managed preview for a pickup and start the lifecycle session.
  *
  * On success returns the session and the preview it owns. When the pickup
- * throws or the lifecycle refuses to start (a drag is already running), every
+ * throws or the lifecycle refuses to start (a drag is already running or pickup was canceled), every
  * resource acquired here is undone — the preview is destroyed, the published
  * handle slot is restored, `release` runs — and the sensor only has its own
  * pre-pickup state left to clean up. A throw is re-thrown after the undo.
@@ -153,8 +150,8 @@ export interface PreviewSessionHandle {
 export function createPreviewAndStartSession(
   parameters: CreatePreviewSessionParameters,
 ): PreviewSessionHandle | null {
-  const { getInitialTarget, pressPoint, acquire, release, ...sessionParameters } = parameters;
-  const { draggableParameters, element, initialInput, mode } = sessionParameters;
+  const { pressPoint, acquire, release, ...sessionParameters } = parameters;
+  const { draggableParameters, element, initialInput } = sessionParameters;
 
   let preview: SyntheticPreviewHandle | null = null;
   let restoreActivePreviewSlot: (() => void) | null = null;
@@ -180,15 +177,24 @@ export function createPreviewAndStartSession(
       x: grabPoint.x - pickupRect.left,
       y: grabPoint.y - pickupRect.top,
     };
+    // The press, carried as an input so the preview's default `'source'` offset can
+    // anchor on it: the preview measures its own (untransformed) box, so it must not
+    // reuse `grabOffset`, which is relative to the transformed rect above.
+    const pressInput: DragInput = pressPoint
+      ? { ...initialInput, clientX: pressPoint.x, clientY: pressPoint.y }
+      : initialInput;
 
     const previewSettings = resolveDragPreview(draggableParameters, element);
-    preview = createSyntheticPreview(element, mode, {
+    if (sessionParameters.isPickupCurrent?.() === false) {
+      return null;
+    }
+    preview = createSyntheticPreview(element, {
       kind: draggableParameters.kind.id,
       previewKey: draggableParameters.previewKey,
       payload: draggableParameters.payload,
     });
     preview.setModifiers(compileDragModifiers(previewSettings.modifiers));
-    attachDefaultDragPreview(preview, element, previewSettings, initialInput, grabOffset);
+    attachDefaultDragPreview(preview, element, previewSettings, initialInput, pressInput);
     // Only now: a `[data-dragging]` rule that resizes or hides the source would
     // otherwise corrupt the measurement the preview was just built from.
     preview.markSourceDragging();
@@ -205,9 +211,12 @@ export function createPreviewAndStartSession(
     // preview modifier gated on one is honored from the very first placement.
     preview.update(initialInput.clientX, initialInput.clientY, initialInput);
 
+    if (sessionParameters.isPickupCurrent?.() === false) {
+      undo();
+      return null;
+    }
     session = startSensorSession({
       ...sessionParameters,
-      initialTarget: getInitialTarget(preview),
       preview,
       grabOffset,
     });
@@ -217,7 +226,7 @@ export function createPreviewAndStartSession(
   }
 
   if (!session) {
-    // The lifecycle refused (a drag is already running). Restore whatever the slot
+    // The lifecycle refused (a drag is already running or pickup was canceled). Restore whatever the slot
     // held before this pickup published — the refusing drag is still in progress
     // and its handle must keep flowing.
     undo();

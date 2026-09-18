@@ -13,10 +13,7 @@
 - Combobox - ([Outline](#combobox), [Contents](./combobox/page.mdx))
 - Context Menu - ([Outline](#context-menu), [Contents](./context-menu/page.mdx))
 - Dialog - ([Outline](#dialog), [Contents](./dialog/page.mdx))
-- Drag Auto Scroll [New] - ([Outline](#drag-auto-scroll), [Contents](./drag-auto-scroll/page.mdx))
-- Draggable [New] - ([Outline](#draggable), [Contents](./draggable/page.mdx))
 - Drawer - ([Outline](#drawer), [Contents](./drawer/page.mdx))
-- Drop Target [New] - ([Outline](#drop-target), [Contents](./drop-target/page.mdx))
 - Field - ([Outline](#field), [Contents](./field/page.mdx))
 - Fieldset - ([Outline](#fieldset), [Contents](./fieldset/page.mdx))
 - Form - ([Outline](#form), [Contents](./form/page.mdx))
@@ -31,7 +28,7 @@
 - Popover - ([Outline](#popover), [Contents](./popover/page.mdx))
 - Preview Card - ([Outline](#preview-card), [Contents](./preview-card/page.mdx))
 - Progress - ([Outline](#progress), [Contents](./progress/page.mdx))
-- Radio - ([Outline](#radio), [Contents](./radio/page.mdx))
+- Radio Group - ([Outline](#radio-group), [Contents](./radio-group/page.mdx))
 - Scroll Area - ([Outline](#scroll-area), [Contents](./scroll-area/page.mdx))
 - Select - ([Outline](#select), [Contents](./select/page.mdx))
 - Separator - ([Outline](#separator), [Contents](./separator/page.mdx))
@@ -59,6 +56,7 @@ A set of collapsible panels with headings.
   - Anatomy
   - Examples
     - Open multiple panels
+    - Hidden until found
   - API reference
     - Root
     - Item
@@ -71,7 +69,7 @@ A set of collapsible panels with headings.
     - Data Attributes: data-disabled, data-orientation
   - Accordion - Trigger
     - Props: className, nativeButton, render, style
-    - Data Attributes: data-disabled, data-panel-open
+    - Data Attributes: data-disabled, data-index, data-panel-open
   - Accordion - Item
     - Props: className, disabled, onOpenChange, render, style, value
     - Data Attributes: data-disabled, data-index, data-open
@@ -272,6 +270,9 @@ An easily stylable avatar component.
 - Keywords: React Avatar, Avatar Component, Profile Image UI, User Image, User Avatar, Profile Picture, Account Image, Profile Icon, Initials Fallback, Accessible Avatar, Headless React Components, Customizable Avatar, Base UI
 - Sections:
   - Anatomy
+  - Optimized and lazy-loaded images
+    - Stacking
+    - Server rendering
   - API reference
     - Root
     - Image
@@ -281,8 +282,8 @@ An easily stylable avatar component.
   - Avatar - Root
     - Props: className, render, style
   - Avatar - Image
-    - Props: className, onLoadingStatusChange, render, style
-    - Data Attributes: data-ending-style, data-starting-style
+    - Props: className, keepMounted, onLoadingStatusChange, render, style
+    - Data Attributes: data-ending-style, data-error, data-loading, data-starting-style
   - Avatar - Fallback
     - Props: className, delay, render, style
 - Types: Avatar.Fallback.Props, Avatar.Fallback.State, Avatar.Image.Props, Avatar.Image.State, Avatar.Root.Props, Avatar.Root.State
@@ -390,6 +391,8 @@ A collapsible panel controlled by a button.
 - Keywords: React Collapsible, Collapsible Component, Expandable Panel, Toggle Panel Button, Disclosure Widget, Show/Hide Content, Accordion Item, Accessible Disclosure, Headless React Components, Collapsible Trigger Panel, Base UI
 - Sections:
   - Anatomy
+  - Examples
+    - Hidden until found
   - API reference
     - Root
     - Trigger
@@ -562,6 +565,7 @@ A menu that appears at the pointer on right click or long press.
     - Root
     - Trigger
     - Portal
+    - Backdrop
     - Positioner
     - Popup
     - Arrow
@@ -579,7 +583,7 @@ A menu that appears at the pointer on right click or long press.
     - Separator
 - Exports:
   - Context Menu - Root
-    - Props: actionsRef, children, closeParentOnEsc, defaultOpen, disabled, highlightItemOnHover, loopFocus, onOpenChange, onOpenChangeComplete, open, orientation
+    - Props: actionsRef, children, defaultOpen, disabled, highlightItemOnHover, loopFocus, onOpenChange, onOpenChangeComplete, open, orientation
   - Context Menu - Trigger
     - Props: className, render, style
     - Data Attributes: data-popup-open, data-pressed
@@ -589,7 +593,7 @@ A menu that appears at the pointer on right click or long press.
     - Props: className, render, style
     - Data Attributes: data-closed, data-ending-style, data-open, data-starting-style
   - Context Menu - Positioner
-    - Props: align, alignOffset, anchor, arrowPadding, className, collisionAvoidance, collisionBoundary, collisionPadding, disableAnchorTracking, positionMethod, render, side, sideOffset, sticky, style
+    - Props: align, alignOffset, anchor, arrowPadding, className, collisionAvoidance, collisionBoundary, collisionPadding, disableAnchorTracking, render, side, sideOffset, sticky, style
     - Data Attributes: data-align, data-anchor-hidden, data-closed, data-open, data-side
     - CSS Variables: --anchor-height, --anchor-width, --available-height, --available-width, --positioner-height, --positioner-width, --transform-origin
   - Context Menu - Popup
@@ -704,153 +708,6 @@ A popup that opens on top of the entire page.
 
 [Read more](./dialog/page.mdx)
 
-## Drag Auto Scroll
-
-A component that enables and configures drag auto-scroll.
-
-<details>
-
-<summary>Outline</summary>
-
-- Keywords: React Auto Scroll, React Drag and Drop, Drag Scroll, Scroll Container, Base UI
-- Sections:
-  - Anatomy
-  - Which containers scroll
-  - Customize a container that already scrolls
-    - Control when it scrolls
-    - Constrain the direction
-    - Tune the speed
-  - Implement custom scrolling
-  - Nested containers
-  - Both a scroll container and a drop target
-  - Scrolling the page
-  - API reference
-    - Provider
-    - Root
-- Exports:
-  - Drag Auto Scroll - Root
-    - Props: accept, allowedAxis, applyScroll, canScroll, className, disabled, maxSpeed, render, style
-    - Data Attributes: data-disabled
-  - Drag Auto Scroll - Provider
-    - Props: children, disabled
-  - DragAutoScrollApply
-    - Parameters: parameters
-- Types: DragAutoScroll.Provider.Props, DragAutoScroll.Root.Props, DragAutoScroll.Root.State
-
-</details>
-
-[Read more](./drag-auto-scroll/page.mdx)
-
-## Draggable
-
-A component that makes its element a drag source.
-
-<details>
-
-<summary>Outline</summary>
-
-- Keywords: React Draggable, React Drag and Drop, React Drag Overlay, Drag Source, Drag Handle, Drag Preview, Base UI
-- Sections:
-  - Anatomy
-  - Pass data along
-  - Drag handle
-    - Keyboard-only handle
-  - Conditional drag
-  - Drag events
-  - Re-rendering the source mid-drag
-  - Animating displaced items
-  - Activation
-  - Keyboard navigation
-    - Screen-reader announcements
-    - Controlling movement
-    - Restoring focus
-    - Moving the pickup elsewhere
-  - Movement modifiers
-    - Modifiers on the preview
-    - Write your own
-    - Gating on a modifier key
-  - Drag previews
-    - Default preview
-    - Custom previews
-    - Configure the clone
-    - Drag without a preview
-    - Position the preview
-    - Render previews elsewhere
-    - Set the drag cursor
-  - API reference
-    - Root
-    - Handle
-    - KeyboardHandle
-    - Preview
-    - ClonedPreview
-    - PreviewProvider
-    - restrictToVerticalAxis
-    - restrictToHorizontalAxis
-    - restrictToParentElement
-    - restrictToElement
-    - restrictToWindowEdges
-    - snapToGrid
-    - targetsOnlyKeyboardMovement
-    - fixedStepKeyboardMovement
-    - DragModifier
-    - DragKeyboardMovement
-    - createKind
-    - createGlobalKind
-  - useActiveDrag
-- Exports:
-  - Draggable - Root
-    - Props: ariaRoleDescription, children, className, disabled, dragCursor, finalFocus, getPayload, keyboardActivation, keyboardAnnouncements, keyboardInstructions, keyboardMovement, kind, label, modifiers, onBeforeDragStart, onDrag, onDragEnd, onDragStart, onDrop, onDropTargetChange, payload, pointerActivation, previewKey, render, style
-    - Data Attributes: data-disabled, data-displacing, data-drag-mode, data-dragging, data-ending-style, data-starting-style
-    - CSS Variables: --drag-displacement-x, --drag-displacement-y
-  - Draggable - ClonedPreview
-    - Props: container, disabled, modifiers, offset
-  - Draggable - createGlobalKind
-    - Parameters: key
-  - Draggable - createKind
-    - Parameters: name
-  - Draggable - Displacement
-  - Draggable - fixedStepKeyboardMovement
-    - Parameters: step
-  - Draggable - Handle
-    - Props: className, disabled, nativeButton, render, style
-    - Data Attributes: data-disabled
-  - Draggable - KeyboardHandle
-    - Props: className, disabled, nativeButton, render, style
-    - Data Attributes: data-disabled
-  - Draggable - Preview
-    - Props: children, className, container, disabled, kind, modifiers, offset, render, style
-    - Data Attributes: data-drag-mode, data-drag-preview, data-ending-style
-    - CSS Variables: --drag-source-height, --drag-source-width
-  - Draggable - PreviewProvider
-    - Props: children, container
-  - Draggable - restrictToElement
-    - Parameters: element
-  - Draggable - restrictToHorizontalAxis
-    - Parameters: context
-  - Draggable - restrictToParentElement
-    - Parameters: context
-  - Draggable - restrictToVerticalAxis
-    - Parameters: context
-  - Draggable - restrictToWindowEdges
-    - Parameters: context
-  - Draggable - snapToGrid
-    - Parameters: size
-  - Draggable - targetsOnlyKeyboardMovement
-    - Props: direction, event, findTarget, getTargets, key, location, position, shiftKey, source, suggestion, target
-  - Draggable - useActiveDrag
-    - Parameters: accept
-  - DraggablePayloadGetter
-    - Parameters: context
-  - DragKeyboardMovement
-    - Props: direction, event, findTarget, getTargets, key, location, position, shiftKey, source, suggestion, target
-  - DragModifier
-    - Parameters: context
-- Types: Draggable.ClonedPreview.Props, Draggable.Handle.Props, Draggable.Handle.State, Draggable.KeyboardHandle.Props, Draggable.KeyboardHandle.State, Draggable.Preview.Props, Draggable.Preview.State, Draggable.PreviewProvider.Props, Draggable.PreviewProvider.State, Draggable.Root.Props, Draggable.Root.PropsWithPayload, Draggable.Root.State, Draggable.useActiveDrag.ReturnValue
-
-</details>
-
-[Read more](./draggable/page.mdx)
-
 ## Drawer
 
 A panel that slides in from the edge of the screen.
@@ -940,46 +797,6 @@ A panel that slides in from the edge of the screen.
 </details>
 
 [Read more](./drawer/page.mdx)
-
-## Drop Target
-
-A component that makes its element a drop zone.
-
-<details>
-
-<summary>Outline</summary>
-
-- Keywords: React Drop Target, React Drag and Drop, Drop Zone, Sortable List, Base UI
-- Sections:
-  - Anatomy
-  - Choose which items to accept
-  - Drop events
-  - Attach data to a target
-  - Read where in the target the pointer landed
-  - Snap to steps
-  - Name a target for screen readers
-  - Nested drop targets
-  - Track the drag-over state
-  - Both a source and a target
-  - API reference
-    - Root
-    - createKind
-    - createGlobalKind
-- Exports:
-  - Drop Target - Root
-    - Props: accept, canDrop, className, disabled, getPayload, kind, label, onDrag, onDragEnter, onDragLeave, onDragStart, onDrop, onDropTargetChange, payload, render, snap, style, trackDragOver
-    - Data Attributes: data-accepting, data-disabled, data-drag-over, data-drag-over-innermost, data-drop-target, data-rejected
-  - Drop Target - createGlobalKind
-    - Parameters: key
-  - Drop Target - createKind
-    - Parameters: name
-  - DropTargetPayloadGetter
-    - Parameters: context
-- Types: DropTarget.Root.Props, DropTarget.Root.PropsWithPayload, DropTarget.Root.State
-
-</details>
-
-[Read more](./drop-target/page.mdx)
 
 ## Field
 
@@ -1221,7 +1038,7 @@ A list of actions in a dropdown, enhanced with keyboard navigation.
     - Props: actionsRef, children, closeParentOnEsc, defaultOpen, defaultTriggerId, disabled, handle, highlightItemOnHover, loopFocus, modal, onOpenChange, onOpenChangeComplete, open, orientation, triggerId
   - Menu - Trigger
     - Props: children, className, closeDelay, delay, disabled, handle, nativeButton, openOnHover, payload, render, style
-    - Data Attributes: data-popup-open, data-pressed
+    - Data Attributes: data-disabled, data-popup-open, data-pressed
   - Menu - Portal
     - Props: className, container, keepMounted, render, style
   - Menu - Backdrop
@@ -1370,8 +1187,8 @@ A collection of links and menus for website navigation.
   - Navigation Menu - Root
     - Props: actionsRef, className, closeDelay, defaultValue, delay, onOpenChangeComplete, onValueChange, orientation, render, style, value
   - Navigation Menu - Trigger
-    - Props: className, nativeButton, render, style
-    - Data Attributes: data-popup-open, data-pressed
+    - Props: className, disabled, nativeButton, render, style
+    - Data Attributes: data-disabled, data-popup-open, data-pressed
   - Navigation Menu - Icon
     - Props: className, render, style
     - Data Attributes: data-popup-open
@@ -1534,7 +1351,7 @@ An accessible popup anchored to a button.
     - Props: actionsRef, children, defaultOpen, defaultTriggerId, handle, modal, onOpenChange, onOpenChangeComplete, open, triggerId
   - Popover - Trigger
     - Props: className, closeDelay, delay, handle, id, nativeButton, openOnHover, payload, render, style
-    - Data Attributes: data-popup-open, data-pressed
+    - Data Attributes: data-disabled, data-popup-open, data-pressed
   - Popover - Portal
     - Props: className, container, keepMounted, render, style
   - Popover - Backdrop
@@ -1571,7 +1388,7 @@ An accessible popup anchored to a button.
 
 ## Preview Card
 
-A popup that appears when a link is hovered, showing a preview for sighted users.
+A link that shows a destination preview without interrupting keyboard or screen reader navigation.
 
 <details>
 
@@ -1671,15 +1488,15 @@ Displays the status of a task that takes a long time.
 
 [Read more](./progress/page.mdx)
 
-## Radio
+## Radio Group
 
-An easily stylable radio button component.
+Provides shared state to a series of radio buttons.
 
 <details>
 
 <summary>Outline</summary>
 
-- Keywords: React Radio Button, Radio Group Component, Radio Button, Radio Input, Single Choice, Exclusive Choice, Mutually Exclusive, Option Selector, Option Button, Form Radio Control, Accessible Radio Group, Customizable Radio, Headless React Components, Base UI
+- Keywords: React Radio Group, Radio Group Component, Grouped Radio Buttons, React Radio Button, Radio Button, Radio Input, Single Choice, Exclusive Choice, Mutually Exclusive, Option Selector, Option Button, Form Radio Control, Accessible Radio Group, Customizable Radio, Headless React Components, Base UI
 - Sections:
   - Usage guidelines
   - Anatomy
@@ -1692,17 +1509,20 @@ An easily stylable radio button component.
     - Root
     - Indicator
 - Exports:
-  - Radio - Root
+  - Radio Group - Root
     - Props: className, disabled, inputRef, nativeButton, readOnly, render, required, style, value
     - Data Attributes: data-checked, data-dirty, data-disabled, data-filled, data-focused, data-invalid, data-readonly, data-required, data-touched, data-unchecked, data-valid
-  - Radio - Indicator
+  - Radio Group - Indicator
     - Props: className, keepMounted, render, style
     - Data Attributes: data-checked, data-dirty, data-disabled, data-ending-style, data-filled, data-focused, data-invalid, data-readonly, data-required, data-starting-style, data-touched, data-unchecked, data-valid
-- Types: Radio.Indicator.Props, Radio.Indicator.State, Radio.Root.Props, Radio.Root.State
+  - RadioGroup
+    - Props: className, defaultValue, disabled, form, inputRef, name, onValueChange, readOnly, render, required, style, value
+    - Data Attributes: data-disabled
+- Types: Radio.Indicator.Props, Radio.Indicator.State, Radio.Root.Props, Radio.Root.State, RadioGroup.ChangeEventDetails, RadioGroup.ChangeEventReason, RadioGroup.Props, RadioGroup.State
 
 </details>
 
-[Read more](./radio/page.mdx)
+[Read more](./radio-group/page.mdx)
 
 ## Scroll Area
 
@@ -1886,9 +1706,11 @@ An easily stylable range input.
   - Usage guidelines
   - Anatomy
   - Examples
-    - Range slider
-    - Thumb alignment
     - Labeling a slider
+    - Range slider
+    - Steps
+    - Marks
+    - Thumb alignment
     - Vertical
     - Form integration
   - API reference

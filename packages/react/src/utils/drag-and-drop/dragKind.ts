@@ -3,6 +3,7 @@
  * kinds they accept. Each kind carries the payload type of the things it tags.
  */
 
+import { areArraysEqual } from '@base-ui/utils/areArraysEqual';
 import type { AnyDragAccept, DragKind, DragSource, DropTargetRecord } from '../../types/drag';
 
 /** Namespaces explicitly global identities, so a key can't collide with another `Symbol.for`. */
@@ -26,19 +27,11 @@ const ANY_KIND_ID = Symbol.for('base-ui/drag-kind-sentinel:any');
  * need to share a kind by a namespaced key.
  */
 export function createKind<TPayload = undefined>(name: string): DragKind<TPayload> {
-  const id = Symbol(name);
-  const matches = (value: DragSource<unknown> | DropTargetRecord<unknown>) => value.kind === id;
-  return {
-    name,
-    id,
-    // A type predicate can't be inferred from an implementation, so it is asserted here.
-    matches: matches as DragKind<TPayload>['matches'],
-  };
+  return makeKind(name, Symbol(name));
 }
 
 /**
- * Creates a globally interned drag kind for integrations where independently evaluated
- * bundles must match without sharing the same kind value.
+ * Creates a drag kind shared across bundles using the same key.
  *
  * ```ts
  * const card = Draggable.createGlobalKind<Card>('myapp/card');
@@ -58,24 +51,27 @@ export function createGlobalKind<TPayload = undefined>(key: string): DragKind<TP
       'Base UI: createGlobalKind requires a namespaced key. ' +
         'Global drag kind keys are shared page-wide, so an unnamespaced key can collide with another integration and expose the wrong payload type. ' +
         'Use a key such as "myapp/card". ' +
-        'See https://base-ui.com/react/drag-and-drop/overview',
+        'See https://base-ui.com/react/utils/draggable',
     );
   }
-  const id = Symbol.for(KIND_ID_PREFIX + key);
+  return makeKind(key, Symbol.for(KIND_ID_PREFIX + key));
+}
+
+function makeKind<TPayload>(name: string, id: symbol): DragKind<TPayload> {
   const matches = (value: DragSource<unknown> | DropTargetRecord<unknown>) => value.kind === id;
   return {
-    name: key,
+    name,
     id,
     // A type predicate can't be inferred from an implementation, so it is asserted here.
     matches: matches as DragKind<TPayload>['matches'],
-  };
+  } as DragKind<TPayload>;
 }
 
 /**
  * A catch-all kind for a drop target that accepts every drag on the page.
  *
  * ```tsx
- * <DropTarget.Root accept={DropTarget.anyKind} onDrop={commit} />
+ * <Draggable.Target accept={Draggable.anyKind} onDraggableDrop={commit} />
  * ```
  *
  * The accepted source's payload is `unknown` until narrowed with a specific kind.
@@ -90,7 +86,7 @@ export const anyDragKind: DragKind<unknown> = {
   // `anyDragKind` as its `kind`. Answering `true` keeps it honest if a consumer does
   // reach for it as a predicate.
   matches: ((value: unknown) => value != null) as unknown as DragKind<unknown>['matches'],
-};
+} as DragKind<unknown>;
 
 /**
  * Tests a source against an `accept` declaration. Omitted (monitors, auto-scrollers) or
@@ -109,4 +105,16 @@ export function matchesAccept(
     return accept.some((kind) => kind.id === ANY_KIND_ID || kind.id === source.kind);
   }
   return (accept as DragKind<unknown>).id === source.kind;
+}
+
+/**
+ * Content comparison for an `accept` value, not identity: it is commonly an
+ * inline array (`accept={[card, file]}`) whose identity changes every render
+ * while the kinds inside don't.
+ */
+export function sameAccept(a: AnyDragAccept | undefined, b: AnyDragAccept | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+  return Array.isArray(a) && Array.isArray(b) && areArraysEqual(a, b);
 }
