@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { installDndPolyfill } from '../../../../test/dndPolyfill';
-import { createDragPreviewElement, type DragPreviewElementHandle } from './cloneDragPreview';
+import { createClonedDragPreviewElement, type DragPreviewElementHandle } from './cloneDragPreview';
 
 installDndPolyfill();
 
-describe('createDragPreviewElement', () => {
+describe('createClonedDragPreviewElement', () => {
   let host: HTMLElement;
   const handles: DragPreviewElementHandle[] = [];
 
@@ -21,7 +21,10 @@ describe('createDragPreviewElement', () => {
       handles.pop()!.destroy();
     }
     host.remove();
-    expect(document.querySelectorAll('[data-drag-preview]')).toHaveLength(0);
+    const leaked = document.querySelectorAll('[data-drag-preview]').length;
+    if (leaked > 0) {
+      throw new Error(`${leaked} drag preview element(s) leaked into the document after cleanup.`);
+    }
   });
 
   /** Queue a handle for `afterEach` destruction (`destroy()` is idempotent). */
@@ -41,7 +44,7 @@ describe('createDragPreviewElement', () => {
   }
 
   function clone(source: HTMLElement, options?: { container?: HTMLElement }) {
-    const handle = track(createDragPreviewElement(source, { content: 'clone', ...options }));
+    const handle = track(createClonedDragPreviewElement(source, options?.container ?? null));
     expect(handle).not.toBeNull();
     return handle!;
   }
@@ -136,7 +139,7 @@ describe('createDragPreviewElement', () => {
     const source = document.createElement('div');
     shadow.appendChild(source);
 
-    const handle = track(createDragPreviewElement(source, { content: 'clone' }))!;
+    const handle = track(createClonedDragPreviewElement(source, null))!;
 
     // A direct child of a shadow root has no `parentElement`; the preview hangs
     // off the shadow root itself so it stays under the same adopted styles.
@@ -384,7 +387,7 @@ describe('createDragPreviewElement', () => {
       );
     }
     const source = createSource(
-      `<${customElementName}><span>Payment</span></${customElementName}>`,
+      `<${customElementName} style="align-self: end; justify-self: center; order: 2"><span>Payment</span></${customElementName}>`,
     );
     const beforeClone = { ...lifecycle };
 
@@ -393,6 +396,11 @@ describe('createDragPreviewElement', () => {
     expect(lifecycle).toEqual(beforeClone);
     expect(handle.element.querySelector(customElementName)).toBeNull();
     expect(handle.element.querySelector('div > span')).toHaveTextContent('Payment');
+    // The placeholder keeps its place in the parent's flex/grid layout.
+    const placeholder = handle.element.querySelector<HTMLElement>('div > span')!.parentElement!;
+    expect(placeholder.style.alignSelf).toBe('end');
+    expect(placeholder.style.justifySelf).toBe('center');
+    expect(placeholder.style.order).toBe('2');
   });
 
   it('copies live form state, which cloneNode leaves at its defaults', () => {
@@ -469,7 +477,7 @@ describe('createDragPreviewElement', () => {
     other.value = 'basic';
     host.appendChild(other);
 
-    const handle = track(createDragPreviewElement(source, { content: 'clone' }))!;
+    const handle = track(createClonedDragPreviewElement(source, null))!;
 
     // A named clone joins the radio group, which unchecks the real source the
     // moment it is inserted — and leaves the group empty when it is removed.
@@ -486,7 +494,7 @@ describe('createDragPreviewElement', () => {
     const source = document.createElement('div');
     inner.appendChild(source);
 
-    const handle = track(createDragPreviewElement(source, { content: 'clone' }))!;
+    const handle = track(createClonedDragPreviewElement(source, null))!;
     expect(wrapperOf(handle).parentElement).toBe(inner);
 
     // A React commit tears the host out *after* the callback that triggered it,
@@ -503,7 +511,7 @@ describe('createDragPreviewElement', () => {
     const source = document.createElement('div');
     inner.appendChild(source);
 
-    const handle = track(createDragPreviewElement(source, { content: 'clone' }))!;
+    const handle = track(createClonedDragPreviewElement(source, null))!;
     expect(wrapperOf(handle).parentElement).toBe(inner);
 
     // A virtualizer recycling the row takes the clone's host with it.
@@ -516,7 +524,7 @@ describe('createDragPreviewElement', () => {
   it('returns null when there is nothing to clone into', () => {
     const detached = document.createElement('div');
 
-    expect(createDragPreviewElement(detached, { content: 'clone' })).toBeNull();
+    expect(createClonedDragPreviewElement(detached, null)).toBeNull();
   });
 
   it('removes the clone on destroy, idempotently', () => {

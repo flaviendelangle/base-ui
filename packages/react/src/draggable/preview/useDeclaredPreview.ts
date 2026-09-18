@@ -13,18 +13,18 @@ import type { DragPreviewElementFactory } from '../../utils/drag-and-drop/synthe
  * `null` for a clone of the source.
  * @internal
  */
-export function useDeclaredPreview<TData = unknown>(
+export function useDeclaredPreview<TPayload = unknown>(
   getProps: () => DragPreviewSettings,
-  render: DragPreviewDeclaration<TData>['render'],
+  render: DragPreviewDeclaration<TPayload>['render'],
   createPreviewElement: DragPreviewElementFactory,
   disabled = false,
 ): void {
-  const { previewHandle, previewContext: rootPreviewContext } = useDraggableRootContext<TData>();
+  const { previewHandle, previewContext: rootPreviewContext } = useDraggableRootContext<TPayload>();
   const previewContext = useDragPreviewContext();
 
   // Content needs a React tree to render in. Fail here rather than at drag start,
-  // so the stack points at the part that declared it. A `Draggable.ClonedPreview`
-  // passes `null` and needs no provider — the engine clones without React.
+  // so the stack points at the part that declared it. A `Draggable.Preview`
+  // without children passes `null`; its clone is created outside React.
   if (!disabled && render !== null && previewContext === null) {
     throwMissingPreviewProvider();
   }
@@ -34,19 +34,19 @@ export function useDeclaredPreview<TData = unknown>(
   // throw mid-gesture at drag start instead of here.
   if (!disabled && render !== null && previewContext !== rootPreviewContext) {
     throw new Error(
-      'Base UI: the <Draggable.PreviewProvider> for this preview is inside its ' +
+      'Base UI: the <Draggable.Provider> for this preview is inside its ' +
         '<Draggable.Root>, so the root cannot use it to render the preview. ' +
         'Move the provider above the <Draggable.Root>. ' +
-        'See https://base-ui.com/react/components/draggable.',
+        'See https://base-ui.com/react/utils/draggable.',
     );
   }
 
-  const declaration = React.useMemo<DragPreviewDeclaration<TData>>(() => {
+  const declaration = React.useMemo<DragPreviewDeclaration<TPayload>>(() => {
     // Mapped over `Required<…>` so every setting has to be plucked here: settings
     // are all optional, so a new one added to `DragPreviewSettings` would
     // otherwise type-check while being silently dropped on its way to the engine.
     const declared: {
-      [K in keyof Required<DragPreviewDeclaration<TData>>]: DragPreviewDeclaration<TData>[K];
+      [K in keyof Required<DragPreviewDeclaration<TPayload>>]: DragPreviewDeclaration<TPayload>[K];
     } = {
       render,
       createPreviewElement,

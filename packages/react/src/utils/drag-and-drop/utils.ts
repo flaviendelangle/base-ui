@@ -3,6 +3,7 @@ import { isShadowRoot } from '@floating-ui/utils/dom';
 import { contains } from '@base-ui/utils/shadowDom';
 import type { DragInput, DragModifierKeys, DragPointerType, DragPosition } from '../../types/drag';
 import { getParentElement as getComposedParentElement } from '../getParentElement';
+import { getElementAtPoint } from '../getElementAtPoint';
 import {
   identityLinearTransform,
   multiplyLinearTransforms,
@@ -35,10 +36,7 @@ export function onceCleanup(cleanup: () => void): () => void {
  */
 export function resolveElementReference<T extends Element, TArgument = void>(
   reference:
-    | T
-    | { current: T | null }
-    | ((argument: TArgument) => T | null | undefined)
-    | undefined,
+    T | { current: T | null } | ((argument: TArgument) => T | null | undefined) | undefined,
   argument: TArgument,
 ): T | null {
   if (!reference) {
@@ -53,16 +51,6 @@ export function resolveElementReference<T extends Element, TArgument = void>(
   return reference;
 }
 
-/**
- * The host of the shadow root a node lives in, or `null` when the node is not
- * inside a shadow tree. Realm-safe (`isShadowRoot` resolves `ShadowRoot` from the
- * node's own window).
- */
-export function getShadowHost(node: Element): Element | null {
-  const root = node.getRootNode();
-  return isShadowRoot(root) ? root.host : null;
-}
-
 export { getComposedParentElement };
 
 /** The event root that can observe a node before closed-shadow retargeting. */
@@ -71,6 +59,8 @@ export function getDragEventRoot(node: Element): Document | ShadowRoot {
   return isShadowRoot(root) ? root : ownerDocument(node);
 }
 
+const EMPTY_SHADOW_ROOTS_BY_HOST: ReadonlyMap<Element, ShadowRoot> = new Map();
+
 /**
  * Hit-test what sits under (`clientX`, `clientY`), descending into open shadow
  * roots: `elementFromPoint` on the document stops at the shadow *host*, so a drop
@@ -78,33 +68,22 @@ export function getDragEventRoot(node: Element): Document | ShadowRoot {
  * roots can be supplied because their host does not expose them through
  * `Element.shadowRoot`.
  *
- * Optional-chained at both levels: jsdom implements `elementFromPoint` on neither
- * `Document` nor `ShadowRoot`. This runs from the activation commit, outside every
- * containment boundary and after the pending listeners are gone, so a `TypeError`
- * here would strand the sensor and refuse every later pickup. Degrade to "nothing
- * under the pointer" instead.
+ * Guarded at both levels (see {@link getElementAtPoint}): jsdom implements
+ * `elementFromPoint` on neither `Document` nor `ShadowRoot`. This runs from the
+ * activation commit, outside every containment boundary and after the pending
+ * listeners are gone, so a `TypeError` here would strand the sensor and refuse
+ * every later pickup. Degrade to "nothing under the pointer" instead.
  */
 export function deepElementFromPoint(
   doc: Document,
   clientX: number,
   clientY: number,
-  retainedShadowRoots: Iterable<ShadowRoot> = [],
+  rootsByHost: ReadonlyMap<Element, ShadowRoot> = EMPTY_SHADOW_ROOTS_BY_HOST,
 ): Element | null {
-  const rootsByHost = new Map<Element, ShadowRoot>();
-  for (const retained of retainedShadowRoots) {
-    let root: Node = retained;
-    // A target's retained root can itself be nested in a closed outer root.
-    // Walking out through each host recovers those otherwise-invisible roots
-    // without making the registry retain/count the same target more than once.
-    while (isShadowRoot(root)) {
-      rootsByHost.set(root.host, root);
-      root = root.host.getRootNode();
-    }
-  }
-  let hit = doc.elementFromPoint?.(clientX, clientY) ?? null;
+  let hit = getElementAtPoint(doc, clientX, clientY);
   let innerRoot = hit ? (hit.shadowRoot ?? rootsByHost.get(hit)) : undefined;
   while (innerRoot) {
-    const inner = innerRoot.elementFromPoint?.(clientX, clientY);
+    const inner = getElementAtPoint(innerRoot, clientX, clientY);
     if (!inner || inner === hit) {
       break;
     }
@@ -128,45 +107,23 @@ export function elementFromPointIgnoring(
   clientX: number,
   clientY: number,
   ignore: HTMLElement | null,
-  retainedShadowRoots: Iterable<ShadowRoot> = [],
+  rootsByHost: ReadonlyMap<Element, ShadowRoot> = EMPTY_SHADOW_ROOTS_BY_HOST,
 ): Element | null {
-  const shadowRoots = [...retainedShadowRoots];
-  const found = deepElementFromPoint(doc, clientX, clientY, shadowRoots);
+  const found = deepElementFromPoint(doc, clientX, clientY, rootsByHost);
   if (!found || ignore == null || !contains(ignore, found)) {
     return found;
   }
   // Use `display: none`, not `visibility: hidden`: a descendant with inline
   // `visibility: visible` re-shows itself and stays hit-testable, defeating the
   // ignore. `display: none` removes the whole subtree from layout/hit-testing
-  // regardless of any descendant override.
-  //
-  // Hiding a manual popover closes it, which silently demotes the preview out of
-  // the top layer — where it then clips and offsets under transformed ancestors
-  // for the rest of the drag. Nothing re-opens it: the reconnect path only runs
-  // for a *disconnected* preview. So note whether it was open and restore that.
-  const wasPopoverOpen = isPopoverOpen(ignore);
+  // regardless of any descendant override. `ignore` is the preview itself, never
+  // the engine's `[popover]` wrapper around it, so hiding it does not close the
+  // popover that keeps the preview in the top layer.
   const previousDisplay = ignore.style.display;
   ignore.style.display = 'none';
-  const behind = deepElementFromPoint(doc, clientX, clientY, shadowRoots);
+  const behind = deepElementFromPoint(doc, clientX, clientY, rootsByHost);
   ignore.style.display = previousDisplay;
-  if (wasPopoverOpen && !isPopoverOpen(ignore)) {
-    try {
-      ignore.showPopover();
-    } catch {
-      // Already open, or no longer connected: nothing to repair.
-    }
-  }
   return behind;
-}
-
-/** Whether `element` is an open popover, in browsers that implement it. */
-function isPopoverOpen(element: HTMLElement): boolean {
-  try {
-    return typeof element.showPopover === 'function' && element.matches(':popover-open');
-  } catch {
-    // `:popover-open` is unknown to older engines, where `matches` throws.
-    return false;
-  }
 }
 
 /**
@@ -186,8 +143,7 @@ export function isDetachedDocument(doc: Document): boolean {
  * The layout viewport size. Prefers `documentElement.clientWidth/Height` over
  * `innerWidth/innerHeight`, which include the scrollbar gutter where
  * `elementFromPoint` resolves nothing; falls back to the window size when layout
- * reports 0 (a detached document, or jsdom). Shared by the keyboard sensor's
- * cursor clamp and `restrictToWindowEdges` so both agree on where the edge is.
+ * reports 0 (a detached document, or jsdom).
  */
 export function getViewportSize(win: Window): { width: number; height: number } {
   const docEl = win.document.documentElement;
@@ -199,8 +155,7 @@ export function getViewportSize(win: Window): { width: number; height: number } 
 
 /**
  * Whether the client point (`x`, `y`) lies within `rect`, inclusive of all four
- * edges. Shared by the auto-scroller (pointer-in-scroller test) and keyboard
- * collision (skip a container the cursor is already inside).
+ * edges. Shared by pointer hit testing and auto-scroll.
  */
 export function isPointInRect(
   x: number,
@@ -218,7 +173,7 @@ export function normalizePointerType(raw: string | undefined): DragPointerType {
 }
 
 /** Build an `DragInput` snapshot from a pointer event. */
-export function getInput(event: PointerEvent): DragInput {
+export function getInput(event: MouseEvent & { pointerType?: string | undefined }): DragInput {
   return {
     button: event.button,
     buttons: event.buttons,
@@ -281,36 +236,6 @@ export function modifierKeysChanged(a: DragModifierKeys, b: DragModifierKeys): b
 }
 
 /**
- * Build a synthetic `DragInput` for the keyboard sensor, which has no real pointer
- * event. `pointerType` is `null` (there is no pointer device); the keyboard
- * modality is carried by `DragMode` instead.
- *
- * `keys` are the modifier flags of the keydown that drove the move, so a keyboard drag
- * reports the same key state a pointer drag does. Omit them where no event is in hand.
- */
-export function createSyntheticInput(
-  reference: Element,
-  clientX: number,
-  clientY: number,
-  keys: DragModifierKeys = NO_MODIFIER_KEYS,
-): DragInput {
-  const win = ownerWindow(reference);
-  return {
-    button: 0,
-    buttons: 0,
-    clientX,
-    clientY,
-    pageX: clientX + win.scrollX,
-    pageY: clientY + win.scrollY,
-    pointerType: null,
-    ctrlKey: keys.ctrlKey,
-    shiftKey: keys.shiftKey,
-    altKey: keys.altKey,
-    metaKey: keys.metaKey,
-  };
-}
-
-/**
  * Run a consumer-supplied callback with an error boundary: a throw is caught,
  * logged with `message` and the offending element (when the boundary has one)
  * for diagnosis, and `fallback` is returned so one buggy consumer can't unwind
@@ -329,12 +254,16 @@ export function containConsumerError<T>(
   try {
     return call();
   } catch (error) {
-    if (element === null) {
-      console.error(message, error);
-    } else {
-      console.error(message, element, error);
-    }
+    reportConsumerError(message, element, error);
     return fallback;
+  }
+}
+
+function reportConsumerError(message: string, element: Element | null, error: unknown): void {
+  if (element === null) {
+    console.error(message, error);
+  } else {
+    console.error(message, element, error);
   }
 }
 
@@ -361,6 +290,9 @@ export function runAllCleanups(cleanups: ReadonlyArray<() => void>): void {
  * {@link containConsumerError} for a named callback declared on a registered
  * element. One shared wording for every registry — drop targets, auto-scrollers —
  * so the diagnostic prose is written once instead of per module.
+ *
+ * Runs per target and per auto-scroll candidate on every frame, so the message
+ * is only built once something actually threw.
  */
 export function safeCallConsumer<T>(
   subject: string,
@@ -369,19 +301,21 @@ export function safeCallConsumer<T>(
   call: () => T,
   fallback: T,
 ): T {
-  return containConsumerError(
-    `Base UI: ${subject} "${callbackName}" threw and was skipped for this drag.`,
-    element,
-    call,
-    fallback,
-  );
+  try {
+    return call();
+  } catch (error) {
+    reportConsumerError(
+      `Base UI: ${subject} "${callbackName}" threw and was skipped for this drag.`,
+      element,
+      error,
+    );
+    return fallback;
+  }
 }
 
 /**
- * Whether `element` resolves to right-to-left direction. Uncached —
- * `getComputedStyle` forces style resolution, so hot paths (the auto-scroller's
- * frame loop, the collection's per-frame drop position) keep their own per-drag
- * or per-element caches around this single implementation.
+ * Whether `element` resolves to right-to-left direction. `getComputedStyle`
+ * forces style resolution, so the auto-scroller caches the result per element.
  */
 export function isRtlElement(element: Element): boolean {
   let current: Element | null = element;
@@ -454,6 +388,19 @@ function usableScale(value: number): number {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+/** CSS zoom remains cumulative even when a preview enters the top layer. */
+export function getElementZoom(element: HTMLElement): number {
+  const win = ownerWindow(element);
+  let zoom = 1;
+  for (let node: Element | null = element; node; node = getComposedParentElement(node)) {
+    const value = Number.parseFloat(win.getComputedStyle(node).zoom);
+    if (Number.isFinite(value) && value > 0) {
+      zoom *= value;
+    }
+  }
+  return zoom;
+}
+
 /**
  * The scale a CSS transform (or a `zoom`) applies to `element`, accumulated over the element
  * and every ancestor — a zoomable canvas, a scaled preview container.
@@ -465,12 +412,14 @@ function usableScale(value: number): number {
  * rotation at 1 and still reports the scale composed with it.
  *
  * Returns `1` on either axis it cannot read.
+ * Set `includeZoom` to false when only transforms are escaped, as in a top-layer preview.
  */
-export function getElementScale(element: HTMLElement): DragPosition {
+export function getElementScale(element: HTMLElement, includeZoom = true): DragPosition {
   const win = ownerWindow(element);
   let matrix = identityLinearTransform;
   let zoom = 1;
   let node: Element | null = element;
+  let escapedTransforms = false;
 
   while (node) {
     const style = win.getComputedStyle(node);
@@ -480,23 +429,26 @@ export function getElementScale(element: HTMLElement): DragPosition {
     // but it reorients which axis an ancestor's scale lands on, so leaving it out of the
     // matrix would swap the axes under a non-uniform ancestor scale. Only `translate` can
     // be ignored. Order within an element is `rotate`, then `scale`, then `transform`.
-    const own = parseComputedLinearTransform(style.transform);
+    const own = escapedTransforms ? null : parseComputedLinearTransform(style.transform);
     if (own) {
       matrix = multiplyLinearTransforms(own, matrix);
     }
-    const scaleLonghand = parseScaleLinearTransform(style.scale);
+    const scaleLonghand = escapedTransforms ? null : parseScaleLinearTransform(style.scale);
     if (scaleLonghand) {
       matrix = multiplyLinearTransforms(scaleLonghand, matrix);
     }
-    const rotateLonghand = parseRotateLinearTransform(style.rotate);
+    const rotateLonghand = escapedTransforms ? null : parseRotateLinearTransform(style.rotate);
     if (rotateLonghand) {
       matrix = multiplyLinearTransforms(rotateLonghand, matrix);
     }
     // `zoom` never reaches the matrix — it is not a transform — but it is the other way a
     // surface is scaled, and it compounds down the tree the same way.
     const elementZoom = Number.parseFloat(style.zoom || (node as HTMLElement).style?.zoom || '');
-    if (Number.isFinite(elementZoom) && elementZoom > 0) {
+    if (includeZoom && Number.isFinite(elementZoom) && elementZoom > 0) {
       zoom *= elementZoom;
+    }
+    if (node.hasAttribute('popover') && node.matches(':popover-open')) {
+      escapedTransforms = true;
     }
     node = getComposedParentElement(node);
   }

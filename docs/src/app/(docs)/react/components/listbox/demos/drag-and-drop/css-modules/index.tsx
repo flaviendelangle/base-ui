@@ -18,24 +18,20 @@ export default function ExampleListboxDragAndDrop() {
     <div className={styles.Field}>
       <Listbox.Root defaultValue={['bohemian-rhapsody']}>
         <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.DragAndDropProvider
-          onItemsReorder={(event) => {
+        <Listbox.SortableProvider
+          onItemsReorder={(order) => {
             setItems((prev) => {
-              const movedValues = new Set(event.items);
-              const movedItems = prev.filter((item) => movedValues.has(item.value));
-              const rest = prev.filter((item) => !movedValues.has(item.value));
-              const refIndex = rest.findIndex((item) => item.value === event.referenceItem);
-              rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-              return rest;
+              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+              return order.map((value) => itemsByValue.get(value)!);
             });
           }}
         >
           <Listbox.List className={styles.List}>
             {items.map(({ title, artist, value }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
-                <Listbox.ItemDragHandle className={styles.DragHandle}>
+                <Listbox.SortHandle className={styles.DragHandle}>
                   <GripIcon />
-                </Listbox.ItemDragHandle>
+                </Listbox.SortHandle>
                 <Listbox.ItemIndicator className={styles.ItemIndicator}>
                   <CheckIcon className={styles.ItemIndicatorIcon} />
                 </Listbox.ItemIndicator>
@@ -46,7 +42,7 @@ export default function ExampleListboxDragAndDrop() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
+        </Listbox.SortableProvider>
       </Listbox.Root>
     </div>
   );

@@ -1,0 +1,326 @@
+'use client';
+import * as React from 'react';
+import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import { getTarget, closest } from '@base-ui/utils/shadowDom';
+import { useDirection } from '../../internals/direction-context';
+import {
+  createChangeEventDetails,
+  type BaseUIChangeEventDetails,
+} from '../../internals/createBaseUIEventDetails';
+import { REASONS } from '../../internals/reasons';
+import type { CollectionItemId } from '../../types/collection';
+import { useListboxRootContext } from '../root/ListboxRootContext';
+import type { ListboxSortingItem, ListboxSortingContextValue } from './ListboxSortingContext';
+
+export interface ListboxSortingDestination {
+  /** Insertion index in the current list, before removing the moved items. */
+  index: number;
+  /** Group of the destination item, or undefined for ungrouped items. */
+  groupId: string | undefined;
+}
+export interface ListboxMoveItemsParameters<Value = any> {
+  items: ListboxSortingItem<Value>[];
+  destination: ListboxSortingDestination;
+}
+export type ListboxItemsReorderEventDetails<Value = any> = Omit<
+  BaseUIChangeEventDetails<typeof REASONS.none>,
+  'reason'
+> &
+  ListboxMoveItemsParameters<Value> & {
+    reason: typeof REASONS.keyboard | typeof REASONS.drag;
+    /** Complete proposed order, including group membership. Use this when moving items between groups. */
+    order: ListboxSortingItem<Value>[];
+  };
+export interface ListboxSortingParameters<Value = any> {
+  /** Disables keyboard and pointer sorting. @default false */
+  disabled?: boolean | undefined;
+  /** Called with all values in their proposed order. Render the items in this order to accept the move. */
+  onItemsReorder?:
+    ((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void) | undefined;
+  /** Applies the same movement rules to keyboard and pointer sorting. */
+  canMoveItems?: ((parameters: ListboxMoveItemsParameters<Value>) => boolean) | undefined;
+  /** Disables sorting for an item without disabling selection. */
+  isItemSortingDisabled?: ((item: ListboxSortingItem<Value>) => boolean) | undefined;
+  /** Customizes the announcement after an accepted keyboard move. */
+  getAnnouncement?: ((parameters: ListboxMoveItemsParameters<Value>) => string) | undefined;
+}
+
+export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>) {
+  const store = useListboxRootContext();
+  const rootDisabled = store.useState('disabled');
+  const disabled = rootDisabled || !!props.disabled;
+  const direction = useDirection();
+  const frame = useAnimationFrame();
+  const [announcement, setAnnouncement] = React.useState('');
+  const pending = React.useRef<{
+    order: ListboxSortingItem<Value>[];
+    sourceValue: Value;
+    parameters: ListboxMoveItemsParameters<Value> | null;
+  } | null>(null);
+  const records = useRefWithInit(
+    () =>
+      new Map<
+        CollectionItemId,
+        {
+          element: HTMLElement;
+          item: React.RefObject<Omit<ListboxSortingItem<Value>, 'id'>>;
+        }
+      >(),
+  ).current;
+
+  const getOrderedItems = useStableCallback((): ListboxSortingItem<Value>[] => {
+    const order = new Map<Element, number>();
+    store.state.listElement
+      ?.querySelectorAll('[role="option"]')
+      .forEach((element, index) => order.set(element, index));
+    return [...records]
+      .filter(([, record]) => record.element.isConnected)
+      .sort(
+        (a, b) =>
+          (order.get(a[1].element) ?? a[1].item.current.index) -
+          (order.get(b[1].element) ?? b[1].item.current.index),
+      )
+      .map(([id, record], index) => ({ ...record.item.current, id, index }));
+  });
+  const isDisabled = useStableCallback(
+    (item: ListboxSortingItem<Value>) =>
+      disabled || item.disabled || !!props.isItemSortingDisabled?.(item),
+  );
+  const getItemIds = useStableCallback((id: CollectionItemId) => {
+    const items = getOrderedItems();
+    const source = items.find((item) => item.id === id);
+    if (!source || isDisabled(source)) {
+      return [];
+    }
+    const isSelected = (item: ListboxSortingItem<Value>) =>
+      store.state.value.some((value) => store.state.isItemEqualToValue(item.value, value));
+    return (
+      isSelected(source) ? items.filter((item) => isSelected(item) && !isDisabled(item)) : [source]
+    ).map((item) => item.id);
+  });
+  const canMove = useStableCallback(
+    (ids: CollectionItemId[], destination: ListboxSortingDestination) => {
+      const ordered = getOrderedItems();
+      const items = ordered.filter((item) => ids.includes(item.id));
+      return (
+        !disabled &&
+        !!props.onItemsReorder &&
+        items.length > 0 &&
+        items.length === ids.length &&
+        items.every((item) => !isDisabled(item)) &&
+        Number.isInteger(destination.index) &&
+        destination.index >= 0 &&
+        destination.index <= ordered.length &&
+        (props.canMoveItems?.({ items, destination }) ?? true)
+      );
+    },
+  );
+  const reconcile = useStableCallback(() => {
+    if (disabled) {
+      pending.current = null;
+    }
+    const proposal = pending.current;
+    if (!proposal) {
+      return;
+    }
+    const items = getOrderedItems();
+    if (
+      items.length !== proposal.order.length ||
+      !items.every(
+        (item, index) =>
+          store.state.isItemEqualToValue(item.value, proposal.order[index].value) &&
+          item.groupId === proposal.order[index].groupId,
+      )
+    ) {
+      return;
+    }
+    pending.current = null;
+    const index = items.findIndex((item) =>
+      store.state.isItemEqualToValue(item.value, proposal.sourceValue),
+    );
+    if (index < 0) {
+      return;
+    }
+    store.context.requestHighlightReconcile();
+    store.set('activeIndex', index);
+    records.get(items[index].id)?.element.focus();
+    if (proposal.parameters) {
+      const label = proposal.parameters.items
+        .map((item) => {
+          const current = items.find((entry) =>
+            store.state.isItemEqualToValue(entry.value, item.value),
+          );
+          return (
+            store.state.itemToStringLabel?.(item.value) ??
+            (current && records.get(current.id)?.element.textContent) ??
+            String(item.value)
+          );
+        })
+        .join(', ');
+      setAnnouncement(
+        props.getAnnouncement?.(proposal.parameters) ??
+          `Moved ${label} to position ${index + 1} of ${items.length}.`,
+      );
+    }
+  });
+  useIsoLayoutEffect(reconcile);
+
+  const notifyOrder = useStableCallback(
+    (
+      items: ListboxSortingItem<Value>[],
+      parameters: ListboxMoveItemsParameters<Value>,
+      event: Event,
+      reason: typeof REASONS.drag | typeof REASONS.keyboard,
+    ) => {
+      const details = createChangeEventDetails(reason, undefined, undefined, {
+        ...parameters,
+        order: items.map((item, index) => ({ ...item, index })),
+        event,
+      });
+      store.context.requestHighlightReconcile();
+      props.onItemsReorder?.(
+        items.map((item) => item.value),
+        details,
+      );
+      return !details.isCanceled;
+    },
+  );
+  const move = useStableCallback(
+    (
+      ids: CollectionItemId[],
+      destination: ListboxSortingDestination,
+      event: Event,
+      sourceId = ids[0],
+      reason: typeof REASONS.drag | typeof REASONS.keyboard = REASONS.drag,
+    ) => {
+      if (!canMove(ids, destination)) {
+        return null;
+      }
+      const current = getOrderedItems();
+      const items = current.filter((item) => ids.includes(item.id));
+      const next = current.filter((item) => !ids.includes(item.id));
+      const index =
+        destination.index - items.filter((item) => item.index < destination.index).length;
+      next.splice(index, 0, ...items.map((item) => ({ ...item, groupId: destination.groupId })));
+      if (
+        next.every((item, i) => item.id === current[i].id && item.groupId === current[i].groupId)
+      ) {
+        return { changed: false, items: next };
+      }
+      const parameters = { items, destination };
+      const keyboard = reason === REASONS.keyboard;
+      // Install the proposal before notifying a consumer that may flush the update synchronously.
+      pending.current = keyboard
+        ? {
+            order: next,
+            sourceValue: current.find((item) => item.id === sourceId)!.value,
+            parameters,
+          }
+        : null;
+      if (!notifyOrder(next, parameters, event, keyboard ? REASONS.keyboard : REASONS.drag)) {
+        pending.current = null;
+        return null;
+      }
+      if (keyboard) {
+        frame.request(reconcile);
+      }
+      return { changed: true, items: next };
+    },
+  );
+  const requestFocus = useStableCallback(
+    (order: ListboxSortingItem<Value>[], sourceValue: Value) => {
+      pending.current = { order, sourceValue, parameters: null };
+      frame.request(reconcile);
+    },
+  );
+  const setupItem: ListboxSortingContextValue['setupItem'] = useStableCallback(
+    (id, element, item) => {
+      const record = { element, item };
+      records.set(id, record);
+      frame.request(reconcile);
+      return () => {
+        if (records.get(id) === record) {
+          records.delete(id);
+        }
+      };
+    },
+  );
+  const handleKeyDown = useStableCallback((event: React.KeyboardEvent, id: CollectionItemId) => {
+    if (
+      disabled ||
+      event.defaultPrevented ||
+      !event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      closest(getTarget(event.nativeEvent) as Node | null, '[role="option"]') !==
+        records.get(id)?.element
+    ) {
+      return;
+    }
+    const horizontal = store.state.orientation === 'horizontal';
+    const backward = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+    const forward = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    const previousKey = horizontal ? backward : 'ArrowUp';
+    const nextKey = horizontal ? forward : 'ArrowDown';
+    if (event.key !== previousKey && event.key !== nextKey) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const ids = getItemIds(id);
+    const ordered = getOrderedItems();
+    const moving = ordered.filter((item) => ids.includes(item.id));
+    if (!moving.length) {
+      return;
+    }
+    const previous = event.key === previousKey;
+    const target = ordered[previous ? moving[0].index - 1 : moving[moving.length - 1].index + 1];
+    if (target && !target.disabled) {
+      move(
+        ids,
+        { index: target.index + (previous ? 0 : 1), groupId: target.groupId },
+        event.nativeEvent,
+        id,
+        REASONS.keyboard,
+      );
+    }
+  });
+  return React.useMemo(
+    () => ({
+      disabled,
+      store,
+      records,
+      announcement,
+      setupItem,
+      handleKeyDown,
+      getOrderedItems,
+      getItemIds,
+      isDisabled,
+      canMove,
+      move,
+      notifyOrder,
+      reconcile,
+      requestFocus,
+    }),
+    [
+      disabled,
+      store,
+      records,
+      announcement,
+      setupItem,
+      handleKeyDown,
+      getOrderedItems,
+      getItemIds,
+      isDisabled,
+      canMove,
+      move,
+      notifyOrder,
+      reconcile,
+      requestFocus,
+    ],
+  );
+}

@@ -13,12 +13,13 @@
  * click or tap"), which reads as: a completed drag is not a click.
  *
  * One shot, and self-healing: the listener removes itself on the first click, on
- * the next `pointerdown`, or on a short timer if neither arrives (a
- * keyboard-cancelled drag, or a browser that suppressed the click itself).
+ * the next `pointerdown`, or on a short timer if neither arrives (for example,
+ * when a browser suppressed the click itself).
  * Leaving it armed would eat a genuine click.
  */
 
 import { ownerWindow } from '@base-ui/utils/owner';
+import { NOOP } from '@base-ui/utils/empty';
 import { addEventListener } from '@base-ui/utils/addEventListener';
 import { WindowTimeout } from '../../windowTimeout';
 import { getSharedSlot } from '../sharedState';
@@ -61,7 +62,11 @@ const state = getSharedSlot<PostDragClickState>('postDragClick', () => ({
  * the button was still down would let the drag's own click through and activate
  * the very control the drag was picked up from.
  */
-export function suppressNextClick(element: Element, heldPointerId?: number): void {
+export function suppressNextClick(
+  element: Element,
+  heldPointerId?: number,
+  shouldAllowClick?: ((event: Event) => boolean) | undefined,
+): void {
   // Re-arming replaces the previous window rather than stacking listeners.
   state.disarm?.();
 
@@ -70,9 +75,9 @@ export function suppressNextClick(element: Element, heldPointerId?: number): voi
 
   // Assigned by the listener registrations below; the handlers and the timer all
   // reach them through `disarm`, which only ever runs after that.
-  let offClick: DragCleanupFn = () => {};
-  let offPointerDown: DragCleanupFn = () => {};
-  let offPointerUp: DragCleanupFn = () => {};
+  let offClick: DragCleanupFn = NOOP;
+  let offPointerDown: DragCleanupFn = NOOP;
+  let offPointerUp: DragCleanupFn = NOOP;
 
   const disarm = () => {
     if (state.disarm !== disarm) {
@@ -94,6 +99,9 @@ export function suppressNextClick(element: Element, heldPointerId?: number): voi
     win,
     'click',
     (event) => {
+      if (shouldAllowClick?.(event)) {
+        return;
+      }
       // In the held-pointer mode the click being waited on is the held pointer's
       // own compatibility click, and the window stays armed for seconds — long
       // enough for a genuine interaction from *another* input to land (a mouse

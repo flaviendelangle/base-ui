@@ -1,0 +1,426 @@
+'use client';
+import * as React from 'react';
+import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
+import { Draggable } from '../../draggable';
+import { REASONS } from '../../internals/reasons';
+import { useDirection } from '../../internals/direction-context';
+import type { CollectionItemId } from '../../types/collection';
+import type { DragKind } from '../../types/drag';
+import type { ListboxItemDraggableProps } from '../item/ListboxItem';
+import {
+  ListboxSortingContext,
+  ListboxSortableContext,
+  type ListboxSortingItem,
+} from '../sorting/ListboxSortingContext';
+import {
+  useListboxSorting,
+  type ListboxSortingParameters,
+  type ListboxItemsReorderEventDetails,
+  type ListboxMoveItemsParameters,
+} from '../sorting/useListboxSorting';
+
+export interface ListboxSortingDragPayload<Value = any> {
+  id: CollectionItemId;
+  itemIds: CollectionItemId[];
+  items: Value[];
+  /** Identifies the list that owns this drag. */
+  listId: object;
+  /** Application data supplied by getDragPayload. */
+  data?: unknown;
+}
+export interface ListboxSortingDropPosition {
+  id: CollectionItemId;
+  placement: 'before' | 'after';
+  /** Override the insertion index, before removing the moved items. */
+  index?: number | undefined;
+}
+export interface ListboxSortingDropContext<Value = any> {
+  item: ListboxSortingItem<Value>;
+  itemId: CollectionItemId;
+  /** Coordinates relative to the row, normalized to its width and height. */
+  point: { x: number; y: number };
+  collision: Draggable.CollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
+  source: ListboxSortingDragPayload<Value>;
+}
+export interface ListboxSortableProviderProps<Value = any> extends ListboxSortingParameters<Value> {
+  children?: React.ReactNode;
+  /** Resolves pointer placement. Returning null disallows dropping at this position. */
+  getDropPosition?:
+    | ((
+        context: ListboxSortingDropContext<Value>,
+      ) => ListboxSortingDropPosition['placement'] | ListboxSortingDropPosition | null)
+    | undefined;
+  /** Called when pointer placement changes, including when sorting ends. */
+  onDropPositionChange?: ((position: ListboxSortingDropPosition | null) => void) | undefined;
+  /** When pointer sorting updates the items. Live moves are restored on cancellation. @default 'drop' */
+  reorderOn?: 'drop' | 'move' | undefined;
+  /** An explicit kind for integrating sorting with external drag sources and targets. */
+  kind?: DragKind<ListboxSortingDragPayload<Value>> | undefined;
+  /** Returns application data stored in the drag payload's data field. */
+  getDragPayload?:
+    ((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => unknown) | undefined;
+  /** Called once when pointer sorting ends, after the final move or rollback is proposed. */
+  onSortEnd?:
+    ((parameters: { itemIds: CollectionItemId[]; canceled: boolean }) => void) | undefined;
+}
+
+/** Enables keyboard and pointer sorting with automatic item registration. */
+export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvider.Props<Value>) {
+  const {
+    children,
+    reorderOn = 'drop',
+    getDropPosition,
+    getDragPayload,
+    onDropPositionChange,
+    onSortEnd,
+  } = props;
+  const sorting = useListboxSorting(props);
+  const { store, disabled: sortingDisabled, getItemIds, getOrderedItems } = sorting;
+  const direction = useDirection();
+  const [localKind] = React.useState(() =>
+    Draggable.createKind<ListboxSortingDragPayload<Value>>('listbox-sort'),
+  );
+  const kind = props.kind ?? localKind;
+  const position = React.useRef<ListboxSortingDropPosition | null>(null);
+  const originalOrder = React.useRef<ListboxSortingItem<Value>[] | null>(null);
+  const expectedOrder = React.useRef<ListboxSortingItem<Value>[] | null>(null);
+  const lastMovePosition = React.useRef<ListboxSortingDropPosition | null>(null);
+  const moved = React.useRef(false);
+  const lastEvent = React.useRef<Event | null>(null);
+  const activePayload = React.useRef<ListboxSortingDragPayload<Value> | null>(null);
+  const focusFrame = useAnimationFrame();
+
+  const getSourceItems = useStableCallback((source: ListboxSortingDragPayload<Value>) =>
+    sorting
+      .getOrderedItems()
+      .filter((item) =>
+        source.items.some((value) => store.state.isItemEqualToValue(item.value, value)),
+      ),
+  );
+  const hasExpectedOrder = useStableCallback(() => {
+    if (!expectedOrder.current) {
+      return true;
+    }
+    const current = sorting.getOrderedItems();
+    const matches = (a: ListboxSortingItem<Value>, b: ListboxSortingItem<Value>) =>
+      store.state.isItemEqualToValue(a.value, b.value);
+    const expected = expectedOrder.current.filter((item) =>
+      current.some((entry) => matches(entry, item)),
+    );
+    const known = current.filter((item) => expected.some((entry) => matches(entry, item)));
+    return known.every(
+      (item, index) => matches(item, expected[index]) && item.groupId === expected[index].groupId,
+    );
+  });
+  const getDestination = useStableCallback((next: ListboxSortingDropPosition) => {
+    const ordered = sorting.getOrderedItems();
+    const target = ordered.find((item) => item.id === next.id);
+    if (!target || target.disabled) {
+      return null;
+    }
+    const index = next.index ?? target.index + (next.placement === 'after' ? 1 : 0);
+    // An index override must stay in the target's group so it cannot bypass group rules.
+    const group = ordered.filter((item) => item.groupId === target.groupId);
+    if (
+      index < group[0].index ||
+      index > group[group.length - 1].index + 1 ||
+      ordered
+        .slice(Math.min(index, target.index), Math.max(index, target.index))
+        .some((item) => item.groupId !== target.groupId)
+    ) {
+      return null;
+    }
+    return { index, groupId: target.groupId };
+  });
+  const resolve = useStableCallback(
+    (
+      collision: Draggable.CollisionProvider.Collision<ListboxSortingDragPayload<Value>> | null,
+      source: ListboxSortingDragPayload<Value>,
+    ) => {
+      if (!collision || source.listId !== store || sorting.disabled) {
+        return null;
+      }
+      const sourceIds = getSourceItems(source).map((item) => item.id);
+      const id = collision.target.payload.id;
+      const item = sorting.getOrderedItems().find((entry) => entry.id === id);
+      const point = collision.target.getLocalPoint();
+      if (!item || item.disabled || !point || sourceIds.includes(id)) {
+        return null;
+      }
+      const horizontalCoordinate = direction === 'rtl' ? 1 - point.x : point.x;
+      const coordinate = store.state.orientation === 'horizontal' ? horizontalCoordinate : point.y;
+      const defaultPlacement = coordinate < 0.5 ? 'before' : 'after';
+      const resolved = getDropPosition
+        ? getDropPosition({ item, itemId: id, point, collision, source })
+        : defaultPlacement;
+      if (!resolved) {
+        return null;
+      }
+      const next = typeof resolved === 'string' ? { id, placement: resolved } : resolved;
+      const destination = getDestination(next);
+      return destination &&
+        !sourceIds.includes(next.id) &&
+        sourceIds.length === source.items.length &&
+        sorting.canMove(sourceIds, destination)
+        ? next
+        : null;
+    },
+  );
+  const setPosition = useStableCallback((next: ListboxSortingDropPosition | null) => {
+    const previous = position.current;
+    if (
+      previous?.id === next?.id &&
+      previous?.placement === next?.placement &&
+      previous?.index === next?.index
+    ) {
+      return;
+    }
+    position.current = next;
+    store.set('dragOverItemId', next?.id ?? null);
+    store.set('dropPosition', next?.placement ?? null);
+    onDropPositionChange?.(next);
+  });
+  const rollback = useStableCallback(() => {
+    const snapshot = originalOrder.current;
+    const source = activePayload.current;
+    if (!snapshot || !source || !moved.current || !lastEvent.current || !hasExpectedOrder()) {
+      return undefined;
+    }
+    const current = sorting.getOrderedItems();
+    // Restore the old order using current values, preserving edits and newly inserted items.
+    const restored = snapshot.flatMap((original) => {
+      const item = current.find((entry) =>
+        store.state.isItemEqualToValue(entry.value, original.value),
+      );
+      return item ? [{ ...item, groupId: original.groupId }] : [];
+    });
+    let index = 0;
+    const next = current.map((item) => {
+      if (
+        !snapshot.some((original) => store.state.isItemEqualToValue(item.value, original.value))
+      ) {
+        return item;
+      }
+      const restoredItem = restored[index];
+      index += 1;
+      return restoredItem;
+    });
+    // Groups determine their own position in the DOM. A new item in a later group
+    // must not keep an earlier group's restored item behind it in the proposal.
+    const groups = new Map(
+      Array.from(
+        store.state.listElement?.querySelectorAll<HTMLElement>('[role="group"]') ?? [],
+      ).map((element) => [element.id, element]),
+    );
+    next.sort((a, b) => {
+      if (a.groupId === b.groupId) {
+        return 0;
+      }
+      const aElement = groups.get(a.groupId ?? '') ?? sorting.records.get(a.id)?.element;
+      const bElement = groups.get(b.groupId ?? '') ?? sorting.records.get(b.id)?.element;
+      if (!aElement || !bElement) {
+        return 0;
+      }
+      // eslint-disable-next-line no-bitwise
+      return aElement.compareDocumentPosition(bElement) & 4 ? -1 : 1;
+    });
+    const sourceIds = getSourceItems(source).map((item) => item.id);
+    if (
+      !next.every((item, i) => item.id === current[i].id && item.groupId === current[i].groupId)
+    ) {
+      const accepted = sorting.notifyOrder(
+        next,
+        {
+          items: current.filter((item) => sourceIds.includes(item.id)),
+          destination: {
+            index: next.findIndex((item) => sourceIds.includes(item.id)),
+            groupId: next.find((item) => sourceIds.includes(item.id))?.groupId,
+          },
+        },
+        lastEvent.current,
+        REASONS.drag,
+      );
+      return accepted ? next : current;
+    }
+    return current;
+  });
+  useIsoLayoutEffect(
+    () => () => {
+      rollback();
+      originalOrder.current = null;
+      expectedOrder.current = null;
+      activePayload.current = null;
+      moved.current = false;
+      store.set('dragActiveItemIds', null);
+      store.set('dragOverItemId', null);
+      store.set('dropPosition', null);
+      store.context.pointerMoveSuppressedRef.current = false;
+    },
+    [rollback, store],
+  );
+
+  const renderItem = React.useCallback(
+    (
+      element: React.ReactElement,
+      id: CollectionItemId,
+      disabled: boolean,
+      draggableProps: ListboxItemDraggableProps | undefined,
+    ) => (
+      <Draggable.Root
+        {...draggableProps}
+        render={element}
+        kind={kind}
+        disabled={disabled || sortingDisabled || draggableProps?.disabled}
+        data-disabled={disabled ? '' : undefined}
+        onBeforeMoveStart={(event, details) => {
+          draggableProps?.onBeforeMoveStart?.(event, details);
+          if (getItemIds(id).length === 0) {
+            details.cancel();
+          }
+        }}
+        collisionPayload={{ id, itemIds: [id], items: [], listId: store }}
+        getPayload={() => {
+          const itemIds = getItemIds(id);
+          const items = getOrderedItems()
+            .filter((item) => itemIds.includes(item.id))
+            .map((item) => item.value);
+          return { id, itemIds, items, listId: store, data: getDragPayload?.({ itemIds, items }) };
+        }}
+      />
+    ),
+    [kind, sortingDisabled, getItemIds, getOrderedItems, store, getDragPayload],
+  );
+  const reconcile = useStableCallback(() => {
+    sorting.reconcile();
+    if (activePayload.current) {
+      const ids = getSourceItems(activePayload.current).map((item) => item.id);
+      const activeIds = store.state.dragActiveItemIds;
+      if (activeIds?.size !== ids.length || ids.some((id) => !activeIds?.has(id))) {
+        store.set('dragActiveItemIds', new Set(ids));
+      }
+    }
+  });
+  const context = React.useMemo(() => ({ ...sorting, reconcile }), [sorting, reconcile]);
+  const sortable = React.useMemo(() => ({ renderItem }), [renderItem]);
+  return (
+    <ListboxSortingContext.Provider value={context}>
+      <Draggable.Provider>
+        <Draggable.CollisionProvider
+          kind={kind}
+          canCollide={({ source, target }) =>
+            source.payload.listId === store &&
+            !sorting.disabled &&
+            !sorting.getOrderedItems().find((item) => item.id === target.id)?.disabled
+          }
+          onMoveStart={({ source }) => {
+            if (source.payload.listId !== store) {
+              return;
+            }
+            focusFrame.cancel();
+            originalOrder.current = null;
+            expectedOrder.current = null;
+            lastMovePosition.current = null;
+            moved.current = false;
+            activePayload.current = source.payload;
+            store.set('dragActiveItemIds', new Set(source.payload.itemIds));
+            store.context.pointerMoveSuppressedRef.current = true;
+          }}
+          onCollisionChange={(event, details) => {
+            const next = resolve(event.collision, event.source.payload);
+            const previous = position.current;
+            setPosition(next);
+            lastEvent.current = details.event;
+            if (
+              reorderOn === 'move' &&
+              hasExpectedOrder() &&
+              next &&
+              (previous?.id !== next.id ||
+                previous?.placement !== next.placement ||
+                previous?.index !== next.index)
+            ) {
+              const destination = getDestination(next);
+              if (destination) {
+                originalOrder.current ??= sorting.getOrderedItems();
+                const result = sorting.move(
+                  getSourceItems(event.source.payload).map((item) => item.id),
+                  destination,
+                  details.event,
+                );
+                if (result?.changed) {
+                  expectedOrder.current = result.items;
+                  lastMovePosition.current = next;
+                  moved.current = true;
+                }
+              }
+            }
+          }}
+          onMoveEnd={(event, details) => {
+            const source = event.source.payload;
+            if (source.listId !== store) {
+              return;
+            }
+            lastEvent.current = details.event;
+            const next = resolve(event.collision, source);
+            const sourceIds = getSourceItems(source).map((item) => item.id);
+            const onSource =
+              event.dropTarget?.element === event.source.element ||
+              (event.collision?.target.payload.listId === store &&
+                sourceIds.includes(event.collision.target.payload.id));
+            const lastDestination =
+              lastMovePosition.current && getDestination(lastMovePosition.current);
+            const canKeepLiveMove =
+              reorderOn === 'move' &&
+              moved.current &&
+              onSource &&
+              lastDestination &&
+              sourceIds.length === source.items.length &&
+              sorting.canMove(sourceIds, lastDestination);
+            let focusOrder = sorting.getOrderedItems();
+            let canceled = event.canceled || !hasExpectedOrder() || (!next && !canKeepLiveMove);
+            if (!canceled && next) {
+              const destination = getDestination(next);
+              const result = destination && sorting.move(sourceIds, destination, details.event);
+              canceled = !result;
+              if (result) {
+                focusOrder = result.items;
+              }
+            }
+            if (canceled) {
+              focusOrder = rollback() ?? focusOrder;
+            }
+            setPosition(null);
+            store.set('dragActiveItemIds', null);
+            originalOrder.current = null;
+            activePayload.current = null;
+            expectedOrder.current = null;
+            lastMovePosition.current = null;
+            moved.current = false;
+            sorting.requestFocus(focusOrder, source.items[source.itemIds.indexOf(source.id)]);
+            focusFrame.request(() => {
+              store.context.pointerMoveSuppressedRef.current = false;
+            });
+            onSortEnd?.({ itemIds: source.itemIds, canceled });
+          }}
+        >
+          <ListboxSortableContext.Provider value={sortable}>
+            {children}
+          </ListboxSortableContext.Provider>
+        </Draggable.CollisionProvider>
+      </Draggable.Provider>
+      <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHidden}>
+        {sorting.announcement}
+      </span>
+    </ListboxSortingContext.Provider>
+  );
+}
+export namespace ListboxSortableProvider {
+  export type Props<Value = any> = ListboxSortableProviderProps<Value>;
+  export type DragPayload<Value = any> = ListboxSortingDragPayload<Value>;
+  export type DropPosition = ListboxSortingDropPosition;
+  export type DropContext<Value = any> = ListboxSortingDropContext<Value>;
+  export type ItemsReorderEventDetails<Value = any> = ListboxItemsReorderEventDetails<Value>;
+  export type MoveItemsParameters<Value = any> = ListboxMoveItemsParameters<Value>;
+}

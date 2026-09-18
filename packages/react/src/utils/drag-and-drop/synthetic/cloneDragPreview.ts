@@ -1,8 +1,15 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
+import { NOOP } from '@base-ui/utils/empty';
+import { warn } from '@base-ui/utils/warn';
 import { isShadowRoot } from '@floating-ui/utils/dom';
+import { capturePreviewStyles } from './previewStyles';
 import { applySourceSizeVars } from '../customDragPreview';
 import { getSharedSlot } from '../sharedState';
+import { DRAG_PREVIEW_ATTR, DRAGGING_ATTR } from '../dragAttributes';
+import { getComposedParentElement, getElementScale, getElementZoom } from '../utils';
+import type { DragPosition } from '../../../types/drag';
 import {
+  COMPUTED_MATRIX,
   identityLinearTransform,
   multiplyLinearTransforms,
   parseComputedLinearTransform,
@@ -10,14 +17,6 @@ import {
   parseScaleLinearTransform,
   type LinearTransform,
 } from '../linearTransform';
-
-/**
- * Marks the preview so consumers can style it with the source's own selector —
- * `.Card[data-drag-preview] { box-shadow: … }`. This only works because the clone
- * keeps the source's classes and the engine writes *geometry* inline and nothing
- * else; any visual property written inline would beat every class rule.
- */
-const DRAG_PREVIEW_ATTR = 'data-drag-preview';
 
 /**
  * Properties the preview must not inherit from the source. The preview is
@@ -65,13 +64,13 @@ const NEUTRALIZER_CSS = `[${DRAG_PREVIEW_ATTR}]{${NEUTRALIZED_PROPERTIES.map((p)
 
 /**
  * A constructable stylesheet rather than a `<style>` element: the CSSOM path is
- * exempt from CSP `style-src`, so a strict policy can't block it. Adopted once per
- * document/shadow root (deduped via the shared slot); a shadow root needs its own,
+ * exempt from CSP `style-src`, so a strict policy can't block it. Built once per
+ * document/shadow root (kept in the shared slot); a shadow root needs its own,
  * because document styles do not cross the boundary but the UA popover rules do.
  */
-const neutralizerRoots = getSharedSlot(
-  'dragPreviewNeutralizerRoots',
-  () => new WeakSet<DocumentOrShadowRoot>(),
+const neutralizerSheets = getSharedSlot(
+  'dragPreviewNeutralizerSheets',
+  () => new WeakMap<DocumentOrShadowRoot, CSSStyleSheet>(),
 );
 
 function ensureNeutralizerStyles(host: Element | ShadowRoot | Document): void {
@@ -81,13 +80,21 @@ function ensureNeutralizerStyles(host: Element | ShadowRoot | Document): void {
   // would never match — the neutralizer sheet would then land on the iframe document
   // instead of the shadow root, leaving the preview with the source's transitions.
   const target: DocumentOrShadowRoot = isShadowRoot(root) ? root : ownerDocument(host as Element);
-  if (neutralizerRoots.has(target) || !('adoptedStyleSheets' in target)) {
+  if (!('adoptedStyleSheets' in target)) {
     return;
   }
-  neutralizerRoots.add(target);
-  const sheet = new (ownerWindow(host as Element).CSSStyleSheet)();
-  sheet.replaceSync(NEUTRALIZER_CSS);
-  target.adoptedStyleSheets = [...target.adoptedStyleSheets, sheet];
+  let sheet = neutralizerSheets.get(target);
+  if (!sheet) {
+    sheet = new (ownerWindow(host as Element).CSSStyleSheet)();
+    sheet.replaceSync(NEUTRALIZER_CSS);
+    neutralizerSheets.set(target, sheet);
+  }
+  // Re-adopt rather than dedupe on the root alone: an app that assigns a fresh
+  // `adoptedStyleSheets` array (a theme switch) drops the sheet, and the next
+  // preview would carry the source's transitions again.
+  if (!target.adoptedStyleSheets.includes(sheet)) {
+    target.adoptedStyleSheets = [...target.adoptedStyleSheets, sheet];
+  }
 }
 
 export interface DragPreviewElementHandle {
@@ -97,6 +104,8 @@ export interface DragPreviewElementHandle {
   readonly isHost: boolean;
   /** The source's border box at drag start. Measured once; reused by the callers. */
   readonly sourceRect: DOMRect;
+  /** Viewport pixels per CSS translation unit of the preview. */
+  readonly positionScale: DragPosition;
   /**
    * Re-home the preview if its host was torn out mid-drag (a virtualizer recycling
    * the row, a `dangerouslySetInnerHTML` parent re-rendering). Cheap enough to call
@@ -104,18 +113,8 @@ export interface DragPreviewElementHandle {
    */
   ensureConnected(): void;
   destroy(): void;
-}
-
-export interface CreateDragPreviewElementOptions {
-  /**
-   * `'clone'` copies the source element. `'host'` creates an empty element for a
-   * `Draggable.Preview` to render its content into — it sits in the same place and
-   * gets the same treatment, so custom previews inherit the app's CSS exactly as
-   * the clone does.
-   */
-  content: 'clone' | 'host';
-  /** Where to inject the preview. Defaults to the source's parent (in place). */
-  container?: HTMLElement | null | undefined;
+  /** Restore motion rules before the ending-style transition is measured. */
+  prepareForDrop?: (() => void) | undefined;
 }
 
 export type DragPreviewElementFactory = (
@@ -155,6 +154,82 @@ function isCustomElementCandidate(element: Element): boolean {
 }
 
 /**
+ * The computed properties copied onto a custom element's placeholder: what shapes
+ * its host box and its own painted surface, plus how it participates in a parent
+ * flex/grid layout. The placeholder has no shadow content, so the rest of the
+ * (several hundred) computed properties would only cost a `setProperty` each.
+ */
+const PLACEHOLDER_STYLE_PROPERTIES = [
+  'display',
+  'box-sizing',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'border-top-width',
+  'border-right-width',
+  'border-bottom-width',
+  'border-left-width',
+  'border-top-style',
+  'border-right-style',
+  'border-bottom-style',
+  'border-left-style',
+  'border-top-color',
+  'border-right-color',
+  'border-bottom-color',
+  'border-left-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
+  'background-color',
+  'background-image',
+  'background-position',
+  'background-size',
+  'background-repeat',
+  'background-clip',
+  'background-origin',
+  'color',
+  'font-family',
+  'font-size',
+  'font-weight',
+  'font-style',
+  'line-height',
+  'letter-spacing',
+  'text-align',
+  'text-transform',
+  'text-decoration',
+  'white-space',
+  'flex-grow',
+  'flex-shrink',
+  'flex-basis',
+  'align-self',
+  'justify-self',
+  'order',
+  'grid-row-start',
+  'grid-row-end',
+  'grid-column-start',
+  'grid-column-end',
+  'position',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'visibility',
+  'opacity',
+];
+
+/**
  * Clone a tree while replacing custom elements with native inert placeholders.
  * The computed style copy preserves the host box reasonably closely without
  * constructing, upgrading, connecting, or disconnecting application code.
@@ -183,13 +258,11 @@ function cloneWithoutCustomElements(
       }
       const computed = win.getComputedStyle(node);
       const placeholderStyle = (copy as HTMLElement).style;
-      for (let index = 0; index < computed.length; index += 1) {
-        const property = computed.item(index);
-        placeholderStyle.setProperty(
-          property,
-          computed.getPropertyValue(property),
-          computed.getPropertyPriority(property),
-        );
+      for (const property of PLACEHOLDER_STYLE_PROPERTIES) {
+        const value = computed.getPropertyValue(property);
+        if (value !== '') {
+          placeholderStyle.setProperty(property, value);
+        }
       }
     }
 
@@ -376,6 +449,7 @@ function copyLiveState(
 
 interface PreparedDragPreviewClone {
   element: HTMLElement;
+  nodes: Element[];
   applyPostInsertion: () => void;
 }
 
@@ -397,18 +471,13 @@ function prepareDragPreviewClone(
 
   const { applyPostInsertion } = copyLiveState(sourceNodes, cloneNodes, win);
   sanitize(element, cloneNodes, '-drag-preview');
-  element.removeAttribute('data-dragging');
-  element.removeAttribute('data-displacing');
-  element.removeAttribute('data-starting-style');
-  element.style.removeProperty('--drag-displacement-x');
-  element.style.removeProperty('--drag-displacement-y');
+  element.removeAttribute(DRAGGING_ATTR);
 
-  return { element, applyPostInsertion };
+  return { element, nodes: cloneNodes, applyPostInsertion };
 }
 
 /** A `transform` that only translates, which leaves the box's size untouched. */
 const TRANSLATE_ONLY = /^translate(3d|X|Y)?\([^)]*\)$/;
-const MATRIX = /^matrix(3d)?\(([^)]*)\)$/;
 
 /**
  * Whether a computed `transform` only translates. Browsers resolve the computed
@@ -421,7 +490,7 @@ function isTranslationOnly(transform: string): boolean {
   if (TRANSLATE_ONLY.test(transform)) {
     return true;
   }
-  const matrix = transform.match(MATRIX);
+  const matrix = transform.match(COMPUTED_MATRIX);
   if (!matrix) {
     return false;
   }
@@ -476,6 +545,7 @@ function getUntransformedSourceRect(
   height: number,
   sourceStyle: CSSStyleDeclaration,
   win: Window & typeof globalThis,
+  ancestorScale: DragPosition,
 ): DOMRect {
   const fallback = () =>
     new win.DOMRect(
@@ -496,27 +566,75 @@ function getUntransformedSourceRect(
   // transformed axis-aligned bounding box. Undo that center displacement using
   // the real transform origin; unlike re-centering, this works for top-left and
   // other custom origins as well as the default center.
-  const centerX = width / 2;
-  const centerY = height / 2;
+  const centerX = width / (2 * ancestorScale.x);
+  const centerY = height / (2 * ancestorScale.y);
   const relativeX = centerX - originX;
   const relativeY = centerY - originY;
   const transformedCenterX = originX + matrix.a * relativeX + matrix.c * relativeY;
   const transformedCenterY = originY + matrix.b * relativeX + matrix.d * relativeY;
 
   return new win.DOMRect(
-    rect.x + rect.width / 2 - transformedCenterX,
-    rect.y + rect.height / 2 - transformedCenterY,
+    rect.x + rect.width / 2 - transformedCenterX * ancestorScale.x,
+    rect.y + rect.height / 2 - transformedCenterY * ancestorScale.y,
     width,
     height,
   );
 }
 
+/** Measure the layout anchor in viewport coordinates, undoing the source's own transform. */
+export function measurePreviewSource(source: HTMLElement): {
+  sourceRect: DOMRect;
+  scale: DragPosition;
+} {
+  // `getBoundingClientRect` includes the source's own transform. The clone
+  // renders with `transform` neutralized but re-applies the individual
+  // `rotate`/`scale` properties to whatever box it is given, so a transformed
+  // source must be measured from its untransformed border box.
+  //
+  // CSS Transforms 2 splits `scale`/`rotate`/`translate` out of `transform`, and
+  // they do *not* fold into the computed `transform` — so a source styled
+  // `scale: 1.5` (the hover-lift pattern) reads as untransformed unless all four
+  // are checked. Sizing from the transformed AABB would compound the re-applied
+  // `scale: 1.5` to ~2.25x.
+  const win = ownerWindow(source);
+  const untransformedRect = source.getBoundingClientRect();
+  const sourceStyle = win.getComputedStyle(source);
+  // Translation is excluded, in both spellings: it moves the box without resizing
+  // it, so the rect's own dimensions are already right — and they are exact,
+  // where `offsetWidth` rounds to an integer and would cost the preview its
+  // subpixel size.
+  //
+  const hasTransform =
+    (sourceStyle.transform !== '' &&
+      sourceStyle.transform !== 'none' &&
+      !isTranslationOnly(sourceStyle.transform)) ||
+    (sourceStyle.scale !== '' && sourceStyle.scale !== 'none') ||
+    (sourceStyle.rotate !== '' && sourceStyle.rotate !== 'none');
+  const parent = getComposedParentElement(source) as HTMLElement | null;
+  const parentScale = parent ? getElementScale(parent) : { x: 1, y: 1 };
+  const ownZoom = Number.parseFloat(sourceStyle.zoom) || 1;
+  const ancestorScale = { x: parentScale.x * ownZoom, y: parentScale.y * ownZoom };
+  const width = hasTransform ? source.offsetWidth * ancestorScale.x : untransformedRect.width;
+  const height = hasTransform ? source.offsetHeight * ancestorScale.y : untransformedRect.height;
+  // Everything downstream — the default `'source'` offset, the `--drag-source-*`
+  // variables — has to describe the same box the preview actually has, or the
+  // preview is anchored against a box it doesn't own and jumps on pickup.
+  //
+  // So the untransformed *size* has to be paired with the position obtained by
+  // undoing the source's own transform around its computed transform-origin.
+  const sourceRect = hasTransform
+    ? getUntransformedSourceRect(untransformedRect, width, height, sourceStyle, win, ancestorScale)
+    : untransformedRect;
+
+  return { sourceRect, scale: ancestorScale };
+}
+
 /**
  * Build the element that follows the pointer — a clone of the source, or an empty
  * host a declared preview renders its content into — and inject it next to the source
- * so the app's CSS still applies to it. Inherited properties, custom properties,
- * and contextual selectors (`.dark .card`, `.list > .item`, CSS-module ancestor
- * rules) all keep matching, because the preview's ancestor chain is the source's.
+ * so inherited properties and contextual descendant selectors still apply.
+ * Clones retain computed values lost through the extra wrapper, including styles
+ * from direct-child selectors. Explicit preview rules are included in that snapshot.
  *
  * It is promoted to the **top layer** through an engine-owned wrapper carrying
  * `popover="manual"`, which reparents the wrapper's box to a sibling of the root:
@@ -550,13 +668,11 @@ function createPreparedDragPreviewElement(
   // sheet is adopted into the source's root. Adopting the preview into a foreign
   // document would offset it by the frame's own position, so keep it in place instead.
   if (container && ownerDocument(container) !== doc) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(
-        'Base UI: a drag preview `container` belongs to a different document than its draggable. ' +
-          'Viewport coordinates do not carry across documents, so the preview would be offset by the frame position. ' +
-          'Rendering the preview in place instead — pass a container from the draggable’s own document.',
-      );
-    }
+    warn(
+      'a drag preview `container` belongs to a different document than its draggable. ' +
+        'Viewport coordinates do not carry across documents, so the preview would be offset by the frame position. ' +
+        'Rendering the preview in place instead — pass a container from the draggable’s own document.',
+    );
     container = null;
   }
 
@@ -565,60 +681,25 @@ function createPreparedDragPreviewElement(
     return null;
   }
 
-  const win = ownerWindow(source);
   // Keyed on the *host*, not the source: the preview mounts into
   // `container ?? hostOf(source)`, and with a container in a different root
   // (a shadow tree, say) adopting the sheet into the source's root leaves the
   // preview carrying the source transitions the neutralizer exists to remove.
   ensureNeutralizerStyles(host);
 
-  // `getBoundingClientRect` includes the source's own transform. The clone
-  // renders with `transform` neutralized but re-applies the individual
-  // `rotate`/`scale` properties to whatever box it is given, so a transformed
-  // source must be measured from its untransformed border box.
-  //
-  // CSS Transforms 2 splits `scale`/`rotate`/`translate` out of `transform`, and
-  // they do *not* fold into the computed `transform` — so a source styled
-  // `scale: 1.5` (the hover-lift pattern) reads as untransformed unless all four
-  // are checked. Sizing from the transformed AABB would compound the re-applied
-  // `scale: 1.5` to ~2.25x.
-  const untransformedRect = source.getBoundingClientRect();
-  const sourceStyle = win.getComputedStyle(source);
-  // Translation is excluded, in both spellings: it moves the box without resizing
-  // it, so the rect's own dimensions are already right — and they are exact,
-  // where `offsetWidth` rounds to an integer and would cost the preview its
-  // subpixel size.
-  //
-  const hasTransform =
-    (sourceStyle.transform !== '' &&
-      sourceStyle.transform !== 'none' &&
-      !isTranslationOnly(sourceStyle.transform)) ||
-    (sourceStyle.scale !== '' && sourceStyle.scale !== 'none') ||
-    (sourceStyle.rotate !== '' && sourceStyle.rotate !== 'none');
-  const width = hasTransform ? source.offsetWidth : untransformedRect.width;
-  const height = hasTransform ? source.offsetHeight : untransformedRect.height;
-  // Everything downstream — the default `'source'` offset, the `--drag-source-*`
-  // variables — has to describe the same box the preview actually has, or the
-  // preview is anchored against a box it doesn't own and jumps on pickup.
-  //
-  // So the untransformed *size* has to be paired with the position obtained by
-  // undoing the source's own transform around its computed transform-origin.
-  const sourceRect = hasTransform
-    ? getUntransformedSourceRect(untransformedRect, width, height, sourceStyle, win)
-    : untransformedRect;
+  const { sourceRect, scale: sourceScale } = measurePreviewSource(source);
+  const width = sourceRect.width / sourceScale.x;
+  const height = sourceRect.height / sourceScale.y;
 
   const isClone = options.clone !== undefined;
   const element = options.clone?.element ?? doc.createElement('div');
-  const applyPostInsertion = options.clone?.applyPostInsertion ?? (() => {});
+  const applyPostInsertion = options.clone?.applyPostInsertion ?? NOOP;
 
   element.setAttribute(DRAG_PREVIEW_ATTR, '');
   element.setAttribute('aria-hidden', 'true');
   // A cloned `tabindex="0"` would otherwise be tabbable, and the preview must never
   // be hit-tested or reachable.
   element.setAttribute('inert', '');
-
-  // Let a custom preview match the element it replaces if it wants to.
-  applySourceSizeVars(element, sourceRect);
 
   // Geometry only. Every visual property stays in the cascade so that a consumer
   // rule keyed on `[data-drag-preview]` wins without `!important`.
@@ -677,19 +758,45 @@ function createPreparedDragPreviewElement(
     overflow: 'visible',
     width: '0px',
     height: '0px',
+    transformOrigin: '0 0',
     // The UA popover chrome sets `color: CanvasText`, which the preview would
     // inherit; `inherit` re-opens the chain to the wrapper's own parent.
     color: 'inherit',
     pointerEvents: 'none',
     zIndex: '2147483647',
   });
+  const restoredMotion = new Map<string, string>();
+  let contextualStyles: ReturnType<typeof capturePreviewStyles> | undefined;
+  if (options.clone) {
+    applySourceSizeVars(element, { width, height });
+    host.appendChild(element);
+    const win = ownerWindow(source);
+    const sourceStyle = win.getComputedStyle(source);
+    const previewStyle = win.getComputedStyle(element);
+    // A source's contextual motion rule may outrank the shared neutralizer.
+    // Keep explicitly different preview motion, but suppress inherited motion.
+    for (const property of NEUTRALIZED_PROPERTIES) {
+      const value = previewStyle.getPropertyValue(property);
+      const activeMotion =
+        property === 'transition'
+          ? previewStyle.transitionDuration
+              .split(',')
+              .some((duration) => Number.parseFloat(duration) > 0)
+          : value !== 'none';
+      if (activeMotion && value && value === sourceStyle.getPropertyValue(property)) {
+        restoredMotion.set(property, value);
+        element.style.setProperty(property, 'none', 'important');
+      }
+    }
+    contextualStyles = capturePreviewStyles(element, options.clone.nodes);
+  }
   wrapper.appendChild(element);
 
   // The ancestor chain, captured while it is still alive, so a mid-drag teardown can
   // re-home the preview as close to its original cascade as possible. It ends at
   // `documentElement` (or the shadow root), which outlives any subtree the app tears down.
   const ancestorChain: PreviewHost[] = [];
-  for (let node: PreviewHost | null = host; node !== null; ) {
+  for (let node: PreviewHost | null = host; node !== null;) {
     ancestorChain.push(node);
     // Crossing out through a shadow host leaves that cascade behind, but that step is
     // only ever reached once the shadow root itself has been torn out.
@@ -698,6 +805,21 @@ function createPreparedDragPreviewElement(
 
   let destroyed = false;
   let usesPopover = false;
+  let positionScale = { x: 1, y: 1 };
+
+  function updatePositionScale(): void {
+    const zoom = getElementZoom(element);
+    // The wrapper restores the escaped ancestor scale without changing the
+    // clone's local layout or overriding its own rotate/scale styling.
+    positionScale = isClone ? sourceScale : { x: zoom, y: zoom };
+    const scaleX = positionScale.x / zoom;
+    const scaleY = positionScale.y / zoom;
+    wrapper.style.scale = scaleX === 1 && scaleY === 1 ? 'none' : `${scaleX} ${scaleY}`;
+    applySourceSizeVars(element, {
+      width: sourceRect.width / positionScale.x,
+      height: sourceRect.height / positionScale.y,
+    });
+  }
 
   function openInTopLayer(): void {
     if (typeof wrapper.showPopover !== 'function') {
@@ -722,23 +844,33 @@ function createPreparedDragPreviewElement(
   // siblings — pass a `container` to avoid that.
   host.appendChild(wrapper);
   openInTopLayer();
+  updatePositionScale();
+  contextualStyles?.restore();
   applyPostInsertion();
 
   function reconnect(): void {
-    if (destroyed || element.isConnected) {
+    if (destroyed) {
       return;
     }
-    // The nearest ancestor still in the document keeps as much of the original
-    // cascade as survives; the document body is the floor.
-    const survivor =
-      ancestorChain.find((ancestor) => ancestor.isConnected) ?? doc.body ?? doc.documentElement;
-    survivor.appendChild(wrapper);
+    if (!element.isConnected) {
+      // The nearest ancestor still in the document keeps as much of the original
+      // cascade as survives; the document body is the floor.
+      const survivor =
+        ancestorChain.find((ancestor) => ancestor.isConnected) ?? doc.body ?? doc.documentElement;
+      survivor.appendChild(wrapper);
+    } else if (!usesPopover || wrapper.matches(':popover-open')) {
+      return;
+    }
+    // Reordering a connected ancestor also closes the popover, even though it
+    // is connected again by the time the mutation observer runs.
     // Any DOM move closes an open popover (and sends it back to `display: none`).
     // Reopen it *before* restoring state: writing `scrollTop` into a
     // `display: none` subtree clamps to 0 and the restoration is silently lost.
     if (usesPopover) {
       openInTopLayer();
     }
+    updatePositionScale();
+    contextualStyles?.reconnect();
     // Re-appending resets descendant scroll positions to 0; restore the captured
     // offsets so an internally-scrolled preview subtree keeps its scroll after a
     // mid-drag re-home, in the same order as the initial insertion.
@@ -761,13 +893,32 @@ function createPreparedDragPreviewElement(
     element,
     isHost: !isClone,
     sourceRect,
+    get positionScale() {
+      return positionScale;
+    },
     ensureConnected: reconnect,
+    prepareForDrop() {
+      // Allow a distinct ending rule without reviving inherited source motion.
+      for (const [property, inheritedValue] of restoredMotion) {
+        if (property === 'transform') {
+          continue;
+        }
+        element.style.removeProperty(property);
+        if (
+          ownerWindow(element).getComputedStyle(element).getPropertyValue(property) ===
+          inheritedValue
+        ) {
+          element.style.setProperty(property, 'none', 'important');
+        }
+      }
+    },
     destroy() {
       if (destroyed) {
         return;
       }
       destroyed = true;
       observer.disconnect();
+      contextualStyles?.destroy();
       if (usesPopover && wrapper.isConnected) {
         try {
           wrapper.hidePopover();
@@ -790,13 +941,3 @@ export const createClonedDragPreviewElement: DragPreviewElementFactory = (source
         clone: prepareDragPreviewClone(source, ownerWindow(source)),
       })
     : null;
-
-/** @internal Kept as a test helper for exercising both preview element variants. */
-export function createDragPreviewElement(
-  source: HTMLElement,
-  options: CreateDragPreviewElementOptions,
-): DragPreviewElementHandle | null {
-  return options.content === 'clone'
-    ? createClonedDragPreviewElement(source, options.container ?? null)
-    : createDragPreviewHostElement(source, options.container ?? null);
-}

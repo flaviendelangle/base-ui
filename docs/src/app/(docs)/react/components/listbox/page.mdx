@@ -25,19 +25,20 @@ import { Listbox } from '@base-ui/react/listbox';
 
 <Listbox.Root>
   <Listbox.Label />
-  <Listbox.DragAndDropProvider>
+  <Listbox.SortableProvider>
     <Listbox.List>
       <Listbox.Item>
         <Listbox.ItemIndicator />
         <Listbox.ItemText />
-        <Listbox.ItemDragHandle />
+        <Listbox.SortHandle />
+        <Listbox.SortPreview />
       </Listbox.Item>
       <Listbox.Group>
         <Listbox.GroupLabel />
       </Listbox.Group>
       <Listbox.LoadingTrigger />
     </Listbox.List>
-  </Listbox.DragAndDropProvider>
+  </Listbox.SortableProvider>
 </Listbox.Root>;
 ```
 
@@ -47,9 +48,9 @@ import { Listbox } from '@base-ui/react/listbox';
 
 The `selectionMode` prop controls how items are selected:
 
-- `"single"` (default) — clicking an item selects it and deselects any other.
-- `"multiple"` — every click toggles an item. Hold <kbd>Shift</kbd> and click to select a contiguous range.
-- `"explicit-multiple"` — clicking an item replaces the selection. Hold <kbd>Ctrl</kbd>/<kbd>⌘</kbd> and click to toggle, or <kbd>Shift</kbd> and click to select a range.
+- `"single"` (default): clicking an item selects it and deselects any other.
+- `"multiple"`: every click toggles an item. Hold <kbd>Shift</kbd> and click to select a contiguous range.
+- `"explicit-multiple"`: clicking an item replaces the selection. Hold <kbd>Ctrl</kbd>/<kbd>⌘</kbd> and click to toggle, or <kbd>Shift</kbd> and click to select a range.
 
 import { DemoListboxMultiSelection } from './demos/multi-selection';
 
@@ -63,28 +64,81 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 
 <DemoListboxLazyLoading />
 
-### Drag and drop
+### Sorting
 
-Wrap reorderable content in `Listbox.DragAndDropProvider` and provide `onItemsReorder` on the provider.
-Use the provider's `canDrag` and `canDrop` predicates to control which items can be dragged or dropped, and use `Listbox.ItemDragHandle` to restrict drag initiation to a handle.
-Items can also be reordered with the keyboard using <kbd>Alt</kbd> + Arrow keys.
+Wrap the list in `Listbox.KeyboardSortableProvider` to enable keyboard sorting. Pass `onItemsReorder` and render the values in the proposed order.
+Focus an item and press <kbd>Alt</kbd> + <kbd>ArrowUp</kbd> or <kbd>Alt</kbd> + <kbd>ArrowDown</kbd> to move it. Horizontal lists use <kbd>Alt</kbd> + <kbd>ArrowLeft</kbd> and <kbd>Alt</kbd> + <kbd>ArrowRight</kbd>, respecting the text direction.
 
-Use `canDrop` to constrain reordering within a `Listbox.Group` or apply other custom drop rules.
+Sorting a selected item moves the selected items together in list order. Disabled items stay in place. Selection continues to work with <kbd>Enter</kbd> and <kbd>Space</kbd>.
 
-In `multiple` or `explicit-multiple` mode, dragging a selected item moves all selected items together, preserving their relative order.
+import { DemoListboxSortingKeyboard } from './demos/sorting-keyboard';
+
+<DemoListboxSortingKeyboard />
+
+### Pointer sorting
+
+Use `Listbox.SortableProvider` to add pointer sorting alongside the same keyboard shortcuts. By default, items move when dropped.
+The whole row can start a drag. Add `Listbox.SortHandle` inside a row to limit pointer pickup to the handle.
 
 import { DemoListboxDragAndDrop } from './demos/drag-and-drop';
 import { DemoListboxDragWithinGroups } from './demos/drag-within-groups';
+import { DemoListboxLiveReorderDnd } from './demos/live-reorder-dnd';
 
 <DemoListboxDragAndDrop />
 
-### Drag within groups
+### Live sorting
 
-Pass `canDrop` to `Listbox.DragAndDropProvider` to keep reordering inside the current `Listbox.Group`. This example only accepts drops when every dragged item belongs to the same group as the target item.
+Set `reorderOn="move"` to update the order while dragging. Render each proposed order from `onItemsReorder`. Canceling the drag or dropping outside the list restores the original order.
 
-The same `canDrop` callback can also enforce other drop target rules, such as preventing drops around locked items or only allowing certain item types to be reordered next to each other. Because it receives the dragged items, the target item, and the drop edge, you can use it to express custom placement logic in one place.
+<DemoListboxLiveReorderDnd />
+
+### Sorting within groups
+
+Use `canMoveItems` to restrict movement for both keyboard and pointer sorting. This example allows a move only when every moved item belongs to the destination group.
 
 <DemoListboxDragWithinGroups />
+
+### Moving between groups
+
+Give each `Listbox.Group` a stable `id` when your application allows items to move between groups.
+`onItemsReorder` provides the complete proposed order as `details.order`, with each item's value and group ID. Apply that metadata to update both the order and group membership. It also contains the original groups when a live move is canceled.
+
+```tsx
+<Listbox.SortableProvider
+  onItemsReorder={(_, details) => {
+    setItems(details.order.map(({ value, groupId }) => ({ value, groupId })));
+  }}
+>
+  {/* Render each item under the Group whose id matches its groupId. */}
+</Listbox.SortableProvider>
+```
+
+### Drop positions
+
+By default, the first half of a row inserts before it, and the second half inserts after it. Horizontal lists use the corresponding left and right halves.
+Use `getDropPosition` to change these zones. It receives the row, the dragged payload, and normalized pointer coordinates. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
+Use `onDropPositionChange` for a custom placement indicator. Items also expose `data-drop-position="before"` or `data-drop-position="after"`.
+
+### Preview and drag options
+
+The default preview clones the dragged row. Render `Listbox.SortPreview` inside an item to customize it, show a selected-item count, or hide it with `disabled`:
+
+```tsx
+<Listbox.Item value={item}>
+  <Listbox.ItemText>{item.label}</Listbox.ItemText>
+  <Listbox.SortPreview>
+    {({ items }) => <span>{items.length} selected items</span>}
+  </Listbox.SortPreview>
+</Listbox.Item>
+```
+
+Pass `draggableProps` to `Listbox.Item` to configure activation, modifiers, or drag event handlers on its existing `Draggable.Root`. You can customize one drag option while keeping managed sorting.
+
+### Drag and drop outside the list
+
+For interactions with elements outside the Listbox, use the [Draggable utility](/react/utils/draggable).
+Pass a shared `kind` to `Listbox.SortableProvider` and the external target. `getDragPayload` supplies application data in the payload's `data` field.
+The external target handles the transfer and updates the affected collections. Listbox sorting only reorders items within its own list.
 
 ### Custom keyboard shortcuts
 
@@ -110,9 +164,17 @@ import { TypesListbox } from './types';
 
 <TypesListbox.List />
 
-### DragAndDropProvider
+### KeyboardSortableProvider
 
-<TypesListbox.DragAndDropProvider />
+<TypesListbox.KeyboardSortableProvider />
+
+### SortableProvider
+
+<TypesListbox.SortableProvider />
+
+### SortPreview
+
+<TypesListbox.SortPreview />
 
 ### Item
 
@@ -126,9 +188,9 @@ import { TypesListbox } from './types';
 
 <TypesListbox.ItemIndicator />
 
-### ItemDragHandle
+### SortHandle
 
-<TypesListbox.ItemDragHandle />
+<TypesListbox.SortHandle />
 
 ### Group
 
