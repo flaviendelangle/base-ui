@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDropProvider';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 
@@ -9,10 +10,7 @@ export interface ListboxSortingItem<Value = any> {
   /**
    * Zero-based item index across the entire list, including all groups.
    * This is not an index within the item's group.
-   *
-   * TODO: Clarify before merging. Listbox uses a list-wide index, while Tree uses
-   * an index within the item's parent. Decide whether sorting should share one
-   * convention across both components or retain and document this difference.
+   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
@@ -42,6 +40,7 @@ export interface ListboxSortableContextValue {
     id: ListboxItemId,
     disabled: boolean,
     props: ListboxItemDraggableProps | undefined,
+    external?: ExternalDropTargetProps,
   ) => React.ReactElement;
 }
 

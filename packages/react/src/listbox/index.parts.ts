@@ -12,3 +12,5 @@ export { ListboxSortableProvider as SortableProvider } from './sortable-provider
 export { ListboxSortHandle as SortHandle } from './sort-handle/ListboxSortHandle';
 export { ListboxSortPreview as SortPreview } from './sort-preview/ListboxSortPreview';
 export type { ListboxItemId as ItemId } from './utils/ListboxItemId';
+
+export { ListboxItemExternalDropTarget as ItemExternalDropTarget } from './item-external-drop-target/ListboxItemExternalDropTarget';

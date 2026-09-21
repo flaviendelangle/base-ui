@@ -319,6 +319,122 @@ type ListboxItemIndicatorState = {
 };
 ```
 
+### ItemExternalDropTarget
+
+A complete listbox item that also accepts drags from outside this listbox.
+Same-listbox drags remain owned by the sorting provider. Renders a `<div>` element.
+
+**ItemExternalDropTarget Props:**
+
+| Prop                 | Type                                                                                                                                                   | Default | Description                                                                                                                                                                                   |
+| :------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| label                | `string`                                                                                                                                               | -       | Specifies the text label to use when the item is matched during keyboard text navigation.                                                                                                     |
+| value                | `TItem`                                                                                                                                                | -       | The unique value identifying this option.                                                                                                                                                     |
+| accept\*             | `AnyDragAccept`                                                                                                                                        | -       | One or more kinds of external drag sources accepted by this item.                                                                                                                             |
+| canDrop              | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>) => boolean)`                                                       | -       | Validates the resolved destination. Returning false rejects the drop, including ancestor targets.                                                                                             |
+| draggableProps       | `ListboxItemDraggableProps`                                                                                                                            | -       | Configures the underlying Draggable.Root without replacing managed sorting.                                                                                                                   |
+| dropDisabled         | `boolean`                                                                                                                                              | `false` | Disables external drops without disabling selection or internal sorting.                                                                                                                      |
+| getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
+| nativeButton         | `boolean`                                                                                                                                              | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
+| onDrop               | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>, eventDetails: DragDropEventDetails) => void)`                      | -       | Handles an accepted external drop. Does not automatically insert or remove items.                                                                                                             |
+| onDropPositionChange | `((position: ListboxSortingDropPosition \| null) => void)`                                                                                             | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
+| disabled             | `boolean`                                                                                                                                              | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
+| children             | `React.ReactNode`                                                                                                                                      | -       | -                                                                                                                                                                                             |
+| className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                       | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style                | `React.CSSProperties \| ((state: Listbox.Item.State) => React.CSSProperties \| undefined)`                                                             | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| render               | `ReactElement \| ((props: HTMLProps, state: Listbox.Item.State) => ReactElement)`                                                                      | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+
+**ItemExternalDropTarget Data Attributes:**
+
+| Attribute          | Type | Description                                                                                                                                                                                                                                                                                                                           |
+| :----------------- | :--- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| data-selected      | -    | Present when the listbox item is selected.                                                                                                                                                                                                                                                                                            |
+| data-highlighted   | -    | Present when the listbox item is highlighted.                                                                                                                                                                                                                                                                                         |
+| data-dragging      | -    | Present only on the item physically picked up. Managed by the drag engine.                                                                                                                                                                                                                                                            |
+| data-disabled      | -    | Present when the listbox item is disabled.                                                                                                                                                                                                                                                                                            |
+| data-drag-over     | -    | Present when a dragged item is over the listbox item.                                                                                                                                                                                                                                                                                 |
+| data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`.                                                                                                                                                                                                                                           |
+| data-moving        | -    | Present while the item participates in an active pointer sort, including&#xA;selected items moving with the picked-up item. Items disabled for sorting are excluded.&#xA;Removed when the gesture ends or is canceled; not set by keyboard sorting.&#xA;Unlike `data-dragging`, this does not mean the item was physically picked up. |
+
+### ItemExternalDropTarget.Props
+
+Re-export of [ItemExternalDropTarget](#itemexternaldroptarget) props.
+
+### ItemExternalDropTarget.State
+
+```typescript
+type ListboxItemExternalDropTargetState = {
+  /** Whether the item should ignore user interaction. */
+  disabled: boolean;
+  /** Whether the item is selected. */
+  selected: boolean;
+  /** Whether the item is highlighted. */
+  highlighted: boolean;
+  /**
+   * Whether the item participates in the active pointer sorting operation.
+   * Includes the item physically picked up and any other selected items included
+   * in the move. Selected items disabled for sorting are excluded.
+   * Remains true throughout the gesture, including live reordering, and resets
+   * when the gesture ends or is canceled. Not set by keyboard sorting.
+   * Exposed as `data-moving`. The drag engine separately sets `data-dragging`
+   * only on the item physically picked up.
+   */
+  moving: boolean;
+  /** Whether a dragged item is over this item. */
+  dragOver: boolean;
+  /** The drop position relative to this item, or `null` when the item is not being dragged over. */
+  dropPosition: 'before' | 'after' | null;
+};
+```
+
+### ItemExternalDropTarget.DropContext
+
+```typescript
+type ListboxItemExternalDropTargetDropContext<TPayload = unknown, TItem = unknown> = {
+  position: ListboxSortingDropPosition;
+  /** Insertion index across the entire list, including groups. Not relative to the group. */
+  destination: ListboxSortingDestination;
+  /** The incoming drag source. */
+  source: DragSource<TPayload>;
+  /** The item under the pointer. */
+  item: TItem;
+  itemId: Listbox.ItemId;
+  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
+  /** Pointer coordinates normalized to the item's width and height. */
+  point: { x: number; y: number };
+};
+```
+
+### ItemExternalDropTarget.DropPosition
+
+```typescript
+type ListboxItemExternalDropTargetDropPosition = {
+  id: Listbox.ItemId;
+  placement: 'before' | 'after';
+  /**
+   * Override the zero-based insertion index across the entire list, including all
+   * groups, before removing the moved items. Not relative to the destination group.
+   * Tree uses indices within the current or destination parent.
+   */
+  index?: number;
+};
+```
+
+### ItemExternalDropTarget.PositionContext
+
+```typescript
+type ListboxItemExternalDropTargetPositionContext<TPayload = unknown, TItem = unknown> = {
+  /** The incoming drag source. */
+  source: DragSource<TPayload>;
+  /** The item under the pointer. */
+  item: TItem;
+  itemId: Listbox.ItemId;
+  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
+  /** Pointer coordinates normalized to the item's width and height. */
+  point: { x: number; y: number };
+};
+```
+
 ### KeyboardSortableProvider
 
 Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announcement region.
@@ -490,9 +606,7 @@ type ListboxSortableProviderDropPosition = {
   /**
    * Override the zero-based insertion index across the entire list, including all
    * groups, before removing the moved items. Not relative to the destination group.
-   *
-   * TODO: Clarify before merging. Tree's override is relative to the destination
-   * parent; decide whether both sorting APIs should use the same convention.
+   * Tree uses indices within the current or destination parent.
    */
   index?: number;
 };
@@ -692,6 +806,38 @@ type ListboxItemDraggableProps = {
 };
 ```
 
+### ListboxItemExternalDropTargetOptions
+
+```typescript
+type ListboxItemExternalDropTargetOptions<
+  TAccept extends AnyDragAccept = DragKind,
+  TItem = unknown,
+> = {
+  /** One or more kinds of external drag sources accepted by this item. */
+  accept: TAccept;
+  /**
+   * Disables external drops without disabling selection or internal sorting.
+   * @default false
+   */
+  dropDisabled?: boolean;
+  /** Validates the resolved destination. Returning false rejects the drop, including ancestor targets. */
+  canDrop?: (
+    context: Listbox.ItemExternalDropTarget.DropContext<TPayload | unknown, TItem>,
+  ) => boolean;
+  /** Overrides the default before/after placement. Returning null rejects the drop. */
+  getDropPosition?: (
+    context: Listbox.ItemExternalDropTarget.PositionContext<TPayload | unknown, TItem>,
+  ) => 'before' | 'after' | ListboxSortingDropPosition | null;
+  /** Called when external placement changes, including null when it clears. */
+  onDropPositionChange?: (position: ListboxSortingDropPosition | null) => void;
+  /** Handles an accepted external drop. Does not automatically insert or remove items. */
+  onDrop?: (
+    context: Listbox.ItemExternalDropTarget.DropContext<TPayload | unknown, TItem>,
+    eventDetails: DragDropEventDetails,
+  ) => void;
+};
+```
+
 ### ListboxSortingDestination
 
 ```typescript
@@ -699,10 +845,7 @@ type ListboxSortingDestination = {
   /**
    * Zero-based insertion index across the entire list, including all groups,
    * before removing the moved items. This is not an index within the destination group.
-   *
-   * TODO: Clarify before merging. Tree's insertion index is relative to the
-   * destination parent, while Listbox's is relative to the entire list.
-   * Decide whether these sorting APIs should use the same convention.
+   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** Group of the destination item, or null for ungrouped items. */
@@ -748,9 +891,7 @@ type ListboxSortingDropPosition = {
   /**
    * Override the zero-based insertion index across the entire list, including all
    * groups, before removing the moved items. Not relative to the destination group.
-   *
-   * TODO: Clarify before merging. Tree's override is relative to the destination
-   * parent; decide whether both sorting APIs should use the same convention.
+   * Tree uses indices within the current or destination parent.
    */
   index?: number;
 };
@@ -765,10 +906,7 @@ type ListboxSortingItem<Value = any> = {
   /**
    * Zero-based item index across the entire list, including all groups.
    * This is not an index within the item's group.
-   *
-   * TODO: Clarify before merging. Listbox uses a list-wide index, while Tree uses
-   * an index within the item's parent. Decide whether sorting should share one
-   * convention across both components or retain and document this difference.
+   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
@@ -806,7 +944,8 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
-- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
+- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropPosition`
 
 ## Canonical Types
 
@@ -838,3 +977,7 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.SortHandle.Props`: `ListboxSortHandleProps`
 - `Listbox.SortPreview.Props`: `ListboxSortPreviewProps`
 - `Listbox.ItemId`: `ListboxItemId`
+- `Listbox.ItemExternalDropTarget.Props`: `ListboxItemExternalDropTargetProps`
+- `Listbox.ItemExternalDropTarget.State`: `ListboxItemExternalDropTargetState`
+- `Listbox.ItemExternalDropTarget.PositionContext`: `ListboxItemExternalDropTargetPositionContext`
+- `Listbox.ItemExternalDropTarget.DropContext`: `ListboxItemExternalDropTargetDropContext`

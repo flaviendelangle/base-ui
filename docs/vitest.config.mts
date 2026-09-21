@@ -11,6 +11,7 @@ export default mergeConfig(
     },
     test: {
       environment: 'node',
+      exclude: ['**/*.browser.test.tsx'],
       browser: {
         enabled: false,
         name: 'node',

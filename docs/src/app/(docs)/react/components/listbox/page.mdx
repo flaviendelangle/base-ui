@@ -124,7 +124,7 @@ Use `getDropPosition` to change these zones. It receives the application value a
 
 `groupId` is `null` for ungrouped items. Item and destination indices are zero-based and span the entire list, including all groups. They do not reset at group boundaries. Destination insertion indices refer to the order before removing the moved items.
 
-> **TODO: Clarify before merging.** Listbox sorting uses indices across the entire list. Tree sorting uses indices within the current or destination parent. Decide whether both sorting APIs should use the same convention or retain and document this difference.
+Tree uses indices within the current or destination parent. Listbox retains list-wide indices, including all groups.
 
 Use `onDropPositionChange` for a custom placement indicator. Items also expose `data-drop-position="before"` or `data-drop-position="after"`.
 
@@ -152,6 +152,44 @@ Pass `draggableProps` to `Listbox.Item` to configure activation, modifiers, or d
 For interactions with elements outside the Listbox, use the [Draggable utility](/react/utils/draggable).
 Pass a shared `kind` to `Listbox.SortableProvider` and the external target. `getDragPayload` supplies application data in the payload's `data` field. The payload also contains `id`, `itemIds`, pickup snapshots in `items`, and an opaque `collectionId` identifying the source collection, matching Tree sorting payloads.
 The external target handles the transfer and updates the affected collections. Listbox sorting only reorders items within its own list.
+
+To accept incoming drags on individual options, use `Listbox.ItemExternalDropTarget` in place of `Listbox.Item`. It retains selection, focus, and keyboard behavior and works with or without `Listbox.SortableProvider`.
+
+```tsx
+<Listbox.ItemExternalDropTarget
+  value={item}
+  accept={fileKind}
+  canDrop={({ source, destination }) => canImport(source.payload, destination)}
+  onDrop={({ source, destination }) => transferFiles(source.payload, destination)}
+>
+  <Listbox.ItemText>{item.label}</Listbox.ItemText>
+  <Listbox.ItemIndicator />
+</Listbox.ItemExternalDropTarget>
+```
+
+Same-list drags remain owned by sorting, even when sorting rejects the move. External drags use the explicit target behavior. Each option has one drop-target registration. Set `dropDisabled` to disable external acceptance without disabling selection or sorting.
+
+The default placement is before or after the option, respecting horizontal orientation and text direction. `getDropPosition` can override placement; returning `null` rejects the drop. `canDrop` validates the resolved destination; returning `false` rejects the drop, including ancestor targets. Unmatched kinds can fall through to an ancestor target.
+
+The destination contains `groupId` and a zero-based `index` across the entire list, including all groups. It is not an index within the group. Tree's destination index is relative to the destination parent. `onDrop` handles the application transfer and does not automatically mutate either collection. For controlled collections, confirm the destination update before deleting source items.
+
+External placement uses the existing `dragOver` and `dropPosition` item states. `onDropPositionChange` receives `null` when placement clears.
+
+#### Move tracks between lists
+
+Both queues support internal sorting and transfers onto individual options. The list target accepts drops only when its queue is empty. The application updates both queues together.
+
+import { DemoListboxCrossListDnd } from './demos/cross-list-dnd';
+
+<DemoListboxCrossListDnd />
+
+#### Drag to and from other elements
+
+Drag a library track onto a queue option to insert it before or after that option. Drag a queue track onto the archive to remove it. `Listbox.SortableProvider` supplies the outgoing payload, while `Listbox.ItemExternalDropTarget` handles incoming library tracks.
+
+import { DemoListboxExternalDnd } from './demos/external-dnd';
+
+<DemoListboxExternalDnd />
 
 ### Custom keyboard shortcuts
 
@@ -192,6 +230,10 @@ import { TypesListbox, TypesListboxAdditional } from './types';
 ### Item
 
 <TypesListbox.Item />
+
+### Item external drop target
+
+<TypesListbox.ItemExternalDropTarget />
 
 ### ItemText
 

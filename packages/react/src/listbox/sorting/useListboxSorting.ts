@@ -19,10 +19,7 @@ export interface ListboxSortingDestination {
   /**
    * Zero-based insertion index across the entire list, including all groups,
    * before removing the moved items. This is not an index within the destination group.
-   *
-   * TODO: Clarify before merging. Tree's insertion index is relative to the
-   * destination parent, while Listbox's is relative to the entire list.
-   * Decide whether these sorting APIs should use the same convention.
+   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** Group of the destination item, or null for ungrouped items. */

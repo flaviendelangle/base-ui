@@ -4,6 +4,12 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
+import { getListboxDropDestination } from '../sorting/dropPosition';
+import {
+  SortableDropProvider,
+  SortableDropTarget,
+  type ExternalDropTargetProps,
+} from '../../internals/sorting/SortableDropProvider';
 import { Draggable } from '../../draggable';
 import { matchesSortingOrder, restoreSortingOrder } from '../../internals/sorting/sortingOrder';
 import { SortingTransaction } from '../../internals/sorting/SortingTransaction';
@@ -40,9 +46,7 @@ export interface ListboxSortingDropPosition {
   /**
    * Override the zero-based insertion index across the entire list, including all
    * groups, before removing the moved items. Not relative to the destination group.
-   *
-   * TODO: Clarify before merging. Tree's override is relative to the destination
-   * parent; decide whether both sorting APIs should use the same convention.
+   * Tree uses indices within the current or destination parent.
    */
   index?: number | undefined;
 }
@@ -94,6 +98,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
     Draggable.createKind<ListboxSortingDragPayload<Value>>('listbox-sort'),
   );
   const kind = props.kind ?? localKind;
+  const externalCompletion = React.useRef(false);
   const position = React.useRef<ListboxSortingDropPosition | null>(null);
   const [transaction] = React.useState(() => new SortingTransaction<ListboxSortingItem<Value>[]>());
   const lastMovePosition = React.useRef<ListboxSortingDropPosition | null>(null);
@@ -119,26 +124,9 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       sameItem,
     ),
   );
-  const getDestination = useStableCallback((next: ListboxSortingDropPosition) => {
-    const ordered = sorting.getOrderedItems();
-    const target = ordered.find((item) => item.id === next.id);
-    if (!target || target.disabled) {
-      return null;
-    }
-    const index = next.index ?? target.index + (next.placement === 'after' ? 1 : 0);
-    // An index override must stay in the target's group so it cannot bypass group rules.
-    const group = ordered.filter((item) => item.groupId === target.groupId);
-    if (
-      index < group[0].index ||
-      index > group[group.length - 1].index + 1 ||
-      ordered
-        .slice(Math.min(index, target.index), Math.max(index, target.index))
-        .some((item) => item.groupId !== target.groupId)
-    ) {
-      return null;
-    }
-    return { index, groupId: target.groupId };
-  });
+  const getDestination = useStableCallback((next: ListboxSortingDropPosition) =>
+    getListboxDropDestination(sorting.getOrderedItems(), next),
+  );
   const resolve = useStableCallback(
     (
       collision: Draggable.CollisionProvider.Collision<ListboxSortingDragPayload<Value>> | null,
@@ -273,36 +261,78 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       id: ListboxItemId,
       disabled: boolean,
       draggableProps: ListboxItemDraggableProps | undefined,
+      external?: ExternalDropTargetProps,
     ) => (
-      <Draggable.Root
-        {...draggableProps}
-        render={element}
-        kind={kind}
-        disabled={disabled || sortingDisabled || draggableProps?.disabled}
-        data-disabled={disabled ? '' : undefined}
-        onBeforeMoveStart={(event, details) => {
-          draggableProps?.onBeforeMoveStart?.(event, details);
-          if (getItemIds(id).length === 0) {
-            details.cancel();
-          }
-        }}
-        collisionPayload={{ id, itemIds: [id], items: [], collectionId: store }}
-        getPayload={() => {
-          const itemIds = getItemIds(id);
-          const items = getOrderedItems()
-            .filter((item) => itemIds.includes(item.id))
-            .map((item) => item.value);
-          return {
-            id,
-            itemIds,
-            items,
-            collectionId: store,
-            data: getDragPayload?.({ itemIds, items }),
-          };
-        }}
+      <SortableDropTarget
+        payload={{ id, itemIds: [id], items: [], collectionId: store }}
+        external={external}
+        snap={draggableProps?.snap}
+        element={
+          <Draggable.Root
+            {...draggableProps}
+            render={element}
+            kind={kind}
+            disabled={disabled || sortingDisabled || draggableProps?.disabled}
+            data-disabled={disabled ? '' : undefined}
+            onBeforeMoveStart={(event, details) => {
+              draggableProps?.onBeforeMoveStart?.(event, details);
+              if (getItemIds(id).length === 0) {
+                details.cancel();
+              }
+            }}
+            collision={false}
+            onMoveEnd={(event, details) => {
+              if (
+                !event.canceled &&
+                event.dropTarget &&
+                event.dropTarget.element !== event.source.element
+              ) {
+                const target = event.dropTarget.payload;
+                const destinationCollection =
+                  target &&
+                  typeof target === 'object' &&
+                  'payload' in target &&
+                  target.payload &&
+                  typeof target.payload === 'object' &&
+                  'collectionId' in target.payload
+                    ? target.payload.collectionId
+                    : null;
+                if (destinationCollection !== store) {
+                  externalCompletion.current = true;
+                  lastEvent.current = details.event;
+                  rollback();
+                  transaction.reset();
+                }
+              }
+              draggableProps?.onMoveEnd?.(event, details);
+            }}
+            getPayload={() => {
+              const itemIds = getItemIds(id);
+              const items = getOrderedItems()
+                .filter((item) => itemIds.includes(item.id))
+                .map((item) => item.value);
+              return {
+                id,
+                itemIds,
+                items,
+                collectionId: store,
+                data: getDragPayload?.({ itemIds, items }),
+              };
+            }}
+          />
+        }
       />
     ),
-    [kind, sortingDisabled, getItemIds, getOrderedItems, store, getDragPayload],
+    [
+      kind,
+      sortingDisabled,
+      getItemIds,
+      getOrderedItems,
+      store,
+      getDragPayload,
+      rollback,
+      transaction,
+    ],
   );
   const reconcile = useStableCallback(() => {
     sorting.reconcile();
@@ -323,7 +353,8 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   return (
     <ListboxSortingContext.Provider value={context}>
       <Draggable.Provider>
-        <Draggable.CollisionProvider
+        <SortableDropProvider
+          collectionId={store}
           kind={kind}
           canCollide={({ source, target }) =>
             source.payload.collectionId === store &&
@@ -336,6 +367,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             }
             focusFrame.cancel();
             sorting.clearAnnouncement();
+            externalCompletion.current = false;
             transaction.reset();
             lastMovePosition.current = null;
             activePayload.current = source.payload;
@@ -377,6 +409,16 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
               return;
             }
             lastEvent.current = details.event;
+            if (externalCompletion.current) {
+              setPosition(null);
+              store.set('dragActiveItemIds', null);
+              activePayload.current = null;
+              lastMovePosition.current = null;
+              store.context.pointerMoveSuppressedRef.current = false;
+              externalCompletion.current = false;
+              onSortEnd?.({ itemIds: source.itemIds, canceled: false });
+              return;
+            }
             const next = resolve(event.collision, source);
             const sourceIds = getSourceItems(source).map((item) => item.id);
             const onSource =
@@ -440,7 +482,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
           <ListboxSortableContext.Provider value={sortable}>
             {children}
           </ListboxSortableContext.Provider>
-        </Draggable.CollisionProvider>
+        </SortableDropProvider>
       </Draggable.Provider>
       <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHidden}>
         {sorting.announcement}
