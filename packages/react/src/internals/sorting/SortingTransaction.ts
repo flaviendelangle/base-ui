@@ -6,15 +6,39 @@ export class SortingTransaction<Order> {
 
   private proposalBase: Order | null = null;
 
+  private revision = 0;
+
   get hasMoved() {
     return this.expected !== null;
   }
 
-  /** Record accepted proposals, even when their controlled update has not rendered yet. */
-  recordProposal(base: Order, expected: Order) {
+  /**
+   * Track a proposal before notifying the consumer, which may synchronously unmount
+   * the provider. Rejection restores the previous accepted proposal; completion or
+   * another proposal invalidates this call so it cannot revive an older gesture.
+   */
+  propose(base: Order, expected: Order, notify: () => boolean): boolean {
+    const previous = {
+      original: this.original,
+      expected: this.expected,
+      proposalBase: this.proposalBase,
+    };
+    this.revision += 1;
+    const revision = this.revision;
     this.original ??= base;
     this.proposalBase = base;
     this.expected = expected;
+    let accepted = false;
+    try {
+      accepted = notify();
+      return accepted && this.revision === revision;
+    } finally {
+      if (!accepted && this.revision === revision) {
+        this.original = previous.original;
+        this.expected = previous.expected;
+        this.proposalBase = previous.proposalBase;
+      }
+    }
   }
 
   hasExpectedOrder(matches: (order: Order) => boolean) {
@@ -37,11 +61,15 @@ export class SortingTransaction<Order> {
     if (awaitingProposal && (this.proposalBase === null || !matches(this.proposalBase))) {
       return undefined;
     }
-    return restore(this.original, awaitingProposal);
+    const original = this.original;
+    // Consume the transaction before application code can reenter cleanup.
+    this.reset();
+    return restore(original, awaitingProposal);
   }
 
   /** Release snapshots after completion or before starting another gesture. */
   reset() {
+    this.revision += 1;
     this.original = null;
     this.expected = null;
     this.proposalBase = null;

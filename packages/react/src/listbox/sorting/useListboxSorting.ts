@@ -230,6 +230,11 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       event: Event,
       sourceId = ids[0],
       reason: typeof REASONS.drag | typeof REASONS.keyboard = REASONS.drag,
+      propose?: (
+        current: ListboxSortingItem<Value>[],
+        next: ListboxSortingItem<Value>[],
+        notify: () => boolean,
+      ) => boolean,
     ) => {
       if (!canMove(ids, destination)) {
         return null;
@@ -256,7 +261,8 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
             reason: 'keyboard',
           }
         : null;
-      if (!notifyOrder(next, parameters, event, keyboard ? REASONS.keyboard : REASONS.drag)) {
+      const notify = () => notifyOrder(next, parameters, event, reason);
+      if (!(propose ? propose(current, next, notify) : notify())) {
         pending.current = null;
         return null;
       }

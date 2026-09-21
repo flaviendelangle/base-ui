@@ -365,14 +365,15 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             ) {
               const destination = getDestination(next);
               if (destination) {
-                const current = sorting.getOrderedItems();
                 const result = sorting.move(
                   getSourceItems(event.source.payload).map((item) => item.id),
                   destination,
                   details.event,
+                  undefined,
+                  REASONS.drag,
+                  (current, order, notify) => transaction.propose(current, order, notify),
                 );
                 if (result?.changed) {
-                  transaction.recordProposal(current, result.items);
                   lastMovePosition.current = next;
                 }
               }

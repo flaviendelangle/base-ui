@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { expect, vi, describe, it } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
@@ -103,6 +104,80 @@ describe('<Listbox.SortableProvider />', () => {
       </Listbox.Root>
     );
   }
+  it('restores a live proposal when its callback synchronously unmounts sorting', async () => {
+    let current = ['a', 'b', 'c'];
+    let first = true;
+    function Example() {
+      const [visible, setVisible] = React.useState(true);
+      return visible ? (
+        <Listbox.Root>
+          <Listbox.SortableProvider
+            reorderOn="move"
+            onItemsReorder={(next) => {
+              current = next;
+              if (first) {
+                first = false;
+                ReactDOM.flushSync(() => setVisible(false));
+              }
+            }}
+          >
+            <Listbox.List>
+              {['a', 'b', 'c'].map((value) => (
+                <Listbox.Item key={value} value={value}>
+                  {value}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>
+      ) : null;
+    }
+    await render(<Example />);
+    setItemRects();
+    await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+    await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
+    expect(current).toEqual(['a', 'b', 'c']);
+  });
+  it('does not propose rollback twice if rollback unmounts sorting', async () => {
+    const proposals: string[][] = [];
+    function Example() {
+      const [visible, setVisible] = React.useState(true);
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+      return visible ? (
+        <Listbox.Root>
+          <Listbox.SortableProvider
+            reorderOn="move"
+            onItemsReorder={(next) => {
+              proposals.push(next);
+              if (proposals.length === 2) {
+                ReactDOM.flushSync(() => setVisible(false));
+              } else {
+                setItems(next);
+              }
+            }}
+          >
+            <Listbox.List>
+              {items.map((value) => (
+                <Listbox.Item key={value} value={value}>
+                  {value}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>
+      ) : null;
+    }
+    await render(<Example />);
+    setItemRects();
+    await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+    await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
+    expect(values()).toEqual(['b', 'c', 'a']);
+    cancel();
+    expect(proposals).toEqual([
+      ['b', 'c', 'a'],
+      ['a', 'b', 'c'],
+    ]);
+  });
   it('reorders selected items only on drop by default', async () => {
     const onItemsReorder = vi.fn();
     await render(<Fixture onItemsReorder={onItemsReorder} />);
@@ -408,6 +483,47 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['new', 'a', 'b', 'c']);
   });
+  it('preserves current models and additions without resurrecting deleted items on rollback', async () => {
+    type Item = { id: string; label: string };
+    let updateItems: React.Dispatch<React.SetStateAction<Item[]>>;
+    function UpdatingList() {
+      const [items, setItems] = React.useState<Item[]>([
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ]);
+      updateItems = setItems;
+      return (
+        <Listbox.Root isItemEqualToValue={(a: Item, b: Item) => a.id === b.id}>
+          <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+            <Listbox.List>
+              {items.map((item) => (
+                <Listbox.Item key={item.id} value={item}>
+                  {item.label}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>
+      );
+    }
+    await render(<UpdatingList />);
+    setItemRects();
+    await lift(screen.getByRole('option', { name: 'A' }), { clientY: 25 });
+    await dragEnter(screen.getByRole('option', { name: 'C' }), { clientY: 275 });
+    expect(values()).toEqual(['B', 'C', 'A']);
+    await act(() =>
+      updateItems([
+        { id: 'new', label: 'New' },
+        { id: 'c', label: 'C' },
+        { id: 'a', label: 'Edited A' },
+      ]),
+    );
+    cancel();
+    await flushRaf();
+    expect(values()).toEqual(['New', 'Edited A', 'C']);
+  });
+
   it('does not overwrite an external reorder when canceling a live move', async () => {
     let updateItems: React.Dispatch<React.SetStateAction<string[]>>;
     function UpdatingList() {
