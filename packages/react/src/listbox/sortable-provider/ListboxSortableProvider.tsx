@@ -5,6 +5,7 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
 import { Draggable } from '../../draggable';
+import { matchesSortingOrder, restoreSortingOrder } from '../../internals/sorting/sortingOrder';
 import { SortingTransaction } from '../../internals/sorting/SortingTransaction';
 import { REASONS } from '../../internals/reasons';
 import { useDirection } from '../../internals/direction-context';
@@ -109,16 +110,16 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
         source.items.some((value) => store.state.isItemEqualToValue(item.value, value)),
       ),
   );
-  const matchesOrder = useStableCallback((order: ListboxSortingItem<Value>[]) => {
-    const current = sorting.getOrderedItems();
-    const matches = (a: ListboxSortingItem<Value>, b: ListboxSortingItem<Value>) =>
-      store.state.isItemEqualToValue(a.value, b.value);
-    const expected = order.filter((item) => current.some((entry) => matches(entry, item)));
-    const known = current.filter((item) => expected.some((entry) => matches(entry, item)));
-    return known.every(
-      (item, index) => matches(item, expected[index]) && item.groupId === expected[index].groupId,
-    );
-  });
+  const sameItem = useStableCallback((a: ListboxSortingItem<Value>, b: ListboxSortingItem<Value>) =>
+    store.state.isItemEqualToValue(a.value, b.value),
+  );
+  const matchesOrder = useStableCallback((order: ListboxSortingItem<Value>[]) =>
+    matchesSortingOrder(
+      groupSortingItems(sorting.getOrderedItems()),
+      groupSortingItems(order),
+      sameItem,
+    ),
+  );
   const getDestination = useStableCallback((next: ListboxSortingDropPosition) => {
     const ordered = sorting.getOrderedItems();
     const target = ordered.find((item) => item.id === next.id);
@@ -202,31 +203,23 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
     const event = lastEvent.current;
     return transaction.rollback(matchesOrder, (snapshot, awaitingProposal) => {
       const current = sorting.getOrderedItems();
-      // Restore the old order using current values, preserving edits and newly inserted items.
-      const restored = snapshot.flatMap((original) => {
-        const item = current.find((entry) =>
-          store.state.isItemEqualToValue(entry.value, original.value),
-        );
-        return item ? [{ ...item, groupId: original.groupId }] : [];
-      });
-      let index = 0;
-      const next = current.map((item) => {
-        if (
-          !snapshot.some((original) => store.state.isItemEqualToValue(item.value, original.value))
-        ) {
-          return item;
-        }
-        const restoredItem = restored[index];
-        index += 1;
-        return restoredItem;
-      });
-      // Groups determine their own position in the DOM. A new item in a later group
-      // must not keep an earlier group's restored item behind it in the proposal.
       const groups = new Map(
         Array.from(
           store.state.listElement?.querySelectorAll<HTMLElement>('[role="group"]') ?? [],
         ).map((element) => [element.id, element]),
       );
+      const currentOrder = groupSortingItems(current);
+      // Empty groups can receive their original items during rollback.
+      for (const groupId of [null, ...groups.keys()]) {
+        if (!currentOrder.has(groupId)) {
+          currentOrder.set(groupId, []);
+        }
+      }
+      const restored = restoreSortingOrder(currentOrder, groupSortingItems(snapshot), sameItem);
+      const next = Array.from(restored, ([groupId, items]) =>
+        items.map((item) => (item.groupId === groupId ? item : { ...item, groupId })),
+      ).flat();
+      // Group order is owned by the DOM, including groups inserted during the drag.
       next.sort((a, b) => {
         if (a.groupId === b.groupId) {
           return 0;
@@ -464,4 +457,17 @@ export namespace ListboxSortableProvider {
   export type DropContext<Value = any> = ListboxSortingDropContext<Value>;
   export type ItemsReorderEventDetails<Value = any> = ListboxItemsReorderEventDetails<Value>;
   export type MoveItemsParameters<Value = any> = ListboxMoveItemsParameters<Value>;
+}
+
+function groupSortingItems<Value>(items: readonly ListboxSortingItem<Value>[]) {
+  const groups = new Map<string | null, ListboxSortingItem<Value>[]>();
+  for (const item of items) {
+    const siblings = groups.get(item.groupId);
+    if (siblings) {
+      siblings.push(item);
+    } else {
+      groups.set(item.groupId, [item]);
+    }
+  }
+  return groups;
 }

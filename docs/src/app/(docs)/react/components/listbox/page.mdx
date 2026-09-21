@@ -92,7 +92,7 @@ import { DemoListboxLiveReorderDnd } from './demos/live-reorder-dnd';
 
 ### Live sorting
 
-Set `reorderOn="move"` to update the order while dragging. Render each proposed order from `onItemsReorder`. Canceling the drag or dropping outside the list restores the original order.
+Set `reorderOn="move"` to update the order while dragging. Render each proposed order from `onItemsReorder`. Canceling the drag or dropping outside the list restores the original order. Items added during the drag stay in their current group and slot within that group. If that slot no longer exists after restoration, the item goes at the end. Item edits are kept, and deleted items are not restored.
 
 <DemoListboxLiveReorderDnd />
 
