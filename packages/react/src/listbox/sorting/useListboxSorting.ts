@@ -16,10 +16,17 @@ import { useListboxRootContext } from '../root/ListboxRootContext';
 import type { ListboxSortingItem, ListboxSortingContextValue } from './ListboxSortingContext';
 
 export interface ListboxSortingDestination {
-  /** Insertion index in the current list, before removing the moved items. */
+  /**
+   * Zero-based insertion index across the entire list, including all groups,
+   * before removing the moved items. This is not an index within the destination group.
+   *
+   * TODO: Clarify before merging. Tree's insertion index is relative to the
+   * destination parent, while Listbox's is relative to the entire list.
+   * Decide whether these sorting APIs should use the same convention.
+   */
   index: number;
-  /** Group of the destination item, or undefined for ungrouped items. */
-  groupId: string | undefined;
+  /** Group of the destination item, or null for ungrouped items. */
+  groupId: string | null;
 }
 export interface ListboxMoveItemsParameters<Value = any> {
   items: ListboxSortingItem<Value>[];
@@ -34,6 +41,15 @@ export type ListboxItemsReorderEventDetails<Value = any> = Omit<
     /** Complete proposed order, including group membership. Use this when moving items between groups. */
     order: ListboxSortingItem<Value>[];
   };
+export interface ListboxSortingAnnouncementParameters<Value = any> {
+  /** Moved items with their current values and positions. */
+  items: ListboxSortingItem<Value>[];
+  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  destination: ListboxSortingDestination | null;
+  reason: 'keyboard' | 'drag';
+  outcome: 'moved' | 'unchanged' | 'canceled';
+}
+
 export interface ListboxSortingParameters<Value = any> {
   /** Disables keyboard and pointer sorting. @default false */
   disabled?: boolean | undefined;
@@ -44,14 +60,16 @@ export interface ListboxSortingParameters<Value = any> {
   canMoveItems?: ((parameters: ListboxMoveItemsParameters<Value>) => boolean) | undefined;
   /** Disables sorting for an item without disabling selection. */
   isItemSortingDisabled?: ((item: ListboxSortingItem<Value>) => boolean) | undefined;
-  /** Customizes the announcement after an accepted keyboard move. */
-  getAnnouncement?: ((parameters: ListboxMoveItemsParameters<Value>) => string) | undefined;
+  /** Customizes polite announcements for completed keyboard moves and final pointer outcomes. */
+  getAnnouncement?:
+    ((parameters: ListboxSortingAnnouncementParameters<Value>) => string) | undefined;
 }
 
 export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>) {
   const store = useListboxRootContext();
   const rootDisabled = store.useState('disabled');
   const disabled = rootDisabled || !!props.disabled;
+  const isItemSortingDisabled = props.isItemSortingDisabled;
   const direction = useDirection();
   const frame = useAnimationFrame();
   const [announcement, setAnnouncement] = React.useState('');
@@ -59,6 +77,8 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     order: ListboxSortingItem<Value>[];
     sourceValue: Value;
     parameters: ListboxMoveItemsParameters<Value> | null;
+    outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
+    reason: 'keyboard' | 'drag';
   } | null>(null);
   const records = useRefWithInit(
     () =>
@@ -85,9 +105,10 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       )
       .map(([id, record], index) => ({ ...record.item.current, id, index }));
   });
-  const isDisabled = useStableCallback(
+  const isDisabled = React.useCallback(
     (item: ListboxSortingItem<Value>) =>
-      disabled || item.disabled || !!props.isItemSortingDisabled?.(item),
+      disabled || item.disabled || !!isItemSortingDisabled?.(item),
+    [disabled, isItemSortingDisabled],
   );
   const getItemIds = useStableCallback((id: CollectionItemId) => {
     const items = getOrderedItems();
@@ -118,6 +139,10 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       );
     },
   );
+  const clearAnnouncement = useStableCallback(() => {
+    pending.current = null;
+    setAnnouncement('');
+  });
   const reconcile = useStableCallback(() => {
     if (disabled) {
       pending.current = null;
@@ -148,24 +173,34 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     store.set('activeIndex', index);
     records.get(items[index].id)?.element.focus();
     if (proposal.parameters) {
-      const label = proposal.parameters.items
-        .map((item) => {
-          const current = items.find((entry) =>
-            store.state.isItemEqualToValue(entry.value, item.value),
-          );
-          return (
+      const moved = items.filter((item) =>
+        proposal.parameters!.items.some((entry) =>
+          store.state.isItemEqualToValue(entry.value, item.value),
+        ),
+      );
+      const first = moved[0];
+      const destination = first ? { index: first.index, groupId: first.groupId } : null;
+      const outcome = proposal.outcome ?? 'moved';
+      const label = moved
+        .map(
+          (item) =>
             store.state.itemToStringLabel?.(item.value) ??
-            (current && records.get(current.id)?.element.textContent) ??
-            String(item.value)
-          );
-        })
+            records.get(item.id)?.element.textContent ??
+            String(item.value),
+        )
         .join(', ');
+      const fallback = {
+        canceled: 'Sorting canceled.',
+        unchanged: 'Order unchanged.',
+        moved: `Moved ${label} to position ${(first?.index ?? index) + 1} of ${items.length}.`,
+      }[outcome];
       setAnnouncement(
-        props.getAnnouncement?.(proposal.parameters) ??
-          `Moved ${label} to position ${index + 1} of ${items.length}.`,
+        props.getAnnouncement?.({ items: moved, destination, reason: proposal.reason, outcome }) ??
+          fallback,
       );
     }
   });
+  const scheduleReconcile = useStableCallback(() => frame.request(reconcile));
   useIsoLayoutEffect(reconcile);
 
   const notifyOrder = useStableCallback(
@@ -218,6 +253,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
             order: next,
             sourceValue: current.find((item) => item.id === sourceId)!.value,
             parameters,
+            reason: 'keyboard',
           }
         : null;
       if (!notifyOrder(next, parameters, event, keyboard ? REASONS.keyboard : REASONS.drag)) {
@@ -231,8 +267,13 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     },
   );
   const requestFocus = useStableCallback(
-    (order: ListboxSortingItem<Value>[], sourceValue: Value) => {
-      pending.current = { order, sourceValue, parameters: null };
+    (
+      order: ListboxSortingItem<Value>[],
+      sourceValue: Value,
+      parameters: ListboxMoveItemsParameters<Value>,
+      outcome: 'moved' | 'unchanged' | 'canceled',
+    ) => {
+      pending.current = { order, sourceValue, parameters, outcome, reason: 'drag' };
       frame.request(reconcile);
     },
   );
@@ -295,6 +336,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       store,
       records,
       announcement,
+      clearAnnouncement,
       setupItem,
       handleKeyDown,
       getOrderedItems,
@@ -304,6 +346,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       move,
       notifyOrder,
       reconcile,
+      scheduleReconcile,
       requestFocus,
     }),
     [
@@ -311,6 +354,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       store,
       records,
       announcement,
+      clearAnnouncement,
       setupItem,
       handleKeyDown,
       getOrderedItems,
@@ -320,6 +364,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       move,
       notifyOrder,
       reconcile,
+      scheduleReconcile,
       requestFocus,
     ],
   );

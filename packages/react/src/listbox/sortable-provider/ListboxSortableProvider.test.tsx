@@ -31,7 +31,7 @@ function GroupedFixture({
   defer?: (apply: () => void) => void;
   selected?: string[];
 }) {
-  const [items, setItems] = React.useState<Array<{ value: string; groupId: string | undefined }>>([
+  const [items, setItems] = React.useState<Array<{ value: string; groupId: string | null }>>([
     { value: 'a', groupId: 'one' },
     { value: 'b', groupId: 'two' },
     { value: 'c', groupId: 'two' },
@@ -114,25 +114,106 @@ describe('<Listbox.SortableProvider />', () => {
     await dragOver(d, { clientY: 375 });
     expect(d).toHaveAttribute('data-drop-position', 'after');
     expect(onItemsReorder).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
     drop(d, { clientY: 375 });
     await flushRaf();
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
     await waitFor(() => expect(b).toHaveFocus());
+    expect(screen.getByRole('status')).toHaveTextContent('Moved a, b');
   });
+  it.each([false, true])(
+    'marks all moved items without changing the engine drag marker, canceled: %s',
+    async (canceled) => {
+      await render(<Fixture />);
+      setItemRects();
+      const a = screen.getByRole('option', { name: 'a' });
+      const b = screen.getByRole('option', { name: 'b' });
+      const d = screen.getByRole('option', { name: 'd' });
+      await lift(a, { clientY: 25 });
+      expect(a).toHaveAttribute('data-moving');
+      expect(b).toHaveAttribute('data-moving');
+      expect(a).toHaveAttribute('data-dragging');
+      expect(b).not.toHaveAttribute('data-dragging');
+      expect(d).not.toHaveAttribute('data-moving');
+      if (canceled) {
+        cancel();
+      } else {
+        await dragEnter(d, { clientY: 375 });
+        drop(d, { clientY: 375 });
+      }
+      await flushRaf();
+      expect(a).not.toHaveAttribute('data-moving');
+      expect(b).not.toHaveAttribute('data-moving');
+    },
+  );
+
+  it('does not mark selected items excluded from sorting as moving', async () => {
+    await render(<Fixture isItemSortingDisabled={({ value }) => value === 'b'} />);
+    setItemRects();
+    await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+    expect(screen.getByRole('option', { name: 'a' })).toHaveAttribute('data-moving');
+    expect(screen.getByRole('option', { name: 'b' })).not.toHaveAttribute('data-moving');
+    cancel();
+    await flushRaf();
+  });
+
+  it.each(['moved', 'canceled', 'unchanged'] as const)(
+    'customizes the final %s announcement',
+    async (outcome) => {
+      const getAnnouncement = vi.fn(({ outcome: result }) => `Result: ${result}`);
+      await render(
+        <Fixture
+          getAnnouncement={getAnnouncement}
+          onItemsReorder={(_, details) => {
+            if (outcome === 'canceled') {
+              details.cancel();
+            }
+          }}
+        />,
+      );
+      setItemRects();
+      const target = screen.getByRole('option', { name: outcome === 'unchanged' ? 'c' : 'd' });
+      const clientY = outcome === 'unchanged' ? 225 : 375;
+      await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+      await dragEnter(target, { clientY });
+      expect(getAnnouncement).not.toHaveBeenCalled();
+      drop(target, { clientY });
+      await flushRaf();
+      expect(getAnnouncement).toHaveBeenCalledExactlyOnceWith({
+        items: [
+          expect.objectContaining({ value: 'a', index: outcome === 'moved' ? 2 : 0 }),
+          expect.objectContaining({ value: 'b', index: outcome === 'moved' ? 3 : 1 }),
+        ],
+        destination: { groupId: null, index: outcome === 'moved' ? 2 : 0 },
+        reason: 'drag',
+        outcome,
+      });
+      expect(screen.getByRole('status')).toHaveTextContent(`Result: ${outcome}`);
+    },
+  );
+
   it('uses custom drop zones and shares movement validation with the keyboard', async () => {
     const canMoveItems = vi.fn(() => true);
-    await render(<Fixture getDropPosition={() => 'before'} canMoveItems={canMoveItems} />);
+    const getDropPosition = vi.fn(() => 'before' as const);
+    await render(<Fixture getDropPosition={getDropPosition} canMoveItems={canMoveItems} />);
     setItemRects();
     const d = screen.getByRole('option', { name: 'd' });
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(d, { clientY: 375 });
     expect(d).toHaveAttribute('data-drop-position', 'before');
+    expect(getDropPosition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        item: 'd',
+        itemMetadata: { index: 3, groupId: null, disabled: false },
+        source: expect.objectContaining({ collectionId: expect.any(Object), items: ['a', 'b'] }),
+      }),
+    );
     drop(d, { clientY: 375 });
     await flushRaf();
     expect(values()).toEqual(['c', 'a', 'b', 'd']);
     expect(canMoveItems).toHaveBeenCalledWith({
       items: [expect.objectContaining({ value: 'a' }), expect.objectContaining({ value: 'b' })],
-      destination: { index: 3, groupId: undefined },
+      destination: { index: 3, groupId: null },
     });
   });
   it('rejects a pointer move when canMoveItems rejects it', async () => {
@@ -153,8 +234,10 @@ describe('<Listbox.SortableProvider />', () => {
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'd' }), { clientY: 375 });
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
     cancel();
     await flushRaf();
+    expect(screen.getByRole('status')).toHaveTextContent('Sorting canceled.');
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onSortEnd).toHaveBeenCalledWith({ itemIds: expect.any(Array), canceled: true });
   });
@@ -294,6 +377,7 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(screen.getByRole('option', { name: 'a' })).not.toBe(a);
     await waitFor(() => expect(screen.getByRole('option', { name: 'a' })).toHaveFocus());
+    expect(screen.getByRole('status')).toHaveTextContent('Moved a');
   });
   it('keeps externally inserted items when canceling a live move', async () => {
     let updateItems: React.Dispatch<React.SetStateAction<string[]>>;
@@ -384,6 +468,120 @@ describe('<Listbox.SortableProvider />', () => {
       expect(screen.getByRole('option', { name: 'a' })).toHaveFocus();
     },
   );
+  it.each([false, true])(
+    'supersedes a deferred live move on cancellation, separate commits %s',
+    async (separateCommits) => {
+      const updates: Array<() => void> = [];
+      await render(<GroupedFixture reorderOn="move" defer={(apply) => updates.push(apply)} />);
+      setItemRects();
+      await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+      await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
+      expect(updates).toHaveLength(1);
+      cancel();
+      expect(updates).toHaveLength(2);
+      if (separateCommits) {
+        await act(() => updates[0]());
+        await flushRaf();
+        await act(() => updates[1]());
+      } else {
+        await act(() => updates.forEach((apply) => apply()));
+      }
+      await flushRaf();
+      expect(values()).toEqual(['a', 'b', 'c']);
+      expect(within(screen.getByTestId('one')).getByRole('option', { name: 'a' })).toBeVisible();
+      expect(screen.getByRole('option', { name: 'a' })).toHaveFocus();
+    },
+  );
+
+  it('restores the original order when a later live proposal is deferred', async () => {
+    const updates: Array<() => void> = [];
+    function DeferredList() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+      return (
+        <Listbox.Root>
+          <Listbox.SortableProvider
+            reorderOn="move"
+            onItemsReorder={(next) => updates.push(() => setItems(next))}
+          >
+            <Listbox.List>
+              {items.map((value) => (
+                <Listbox.Item key={value} value={value}>
+                  {value}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>
+      );
+    }
+    await render(<DeferredList />);
+    setItemRects();
+    await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+    await dragEnter(screen.getByRole('option', { name: 'b' }), { clientY: 175 });
+    await act(() => updates[0]());
+    await flushRaf();
+    expect(values()).toEqual(['b', 'a', 'c']);
+    setItemRects();
+    await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
+    expect(updates).toHaveLength(2);
+    cancel();
+    expect(updates).toHaveLength(3);
+    await act(() => {
+      updates[1]();
+      updates[2]();
+    });
+    await flushRaf();
+    expect(values()).toEqual(['a', 'b', 'c']);
+    expect(screen.getByRole('option', { name: 'a' })).toHaveFocus();
+  });
+
+  it('batches collection reconciliation when many items render during a drag', async () => {
+    let update: () => void;
+    function Items() {
+      const [revision, setRevision] = React.useState(0);
+      update = () => setRevision((value) => value + 1);
+      return (
+        <React.Fragment>
+          {Array.from({ length: 40 }, (_, index) => (
+            <Listbox.Item key={index} value={index} data-revision={revision}>
+              {index}
+            </Listbox.Item>
+          ))}
+        </React.Fragment>
+      );
+    }
+    await render(
+      <Listbox.Root>
+        <Listbox.SortableProvider onItemsReorder={() => {}}>
+          <Listbox.List>
+            <Items />
+          </Listbox.List>
+        </Listbox.SortableProvider>
+      </Listbox.Root>,
+    );
+    setItemRects();
+    await lift(screen.getByRole('option', { name: '0' }), { clientY: 25 });
+    await flushRaf();
+    const query = vi.spyOn(screen.getByRole('listbox'), 'querySelectorAll');
+    try {
+      await act(() => update());
+      await flushRaf();
+      const scans = query.mock.calls.filter(([selector]) => selector === '[role="option"]');
+      expect(scans.length).toBeGreaterThan(0);
+      expect(scans.length).toBeLessThanOrEqual(3);
+      query.mockClear();
+      await dragEnter(screen.getByRole('option', { name: '1' }), { clientY: 175 });
+      const collisionScans = query.mock.calls.filter(
+        ([selector]) => selector === '[role="option"]',
+      );
+      // Collision eligibility must not scan the collection once for each of the 40 targets.
+      expect(collisionScans.length).toBeLessThan(20);
+    } finally {
+      query.mockRestore();
+      cancel();
+    }
+  });
+
   it('restores focus when a delayed pointer drop remounts an item in another group', async () => {
     let apply: (() => void) | undefined;
     await render(
@@ -400,9 +598,52 @@ describe('<Listbox.SortableProvider />', () => {
     await dragEnter(b, { clientY: 175 });
     drop(b, { clientY: 175 });
     await flushRaf();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
     await act(() => apply!());
     expect(screen.getByRole('option', { name: 'a' })).not.toBe(a);
     await waitFor(() => expect(screen.getByRole('option', { name: 'a' })).toHaveFocus());
+  });
+
+  it('discards pending focus and announcements when another pointer sort starts', async () => {
+    let apply: () => void = () => {};
+    const getAnnouncement = vi.fn(() => 'Move completed');
+    function DeferredList() {
+      const [items, setItems] = React.useState(['a', 'b', 'c']);
+      return (
+        <Listbox.Root>
+          <Listbox.SortableProvider
+            getAnnouncement={getAnnouncement}
+            onItemsReorder={(next) => {
+              apply = () => setItems(next);
+            }}
+          >
+            <Listbox.List>
+              {items.map((value) => (
+                <Listbox.Item key={value} value={value}>
+                  {value}
+                </Listbox.Item>
+              ))}
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>
+      );
+    }
+    await render(<DeferredList />);
+    setItemRects();
+    const a = screen.getByRole('option', { name: 'a' });
+    const b = screen.getByRole('option', { name: 'b' });
+    await lift(a, { clientY: 25 });
+    await dragEnter(b, { clientY: 175 });
+    drop(b, { clientY: 175 });
+    await flushRaf();
+    await lift(b, { clientY: 125 });
+    await act(() => b.focus());
+    await act(() => apply());
+    await flushRaf();
+    expect(b).toHaveFocus();
+    expect(getAnnouncement).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    cancel();
   });
 
   it('restores grouped order and focus while preserving a newly inserted item', async () => {

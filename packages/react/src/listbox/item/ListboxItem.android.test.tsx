@@ -30,8 +30,6 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
-
     const handle = screen.getByTestId('handle');
     const eventWasCancelled = !fireEvent.contextMenu(handle);
     await flushMicrotasks();
@@ -48,12 +46,32 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
       </Listbox.Root>,
     );
 
-    await flushMicrotasks();
-
     const item = screen.getByRole('option', { name: 'a' });
     const eventWasCancelled = !fireEvent.contextMenu(item);
     await flushMicrotasks();
 
     expect(eventWasCancelled).toBe(false);
   });
+
+  it.each(['provider', 'item', 'draggable'] as const)(
+    'keeps the native context menu when sorting is disabled by %s',
+    async (mode) => {
+      await render(
+        <Listbox.Root>
+          <Listbox.SortableProvider
+            onItemsReorder={vi.fn()}
+            disabled={mode === 'provider'}
+            isItemSortingDisabled={() => mode === 'item'}
+          >
+            <Listbox.List>
+              <Listbox.Item value="a" draggableProps={{ disabled: mode === 'draggable' }}>
+                a
+              </Listbox.Item>
+            </Listbox.List>
+          </Listbox.SortableProvider>
+        </Listbox.Root>,
+      );
+      expect(fireEvent.contextMenu(screen.getByRole('option', { name: 'a' }))).toBe(true);
+    },
+  );
 });

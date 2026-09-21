@@ -6,14 +6,24 @@ import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 export interface ListboxSortingItem<Value = any> {
   id: CollectionItemId;
   value: Value;
+  /**
+   * Zero-based item index across the entire list, including all groups.
+   * This is not an index within the item's group.
+   *
+   * TODO: Clarify before merging. Listbox uses a list-wide index, while Tree uses
+   * an index within the item's parent. Decide whether sorting should share one
+   * convention across both components or retain and document this difference.
+   */
   index: number;
-  groupId: string | undefined;
+  /** The containing group's ID, or null for an ungrouped item. */
+  groupId: string | null;
   disabled: boolean;
 }
 
 export interface ListboxSortingContextValue {
   disabled: boolean;
-  reconcile: () => void;
+  isDisabled: (item: ListboxSortingItem) => boolean;
+  scheduleReconcile: () => void;
   setupItem: (
     id: CollectionItemId,
     element: HTMLElement,

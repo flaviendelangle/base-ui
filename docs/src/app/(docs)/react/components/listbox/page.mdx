@@ -69,7 +69,11 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 Wrap the list in `Listbox.KeyboardSortableProvider` to enable keyboard sorting. Pass `onItemsReorder` and render the values in the proposed order.
 Focus an item and press <kbd>Alt</kbd> + <kbd>ArrowUp</kbd> or <kbd>Alt</kbd> + <kbd>ArrowDown</kbd> to move it. Horizontal lists use <kbd>Alt</kbd> + <kbd>ArrowLeft</kbd> and <kbd>Alt</kbd> + <kbd>ArrowRight</kbd>, respecting the text direction.
 
+Completed keyboard moves and final pointer outcomes are announced politely. Live pointer sorting does not announce intermediate positions. Use `getAnnouncement` on either provider to customize the text. It receives `items` with their current values and positions, `destination`, `reason` (`'keyboard'` or `'drag'`), and `outcome` (`'moved'`, `'unchanged'`, or `'canceled'`). The destination describes the first moved item's resulting group and flat list index after the operation, or is `null` if no moved items remain. Return an empty string to suppress a message.
+
 Sorting a selected item moves the selected items together in list order. Disabled items stay in place. Selection continues to work with <kbd>Enter</kbd> and <kbd>Space</kbd>.
+
+Use `isItemSortingDisabled` on either provider to exclude an item from sorting while keeping it selectable and available as a destination.
 
 import { DemoListboxSortingKeyboard } from './demos/sorting-keyboard';
 
@@ -116,10 +120,19 @@ Give each `Listbox.Group` a stable `id` when your application allows items to mo
 ### Drop positions
 
 By default, the first half of a row inserts before it, and the second half inserts after it. Horizontal lists use the corresponding left and right halves.
-Use `getDropPosition` to change these zones. It receives the row, the dragged payload, and normalized pointer coordinates. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
+Use `getDropPosition` to change these zones. It receives the application value as `item`, sorting metadata as `itemMetadata`, the dragged payload, and normalized pointer coordinates. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
+
+`groupId` is `null` for ungrouped items. Item and destination indices are zero-based and span the entire list, including all groups. They do not reset at group boundaries. Destination insertion indices refer to the order before removing the moved items.
+
+> **TODO: Clarify before merging.** Listbox sorting uses indices across the entire list. Tree sorting uses indices within the current or destination parent. Decide whether both sorting APIs should use the same convention or retain and document this difference.
+
 Use `onDropPositionChange` for a custom placement indicator. Items also expose `data-drop-position="before"` or `data-drop-position="after"`.
 
+Use `data-moving` to style all items participating in the active pointer sort. The equivalent render state is `moving`. Selected items disabled for sorting are excluded. This state clears when the gesture ends or is canceled. The drag engine's `data-dragging` remains limited to the item physically picked up.
+
 ### Preview and drag options
+
+The preview callback receives item values captured at pickup. Later value replacements do not change that data; values are not deep-cloned.
 
 The default preview clones the dragged row. Render `Listbox.SortPreview` inside an item to customize it, show a selected-item count, or hide it with `disabled`:
 
@@ -137,7 +150,7 @@ Pass `draggableProps` to `Listbox.Item` to configure activation, modifiers, or d
 ### Drag and drop outside the list
 
 For interactions with elements outside the Listbox, use the [Draggable utility](/react/utils/draggable).
-Pass a shared `kind` to `Listbox.SortableProvider` and the external target. `getDragPayload` supplies application data in the payload's `data` field.
+Pass a shared `kind` to `Listbox.SortableProvider` and the external target. `getDragPayload` supplies application data in the payload's `data` field. The payload also contains `id`, `itemIds`, pickup snapshots in `items`, and an opaque `collectionId` identifying the source collection, matching Tree sorting payloads.
 The external target handles the transfer and updates the affected collections. Listbox sorting only reorders items within its own list.
 
 ### Custom keyboard shortcuts
@@ -150,7 +163,7 @@ import { DemoListboxCustomShortcuts } from './demos/custom-shortcuts';
 
 ## API reference
 
-import { TypesListbox } from './types';
+import { TypesListbox, TypesListboxAdditional } from './types';
 
 ### Root
 
@@ -203,6 +216,8 @@ import { TypesListbox } from './types';
 ### LoadingTrigger
 
 <TypesListbox.LoadingTrigger />
+
+<TypesListboxAdditional />
 
 export const metadata = {
   keywords: [

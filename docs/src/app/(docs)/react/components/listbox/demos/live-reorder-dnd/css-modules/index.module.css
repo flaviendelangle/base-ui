@@ -73,7 +73,7 @@
     content: '';
   }
 
-  &[data-dragging] {
+  &[data-moving] {
     opacity: 0;
   }
 }

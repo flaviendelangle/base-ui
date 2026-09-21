@@ -14,3 +14,5 @@ export type * from './keyboard-sortable-provider/ListboxKeyboardSortableProvider
 export type * from './sortable-provider/ListboxSortableProvider';
 export type * from './sort-handle/ListboxSortHandle';
 export type * from './sort-preview/ListboxSortPreview';
+export type { ListboxSortingItem } from './sorting/ListboxSortingContext';
+export type { ListboxSortingDestination } from './sorting/useListboxSorting';

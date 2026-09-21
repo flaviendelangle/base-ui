@@ -19,7 +19,7 @@ const initialItems: Song[] = [
 const ITEM_CLASS =
   'relative grid cursor-grab grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-gray-900 outline-hidden select-none ' +
   'data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-gray-100 ' +
-  'data-[dragging]:opacity-0 ' +
+  'data-[moving]:opacity-0 ' +
   'motion-safe: ' +
   'motion-safe: ' +
   'pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]';

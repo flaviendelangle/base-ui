@@ -54,11 +54,29 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       expect(b).toHaveFocus();
       expect(b).toHaveAttribute('aria-selected', 'true');
       await waitFor(() =>
-        expect(screen.getByRole('status')).toHaveTextContent('Moved a, b to position 3 of 4.'),
+        expect(screen.getByRole('status')).toHaveTextContent('Moved a, b to position 2 of 4.'),
       );
       await keyDown(b, { key: 'ArrowDown' });
       await waitFor(() => expect(screen.getByRole('option', { name: 'd' })).toHaveFocus());
     });
+    it('customizes announcements with the resulting position and input reason', async () => {
+      const getAnnouncement = vi.fn(() => 'Custom move announcement');
+      await render(<Fixture getAnnouncement={getAnnouncement} />);
+      await keyDown(screen.getByRole('option', { name: 'b' }), { key: 'ArrowDown', altKey: true });
+      await waitFor(() =>
+        expect(getAnnouncement).toHaveBeenCalledExactlyOnceWith({
+          items: [
+            expect.objectContaining({ value: 'a', index: 1 }),
+            expect.objectContaining({ value: 'b', index: 2 }),
+          ],
+          destination: { groupId: null, index: 1 },
+          reason: 'keyboard',
+          outcome: 'moved',
+        }),
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Custom move announcement');
+    });
+
     it('applies canMoveItems to keyboard moves', async () => {
       const onItemsReorder = vi.fn();
       const canMoveItems = vi.fn(() => false);
@@ -69,7 +87,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       });
       expect(canMoveItems).toHaveBeenCalledWith({
         items: [expect.objectContaining({ value: 'a' }), expect.objectContaining({ value: 'b' })],
-        destination: { index: 3, groupId: undefined },
+        destination: { index: 3, groupId: null },
       });
       expect(onItemsReorder).not.toHaveBeenCalled();
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
@@ -115,6 +133,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
           onItemsReorder={onItemsReorder}
         />,
       );
+      expect(screen.getByRole('option', { name: 'a' })).not.toHaveAttribute('aria-keyshortcuts');
+      expect(screen.getByRole('option', { name: 'b' })).toHaveAttribute('aria-keyshortcuts');
       await keyDown(screen.getByRole('option', { name: 'b' }), {
         key: 'ArrowDown',
         altKey: true,

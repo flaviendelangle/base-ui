@@ -20,6 +20,7 @@ import {
   type ListboxSortingParameters,
   type ListboxItemsReorderEventDetails,
   type ListboxMoveItemsParameters,
+  type ListboxSortingAnnouncementParameters,
 } from '../sorting/useListboxSorting';
 
 export interface ListboxSortingDragPayload<Value = any> {
@@ -27,18 +28,26 @@ export interface ListboxSortingDragPayload<Value = any> {
   itemIds: CollectionItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
-  listId: object;
+  collectionId: object;
   /** Application data supplied by getDragPayload. */
   data?: unknown;
 }
 export interface ListboxSortingDropPosition {
   id: CollectionItemId;
   placement: 'before' | 'after';
-  /** Override the insertion index, before removing the moved items. */
+  /**
+   * Override the zero-based insertion index across the entire list, including all
+   * groups, before removing the moved items. Not relative to the destination group.
+   *
+   * TODO: Clarify before merging. Tree's override is relative to the destination
+   * parent; decide whether both sorting APIs should use the same convention.
+   */
   index?: number | undefined;
 }
 export interface ListboxSortingDropContext<Value = any> {
-  item: ListboxSortingItem<Value>;
+  /** The application value of the row under the pointer. */
+  item: Value;
+  itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
   itemId: CollectionItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
@@ -87,11 +96,13 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   const position = React.useRef<ListboxSortingDropPosition | null>(null);
   const originalOrder = React.useRef<ListboxSortingItem<Value>[] | null>(null);
   const expectedOrder = React.useRef<ListboxSortingItem<Value>[] | null>(null);
+  const proposalBase = React.useRef<ListboxSortingItem<Value>[] | null>(null);
   const lastMovePosition = React.useRef<ListboxSortingDropPosition | null>(null);
   const moved = React.useRef(false);
   const lastEvent = React.useRef<Event | null>(null);
   const activePayload = React.useRef<ListboxSortingDragPayload<Value> | null>(null);
   const focusFrame = useAnimationFrame();
+  const reconcileFrame = useAnimationFrame();
 
   const getSourceItems = useStableCallback((source: ListboxSortingDragPayload<Value>) =>
     sorting
@@ -100,21 +111,21 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
         source.items.some((value) => store.state.isItemEqualToValue(item.value, value)),
       ),
   );
-  const hasExpectedOrder = useStableCallback(() => {
-    if (!expectedOrder.current) {
-      return true;
-    }
-    const current = sorting.getOrderedItems();
-    const matches = (a: ListboxSortingItem<Value>, b: ListboxSortingItem<Value>) =>
-      store.state.isItemEqualToValue(a.value, b.value);
-    const expected = expectedOrder.current.filter((item) =>
-      current.some((entry) => matches(entry, item)),
-    );
-    const known = current.filter((item) => expected.some((entry) => matches(entry, item)));
-    return known.every(
-      (item, index) => matches(item, expected[index]) && item.groupId === expected[index].groupId,
-    );
-  });
+  const hasExpectedOrder = useStableCallback(
+    (order: ListboxSortingItem<Value>[] | null = expectedOrder.current) => {
+      if (!order) {
+        return true;
+      }
+      const current = sorting.getOrderedItems();
+      const matches = (a: ListboxSortingItem<Value>, b: ListboxSortingItem<Value>) =>
+        store.state.isItemEqualToValue(a.value, b.value);
+      const expected = order.filter((item) => current.some((entry) => matches(entry, item)));
+      const known = current.filter((item) => expected.some((entry) => matches(entry, item)));
+      return known.every(
+        (item, index) => matches(item, expected[index]) && item.groupId === expected[index].groupId,
+      );
+    },
+  );
   const getDestination = useStableCallback((next: ListboxSortingDropPosition) => {
     const ordered = sorting.getOrderedItems();
     const target = ordered.find((item) => item.id === next.id);
@@ -140,7 +151,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       collision: Draggable.CollisionProvider.Collision<ListboxSortingDragPayload<Value>> | null,
       source: ListboxSortingDragPayload<Value>,
     ) => {
-      if (!collision || source.listId !== store || sorting.disabled) {
+      if (!collision || source.collectionId !== store || sorting.disabled) {
         return null;
       }
       const sourceIds = getSourceItems(source).map((item) => item.id);
@@ -154,7 +165,14 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       const coordinate = store.state.orientation === 'horizontal' ? horizontalCoordinate : point.y;
       const defaultPlacement = coordinate < 0.5 ? 'before' : 'after';
       const resolved = getDropPosition
-        ? getDropPosition({ item, itemId: id, point, collision, source })
+        ? getDropPosition({
+            item: item.value,
+            itemMetadata: { index: item.index, groupId: item.groupId, disabled: item.disabled },
+            itemId: id,
+            point,
+            collision,
+            source,
+          })
         : defaultPlacement;
       if (!resolved) {
         return null;
@@ -186,7 +204,14 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   const rollback = useStableCallback(() => {
     const snapshot = originalOrder.current;
     const source = activePayload.current;
-    if (!snapshot || !source || !moved.current || !lastEvent.current || !hasExpectedOrder()) {
+    const awaitingProposal = !hasExpectedOrder();
+    if (
+      !snapshot ||
+      !source ||
+      !moved.current ||
+      !lastEvent.current ||
+      (awaitingProposal && (!proposalBase.current || !hasExpectedOrder(proposalBase.current)))
+    ) {
       return undefined;
     }
     const current = sorting.getOrderedItems();
@@ -229,15 +254,17 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
     });
     const sourceIds = getSourceItems(source).map((item) => item.id);
     if (
+      awaitingProposal ||
       !next.every((item, i) => item.id === current[i].id && item.groupId === current[i].groupId)
     ) {
+      // Supersede a queued live proposal even if the rendered order is already restored.
       const accepted = sorting.notifyOrder(
         next,
         {
           items: current.filter((item) => sourceIds.includes(item.id)),
           destination: {
             index: next.findIndex((item) => sourceIds.includes(item.id)),
-            groupId: next.find((item) => sourceIds.includes(item.id))?.groupId,
+            groupId: next.find((item) => sourceIds.includes(item.id))?.groupId ?? null,
           },
         },
         lastEvent.current,
@@ -252,6 +279,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       rollback();
       originalOrder.current = null;
       expectedOrder.current = null;
+      proposalBase.current = null;
       activePayload.current = null;
       moved.current = false;
       store.set('dragActiveItemIds', null);
@@ -281,13 +309,19 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             details.cancel();
           }
         }}
-        collisionPayload={{ id, itemIds: [id], items: [], listId: store }}
+        collisionPayload={{ id, itemIds: [id], items: [], collectionId: store }}
         getPayload={() => {
           const itemIds = getItemIds(id);
           const items = getOrderedItems()
             .filter((item) => itemIds.includes(item.id))
             .map((item) => item.value);
-          return { id, itemIds, items, listId: store, data: getDragPayload?.({ itemIds, items }) };
+          return {
+            id,
+            itemIds,
+            items,
+            collectionId: store,
+            data: getDragPayload?.({ itemIds, items }),
+          };
         }}
       />
     ),
@@ -303,7 +337,11 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       }
     }
   });
-  const context = React.useMemo(() => ({ ...sorting, reconcile }), [sorting, reconcile]);
+  const scheduleReconcile = useStableCallback(() => reconcileFrame.request(reconcile));
+  const context = React.useMemo(
+    () => ({ ...sorting, scheduleReconcile }),
+    [sorting, scheduleReconcile],
+  );
   const sortable = React.useMemo(() => ({ renderItem }), [renderItem]);
   return (
     <ListboxSortingContext.Provider value={context}>
@@ -311,17 +349,19 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
         <Draggable.CollisionProvider
           kind={kind}
           canCollide={({ source, target }) =>
-            source.payload.listId === store &&
+            source.payload.collectionId === store &&
             !sorting.disabled &&
-            !sorting.getOrderedItems().find((item) => item.id === target.id)?.disabled
+            !sorting.records.get(target.id)?.item.current.disabled
           }
           onMoveStart={({ source }) => {
-            if (source.payload.listId !== store) {
+            if (source.payload.collectionId !== store) {
               return;
             }
             focusFrame.cancel();
+            sorting.clearAnnouncement();
             originalOrder.current = null;
             expectedOrder.current = null;
+            proposalBase.current = null;
             lastMovePosition.current = null;
             moved.current = false;
             activePayload.current = source.payload;
@@ -343,13 +383,15 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             ) {
               const destination = getDestination(next);
               if (destination) {
-                originalOrder.current ??= sorting.getOrderedItems();
+                const current = sorting.getOrderedItems();
+                originalOrder.current ??= current;
                 const result = sorting.move(
                   getSourceItems(event.source.payload).map((item) => item.id),
                   destination,
                   details.event,
                 );
                 if (result?.changed) {
+                  proposalBase.current = current;
                   expectedOrder.current = result.items;
                   lastMovePosition.current = next;
                   moved.current = true;
@@ -359,7 +401,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
           }}
           onMoveEnd={(event, details) => {
             const source = event.source.payload;
-            if (source.listId !== store) {
+            if (source.collectionId !== store) {
               return;
             }
             lastEvent.current = details.event;
@@ -367,7 +409,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             const sourceIds = getSourceItems(source).map((item) => item.id);
             const onSource =
               event.dropTarget?.element === event.source.element ||
-              (event.collision?.target.payload.listId === store &&
+              (event.collision?.target.payload.collectionId === store &&
                 sourceIds.includes(event.collision.target.payload.id));
             const lastDestination =
               lastMovePosition.current && getDestination(lastMovePosition.current);
@@ -378,6 +420,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
               lastDestination &&
               sourceIds.length === source.items.length &&
               sorting.canMove(sourceIds, lastDestination);
+            let changed = moved.current;
             let focusOrder = sorting.getOrderedItems();
             let canceled = event.canceled || !hasExpectedOrder() || (!next && !canKeepLiveMove);
             if (!canceled && next) {
@@ -385,6 +428,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
               const result = destination && sorting.move(sourceIds, destination, details.event);
               canceled = !result;
               if (result) {
+                changed ||= result.changed;
                 focusOrder = result.items;
               }
             }
@@ -396,9 +440,25 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
             originalOrder.current = null;
             activePayload.current = null;
             expectedOrder.current = null;
+            proposalBase.current = null;
             lastMovePosition.current = null;
             moved.current = false;
-            sorting.requestFocus(focusOrder, source.items[source.itemIds.indexOf(source.id)]);
+            const finalItems = focusOrder.filter((item) =>
+              source.items.some((value) => store.state.isItemEqualToValue(item.value, value)),
+            );
+            const completedOutcome = changed ? 'moved' : 'unchanged';
+            sorting.requestFocus(
+              focusOrder,
+              source.items[source.itemIds.indexOf(source.id)],
+              {
+                items: finalItems,
+                destination: {
+                  index: focusOrder.indexOf(finalItems[0]),
+                  groupId: finalItems[0]?.groupId ?? null,
+                },
+              },
+              canceled ? 'canceled' : completedOutcome,
+            );
             focusFrame.request(() => {
               store.context.pointerMoveSuppressedRef.current = false;
             });
@@ -417,6 +477,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   );
 }
 export namespace ListboxSortableProvider {
+  export type AnnouncementParameters<Value = any> = ListboxSortingAnnouncementParameters<Value>;
   export type Props<Value = any> = ListboxSortableProviderProps<Value>;
   export type DragPayload<Value = any> = ListboxSortingDragPayload<Value>;
   export type DropPosition = ListboxSortingDropPosition;

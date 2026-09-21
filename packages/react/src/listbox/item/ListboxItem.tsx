@@ -103,7 +103,6 @@ export const ListboxItem = React.memo(
     const isItemEqualToValue = store.useState('isItemEqualToValue');
     const {
       disabledItemsRef,
-      groupIdsRef,
       lastSelectedIndexRef,
       pointerMoveSuppressedRef,
       setValue,
@@ -112,12 +111,10 @@ export const ListboxItem = React.memo(
 
     const index = listItem.index;
     const hasRegistered = index !== -1;
-    const groupId = groupContext?.groupId;
+    const groupId = groupContext?.groupId ?? null;
 
     const itemRef = React.useRef<HTMLDivElement | null>(null);
     const indexRef = useValueAsRef(index);
-    const dragEnabled = sortable != null && hasRegistered && !rootDisabled;
-    const preventContextMenuOnAndroid = platform.os.android && dragEnabled && !disabled;
     const handleContextMenu = React.useCallback((event: BaseUIEvent<React.MouseEvent>) => {
       event.preventDefault();
     }, []);
@@ -130,9 +127,15 @@ export const ListboxItem = React.memo(
       disabled,
       groupId,
     });
-    const isDragging = store.useState('isDragging', dragItemId);
+    const moving = store.useState('isMoving', dragItemId);
     const dropPosition = store.useState('dropPositionForItem', dragItemId);
     const dragOver = dropPosition !== null;
+    const sortingEnabled =
+      sorting != null &&
+      dragItemId !== undefined &&
+      !sorting.isDisabled({ id: dragItemId, value: itemValue, index, groupId, disabled });
+    const preventContextMenuOnAndroid =
+      platform.os.android && sortable != null && sortingEnabled && !draggableProps?.disabled;
 
     useListItemValueRegistration({
       index,
@@ -154,25 +157,11 @@ export const ListboxItem = React.memo(
       };
     }, [disabled, disabledItemsRef, hasRegistered, index, rootDisabled]);
 
-    // Register this item's groupId for selection and drag-and-drop metadata.
-    useIsoLayoutEffect(() => {
-      if (!hasRegistered) {
-        return undefined;
-      }
-
-      const groupIds = groupIdsRef.current;
-      groupIds[index] = groupContext?.groupId;
-
-      return () => {
-        delete groupIds[index];
-      };
-    }, [hasRegistered, index, groupContext?.groupId, groupIdsRef]);
-
     const state: ListboxItemState = {
       disabled,
       selected,
       highlighted,
-      dragging: isDragging,
+      moving,
       dragOver,
       dropPosition,
     };
@@ -261,7 +250,7 @@ export const ListboxItem = React.memo(
     const defaultProps: HTMLProps = {
       role: 'option',
       'aria-selected': selected,
-      'aria-keyshortcuts': sorting && !sorting.disabled && !disabled ? sortKeys : undefined,
+      'aria-keyshortcuts': sortingEnabled ? sortKeys : undefined,
       tabIndex: highlighted ? 0 : -1,
       onFocus() {
         store.set('activeIndex', index);
@@ -359,9 +348,15 @@ export interface ListboxItemState {
    */
   highlighted: boolean;
   /**
-   * Whether the item is currently being dragged.
+   * Whether the item participates in the active pointer sorting operation.
+   * Includes the item physically picked up and any other selected items included
+   * in the move. Selected items disabled for sorting are excluded.
+   * Remains true throughout the gesture, including live reordering, and resets
+   * when the gesture ends or is canceled. Not set by keyboard sorting.
+   * Exposed as `data-moving`. The drag engine separately sets `data-dragging`
+   * only on the item physically picked up.
    */
-  dragging: boolean;
+  moving: boolean;
   /**
    * Whether a dragged item is over this item.
    */

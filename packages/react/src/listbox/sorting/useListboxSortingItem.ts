@@ -23,7 +23,7 @@ export interface UseListboxSortingItemParameters {
   /**
    * Group ID metadata exposed to provider sorting predicates.
    */
-  groupId: string | undefined;
+  groupId: string | null;
 }
 
 /**
@@ -52,7 +52,7 @@ export function useListboxSortingItem(
   }, [setupItem, enabled, itemId, item, itemRef]);
 
   useIsoLayoutEffect(() => {
-    sorting?.reconcile();
+    sorting?.scheduleReconcile();
   });
 
   return itemId;

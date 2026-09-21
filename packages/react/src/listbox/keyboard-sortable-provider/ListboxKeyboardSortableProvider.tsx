@@ -7,6 +7,7 @@ import {
   type ListboxSortingParameters,
   type ListboxItemsReorderEventDetails,
   type ListboxMoveItemsParameters,
+  type ListboxSortingAnnouncementParameters,
 } from '../sorting/useListboxSorting';
 
 /** Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announcement region. */
@@ -29,6 +30,7 @@ export interface ListboxKeyboardSortableProviderProps<
   children?: React.ReactNode;
 }
 export namespace ListboxKeyboardSortableProvider {
+  export type AnnouncementParameters<Value = any> = ListboxSortingAnnouncementParameters<Value>;
   export type Props<Value = any> = ListboxKeyboardSortableProviderProps<Value>;
   export type ItemsReorderEventDetails<Value = any> = ListboxItemsReorderEventDetails<Value>;
   export type MoveItemsParameters<Value = any> = ListboxMoveItemsParameters<Value>;

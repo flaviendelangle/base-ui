@@ -97,7 +97,7 @@
     background-color: oklch(92.2% 0 0deg);
   }
 
-  &[data-dragging] {
+  &[data-moving] {
     opacity: 0.5;
   }
 

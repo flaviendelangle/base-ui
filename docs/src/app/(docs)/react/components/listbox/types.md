@@ -143,14 +143,15 @@ Renders a `<div>` element.
 
 **Item Data Attributes:**
 
-| Attribute          | Type | Description                                                                                 |
-| :----------------- | :--- | :------------------------------------------------------------------------------------------ |
-| data-selected      | -    | Present when the listbox item is selected.                                                  |
-| data-highlighted   | -    | Present when the listbox item is highlighted.                                               |
-| data-dragging      | -    | Present when the listbox item is being dragged.                                             |
-| data-disabled      | -    | Present when the listbox item is disabled.                                                  |
-| data-drag-over     | -    | Present when a dragged item is over the listbox item.                                       |
-| data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`. |
+| Attribute          | Type | Description                                                                                                                                                                                                                                                                                                                           |
+| :----------------- | :--- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| data-selected      | -    | Present when the listbox item is selected.                                                                                                                                                                                                                                                                                            |
+| data-highlighted   | -    | Present when the listbox item is highlighted.                                                                                                                                                                                                                                                                                         |
+| data-dragging      | -    | Present only on the item physically picked up. Managed by the drag engine.                                                                                                                                                                                                                                                            |
+| data-disabled      | -    | Present when the listbox item is disabled.                                                                                                                                                                                                                                                                                            |
+| data-drag-over     | -    | Present when a dragged item is over the listbox item.                                                                                                                                                                                                                                                                                 |
+| data-drop-position | -    | Indicates the drop position relative to the item.&#xA;The value is `'before'` or `'after'`.                                                                                                                                                                                                                                           |
+| data-moving        | -    | Present while the item participates in an active pointer sort, including&#xA;selected items moving with the picked-up item. Items disabled for sorting are excluded.&#xA;Removed when the gesture ends or is canceled; not set by keyboard sorting.&#xA;Unlike `data-dragging`, this does not mean the item was physically picked up. |
 
 ### Item.Props
 
@@ -166,8 +167,16 @@ type ListboxItemState = {
   selected: boolean;
   /** Whether the item is highlighted. */
   highlighted: boolean;
-  /** Whether the item is currently being dragged. */
-  dragging: boolean;
+  /**
+   * Whether the item participates in the active pointer sorting operation.
+   * Includes the item physically picked up and any other selected items included
+   * in the move. Selected items disabled for sorting are excluded.
+   * Remains true throughout the gesture, including live reordering, and resets
+   * when the gesture ends or is canceled. Not set by keyboard sorting.
+   * Exposed as `data-moving`. The drag engine separately sets `data-dragging`
+   * only on the item physically picked up.
+   */
+  moving: boolean;
   /** Whether a dragged item is over this item. */
   dragOver: boolean;
   /** The drop position relative to this item, or `null` when the item is not being dragged over. */
@@ -319,7 +328,7 @@ Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announce
 | Prop                  | Type                                                                          | Default | Description                                                                                        |
 | :-------------------- | :---------------------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------- |
 | canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                | -       | Applies the same movement rules to keyboard and pointer sorting.                                   |
-| getAnnouncement       | `((parameters: ListboxMoveItemsParameters<Value>) => string)`                 | -       | Customizes the announcement after an accepted keyboard move.                                       |
+| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`       | -       | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
 | isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                              | -       | Disables sorting for an item without disabling selection.                                          |
 | onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)` | -       | Called with all values in their proposed order. Render the items in this order to accept the move. |
 | disabled              | `boolean`                                                                     | `false` | Disables keyboard and pointer sorting.                                                             |
@@ -328,6 +337,19 @@ Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announce
 ### KeyboardSortableProvider.Props
 
 Re-export of [KeyboardSortableProvider](#keyboardsortableprovider) props.
+
+### KeyboardSortableProvider.AnnouncementParameters
+
+```typescript
+type ListboxKeyboardSortableProviderAnnouncementParameters<Value = any> = {
+  /** Moved items with their current values and positions. */
+  items: ListboxSortingItem<Value>[];
+  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  destination: ListboxSortingDestination | null;
+  reason: 'keyboard' | 'drag';
+  outcome: 'moved' | 'unchanged' | 'canceled';
+};
+```
 
 ### KeyboardSortableProvider.ItemsReorderEventDetails
 
@@ -401,7 +423,7 @@ Enables keyboard and pointer sorting with automatic item registration.
 | Prop                  | Type                                                                                                         | Default  | Description                                                                                        |
 | :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------- |
 | canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                   |
-| getAnnouncement       | `((parameters: ListboxMoveItemsParameters<Value>) => string)`                                                | -        | Customizes the announcement after an accepted keyboard move.                                       |
+| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`                                      | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
 | getDragPayload        | `((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => unknown)`                                 | -        | Returns application data stored in the drag payload's data field.                                  |
 | getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                    |
 | isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                          |
@@ -417,6 +439,19 @@ Enables keyboard and pointer sorting with automatic item registration.
 
 Re-export of [SortableProvider](#sortableprovider) props.
 
+### SortableProvider.AnnouncementParameters
+
+```typescript
+type ListboxSortableProviderAnnouncementParameters<Value = any> = {
+  /** Moved items with their current values and positions. */
+  items: ListboxSortingItem<Value>[];
+  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  destination: ListboxSortingDestination | null;
+  reason: 'keyboard' | 'drag';
+  outcome: 'moved' | 'unchanged' | 'canceled';
+};
+```
+
 ### SortableProvider.DragPayload
 
 ```typescript
@@ -425,7 +460,7 @@ type ListboxSortableProviderDragPayload<Value = any> = {
   itemIds: CollectionItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
-  listId: {};
+  collectionId: {};
   /** Application data supplied by getDragPayload. */
   data?: unknown;
 };
@@ -435,7 +470,9 @@ type ListboxSortableProviderDragPayload<Value = any> = {
 
 ```typescript
 type ListboxSortableProviderDropContext<Value = any> = {
-  item: ListboxSortingItem<Value>;
+  /** The application value of the row under the pointer. */
+  item: Value;
+  itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
   itemId: CollectionItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
@@ -450,7 +487,13 @@ type ListboxSortableProviderDropContext<Value = any> = {
 type ListboxSortableProviderDropPosition = {
   id: CollectionItemId;
   placement: 'before' | 'after';
-  /** Override the insertion index, before removing the moved items. */
+  /**
+   * Override the zero-based insertion index across the entire list, including all
+   * groups, before removing the moved items. Not relative to the destination group.
+   *
+   * TODO: Clarify before merging. Tree's override is relative to the destination
+   * parent; decide whether both sorting APIs should use the same convention.
+   */
   index?: number;
 };
 ```
@@ -639,6 +682,24 @@ type ListboxItemDraggableProps = {
 };
 ```
 
+### ListboxSortingDestination
+
+```typescript
+type ListboxSortingDestination = {
+  /**
+   * Zero-based insertion index across the entire list, including all groups,
+   * before removing the moved items. This is not an index within the destination group.
+   *
+   * TODO: Clarify before merging. Tree's insertion index is relative to the
+   * destination parent, while Listbox's is relative to the entire list.
+   * Decide whether these sorting APIs should use the same convention.
+   */
+  index: number;
+  /** Group of the destination item, or null for ungrouped items. */
+  groupId: string | null;
+};
+```
+
 ### ListboxSortingDragPayload
 
 ```typescript
@@ -647,7 +708,7 @@ type ListboxSortingDragPayload<Value = any> = {
   itemIds: CollectionItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
-  listId: {};
+  collectionId: {};
   /** Application data supplied by getDragPayload. */
   data?: unknown;
 };
@@ -657,7 +718,9 @@ type ListboxSortingDragPayload<Value = any> = {
 
 ```typescript
 type ListboxSortingDropContext<Value = any> = {
-  item: ListboxSortingItem<Value>;
+  /** The application value of the row under the pointer. */
+  item: Value;
+  itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
   itemId: CollectionItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
@@ -672,8 +735,35 @@ type ListboxSortingDropContext<Value = any> = {
 type ListboxSortingDropPosition = {
   id: CollectionItemId;
   placement: 'before' | 'after';
-  /** Override the insertion index, before removing the moved items. */
+  /**
+   * Override the zero-based insertion index across the entire list, including all
+   * groups, before removing the moved items. Not relative to the destination group.
+   *
+   * TODO: Clarify before merging. Tree's override is relative to the destination
+   * parent; decide whether both sorting APIs should use the same convention.
+   */
   index?: number;
+};
+```
+
+### ListboxSortingItem
+
+```typescript
+type ListboxSortingItem<Value = any> = {
+  id: CollectionItemId;
+  value: Value;
+  /**
+   * Zero-based item index across the entire list, including all groups.
+   * This is not an index within the item's group.
+   *
+   * TODO: Clarify before merging. Listbox uses a list-wide index, while Tree uses
+   * an index within the item's parent. Decide whether sorting should share one
+   * convention across both components or retain and document this difference.
+   */
+  index: number;
+  /** The containing group's ID, or null for an ungrouped item. */
+  groupId: string | null;
+  disabled: boolean;
 };
 ```
 
@@ -710,11 +800,11 @@ type CollectionItemId = string | number;
 - `Listbox.Group`: `Listbox.Group`, `Listbox.Group.State`, `Listbox.Group.Props`
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
-- `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.Props`, `Listbox.KeyboardSortableProvider.ItemsReorderEventDetails`, `Listbox.KeyboardSortableProvider.MoveItemsParameters`
-- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
+- `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.AnnouncementParameters`, `Listbox.KeyboardSortableProvider.Props`, `Listbox.KeyboardSortableProvider.ItemsReorderEventDetails`, `Listbox.KeyboardSortableProvider.MoveItemsParameters`
+- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
-- `Default`: `SelectionMode`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
+- `Default`: `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
 
 ## Canonical Types
 

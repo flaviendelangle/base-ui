@@ -47,7 +47,6 @@ export type Context = {
   valuesRef: React.RefObject<Array<any>>;
   labelsRef: React.RefObject<Array<string | null>>;
   disabledItemsRef: React.RefObject<Array<boolean | undefined>>;
-  groupIdsRef: React.RefObject<Array<string | undefined>>;
   typingRef: React.RefObject<boolean>;
   lastSelectedIndexRef: React.RefObject<number | null>;
   pointerMoveSuppressedRef: React.RefObject<boolean>;
@@ -89,7 +88,7 @@ export const selectors = {
 
   dragActiveItemIds: createSelector((state: State) => state.dragActiveItemIds),
   dragOverItemId: createSelector((state: State) => state.dragOverItemId),
-  isDragging: createSelector(
+  isMoving: createSelector(
     (state: State, itemId: CollectionItemId | undefined) =>
       itemId !== undefined &&
       state.dragActiveItemIds != null &&
@@ -153,7 +152,6 @@ function createInitialContext(): Context {
     valuesRef: { current: [] },
     labelsRef: { current: [] },
     disabledItemsRef: { current: [] },
-    groupIdsRef: { current: [] },
     typingRef: { current: false },
     lastSelectedIndexRef: { current: null },
     pointerMoveSuppressedRef: { current: false },
