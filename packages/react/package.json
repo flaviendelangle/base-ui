@@ -91,6 +91,7 @@
     "./internals/reasons": "./src/internals/reasons.ts",
     "./internals/resolveValueLabel": "./src/internals/resolveValueLabel.tsx",
     "./internals/RequestQueue": "./src/internals/RequestQueue.ts",
+    "./internals/sorting": "./src/internals/sorting/index.ts",
     "./internals/serializeValue": "./src/internals/serializeValue.ts",
     "./internals/stateAttributesMapping": "./src/internals/stateAttributesMapping.ts",
     "./internals/temporal": "./src/internals/temporal/index.ts",
