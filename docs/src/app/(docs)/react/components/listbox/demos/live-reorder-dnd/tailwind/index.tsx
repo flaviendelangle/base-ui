@@ -17,8 +17,8 @@ const initialItems: Song[] = [
 ];
 
 const ITEM_CLASS =
-  'relative grid cursor-grab grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-gray-900 outline-hidden select-none ' +
-  'data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-gray-100 ' +
+  'relative grid cursor-grab grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-neutral-900 dark:text-neutral-100 outline-hidden select-none ' +
+  'data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-neutral-100 dark:data-[highlighted]:before:bg-neutral-800 ' +
   'data-[moving]:opacity-0 ' +
   'motion-safe: ' +
   'motion-safe: ' +
@@ -30,15 +30,15 @@ export default function ExampleListboxLiveReorderDnd() {
   return (
     <div className="flex flex-col gap-1">
       <Listbox.Root defaultValue={[initialItems[0]]}>
-        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-gray-900">
+        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
           Queue
         </Listbox.Label>
         <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
-          <Listbox.List className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-gray-200 dark:outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-800">
+          <Listbox.List className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-neutral-200 dark:outline-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500">
             {items.map((item) => (
               <Listbox.Item key={item.value} value={item} className={ITEM_CLASS}>
                 <span
-                  className="col-start-1 flex w-6 shrink-0 items-center justify-center text-gray-400"
+                  className="col-start-1 flex w-6 shrink-0 items-center justify-center text-neutral-400"
                   aria-hidden="true"
                 >
                   <GripIcon />
@@ -48,7 +48,9 @@ export default function ExampleListboxLiveReorderDnd() {
                 </Listbox.ItemIndicator>
                 <Listbox.ItemText className="col-start-3 flex flex-col gap-0.5">
                   <span className="font-semibold">{item.title}</span>
-                  <span className="text-xs text-gray-500">{item.artist}</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {item.artist}
+                  </span>
                 </Listbox.ItemText>
               </Listbox.Item>
             ))}
