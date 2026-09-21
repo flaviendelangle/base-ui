@@ -38,7 +38,7 @@ export const ListboxItemExternalDropTarget = React.forwardRef(
       canDrop,
       getDropPosition,
       onDropPositionChange,
-      onDrop,
+      onDraggableDrop,
       dropDisabled,
       ...itemProps
     } = props;
@@ -48,7 +48,7 @@ export const ListboxItemExternalDropTarget = React.forwardRef(
       canDrop,
       getDropPosition,
       onDropPositionChange,
-      onDrop,
+      onDraggableDrop,
       dropDisabled,
     });
     return renderListboxItem(item, {
@@ -109,7 +109,7 @@ export interface ListboxItemExternalDropTargetOptions<
   /** Called when external placement changes, including null when it clears. */
   onDropPositionChange?: ((position: ListboxSortingDropPosition | null) => void) | undefined;
   /** Handles an accepted external drop. Does not automatically insert or remove items. */
-  onDrop?:
+  onDraggableDrop?:
     | ((
         context: ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, TItem>,
         eventDetails: DragDropEventDetails,
@@ -120,9 +120,7 @@ export interface ListboxItemExternalDropTargetProps<
   TAccept extends AnyDragAccept = DragKind<unknown>,
   TItem = unknown,
 >
-  extends
-    Omit<ListboxItemProps, 'onDrop' | 'value'>,
-    ListboxItemExternalDropTargetOptions<TAccept, TItem> {
+  extends Omit<ListboxItemProps, 'value'>, ListboxItemExternalDropTargetOptions<TAccept, TItem> {
   /** The unique value identifying this option. */
   value?: TItem | undefined;
 }

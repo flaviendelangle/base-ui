@@ -64,7 +64,7 @@ export default function ExampleListboxCrossListDnd() {
                   {items.map(({ title, artist, value }) => (
                     <Listbox.ItemExternalDropTarget
                       accept={queueKind}
-                      onDrop={({ source, destination }) =>
+                      onDraggableDrop={({ source, destination }) =>
                         transfer(source.payload.items, queueIndex, destination.index)
                       }
                       key={value}

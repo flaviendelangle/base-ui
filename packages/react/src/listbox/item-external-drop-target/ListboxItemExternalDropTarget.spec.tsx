@@ -9,7 +9,7 @@ const count = Draggable.createKind<number>('count');
 <Listbox.ItemExternalDropTarget
   value="a"
   accept={text}
-  onDrop={({ source }) => {
+  onDraggableDrop={({ source }) => {
     expectType<string, typeof source.payload>(source.payload);
   }}
 />;
@@ -21,7 +21,7 @@ const count = Draggable.createKind<number>('count');
     expectType<string | number, typeof source.payload>(source.payload);
     return true;
   }}
-  onDrop={({ source }) => {
+  onDraggableDrop={({ source }) => {
     expectType<string | number, typeof source.payload>(source.payload);
   }}
 />;
@@ -29,10 +29,18 @@ const count = Draggable.createKind<number>('count');
 <Listbox.ItemExternalDropTarget
   value="a"
   accept={Draggable.anyKind}
-  onDrop={({ source }) => {
+  onDraggableDrop={({ source }) => {
     expectType<unknown, typeof source.payload>(source.payload);
   }}
 />;
 
 // @ts-expect-error External acceptance must be explicit.
 <Listbox.ItemExternalDropTarget value="a" />;
+
+<Listbox.ItemExternalDropTarget
+  value="a"
+  accept={text}
+  onDrop={(event) => {
+    expectType<Parameters<NonNullable<Listbox.Item.Props['onDrop']>>[0], typeof event>(event);
+  }}
+/>;

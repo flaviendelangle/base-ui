@@ -27,7 +27,7 @@ export function useListboxExternalDrop<TAccept extends AnyDragAccept, Value>(
     collectionId: store,
     itemId: item.id,
     disabled: item.disabled || item.index < 0 || !options || !!options.dropDisabled,
-    onDrop: options?.onDrop,
+    onDraggableDrop: options?.onDraggableDrop,
     onDropPositionChange: options?.onDropPositionChange,
     resolve: ({
       source,

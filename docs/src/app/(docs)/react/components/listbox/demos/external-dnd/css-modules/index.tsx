@@ -71,7 +71,7 @@ export default function ExampleListboxExternalDnd() {
                 {items.map(({ title, artist, value }) => (
                   <Listbox.ItemExternalDropTarget
                     accept={paletteKind}
-                    onDrop={({ source, destination }) =>
+                    onDraggableDrop={({ source, destination }) =>
                       addTrack(source.payload, destination.index)
                     }
                     key={value}

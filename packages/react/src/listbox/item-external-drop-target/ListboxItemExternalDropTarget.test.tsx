@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { screen, fireEvent } from '@mui/internal-test-utils';
-import { createRenderer } from '#test-utils';
+import { createRenderer, firePointer } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { Listbox } from '@base-ui/react/listbox';
 import { DirectionProvider } from '@base-ui/react/direction-provider';
@@ -17,6 +17,7 @@ function setRects() {
 }
 function Fixture({
   onDrop,
+  onDraggableDrop,
   sortable = true,
   dropDisabled,
   canDrop,
@@ -38,6 +39,7 @@ function Fixture({
           value={item}
           accept={kind}
           onDrop={onDrop}
+          onDraggableDrop={onDraggableDrop}
           canDrop={canDrop}
           getDropPosition={getDropPosition}
           dropDisabled={dropDisabled}
@@ -80,12 +82,45 @@ function Fixture({
 
 describe('<Listbox.ItemExternalDropTarget />', () => {
   const { render } = createRenderer();
+  it.each([true, false])('preserves native onDrop with sorting=%s', async (sortable) => {
+    const onDrop = vi.fn();
+    const onDraggableDrop = vi.fn();
+    await render(<Fixture sortable={sortable} onDrop={onDrop} onDraggableDrop={onDraggableDrop} />);
+    setRects();
+    const target = screen.getByRole('option', { name: 'a' });
+    fireEvent.drop(target);
+    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop).not.toHaveBeenCalled();
+    onDrop.mockClear();
+    const source = screen.getByTestId('source');
+    await lift(source);
+    await dragEnter(target, { clientY: 25 });
+    // The drop helper dispatches a native HTML event; finish this engine drag with a pointer event.
+    firePointer.up(source, {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      clientX: 0,
+      clientY: 25,
+      timeStamp: 1000,
+    });
+    await flushRaf();
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
+    expect(onDrop).not.toHaveBeenCalled();
+  });
+
   it.each([true, false])(
     'accepts an external drag with sorting=%s and keeps item semantics',
     async (sortable) => {
-      const onDrop = vi.fn();
+      const onDraggableDrop = vi.fn();
       const changes = vi.fn();
-      await render(<Fixture sortable={sortable} onDrop={onDrop} onDropPositionChange={changes} />);
+      await render(
+        <Fixture
+          sortable={sortable}
+          onDraggableDrop={onDraggableDrop}
+          onDropPositionChange={changes}
+        />,
+      );
       setRects();
       const target = screen.getByRole('option', { name: 'b' });
       fireEvent.click(target);
@@ -95,8 +130,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(target).toHaveAttribute('data-drop-position', 'after');
       drop(target, { clientY: 175 });
       await flushRaf();
-      expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop.mock.calls[0][0]).toMatchObject({
+      expect(onDraggableDrop).toHaveBeenCalledTimes(1);
+      expect(onDraggableDrop.mock.calls[0][0]).toMatchObject({
         item: 'b',
         destination: { groupId: null, index: 2 },
       });
@@ -105,9 +140,9 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     },
   );
   it('routes same-list drags only to sorting', async () => {
-    const onDrop = vi.fn();
+    const onDraggableDrop = vi.fn();
     const canDrop = vi.fn(() => true);
-    await render(<Fixture onDrop={onDrop} canDrop={canDrop} />);
+    await render(<Fixture onDraggableDrop={onDraggableDrop} canDrop={canDrop} />);
     setRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     const target = screen.getByRole('option', { name: 'b' });
@@ -115,27 +150,27 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     drop(target, { clientY: 175 });
     await flushRaf();
     expect(screen.getAllByRole('option').map((row) => row.textContent)).toEqual(['b', 'a', 'c']);
-    expect(onDrop).not.toHaveBeenCalled();
+    expect(onDraggableDrop).not.toHaveBeenCalled();
     expect(canDrop).not.toHaveBeenCalled();
   });
   it('accepts incoming drops when sorting is disabled', async () => {
-    const onDrop = vi.fn();
-    await render(<Fixture onDrop={onDrop} sortingDisabled />);
+    const onDraggableDrop = vi.fn();
+    await render(<Fixture onDraggableDrop={onDraggableDrop} sortingDisabled />);
     setRects();
     const target = screen.getByRole('option', { name: 'a' });
     await lift(screen.getByTestId('source'));
     await dragEnter(target, { clientY: 25 });
     drop(target, { clientY: 25 });
     await flushRaf();
-    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
   });
   it.each(['kind', 'disabled', 'predicate', 'position'] as const)(
     'refuses an external drop for %s',
     async (reason) => {
-      const onDrop = vi.fn();
+      const onDraggableDrop = vi.fn();
       await render(
         <Fixture
-          onDrop={onDrop}
+          onDraggableDrop={onDraggableDrop}
           dropDisabled={reason === 'disabled'}
           canDrop={() => reason !== 'predicate'}
           getDropPosition={() => (reason === 'position' ? null : 'before')}
@@ -148,12 +183,12 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(target).not.toHaveAttribute('data-drag-over');
       drop(target, { clientY: 25 });
       await flushRaf();
-      expect(onDrop).not.toHaveBeenCalled();
+      expect(onDraggableDrop).not.toHaveBeenCalled();
     },
   );
   it('clears placement on cancellation', async () => {
-    const onDrop = vi.fn();
-    await render(<Fixture onDrop={onDrop} />);
+    const onDraggableDrop = vi.fn();
+    await render(<Fixture onDraggableDrop={onDraggableDrop} />);
     setRects();
     const target = screen.getByRole('option', { name: 'a' });
     await lift(screen.getByTestId('source'));
@@ -162,13 +197,13 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     cancel();
     await flushRaf();
     expect(target).not.toHaveAttribute('data-drag-over');
-    expect(onDrop).not.toHaveBeenCalled();
+    expect(onDraggableDrop).not.toHaveBeenCalled();
   });
   it('resolves horizontal placement in RTL', async () => {
-    const onDrop = vi.fn();
+    const onDraggableDrop = vi.fn();
     await render(
       <DirectionProvider direction="rtl">
-        <Fixture horizontal onDrop={onDrop} />
+        <Fixture horizontal onDraggableDrop={onDraggableDrop} />
       </DirectionProvider>,
     );
     setRects();
@@ -178,10 +213,10 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(target).toHaveAttribute('data-drop-position', 'after');
     drop(target, { clientX: 125, clientY: 125 });
     await flushRaf();
-    expect(onDrop.mock.calls[0][0].destination).toEqual({ groupId: null, index: 2 });
+    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({ groupId: null, index: 2 });
   });
   it('reports a list-wide insertion index for a grouped destination', async () => {
-    const onDrop = vi.fn();
+    const onDraggableDrop = vi.fn();
     await render(
       <Draggable.Provider>
         <Draggable.Root kind={otherKind} payload="new" data-testid="source" />
@@ -191,7 +226,11 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
               <Listbox.Item value="a">a</Listbox.Item>
             </Listbox.Group>
             <Listbox.Group id="two">
-              <Listbox.ItemExternalDropTarget value="b" accept={otherKind} onDrop={onDrop}>
+              <Listbox.ItemExternalDropTarget
+                value="b"
+                accept={otherKind}
+                onDraggableDrop={onDraggableDrop}
+              >
                 b
               </Listbox.ItemExternalDropTarget>
             </Listbox.Group>
@@ -205,13 +244,13 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     await dragEnter(target, { clientY: 175 });
     drop(target, { clientY: 175 });
     await flushRaf();
-    expect(onDrop.mock.calls[0][0].destination).toEqual({ groupId: 'two', index: 2 });
+    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({ groupId: 'two', index: 2 });
   });
   it.each(['drop', 'move'] as const)(
     'finishes a cross-list transfer after reorderOn=%s without rolling back the transfer',
     async (reorderOn) => {
       const onSortEnd = vi.fn();
-      const onDrop = vi.fn();
+      const onDraggableDrop = vi.fn();
       function Example() {
         const [left, setLeft] = React.useState(['a', 'b', 'c']);
         const [right, setRight] = React.useState(['dest']);
@@ -241,8 +280,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                       key={value}
                       value={value}
                       accept={kind}
-                      onDrop={(context) => {
-                        onDrop(context);
+                      onDraggableDrop={(context) => {
+                        onDraggableDrop(context);
                         setRight((current) => [
                           ...current.slice(0, context.destination.index),
                           ...context.source.payload.items,
@@ -270,7 +309,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       await dragEnter(target, { clientY: 375 });
       drop(target, { clientY: 375 });
       await flushRaf();
-      expect(onDrop).toHaveBeenCalledTimes(1);
+      expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('left').textContent).toBe('bc');
       expect(screen.getByTestId('right').textContent).toBe('desta');
       expect(onSortEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
@@ -285,8 +324,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
   });
 
   it('clears a hovered destination when acceptance changes', async () => {
-    const onDrop = vi.fn();
-    const { setProps } = await render(<Fixture onDrop={onDrop} />);
+    const onDraggableDrop = vi.fn();
+    const { setProps } = await render(<Fixture onDraggableDrop={onDraggableDrop} />);
     setRects();
     const target = screen.getByRole('option', { name: 'a' });
     await lift(screen.getByTestId('source'));
@@ -296,7 +335,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(target).not.toHaveAttribute('data-drag-over');
     drop(target, { clientY: 25 });
     await flushRaf();
-    expect(onDrop).not.toHaveBeenCalled();
+    expect(onDraggableDrop).not.toHaveBeenCalled();
   });
   it('blocks an ancestor target when the matched row rejects the drop', async () => {
     const ancestorDrop = vi.fn();
@@ -316,8 +355,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(ancestorDrop).not.toHaveBeenCalled();
   });
   it('accepts a stationary drag when external dropping is enabled', async () => {
-    const onDrop = vi.fn();
-    const { setProps } = await render(<Fixture onDrop={onDrop} dropDisabled />);
+    const onDraggableDrop = vi.fn();
+    const { setProps } = await render(<Fixture onDraggableDrop={onDraggableDrop} dropDisabled />);
     setRects();
     const target = screen.getByRole('option', { name: 'a' });
     await lift(screen.getByTestId('source'));
@@ -327,6 +366,6 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(target).toHaveAttribute('data-drag-over');
     drop(target, { clientY: 25 });
     await flushRaf();
-    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
   });
 });

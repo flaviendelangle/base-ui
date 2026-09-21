@@ -160,7 +160,7 @@ To accept incoming drags on individual options, use `Listbox.ItemExternalDropTar
   value={item}
   accept={fileKind}
   canDrop={({ source, destination }) => canImport(source.payload, destination)}
-  onDrop={({ source, destination }) => transferFiles(source.payload, destination)}
+  onDraggableDrop={({ source, destination }) => transferFiles(source.payload, destination)}
 >
   <Listbox.ItemText>{item.label}</Listbox.ItemText>
   <Listbox.ItemIndicator />
@@ -171,7 +171,7 @@ Same-list drags remain owned by sorting, even when sorting rejects the move. Ext
 
 The default placement is before or after the option, respecting horizontal orientation and text direction. `getDropPosition` can override placement; returning `null` rejects the drop. `canDrop` validates the resolved destination; returning `false` rejects the drop, including ancestor targets. Unmatched kinds can fall through to an ancestor target.
 
-The destination contains `groupId` and a zero-based `index` across the entire list, including all groups. It is not an index within the group. Tree's destination index is relative to the destination parent. `onDrop` handles the application transfer and does not automatically mutate either collection. For controlled collections, confirm the destination update before deleting source items.
+The destination contains `groupId` and a zero-based `index` across the entire list, including all groups. It is not an index within the group. Tree's destination index is relative to the destination parent. `onDrop` retains its native HTML drag-and-drop meaning. `onDraggableDrop` handles the application transfer and does not automatically mutate either collection. For controlled collections, confirm the destination update before deleting source items.
 
 External placement uses the existing `dragOver` and `dropPosition` item states. `onDropPositionChange` receives `null` when placement clears.
 

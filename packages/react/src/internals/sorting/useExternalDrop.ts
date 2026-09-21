@@ -16,7 +16,8 @@ export function useExternalDrop<
   itemId: string | number | undefined;
   disabled: boolean;
   resolve: (context: Draggable.DropTargetResolutionContext) => Context | null;
-  onDrop?: ((context: Context, details: Draggable.DragDropEventDetails) => void) | undefined;
+  onDraggableDrop?:
+    ((context: Context, details: Draggable.DragDropEventDetails) => void) | undefined;
   onDropPositionChange?: ((position: Position | null) => void) | undefined;
 }) {
   const shared = useExternalDropStore(parameters.collectionId);
@@ -108,7 +109,7 @@ export function useExternalDrop<
       });
       clear();
       if (result) {
-        parameters.onDrop?.(result, details);
+        parameters.onDraggableDrop?.(result, details);
       }
     },
   };
