@@ -7,8 +7,10 @@ import { DirectionProvider } from '@base-ui/react/direction-provider';
 import { flushRaf } from '../../../test/dnd';
 
 async function keyDown(element: HTMLElement, options: { key: string; altKey?: boolean }) {
-  await act(async () => element.focus());
+  // Await CompositeList's MutationObserver after the synchronous DOM reorder.
+  // eslint-disable-next-line testing-library/no-unnecessary-act
   await act(async () => {
+    element.focus();
     fireEvent.keyDown(element, options);
   });
 }
