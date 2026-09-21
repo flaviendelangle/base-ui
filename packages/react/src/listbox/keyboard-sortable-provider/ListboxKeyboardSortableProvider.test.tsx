@@ -7,8 +7,10 @@ import { DirectionProvider } from '@base-ui/react/direction-provider';
 import { flushRaf } from '../../../test/dnd';
 
 async function keyDown(element: HTMLElement, options: { key: string; altKey?: boolean }) {
-  await act(() => element.focus());
-  fireEvent.keyDown(element, options);
+  await act(async () => element.focus());
+  await act(async () => {
+    fireEvent.keyDown(element, options);
+  });
 }
 
 for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvider]) {
@@ -41,7 +43,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     it('moves selected items together and retains focus and selection', async () => {
       await render(<Fixture />);
       const b = screen.getByRole('option', { name: 'b' });
-      await act(() => b.focus());
+      await act(async () => b.focus());
       await keyDown(b, { key: 'ArrowDown', altKey: true });
       await waitFor(() =>
         expect(screen.getAllByRole('option').map((item) => item.textContent)).toEqual([
@@ -119,7 +121,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         </Listbox.Root>,
       );
       const a = screen.getByRole('option', { name: 'a' });
-      await act(() => a.focus());
+      await act(async () => a.focus());
       await keyDown(a, { key: 'ArrowDown', altKey: true });
       expect(onItemsReorder).toHaveBeenCalledOnce();
       expect(a).toHaveFocus();
@@ -258,7 +260,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       await keyDown(screen.getByRole('option', { name: 'a' }), { key: 'ArrowDown', altKey: true });
       await flushRaf();
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
-      await act(() => applyOrder!());
+      await act(async () => applyOrder!());
       await waitFor(() =>
         expect(screen.getByRole('status')).toHaveTextContent('Moved a to position 2 of 2.'),
       );

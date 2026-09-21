@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ReactStore, createSelector } from '@base-ui/utils/store';
 import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
-import type { ListboxItemId } from 'utils/ListboxItemId';
+import type { ListboxItemId } from './utils/ListboxItemId';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];

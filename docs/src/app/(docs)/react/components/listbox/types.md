@@ -424,13 +424,13 @@ Enables keyboard and pointer sorting with automatic item registration.
 | :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------- |
 | canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                   |
 | getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`                                      | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
-| getDragPayload        | `((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => unknown)`                                 | -        | Returns application data stored in the drag payload's data field.                                  |
+| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                   | -        | Returns application data stored in the drag payload's data field.                                  |
 | getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                    |
 | isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                          |
 | kind                  | `DragKind<ListboxSortingDragPayload<Value>>`                                                                 | -        | An explicit kind for integrating sorting with external drag sources and targets.                   |
 | onDropPositionChange  | `((position: ListboxSortingDropPosition \| null) => void)`                                                   | -        | Called when pointer placement changes, including when sorting ends.                                |
 | onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)`                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move. |
-| onSortEnd             | `((parameters: { itemIds: CollectionItemId[]; canceled: boolean }) => void)`                                 | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.               |
+| onSortEnd             | `((parameters: { itemIds: Listbox.ItemId[]; canceled: boolean }) => void)`                                   | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.               |
 | reorderOn             | `'drop' \| 'move'`                                                                                           | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                   |
 | disabled              | `boolean`                                                                                                    | `false`  | Disables keyboard and pointer sorting.                                                             |
 | children              | `React.ReactNode`                                                                                            | -        | -                                                                                                  |
@@ -456,8 +456,8 @@ type ListboxSortableProviderAnnouncementParameters<Value = any> = {
 
 ```typescript
 type ListboxSortableProviderDragPayload<Value = any> = {
-  id: CollectionItemId;
-  itemIds: CollectionItemId[];
+  id: Listbox.ItemId;
+  itemIds: Listbox.ItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: {};
@@ -473,7 +473,7 @@ type ListboxSortableProviderDropContext<Value = any> = {
   /** The application value of the row under the pointer. */
   item: Value;
   itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
-  itemId: CollectionItemId;
+  itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
   collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
@@ -485,7 +485,7 @@ type ListboxSortableProviderDropContext<Value = any> = {
 
 ```typescript
 type ListboxSortableProviderDropPosition = {
-  id: CollectionItemId;
+  id: Listbox.ItemId;
   placement: 'before' | 'after';
   /**
    * Override the zero-based insertion index across the entire list, including all
@@ -563,16 +563,16 @@ Customizes or hides the pointer preview. Render inside a sortable item.
 
 **SortPreview Props:**
 
-| Prop      | Type                                                                                                    | Default    | Description                                                                                                                                                                                                                                                                                                                                                                   |
-| :-------- | :------------------------------------------------------------------------------------------------------ | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| modifiers | `DragModifiers`                                                                                         | -          | Constrains the preview without affecting the drag. The resolved drop target and&#xA;`location.current.input` remain unchanged.&#xA;Here the modifier's `point` is the preview's proposed top-left and `input` is the&#xA;cursor. Runs on every positioned frame, so keep modifiers cheap. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                  |
-| offset    | `DragPreviewOffset`                                                                                     | `'source'` | Determines where the preview sits relative to the pointer. See&#xA;`DragPreviewOffset` for the supported values.                                                                                                                                                                                                                                                              |
-| container | `DragPreviewContainer`                                                                                  | -          | Determines where the preview is injected in the DOM.&#xA;Defaults to the source's own parent, so the app's CSS still applies to it. Pass a container to keep structural selectors such as `:nth-child` and&#xA;`:last-child` unchanged, or to keep the preview mounted if the source subtree&#xA;unmounts. CSS selectors based on the source's ancestors may no longer match. |
-| disabled  | `boolean`                                                                                               | `false`    | Whether to hide the preview. The drag continues while no preview is shown.                                                                                                                                                                                                                                                                                                    |
-| children  | `React.ReactNode \| ((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview.                                                                                                                                                                                                                                                                                                                 |
-| className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                     | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                      |
-| style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`           | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                   |
-| render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                    | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                 |
+| Prop      | Type                                                                                                  | Default    | Description                                                                                                                                                                                                                                                                                                                                                                   |
+| :-------- | :---------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| modifiers | `DragModifiers`                                                                                       | -          | Constrains the preview without affecting the drag. The resolved drop target and&#xA;`location.current.input` remain unchanged.&#xA;Here the modifier's `point` is the preview's proposed top-left and `input` is the&#xA;cursor. Runs on every positioned frame, so keep modifiers cheap. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                  |
+| offset    | `DragPreviewOffset`                                                                                   | `'source'` | Determines where the preview sits relative to the pointer. See&#xA;`DragPreviewOffset` for the supported values.                                                                                                                                                                                                                                                              |
+| container | `DragPreviewContainer`                                                                                | -          | Determines where the preview is injected in the DOM.&#xA;Defaults to the source's own parent, so the app's CSS still applies to it. Pass a container to keep structural selectors such as `:nth-child` and&#xA;`:last-child` unchanged, or to keep the preview mounted if the source subtree&#xA;unmounts. CSS selectors based on the source's ancestors may no longer match. |
+| disabled  | `boolean`                                                                                             | `false`    | Whether to hide the preview. The drag continues while no preview is shown.                                                                                                                                                                                                                                                                                                    |
+| children  | `React.ReactNode \| ((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview.                                                                                                                                                                                                                                                                                                                 |
+| className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                   | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                      |
+| style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`         | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                   |
+| render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                  | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                 |
 
 ### SortPreview.Props
 
@@ -585,6 +585,12 @@ type ListboxSortPreviewState = {};
 ```
 
 ## Additional Types
+
+### Listbox.ItemId
+
+```typescript
+type ListboxItemId = string | number;
+```
 
 ### ListboxItemDraggableProps
 
@@ -666,6 +672,10 @@ type ListboxItemDraggableProps = {
    * Event handler called once when the drag ends after a drop, outside release, or
    * cancellation. Commit changes when `eventDetails.reason` is `'drop'`. Use
    * `try/finally` when cleanup must run even if committing throws or returns early.
+   *
+   * A drag canceled during pickup, by a `cancelDrag()` from a target's `canDrop` or
+   * `getPayload` on the initial stack or while the preview is generated, fires this
+   * with `canceled: true` and no preceding `onMoveStart`.
    */
   onMoveEnd?: (parameters: MoveEndEvent, eventDetails: MoveEndEventDetails) => void;
   /**
@@ -704,8 +714,8 @@ type ListboxSortingDestination = {
 
 ```typescript
 type ListboxSortingDragPayload<Value = any> = {
-  id: CollectionItemId;
-  itemIds: CollectionItemId[];
+  id: Listbox.ItemId;
+  itemIds: Listbox.ItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: {};
@@ -721,7 +731,7 @@ type ListboxSortingDropContext<Value = any> = {
   /** The application value of the row under the pointer. */
   item: Value;
   itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
-  itemId: CollectionItemId;
+  itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
   collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
@@ -733,7 +743,7 @@ type ListboxSortingDropContext<Value = any> = {
 
 ```typescript
 type ListboxSortingDropPosition = {
-  id: CollectionItemId;
+  id: Listbox.ItemId;
   placement: 'before' | 'after';
   /**
    * Override the zero-based insertion index across the entire list, including all
@@ -750,7 +760,7 @@ type ListboxSortingDropPosition = {
 
 ```typescript
 type ListboxSortingItem<Value = any> = {
-  id: CollectionItemId;
+  id: Listbox.ItemId;
   value: Value;
   /**
    * Zero-based item index across the entire list, including all groups.
@@ -781,14 +791,6 @@ affect the selected items in the listbox.
 type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 ```
 
-## External Types
-
-### CollectionItemId
-
-```typescript
-type CollectionItemId = string | number;
-```
-
 ## Export Groups
 
 - `Listbox.Root`: `Listbox.Root`, `Listbox.Root.Props`, `Listbox.Root.State`, `Listbox.Root.Actions`, `Listbox.Root.ChangeEventReason`, `Listbox.Root.ChangeEventDetails`
@@ -804,7 +806,7 @@ type CollectionItemId = string | number;
 - `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
-- `Default`: `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
+- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`
 
 ## Canonical Types
 
@@ -835,3 +837,4 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.SortableProvider.Props`: `ListboxSortableProviderProps`
 - `Listbox.SortHandle.Props`: `ListboxSortHandleProps`
 - `Listbox.SortPreview.Props`: `ListboxSortPreviewProps`
+- `Listbox.ItemId`: `ListboxItemId`

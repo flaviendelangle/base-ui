@@ -107,4 +107,3 @@ export type {
   DropTargetPayloadGetter,
   DropTargetEventTarget,
 } from './drag';
-

@@ -74,8 +74,7 @@ export interface ListboxSortableProviderProps<Value = any> extends ListboxSortin
   getDragPayload?:
     ((parameters: { itemIds: ListboxItemId[]; items: Value[] }) => unknown) | undefined;
   /** Called once when pointer sorting ends, after the final move or rollback is proposed. */
-  onSortEnd?:
-    ((parameters: { itemIds: ListboxItemId[]; canceled: boolean }) => void) | undefined;
+  onSortEnd?: ((parameters: { itemIds: ListboxItemId[]; canceled: boolean }) => void) | undefined;
 }
 
 /** Enables keyboard and pointer sorting with automatic item registration. */

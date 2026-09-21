@@ -380,7 +380,7 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
     await lift(a, { clientY: 25, expectNoDrag: true });
-    await act(() => a.focus());
+    await act(async () => a.focus());
     expect(a).not.toHaveAttribute('data-dragging');
     fireEvent.keyDown(a, { key: 'ArrowDown', altKey: true });
     expect(onItemsReorder).toHaveBeenCalledWith(
@@ -478,7 +478,7 @@ describe('<Listbox.SortableProvider />', () => {
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
     expect(values()).toEqual(['b', 'c', 'a']);
-    await act(() => updateItems((items) => ['new', ...items]));
+    await act(async () => updateItems((items) => ['new', ...items]));
     cancel();
     await flushRaf();
     expect(values()).toEqual(['new', 'a', 'b', 'c']);
@@ -512,7 +512,7 @@ describe('<Listbox.SortableProvider />', () => {
     await lift(screen.getByRole('option', { name: 'A' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'C' }), { clientY: 275 });
     expect(values()).toEqual(['B', 'C', 'A']);
-    await act(() =>
+    await act(async () =>
       updateItems([
         { id: 'new', label: 'New' },
         { id: 'c', label: 'C' },
@@ -547,7 +547,7 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
-    await act(() => updateItems(['c', 'a', 'b']));
+    await act(async () => updateItems(['c', 'a', 'b']));
     cancel();
     await flushRaf();
     expect(values()).toEqual(['c', 'a', 'b']);
@@ -596,11 +596,11 @@ describe('<Listbox.SortableProvider />', () => {
       cancel();
       expect(updates).toHaveLength(2);
       if (separateCommits) {
-        await act(() => updates[0]());
+        await act(async () => updates[0]());
         await flushRaf();
-        await act(() => updates[1]());
+        await act(async () => updates[1]());
       } else {
-        await act(() => updates.forEach((apply) => apply()));
+        await act(async () => updates.forEach((apply) => apply()));
       }
       await flushRaf();
       expect(values()).toEqual(['a', 'b', 'c']);
@@ -634,7 +634,7 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'b' }), { clientY: 175 });
-    await act(() => updates[0]());
+    await act(async () => updates[0]());
     await flushRaf();
     expect(values()).toEqual(['b', 'a', 'c']);
     setItemRects();
@@ -642,7 +642,7 @@ describe('<Listbox.SortableProvider />', () => {
     expect(updates).toHaveLength(2);
     cancel();
     expect(updates).toHaveLength(3);
-    await act(() => {
+    await act(async () => {
       updates[1]();
       updates[2]();
     });
@@ -680,7 +680,7 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     const query = vi.spyOn(screen.getByRole('listbox'), 'querySelectorAll');
     try {
-      await act(() => update());
+      await act(async () => update());
       await flushRaf();
       const scans = query.mock.calls.filter(([selector]) => selector === '[role="option"]');
       expect(scans.length).toBeGreaterThan(0);
@@ -715,7 +715,7 @@ describe('<Listbox.SortableProvider />', () => {
     drop(b, { clientY: 175 });
     await flushRaf();
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
-    await act(() => apply!());
+    await act(async () => apply!());
     expect(screen.getByRole('option', { name: 'a' })).not.toBe(a);
     await waitFor(() => expect(screen.getByRole('option', { name: 'a' })).toHaveFocus());
   });
@@ -753,8 +753,8 @@ describe('<Listbox.SortableProvider />', () => {
     drop(b, { clientY: 175 });
     await flushRaf();
     await lift(b, { clientY: 125 });
-    await act(() => b.focus());
-    await act(() => apply());
+    await act(async () => b.focus());
+    await act(async () => apply());
     await flushRaf();
     expect(b).toHaveFocus();
     expect(getAnnouncement).not.toHaveBeenCalled();
@@ -800,7 +800,7 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 275 });
-    await act(() => insert());
+    await act(async () => insert());
     cancel();
     await flushRaf();
     expect(values()).toEqual(['a', 'new', 'b', 'c']);
