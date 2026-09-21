@@ -1,9 +1,9 @@
-import type { ListboxSortingItem } from './ListboxSortingContext';
+import type { ListboxSortingItemRecord } from './ListboxSortingContext';
 import type { ListboxSortingDropPosition } from '../sortable-provider/ListboxSortableProvider';
 import type { ListboxSortingDestination } from './useListboxSorting';
 
 export function getListboxDropDestination(
-  ordered: ListboxSortingItem<unknown>[],
+  ordered: ListboxSortingItemRecord<unknown>[],
   position: ListboxSortingDropPosition,
 ): ListboxSortingDestination | null {
   const target = ordered.find((item) => item.id === position.id);

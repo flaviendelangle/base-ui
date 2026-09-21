@@ -3,11 +3,11 @@ import * as React from 'react';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import type { useListboxRootContext } from '../root/ListboxRootContext';
-import type { ListboxSortingItem } from './ListboxSortingContext';
+import type { ListboxSortingItemRecord } from './ListboxSortingContext';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 
 type Store = ReturnType<typeof useListboxRootContext>;
-type Item = ListboxSortingItem<unknown>;
+type Item = ListboxSortingItemRecord<unknown>;
 const collections = new WeakMap<Store, Map<ListboxItemId, () => Item>>();
 
 export function getListboxDropItems(store: Store) {

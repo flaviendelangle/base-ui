@@ -42,6 +42,62 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         </Listbox.Root>
       );
     }
+    it('exposes movement metadata without disabled state', async () => {
+      const canMoveItems = vi.fn<
+        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['canMoveItems']>
+      >(() => true);
+      const isItemSortingDisabled = vi.fn<
+        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['isItemSortingDisabled']>
+      >(() => false);
+      const getAnnouncement = vi.fn<
+        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['getAnnouncement']>
+      >(() => 'Moved');
+      const onItemsReorder = vi.fn();
+      await render(
+        <Fixture {...{ canMoveItems, isItemSortingDisabled, getAnnouncement, onItemsReorder }} />,
+      );
+      await keyDown(screen.getByRole('option', { name: 'b' }), { key: 'ArrowDown', altKey: true });
+      await waitFor(() => expect(getAnnouncement).toHaveBeenCalled());
+      const metadata = [
+        ...canMoveItems.mock.calls.flatMap(([parameters]) => parameters.items),
+        ...isItemSortingDisabled.mock.calls.map(([item]) => item),
+        ...getAnnouncement.mock.calls.flatMap(([parameters]) => parameters.items),
+        ...onItemsReorder.mock.calls.flatMap(([, details]) => [...details.items, ...details.order]),
+      ];
+      expect(metadata.length).toBeGreaterThan(0);
+      metadata.forEach((item) =>
+        expect(Object.keys(item).sort()).toEqual(['groupId', 'id', 'index', 'value']),
+      );
+    });
+
+    it('preserves nested controls and bubbles handled sorting shortcuts', async () => {
+      const onItemsReorder = vi.fn();
+      const onKeyDown = vi.fn();
+      await render(
+        <div onKeyDown={onKeyDown}>
+          <Listbox.Root>
+            <Provider onItemsReorder={onItemsReorder}>
+              <Listbox.List>
+                <Listbox.Item value="a">
+                  a <input aria-label="Rename" />
+                  <button type="button">Action</button>
+                </Listbox.Item>
+                <Listbox.Item value="b">b</Listbox.Item>
+              </Listbox.List>
+            </Provider>
+          </Listbox.Root>
+        </div>,
+      );
+      await keyDown(screen.getByRole('textbox'), { key: 'ArrowDown', altKey: true });
+      await keyDown(screen.getByRole('button'), { key: 'ArrowDown', altKey: true });
+      expect(onItemsReorder).not.toHaveBeenCalled();
+      onKeyDown.mockClear();
+      await keyDown(screen.getAllByRole('option')[0], { key: 'ArrowDown', altKey: true });
+      expect(onItemsReorder).toHaveBeenCalledTimes(1);
+      expect(onKeyDown).toHaveBeenCalledTimes(1);
+      expect(onKeyDown.mock.calls[0][0].defaultPrevented).toBe(true);
+    });
+
     it('moves selected items together and retains focus and selection', async () => {
       await render(<Fixture />);
       const b = screen.getByRole('option', { name: 'b' });

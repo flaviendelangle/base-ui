@@ -15,17 +15,20 @@ export interface ListboxSortingItem<Value = any> {
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
   groupId: string | null;
+}
+
+export interface ListboxSortingItemRecord<Value = any> extends ListboxSortingItem<Value> {
   disabled: boolean;
 }
 
 export interface ListboxSortingContextValue {
   disabled: boolean;
-  isDisabled: (item: ListboxSortingItem) => boolean;
+  isDisabled: (item: ListboxSortingItemRecord) => boolean;
   scheduleReconcile: () => void;
   setupItem: (
     id: ListboxItemId,
     element: HTMLElement,
-    item: React.RefObject<Omit<ListboxSortingItem, 'id'>>,
+    item: React.RefObject<Omit<ListboxSortingItemRecord, 'id'>>,
   ) => () => void;
   handleKeyDown: (event: React.KeyboardEvent, id: ListboxItemId) => void;
 }
@@ -48,3 +51,8 @@ export interface ListboxSortableContextValue {
 export const ListboxSortableContext = React.createContext<ListboxSortableContextValue | undefined>(
   undefined,
 );
+
+/** Public movement metadata excludes internal interaction state. */
+export function toSortingItem<Value>(item: ListboxSortingItem<Value>): ListboxSortingItem<Value> {
+  return { id: item.id, value: item.value, index: item.index, groupId: item.groupId };
+}

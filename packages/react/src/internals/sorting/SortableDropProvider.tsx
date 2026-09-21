@@ -30,9 +30,13 @@ const TargetContext = React.createContext<RenderTarget | undefined>(undefined);
 
 /** One row registration routes local sorting and external drops before acceptance. */
 export function SortableDropProvider<T extends { collectionId: object }>(
-  props: Draggable.CollisionProvider.Props<T> & { collectionId: object },
+  props: Omit<Draggable.CollisionProvider.Props<T>, 'canCollide'> & {
+    collectionId: object;
+    disabled: boolean;
+    isTargetDisabled: (target: T) => boolean;
+  },
 ) {
-  const { kind, collectionId, canCollide } = props;
+  const { kind, collectionId, disabled, isTargetDisabled } = props;
   const [targetKind] = React.useState(() => Draggable.createKind<Snapshot<T>>('sortable-row'));
   const previous = React.useRef<Draggable.CollisionProvider.Collision<T> | null>(null);
   const previousRecord = React.useRef<DropTargetRecord | null>(null);
@@ -100,7 +104,8 @@ export function SortableDropProvider<T extends { collectionId: object }>(
           accept={Draggable.anyKind}
           canDrop={(context) => {
             if (kind.matches(context.source) && owns(context.source)) {
-              return canCollide?.({ source: context.source, target: item }) ?? true;
+              // Local sorting rejection must not fall through to ancestor targets.
+              return disabled || isTargetDisabled(item) ? 'reject' : true;
             }
             if (
               !externalProps ||
@@ -145,7 +150,7 @@ export function SortableDropProvider<T extends { collectionId: object }>(
         />
       );
     },
-    [kind, collectionId, canCollide, targetKind],
+    [kind, collectionId, disabled, isTargetDisabled, targetKind],
   );
   return <TargetContext.Provider value={renderTarget}>{props.children}</TargetContext.Provider>;
 }

@@ -588,12 +588,12 @@ type ListboxSortableProviderDragPayload<Value = any> = {
 type ListboxSortableProviderDropContext<Value = any> = {
   /** The application value of the row under the pointer. */
   item: Value;
-  itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
+  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
   itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
   collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
-  source: ListboxSortingDragPayload<Value>;
+  source: DragSource<ListboxSortingDragPayload<Value>>;
 };
 ```
 
@@ -873,12 +873,12 @@ type ListboxSortingDragPayload<Value = any> = {
 type ListboxSortingDropContext<Value = any> = {
   /** The application value of the row under the pointer. */
   item: Value;
-  itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
+  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
   itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
   collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
-  source: ListboxSortingDragPayload<Value>;
+  source: DragSource<ListboxSortingDragPayload<Value>>;
 };
 ```
 
@@ -911,7 +911,6 @@ type ListboxSortingItem<Value = any> = {
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
   groupId: string | null;
-  disabled: boolean;
 };
 ```
 

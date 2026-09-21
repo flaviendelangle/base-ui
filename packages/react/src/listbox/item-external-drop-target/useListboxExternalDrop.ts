@@ -4,7 +4,7 @@ import type { AnyDragAccept, AcceptedDragPayload, DragSource } from '../../types
 import { useDirection } from '../../internals/direction-context';
 import { useExternalDrop } from '../../internals/sorting/useExternalDrop';
 import type { useListboxRootContext } from '../root/ListboxRootContext';
-import type { ListboxSortingItem } from '../sorting/ListboxSortingContext';
+import type { ListboxSortingItemRecord } from '../sorting/ListboxSortingContext';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type {
   ListboxItemExternalDropTargetOptions,
@@ -13,7 +13,7 @@ import type {
 import { getListboxDropItems } from '../sorting/useListboxDropItem';
 
 type Store = ReturnType<typeof useListboxRootContext>;
-type Item = ListboxSortingItem<unknown>;
+type Item = ListboxSortingItemRecord<unknown>;
 
 export function useListboxExternalDrop<TAccept extends AnyDragAccept, Value>(
   store: Store,

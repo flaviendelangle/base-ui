@@ -5,6 +5,9 @@ import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { getTarget, closest } from '@base-ui/utils/shadowDom';
+import { ownerWindow } from '@base-ui/utils/owner';
+import { isInteractiveElement } from '../../utils/isInteractiveElement';
+import { getParentElement } from '../../utils/getParentElement';
 import { useDirection } from '../../internals/direction-context';
 import {
   createChangeEventDetails,
@@ -13,7 +16,12 @@ import {
 import { REASONS } from '../../internals/reasons';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import { useListboxRootContext } from '../root/ListboxRootContext';
-import type { ListboxSortingItem, ListboxSortingContextValue } from './ListboxSortingContext';
+import {
+  toSortingItem,
+  type ListboxSortingItem,
+  type ListboxSortingItemRecord,
+  type ListboxSortingContextValue,
+} from './ListboxSortingContext';
 
 export interface ListboxSortingDestination {
   /**
@@ -71,7 +79,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const frame = useAnimationFrame();
   const [announcement, setAnnouncement] = React.useState('');
   const pending = React.useRef<{
-    order: ListboxSortingItem<Value>[];
+    order: ListboxSortingItemRecord<Value>[];
     sourceValue: Value;
     parameters: ListboxMoveItemsParameters<Value> | null;
     outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
@@ -83,12 +91,12 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
         ListboxItemId,
         {
           element: HTMLElement;
-          item: React.RefObject<Omit<ListboxSortingItem<Value>, 'id'>>;
+          item: React.RefObject<Omit<ListboxSortingItemRecord<Value>, 'id'>>;
         }
       >(),
   ).current;
 
-  const getOrderedItems = useStableCallback((): ListboxSortingItem<Value>[] => {
+  const getOrderedItems = useStableCallback((): ListboxSortingItemRecord<Value>[] => {
     const order = new Map<Element, number>();
     store.state.listElement
       ?.querySelectorAll('[role="option"]')
@@ -103,8 +111,8 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       .map(([id, record], index) => ({ ...record.item.current, id, index }));
   });
   const isDisabled = React.useCallback(
-    (item: ListboxSortingItem<Value>) =>
-      disabled || item.disabled || !!isItemSortingDisabled?.(item),
+    (item: ListboxSortingItemRecord<Value>) =>
+      disabled || item.disabled || !!isItemSortingDisabled?.(toSortingItem(item)),
     [disabled, isItemSortingDisabled],
   );
   const getItemIds = useStableCallback((id: ListboxItemId) => {
@@ -113,7 +121,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     if (!source || isDisabled(source)) {
       return [];
     }
-    const isSelected = (item: ListboxSortingItem<Value>) =>
+    const isSelected = (item: ListboxSortingItemRecord<Value>) =>
       store.state.value.some((value) => store.state.isItemEqualToValue(item.value, value));
     return (
       isSelected(source) ? items.filter((item) => isSelected(item) && !isDisabled(item)) : [source]
@@ -132,7 +140,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
         Number.isInteger(destination.index) &&
         destination.index >= 0 &&
         destination.index <= ordered.length &&
-        (props.canMoveItems?.({ items, destination }) ?? true)
+        (props.canMoveItems?.({ items: items.map(toSortingItem), destination }) ?? true)
       );
     },
   );
@@ -192,8 +200,12 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
         moved: `Moved ${label} to position ${(first?.index ?? index) + 1} of ${items.length}.`,
       }[outcome];
       setAnnouncement(
-        props.getAnnouncement?.({ items: moved, destination, reason: proposal.reason, outcome }) ??
-          fallback,
+        props.getAnnouncement?.({
+          items: moved.map(toSortingItem),
+          destination,
+          reason: proposal.reason,
+          outcome,
+        }) ?? fallback,
       );
     }
   });
@@ -202,14 +214,15 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
 
   const notifyOrder = useStableCallback(
     (
-      items: ListboxSortingItem<Value>[],
+      items: ListboxSortingItemRecord<Value>[],
       parameters: ListboxMoveItemsParameters<Value>,
       event: Event,
       reason: typeof REASONS.drag | typeof REASONS.keyboard,
     ) => {
       const details = createChangeEventDetails(reason, undefined, undefined, {
         ...parameters,
-        order: items.map((item, index) => ({ ...item, index })),
+        items: parameters.items.map(toSortingItem),
+        order: items.map((item, index) => ({ ...toSortingItem(item), index })),
         event,
       });
       store.context.requestHighlightReconcile();
@@ -228,8 +241,8 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       sourceId = ids[0],
       reason: typeof REASONS.drag | typeof REASONS.keyboard = REASONS.drag,
       propose?: (
-        current: ListboxSortingItem<Value>[],
-        next: ListboxSortingItem<Value>[],
+        current: ListboxSortingItemRecord<Value>[],
+        next: ListboxSortingItemRecord<Value>[],
         notify: () => boolean,
       ) => boolean,
     ) => {
@@ -271,7 +284,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   );
   const requestFocus = useStableCallback(
     (
-      order: ListboxSortingItem<Value>[],
+      order: ListboxSortingItemRecord<Value>[],
       sourceValue: Value,
       parameters: ListboxMoveItemsParameters<Value>,
       outcome: 'moved' | 'unchanged' | 'canceled',
@@ -305,6 +318,16 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     ) {
       return;
     }
+    const target = getTarget(event.nativeEvent);
+    const row = records.get(id)?.element;
+    if (!row || !(target instanceof ownerWindow(row).Element)) {
+      return;
+    }
+    for (let node: Element | null = target; node && node !== row; node = getParentElement(node)) {
+      if (isInteractiveElement(node)) {
+        return;
+      }
+    }
     const horizontal = store.state.orientation === 'horizontal';
     const backward = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
     const forward = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
@@ -314,7 +337,6 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
     const ids = getItemIds(id);
     const ordered = getOrderedItems();
     const moving = ordered.filter((item) => ids.includes(item.id));
@@ -322,11 +344,12 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       return;
     }
     const previous = event.key === previousKey;
-    const target = ordered[previous ? moving[0].index - 1 : moving[moving.length - 1].index + 1];
-    if (target && !target.disabled) {
+    const destinationItem =
+      ordered[previous ? moving[0].index - 1 : moving[moving.length - 1].index + 1];
+    if (destinationItem && !destinationItem.disabled) {
       move(
         ids,
-        { index: target.index + (previous ? 0 : 1), groupId: target.groupId },
+        { index: destinationItem.index + (previous ? 0 : 1), groupId: destinationItem.groupId },
         event.nativeEvent,
         id,
         REASONS.keyboard,

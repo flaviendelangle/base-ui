@@ -280,7 +280,10 @@ describe('<Listbox.SortableProvider />', () => {
       expect.objectContaining({
         item: 'd',
         itemMetadata: { index: 3, groupId: null, disabled: false },
-        source: expect.objectContaining({ collectionId: expect.any(Object), items: ['a', 'b'] }),
+        source: expect.objectContaining({
+          element: screen.getByRole('option', { name: 'a' }),
+          payload: expect.objectContaining({ collectionId: expect.any(Object), items: ['a', 'b'] }),
+        }),
       }),
     );
     drop(d, { clientY: 375 });
