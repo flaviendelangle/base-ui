@@ -2,12 +2,9 @@ export * as Draggable from './index.parts';
 
 export type * from './root/DraggableRoot';
 export type * from './handle/DraggableHandle';
-export type * from './keyboard-handle/DraggableKeyboardHandle';
 export type * from './preview/DraggablePreview';
-export type * from './preview/DraggableClonedPreview';
-export type * from './displacement/DraggableDisplacement';
-export type * from './preview-provider/DraggablePreviewProvider';
-export type { UseDraggableActiveDragReturnValue } from './use-active-drag';
+export type * from './DraggableProvider';
+export type { UseActiveDragReturnValue } from './use-active-drag';
 
 // The event and option types a `Draggable.*` consumer needs to type extracted
 // handlers and props, re-exported so this entry point is self-sufficient (they
@@ -15,10 +12,11 @@ export type { UseDraggableActiveDragReturnValue } from './use-active-drag';
 // same declarations, so the star exports stay unambiguous).
 export type {
   BaseDragEvent,
-  BeforeDragStartEventDetails,
+  BeforeMoveStartEventDetails,
   DraggablePayload,
   DraggablePayloadGetter,
   DragAccept,
+  DragAcceptedKind,
   DragKind,
   DragModifier,
   DragModifierContext,
@@ -27,23 +25,23 @@ export type {
   DragDropEvent,
   DragDropEventDetails,
   DragDropReason,
-  DragEndEvent,
-  DragEndEventDetails,
+  MoveEndEvent,
+  MoveEndEventDetails,
   DragEndReason,
   DragCanceledReason,
   DragCompletedReason,
   DragEventDetails,
-  DragEventDetailsMap,
+  DraggableEventDetailsMap,
   DragHandle,
   DragInput,
   DragLocalPoint,
   DragLocation,
   DragLocationHistory,
-  DragEventMap,
-  DragMode,
-  DragMoveEvent,
-  DragMoveEventDetails,
-  DragStartEventDetails,
+  DraggableEventMap,
+  MoveEvent,
+  DragMoveReason,
+  MoveEventDetails,
+  MoveStartEventDetails,
   DropTargetChangeEventDetails,
   DragPosition,
   DragPreviewContainer,
@@ -54,22 +52,49 @@ export type {
   DragSnappedLocalPointOptions,
   DragSnapSteps,
   DragSource,
-  DragStartContext,
-  DragStartEvent,
+  MoveStartContext,
+  MoveStartEvent,
   DropTargetChangeEvent,
   DropTargetRecord,
-  DragKeyboardActivation,
-  DragKeyboardAnnouncementParameters,
-  DragKeyboardAnnouncements,
-  DragKeyboardArrowKey,
-  DragKeyboardFinalFocus,
-  DragKeyboardFinalFocusParameters,
-  DragKeyboardMoveDetails,
-  DragKeyboardMoveResult,
-  DragKeyboardMoveSuggestion,
-  DragKeyboardMoveTarget,
-  DragKeyboardMovement,
   DragPointerType,
   DragPreviewOffsetParameters,
 } from '../types/drag';
 export type { DragActivation, DragActivationConfig } from '../utils/drag-and-drop/activation';
+
+export type {
+  DropTargetEvent,
+  DropTargetEventMap,
+  DropTargetEventDetailsMap,
+  DropEvent,
+  DropTargetEventTarget,
+  DropTargetChangeReason,
+  DropTargetPayload,
+  DropTargetPayloadGetter,
+  DropTargetResolutionContext,
+} from '../types/drag';
+
+export type * from './target/DraggableTarget';
+export type * from './viewport/DraggableViewport';
+export type {
+  DragAutoScrollEvent,
+  DragAutoScrollEventDetails,
+  DragAutoScrollDirection,
+  DragAutoScrollHandler,
+  DragAutoScrollFrameContext,
+} from '../utils/drag-and-drop/autoScroller';
+export type { UseDragMonitorParameters } from './use-drag-monitor/useDragMonitor';
+export type { UseDragDropManagerReturnValue } from './use-drag-drop-manager/useDragDropManager';
+// The parameter types of every `useDragDropManager` registration method, so a
+// consumer can type a held registration without a second import from
+// `@base-ui/react/types`.
+export type {
+  DragDropManager,
+  RegisterDraggableParameters,
+  RegisterDraggableParametersWithPayload,
+  RegisterDropTargetParameters,
+  RegisterDropTargetParametersWithPayload,
+  RegisterAutoScrollerParameters,
+  RegisterMonitorParameters,
+} from '../types/dragRegistration';
+
+export type * from './collision-provider/DraggableCollisionProvider';

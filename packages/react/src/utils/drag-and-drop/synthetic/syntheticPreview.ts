@@ -1,32 +1,21 @@
+import { clamp } from '@base-ui/utils/clamp';
 import { ownerWindow } from '@base-ui/utils/owner';
+import { getFiniteAnimations } from '../../getFiniteAnimations';
 import { WindowAnimationFrame } from '../../windowAnimationFrame';
-import type { DragPreviewElementHandle } from './cloneDragPreview';
-import type { DragModifier, DragModifierKeys, DragMode, DragPosition } from '../../../types/drag';
+import { WindowTimeout } from '../../windowTimeout';
+import { measurePreviewSource, type DragPreviewElementHandle } from './cloneDragPreview';
+import type { DragModifier, DragPosition } from '../../../types/drag';
+import type { DragModifierKeys } from '../utils';
 import { applyDragModifiers } from '../dragModifiers';
 import { getSharedSlot } from '../sharedState';
+import { DRAGGING_ATTR, ENDING_STYLE_ATTR } from '../dragAttributes';
 import { getElementScale, NO_MODIFIER_KEYS } from '../utils';
 
 const ZERO_OFFSET: DragPosition = { x: 0, y: 0 };
 /** No ancestor transform: what `getElementScale` reports for an unscaled element. */
 const DEFAULT_SCALE: DragPosition = { x: 1, y: 1 };
-
-/**
- * Set on the drag source for the whole drag, so the source can be dimmed in one
- * CSS rule — `[data-dragging] { opacity: 0.4 }`. The default preview is a clone
- * anchored to the grab point, so it starts out exactly on top of the source;
- * without dimming the two read as one element. The engine deliberately does not
- * hide the source itself — that is an opinion the CSS should own.
- */
-const DRAGGING_ATTR = 'data-dragging';
-
-/**
- * Set to the drag's input modality (`'pointer'` or `'keyboard'`) on both the source
- * and the preview, so CSS can tell the two apart. The main use is easing the
- * preview's `translate` for keyboard drags — which jump between discrete positions —
- * while leaving pointer drags to track the cursor without lag.
- */
-const DRAG_MODE_ATTR = 'data-drag-mode';
-const ENDING_STYLE_ATTR = 'data-ending-style';
+const MIN_SETTLING_WATCHDOG_MS = 1000;
+const MAX_SETTLING_WATCHDOG_MS = 30000;
 
 // A new pickup from the same source interrupts its previous drop transition.
 // Shared across bundles for the same reason the active drag engine state is.
@@ -81,7 +70,6 @@ export function retargetEndingPreviewSource(
 
 export function createSyntheticPreview(
   initialSourceElement: Element,
-  mode: DragMode,
   sourceIdentity?: SyntheticPreviewSourceIdentity,
 ): SyntheticPreviewHandle {
   // Re-pointed when a virtualizer remounts the dragged item to a fresh node, so the
@@ -93,19 +81,13 @@ export function createSyntheticPreview(
 
   // The element that follows the pointer: a clone of the source, or the host a
   // `Draggable.Preview` renders into. Either way it lives in the source's own DOM
-  // position, and both sensors drive `update`, so it works for pointer and keyboard
-  // drags alike.
+  // position, and the sensor drives `update`.
   let previewElement: DragPreviewElementHandle | null = null;
   let previewOffsetX = 0;
   let previewOffsetY = 0;
   let lastX = 0;
   let lastY = 0;
   let hasPosition = false;
-  // The preview is tagged with `data-drag-mode` only after it has been positioned
-  // once, so easing a keyboard drag's `translate` never animates the jump from the
-  // preview's off-screen parking spot to the pickup point. Reset when a new preview
-  // element is adopted.
-  let previewModeApplied = false;
   // Opt-in preview-level `modifiers`, compiled to a non-empty list, or
   // `null` for none. Constrains where the preview is drawn without touching the
   // drag itself (the root's `modifiers` does that).
@@ -154,7 +136,8 @@ export function createSyntheticPreview(
       let proposedY = lastY - previewOffsetY;
       initialProposed ??= { x: proposedX, y: proposedY };
       if (modifiers) {
-        const { element } = previewElement;
+        const currentPreview = previewElement;
+        const { element } = currentPreview;
         if (!previewScaleMeasured && element.getClientRects().length > 0) {
           previewScale = getElementScale(element);
           previewScaleMeasured = true;
@@ -172,12 +155,14 @@ export function createSyntheticPreview(
             scale: previewScale,
             // `point` is the top-left itself here, so the offset is zero.
             previewOffset: ZERO_OFFSET,
-            mode,
             keys: lastKeys,
             ownerWindow: ownerWindow(element),
             getPreviewRect: () => element.getBoundingClientRect(),
           },
         );
+        if (destroyed || previewElement !== currentPreview) {
+          return;
+        }
         proposedX = constrained.x;
         proposedY = constrained.y;
       }
@@ -189,22 +174,13 @@ export function createSyntheticPreview(
       // at 0,0), so a `rotate: 4deg` would swing the translated preview around a
       // pivot hundreds of pixels away, dozens of pixels off the pointer.
       const element = previewElement.element;
+      proposedX /= previewElement.positionScale.x;
+      proposedY /= previewElement.positionScale.y;
       if (element !== positionedElement || proposedX !== positionedX || proposedY !== positionedY) {
         element.style.translate = `${proposedX}px ${proposedY}px`;
         positionedElement = element;
         positionedX = proposedX;
         positionedY = proposedY;
-      }
-      if (!previewModeApplied) {
-        previewModeApplied = true;
-        // Wait a frame so this first position is committed before the transition
-        // turns on — otherwise a keyboard drag would ease in from off-screen.
-        const { element } = previewElement;
-        WindowAnimationFrame.request(() => {
-          if (!destroyed && previewElement?.element === element) {
-            element.setAttribute(DRAG_MODE_ATTR, mode);
-          }
-        }, ownerWindow(element));
       }
     }
   }
@@ -216,7 +192,6 @@ export function createSyntheticPreview(
 
     const previousSource = sourceElement;
     previousSource.removeAttribute(DRAGGING_ATTR);
-    previousSource.removeAttribute(DRAG_MODE_ATTR);
     previousSource.removeAttribute(ENDING_STYLE_ATTR);
     if (endingCleanup && endingPreviews.get(previousSource) === endingCleanup) {
       endingPreviews.delete(previousSource);
@@ -233,7 +208,6 @@ export function createSyntheticPreview(
       endingPreviews.set(sourceElement, endingCleanup);
     }
     sourceElement.setAttribute(DRAGGING_ATTR, '');
-    sourceElement.setAttribute(DRAG_MODE_ATTR, mode);
     if (endingCleanup) {
       sourceElement.setAttribute(ENDING_STYLE_ATTR, '');
     }
@@ -260,7 +234,6 @@ export function createSyntheticPreview(
       positionedElement = null;
       previewScale = DEFAULT_SCALE;
       previewScaleMeasured = false;
-      previewModeApplied = false;
       previewOffsetX = offset?.x ?? 0;
       previewOffsetY = offset?.y ?? 0;
       initialProposed = null;
@@ -274,14 +247,12 @@ export function createSyntheticPreview(
       // the source's geometry (or hides it outright) would otherwise corrupt the
       // measurement the clone is sized from.
       sourceElement.setAttribute(DRAGGING_ATTR, '');
-      sourceElement.setAttribute(DRAG_MODE_ATTR, mode);
     },
     retargetSource,
     setPreviewOffset(offset: DragPosition): void {
       // A `Draggable.Preview` whose offset is a callback can only be resolved once React
       // has rendered its content and the element has a size, which happens after
       // the engine placed it. Re-anchor it then, without waiting for a pointer move
-      // (a keyboard drag has no frame loop to self-heal).
       previewOffsetX = offset.x;
       previewOffsetY = offset.y;
       initialProposed = null;
@@ -328,8 +299,10 @@ export function createSyntheticPreview(
         const frame = new WindowAnimationFrame(ownerWindow(element));
         let registration: EndingPreviewRegistration | null = null;
 
+        const settlingWatchdog = new WindowTimeout(ownerWindow(element));
         const cleanup = () => {
           frame.cancel();
+          settlingWatchdog.clear();
           endingPreview.destroy();
           if (registration) {
             endingPreviewRegistrations.delete(registration);
@@ -337,7 +310,6 @@ export function createSyntheticPreview(
           if (endingPreviews.get(sourceElement) === cleanup) {
             endingPreviews.delete(sourceElement);
             sourceElement.removeAttribute(DRAGGING_ATTR);
-            sourceElement.removeAttribute(DRAG_MODE_ATTR);
             sourceElement.removeAttribute(ENDING_STYLE_ATTR);
           }
           endingCleanup = null;
@@ -359,8 +331,9 @@ export function createSyntheticPreview(
           endingPreviewRegistrations.add(registration);
         }
         element.setAttribute(ENDING_STYLE_ATTR, '');
+        endingPreview.prepareForDrop?.();
 
-        // `onDrop` updates scheduled later in the release event commit before
+        // Drop-handler updates scheduled later in the release event commit before
         // this frame. Measure then, so the destination is the source's final
         // slot rather than the slot it occupied when the pointer came up.
         frame.request(() => {
@@ -370,18 +343,27 @@ export function createSyntheticPreview(
             return;
           }
 
-          const destination = sourceElement.getBoundingClientRect();
-          element.style.translate = `${destination.left}px ${destination.top}px`;
+          const { sourceRect: destination } = measurePreviewSource(sourceElement as HTMLElement);
+          element.style.translate = `${destination.left / endingPreview.positionScale.x}px ${destination.top / endingPreview.positionScale.y}px`;
 
-          const animations = globalThis.BASE_UI_ANIMATIONS_DISABLED
-            ? []
-            : (element.getAnimations?.() ?? []).filter(
-                (animation) => animation.effect?.getTiming().iterations !== Infinity,
-              );
+          const animations =
+            globalThis.BASE_UI_ANIMATIONS_DISABLED || !element.getAnimations
+              ? []
+              : getFiniteAnimations(element);
           if (animations.length === 0) {
             cleanup();
             return;
           }
+          const longestAnimationMs = animations.reduce((longest, animation) => {
+            const endTime = animation.effect?.getComputedTiming?.().endTime;
+            return typeof endTime === 'number' && Number.isFinite(endTime)
+              ? Math.max(longest, endTime)
+              : longest;
+          }, 0);
+          settlingWatchdog.start(
+            clamp(longestAnimationMs + 100, MIN_SETTLING_WATCHDOG_MS, MAX_SETTLING_WATCHDOG_MS),
+            cleanup,
+          );
           Promise.allSettled(animations.map((animation) => animation.finished)).then(cleanup);
         });
         return;
@@ -389,7 +371,6 @@ export function createSyntheticPreview(
 
       endingPreview?.destroy();
       sourceElement.removeAttribute(DRAGGING_ATTR);
-      sourceElement.removeAttribute(DRAG_MODE_ATTR);
     },
   };
 }

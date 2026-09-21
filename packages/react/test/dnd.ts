@@ -4,22 +4,26 @@
  * The DnD event polyfill and the native→synthetic bridge are installed lazily
  * (see {@link installDndTestEnv}), so importing this module has no side effects.
  */
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
+import { reset as resetWarnings } from '@base-ui/utils/warn';
 import { act, fireEvent } from '@mui/internal-test-utils';
 import { installDndPolyfill } from './dndPolyfill';
+import { waitSingleFrame } from './wait';
 import { reset, isActive as isDragActive } from '../src/utils/drag-and-drop/core/lifecycleManager';
 import { resetForTests as resetSyntheticSensor } from '../src/utils/drag-and-drop/synthetic/syntheticSensor';
-import { resetForTests as resetKeyboardSensor } from '../src/utils/drag-and-drop/keyboard/keyboardSensor';
-import { resetAnnouncerForTests } from '../src/utils/drag-and-drop/a11y/liveAnnouncer';
-import { resetKeyboardInstructionsForTests } from '../src/utils/drag-and-drop/a11y/keyboardInstructions';
 import { resetForTests as resetDropTargets } from '../src/utils/drag-and-drop/dropTarget';
 import { resetForTests as resetDragRootLock } from '../src/utils/drag-and-drop/synthetic/dragRootLock';
 import { resetForTests as resetDragCursor } from '../src/utils/drag-and-drop/synthetic/dragCursor';
 import { resetForTests as resetPostDragClick } from '../src/utils/drag-and-drop/synthetic/postDragClick';
 import { resetForTests as resetAutoScroller } from '../src/utils/drag-and-drop/autoScroller';
-import { resetDisplacementForTests } from '../src/utils/drag-and-drop/displacement';
 import { clearPublishedDragPreview } from '../src/utils/drag-and-drop/overlay/dragPreviewStore';
 import { resetTouchTarget } from './syntheticPointer';
+import type {
+  DragDropEvent,
+  DragDropEventDetails,
+  MoveEndEvent,
+  MoveEndEventDetails,
+} from '../src/types/drag';
 
 // ---------------------------------------------------------------------------
 // Fake elements
@@ -106,6 +110,11 @@ function drainCleanupQueue(): void {
  */
 export function setupDragEngineTests(options: { extraAfterEach?: () => void } = {}): void {
   installDndTestEnv();
+  // `warn()` dedupes per message process-wide; reset it so warning-count
+  // assertions do not depend on test order or on `.only`.
+  beforeEach(() => {
+    resetWarnings();
+  });
   afterEach(() => {
     let firstError: unknown;
     let failed = false;
@@ -318,9 +327,7 @@ export function installDndTestEnv(): void {
  */
 export async function flushRaf(): Promise<void> {
   await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
+    await waitSingleFrame();
   });
 }
 
@@ -353,7 +360,7 @@ function getDefaultInput(overrides: InputOverrides = {}): InputOverrides {
   };
 }
 
-/** Start a drag on an element and flush the deferred `onDragStart`. */
+/** Start a drag on an element and flush the deferred `onMoveStart`. */
 export async function lift(
   element: HTMLElement,
   input?: InputOverrides & {
@@ -376,7 +383,7 @@ export async function lift(
     throw new Error(
       'lift(): no drag session started after the activation move. ' +
         'The element may not be a registered draggable, or its activation constraint ' +
-        '(custom distance/delay, disabled, onBeforeDragStart cancel) kept the drag from starting. ' +
+        '(custom distance/delay, disabled, onBeforeMoveStart cancel) kept the drag from starting. ' +
         'Drive the gesture manually, or pass `{ expectNoDrag: true }` when the lift is ' +
         'intentionally expected not to start a drag.',
     );
@@ -418,7 +425,6 @@ export function resetDrag(): void {
   act(() => {
     reset();
     resetSyntheticSensor();
-    resetKeyboardSensor();
     // The published preview is React state, so it has to be cleared inside `act`
     // like the rest. A test that aborts mid-drag would otherwise leave the
     // overlay rendering the previous test's preview.
@@ -430,23 +436,40 @@ export function resetDrag(): void {
   resetDragRootLock();
   resetDragCursor();
   resetPostDragClick();
-  // `reset()` clears the active monitors without dispatching `onDragEnd`, so the
+  // `reset()` clears the active monitors without dispatching `onMoveEnd`, so the
   // scroll monitor never runs its own teardown: a still-engaged loop would keep
   // scheduling frames — and calling `scrollBy` — into the next test, while
   // holding the previous test's detached source alive.
   resetAutoScroller();
-  resetAnnouncerForTests();
-  resetKeyboardInstructionsForTests();
   // Clear any drop targets still registered on detached nodes so a failed/aborted
   // test can't leak them into the next one.
   resetDropTargets();
-  // A test that fails mid-drag would otherwise leave the displacement window
-  // open (plus a live store subscription), and the next test's first commit
-  // would animate.
-  resetDisplacementForTests();
   restoreElementFromPoint();
   bridgeSource = null;
   // Clear the synthetic-pointer helpers' latched touch target so one test's
   // gesture can't route the next test's touch/pen dispatches.
   resetTouchTarget();
+}
+
+/**
+ * Split `onMoveEnd` into a drop-only handler and the end handler, mirroring the
+ * engine's own drop dispatch: `onDrop` runs first and only for a committed drop,
+ * `onMoveEnd` always follows, even when `onDrop` throws.
+ */
+export function splitEnd<TPayload = unknown>(
+  onDrop: (event: DragDropEvent<TPayload>, details: DragDropEventDetails) => void,
+  onMoveEnd?: (event: MoveEndEvent<TPayload>, details: MoveEndEventDetails) => void,
+): (event: MoveEndEvent<TPayload>, details: MoveEndEventDetails) => void {
+  return (event, details) => {
+    try {
+      if (details.reason === 'drop' && event.dropTarget !== null) {
+        onDrop(
+          { source: event.source, location: event.location, dropTarget: event.dropTarget },
+          { ...details, reason: 'drop' },
+        );
+      }
+    } finally {
+      onMoveEnd?.(event, details);
+    }
+  };
 }

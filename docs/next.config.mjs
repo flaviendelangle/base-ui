@@ -70,7 +70,6 @@ const rootPackage = loadPackageJson();
 
 /** @type {import('@mui/internal-docs-infra/pipeline/loadPrecomputedTypes').LoaderOptions} */
 const typesGenerationOptions = {
-  socketDir: '.next/docs-infra',
   updateParentIndex: {
     baseDir,
     onlyUpdateIndexes: true,
@@ -101,7 +100,7 @@ const nextConfig = {
         as: '*.ts',
         loaders: ['@mui/internal-docs-infra/pipeline/loadPrecomputedSitemap'],
       },
-      './src/app/**/demos/*/index.ts': {
+      './src/app/**/demos/**/index.ts': {
         as: '*.ts',
         loaders: [
           {
@@ -133,7 +132,7 @@ const nextConfig = {
       use: [defaultLoaders.babel, '@mui/internal-docs-infra/pipeline/loadPrecomputedSitemap'],
     });
     config.module.rules.push({
-      test: /[/\\\\]demos[/\\\\][^/\\\\]+[/\\\\]index\.ts$/,
+      test: /[/\\\\]demos[/\\\\](?:[^/\\\\]+[/\\\\])+index\.ts$/,
       use: [
         defaultLoaders.babel,
         {
@@ -163,6 +162,9 @@ const nextConfig = {
   experimental: {
     globalNotFound: true,
     turbopackFileSystemCacheForBuild: true,
+    // The TS7 side-by-side alias (@typescript/typescript6) ships no `tsc` bin,
+    // which the Next.js >= 16.3 CLI checker requires. Use the TS6 JS API instead.
+    useTypeScriptCli: false,
   },
 };
 
