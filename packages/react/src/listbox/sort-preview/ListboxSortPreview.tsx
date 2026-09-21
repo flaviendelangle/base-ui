@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Draggable } from '../../draggable';
-import type { CollectionItemId } from '../../types/collection';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxSortingDragPayload } from '../sortable-provider/ListboxSortableProvider';
 
 /** Customizes or hides the pointer preview. Render inside a sortable item. */
@@ -25,7 +25,7 @@ export interface ListboxSortPreviewProps<Value = any> extends Omit<
   /** Preview content. A callback returning null hides the preview. */
   children?:
     | React.ReactNode
-    | ((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => React.ReactNode);
+    | ((parameters: { itemIds: ListboxItemId[]; items: Value[] }) => React.ReactNode);
 }
 export namespace ListboxSortPreview {
   export type Props<Value = any> = ListboxSortPreviewProps<Value>;

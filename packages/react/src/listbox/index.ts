@@ -16,3 +16,4 @@ export type * from './sort-handle/ListboxSortHandle';
 export type * from './sort-preview/ListboxSortPreview';
 export type { ListboxSortingItem } from './sorting/ListboxSortingContext';
 export type { ListboxSortingDestination } from './sorting/useListboxSorting';
+export type { ListboxItemId } from './utils/ListboxItemId';

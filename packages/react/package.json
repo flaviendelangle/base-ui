@@ -46,7 +46,6 @@
     "./fieldset": "./src/fieldset/index.ts",
     "./form": "./src/form/index.ts",
     "./input": "./src/input/index.ts",
-    "./listbox": "./src/listbox/index.ts",
     "./menu": "./src/menu/index.ts",
     "./menubar": "./src/menubar/index.ts",
     "./merge-props": "./src/merge-props/index.ts",
@@ -91,7 +90,6 @@
     "./internals/reasons": "./src/internals/reasons.ts",
     "./internals/resolveValueLabel": "./src/internals/resolveValueLabel.tsx",
     "./internals/RequestQueue": "./src/internals/RequestQueue.ts",
-    "./internals/sorting": "./src/internals/sorting/index.ts",
     "./internals/serializeValue": "./src/internals/serializeValue.ts",
     "./internals/stateAttributesMapping": "./src/internals/stateAttributesMapping.ts",
     "./internals/temporal": "./src/internals/temporal/index.ts",
@@ -107,7 +105,9 @@
     "./internals/usePressAndHold": "./src/internals/usePressAndHold.ts",
     "./internals/useRenderElement": "./src/internals/useRenderElement.tsx",
     "./internals/useValueChanged": "./src/internals/useValueChanged.ts",
-    "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts"
+    "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts",
+    "./listbox": "./src/listbox/index.ts",
+    "./internals/sorting": "./src/internals/sorting/index.ts"
   },
   "imports": {
     "#test-utils": "./test/index.ts",
@@ -135,21 +135,21 @@
     "@base-ui/utils": "workspace:*",
     "@floating-ui/react-dom": "^2.1.9",
     "@floating-ui/utils": "^0.2.12",
-    "use-sync-external-store": "^1.6.0"
+    "use-sync-external-store": "^1.7.0"
   },
   "devDependencies": {
     "@date-fns/tz": "1.5.0",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.3",
     "@types/luxon": "3.7.5",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.7",
-    "@types/use-sync-external-store": "1.5.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/use-sync-external-store": "1.7.0",
     "clsx": "2.1.1",
     "date-fns": "4.4.0",
     "luxon": "3.7.2",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-router": "8.3.1",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest-browser-react": "2.3.0"

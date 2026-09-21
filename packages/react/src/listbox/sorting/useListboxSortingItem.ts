@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useId } from '@base-ui/utils/useId';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
-import type { CollectionItemId } from '../../types/collection';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 import { ListboxSortingContext } from './ListboxSortingContext';
 
 /**
@@ -34,7 +34,7 @@ export interface UseListboxSortingItemParameters {
  */
 export function useListboxSortingItem(
   params: UseListboxSortingItemParameters,
-): CollectionItemId | undefined {
+): ListboxItemId | undefined {
   const { index, itemValue, itemRef, enabled, disabled, groupId } = params;
 
   const itemId = useId();

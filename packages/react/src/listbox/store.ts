@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ReactStore, createSelector } from '@base-ui/utils/store';
 import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
-import type { CollectionItemId } from '../types/collection';
+import type { ListboxItemId } from 'utils/ListboxItemId';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];
@@ -25,8 +25,8 @@ export type State = {
 
   // DnD state
   /** Internal IDs of all items currently being dragged (multi-select drags all selected items). */
-  dragActiveItemIds: Set<CollectionItemId> | null;
-  dragOverItemId: CollectionItemId | null;
+  dragActiveItemIds: Set<ListboxItemId> | null;
+  dragOverItemId: ListboxItemId | null;
   dropPosition: 'before' | 'after' | null;
 
   // Loading state
@@ -89,12 +89,12 @@ export const selectors = {
   dragActiveItemIds: createSelector((state: State) => state.dragActiveItemIds),
   dragOverItemId: createSelector((state: State) => state.dragOverItemId),
   isMoving: createSelector(
-    (state: State, itemId: CollectionItemId | undefined) =>
+    (state: State, itemId: ListboxItemId | undefined) =>
       itemId !== undefined &&
       state.dragActiveItemIds != null &&
       state.dragActiveItemIds.has(itemId),
   ),
-  dropPositionForItem: createSelector((state: State, itemId: CollectionItemId | undefined) =>
+  dropPositionForItem: createSelector((state: State, itemId: ListboxItemId | undefined) =>
     itemId !== undefined && state.dragOverItemId === itemId ? state.dropPosition : null,
   ),
 

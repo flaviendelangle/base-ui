@@ -11,3 +11,4 @@ export { ListboxKeyboardSortableProvider as KeyboardSortableProvider } from './k
 export { ListboxSortableProvider as SortableProvider } from './sortable-provider/ListboxSortableProvider';
 export { ListboxSortHandle as SortHandle } from './sort-handle/ListboxSortHandle';
 export { ListboxSortPreview as SortPreview } from './sort-preview/ListboxSortPreview';
+export type { ListboxItemId as ItemId } from './utils/ListboxItemId';

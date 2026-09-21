@@ -11,7 +11,7 @@ import {
   type BaseUIChangeEventDetails,
 } from '../../internals/createBaseUIEventDetails';
 import { REASONS } from '../../internals/reasons';
-import type { CollectionItemId } from '../../types/collection';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 import { useListboxRootContext } from '../root/ListboxRootContext';
 import type { ListboxSortingItem, ListboxSortingContextValue } from './ListboxSortingContext';
 
@@ -83,7 +83,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const records = useRefWithInit(
     () =>
       new Map<
-        CollectionItemId,
+        ListboxItemId,
         {
           element: HTMLElement;
           item: React.RefObject<Omit<ListboxSortingItem<Value>, 'id'>>;
@@ -110,7 +110,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       disabled || item.disabled || !!isItemSortingDisabled?.(item),
     [disabled, isItemSortingDisabled],
   );
-  const getItemIds = useStableCallback((id: CollectionItemId) => {
+  const getItemIds = useStableCallback((id: ListboxItemId) => {
     const items = getOrderedItems();
     const source = items.find((item) => item.id === id);
     if (!source || isDisabled(source)) {
@@ -123,7 +123,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     ).map((item) => item.id);
   });
   const canMove = useStableCallback(
-    (ids: CollectionItemId[], destination: ListboxSortingDestination) => {
+    (ids: ListboxItemId[], destination: ListboxSortingDestination) => {
       const ordered = getOrderedItems();
       const items = ordered.filter((item) => ids.includes(item.id));
       return (
@@ -225,7 +225,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   );
   const move = useStableCallback(
     (
-      ids: CollectionItemId[],
+      ids: ListboxItemId[],
       destination: ListboxSortingDestination,
       event: Event,
       sourceId = ids[0],
@@ -295,7 +295,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       };
     },
   );
-  const handleKeyDown = useStableCallback((event: React.KeyboardEvent, id: CollectionItemId) => {
+  const handleKeyDown = useStableCallback((event: React.KeyboardEvent, id: ListboxItemId) => {
     if (
       disabled ||
       event.defaultPrevented ||

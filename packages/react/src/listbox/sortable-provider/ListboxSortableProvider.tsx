@@ -9,7 +9,7 @@ import { matchesSortingOrder, restoreSortingOrder } from '../../internals/sortin
 import { SortingTransaction } from '../../internals/sorting/SortingTransaction';
 import { REASONS } from '../../internals/reasons';
 import { useDirection } from '../../internals/direction-context';
-import type { CollectionItemId } from '../../types/collection';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { DragKind } from '../../types/drag';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 import {
@@ -26,8 +26,8 @@ import {
 } from '../sorting/useListboxSorting';
 
 export interface ListboxSortingDragPayload<Value = any> {
-  id: CollectionItemId;
-  itemIds: CollectionItemId[];
+  id: ListboxItemId;
+  itemIds: ListboxItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: object;
@@ -35,7 +35,7 @@ export interface ListboxSortingDragPayload<Value = any> {
   data?: unknown;
 }
 export interface ListboxSortingDropPosition {
-  id: CollectionItemId;
+  id: ListboxItemId;
   placement: 'before' | 'after';
   /**
    * Override the zero-based insertion index across the entire list, including all
@@ -50,7 +50,7 @@ export interface ListboxSortingDropContext<Value = any> {
   /** The application value of the row under the pointer. */
   item: Value;
   itemMetadata: Omit<ListboxSortingItem<Value>, 'id' | 'value'>;
-  itemId: CollectionItemId;
+  itemId: ListboxItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
   collision: Draggable.CollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
@@ -72,10 +72,10 @@ export interface ListboxSortableProviderProps<Value = any> extends ListboxSortin
   kind?: DragKind<ListboxSortingDragPayload<Value>> | undefined;
   /** Returns application data stored in the drag payload's data field. */
   getDragPayload?:
-    ((parameters: { itemIds: CollectionItemId[]; items: Value[] }) => unknown) | undefined;
+    ((parameters: { itemIds: ListboxItemId[]; items: Value[] }) => unknown) | undefined;
   /** Called once when pointer sorting ends, after the final move or rollback is proposed. */
   onSortEnd?:
-    ((parameters: { itemIds: CollectionItemId[]; canceled: boolean }) => void) | undefined;
+    ((parameters: { itemIds: ListboxItemId[]; canceled: boolean }) => void) | undefined;
 }
 
 /** Enables keyboard and pointer sorting with automatic item registration. */
@@ -271,7 +271,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   const renderItem = React.useCallback(
     (
       element: React.ReactElement,
-      id: CollectionItemId,
+      id: ListboxItemId,
       disabled: boolean,
       draggableProps: ListboxItemDraggableProps | undefined,
     ) => (

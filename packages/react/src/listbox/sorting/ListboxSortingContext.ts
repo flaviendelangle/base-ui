@@ -1,10 +1,10 @@
 'use client';
 import * as React from 'react';
-import type { CollectionItemId } from '../../types/collection';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 
 export interface ListboxSortingItem<Value = any> {
-  id: CollectionItemId;
+  id: ListboxItemId;
   value: Value;
   /**
    * Zero-based item index across the entire list, including all groups.
@@ -25,11 +25,11 @@ export interface ListboxSortingContextValue {
   isDisabled: (item: ListboxSortingItem) => boolean;
   scheduleReconcile: () => void;
   setupItem: (
-    id: CollectionItemId,
+    id: ListboxItemId,
     element: HTMLElement,
     item: React.RefObject<Omit<ListboxSortingItem, 'id'>>,
   ) => () => void;
-  handleKeyDown: (event: React.KeyboardEvent, id: CollectionItemId) => void;
+  handleKeyDown: (event: React.KeyboardEvent, id: ListboxItemId) => void;
 }
 
 export const ListboxSortingContext = React.createContext<ListboxSortingContextValue | undefined>(
@@ -39,7 +39,7 @@ export const ListboxSortingContext = React.createContext<ListboxSortingContextVa
 export interface ListboxSortableContextValue {
   renderItem: (
     element: React.ReactElement,
-    id: CollectionItemId,
+    id: ListboxItemId,
     disabled: boolean,
     props: ListboxItemDraggableProps | undefined,
   ) => React.ReactElement;
