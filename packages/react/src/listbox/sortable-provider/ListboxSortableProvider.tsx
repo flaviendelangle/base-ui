@@ -25,6 +25,7 @@ import type {
   DraggableTargetRecord,
 } from '../../types/drag';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
+import { ListboxRootFeatureProvider, type ListboxRootFeature } from '../root/ListboxRootFeatures';
 import {
   ListboxSortingContext,
   ListboxSortableContext,
@@ -113,8 +114,68 @@ export interface ListboxSortableProviderProps<Value = any> extends ListboxSortin
     | undefined;
 }
 
-/** Enables keyboard and pointer sorting with automatic item registration. */
+/**
+ * Enables keyboard and pointer sorting in the listbox it wraps, with automatic item registration.
+ * Renders a visually hidden announcement region inside the listbox.
+ */
 export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvider.Props<Value>) {
+  const {
+    children,
+    disabled,
+    onItemsReorder,
+    canMoveItems,
+    isItemSortingDisabled,
+    getAnnouncement,
+    getDropPosition,
+    onDropPositionChange,
+    reorderOn,
+    kind,
+    getDragPayload,
+    onSortEnd,
+  } = props;
+  const feature = React.useMemo(
+    (): ListboxRootFeature => ({
+      render: (rootChildren) => (
+        <ListboxPointerSorting
+          disabled={disabled}
+          onItemsReorder={onItemsReorder}
+          canMoveItems={canMoveItems}
+          isItemSortingDisabled={isItemSortingDisabled}
+          getAnnouncement={getAnnouncement}
+          getDropPosition={getDropPosition}
+          onDropPositionChange={onDropPositionChange}
+          reorderOn={reorderOn}
+          kind={kind}
+          getDragPayload={getDragPayload}
+          onSortEnd={onSortEnd}
+        >
+          {rootChildren}
+        </ListboxPointerSorting>
+      ),
+    }),
+    [
+      disabled,
+      onItemsReorder,
+      canMoveItems,
+      isItemSortingDisabled,
+      getAnnouncement,
+      getDropPosition,
+      onDropPositionChange,
+      reorderOn,
+      kind,
+      getDragPayload,
+      onSortEnd,
+    ],
+  );
+  return (
+    <ListboxRootFeatureProvider name="SortableProvider" feature={feature}>
+      {children}
+    </ListboxRootFeatureProvider>
+  );
+}
+
+/** The sorting of `Listbox.SortableProvider`, rendered inside the root it wraps. */
+function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value>) {
   const {
     children,
     reorderOn = 'drop',

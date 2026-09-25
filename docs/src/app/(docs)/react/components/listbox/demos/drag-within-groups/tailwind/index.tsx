@@ -29,18 +29,18 @@ export default function ExampleListboxDragWithinGroups() {
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.Root defaultValue={['billie-jean']}>
-        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
-          Playlist
-        </Listbox.Label>
-        <Listbox.SortableProvider
-          canMoveItems={({ items: movedItems, destination }) =>
-            movedItems.every((item) => item.groupId === destination.groupId)
-          }
-          onItemsReorder={(order) => {
-            setItems((prev) => reorderItems(prev, order));
-          }}
-        >
+      <Listbox.SortableProvider
+        canMoveItems={({ items: movedItems, destination }) =>
+          movedItems.every((item) => item.groupId === destination.groupId)
+        }
+        onItemsReorder={(order) => {
+          setItems((prev) => reorderItems(prev, order));
+        }}
+      >
+        <Listbox.Root defaultValue={['billie-jean']}>
+          <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
+            Playlist
+          </Listbox.Label>
           <Listbox.List className="box-border w-64 max-h-96 overflow-y-auto rounded-md py-1 outline outline-1 outline-neutral-200 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500 dark:outline-neutral-700">
             {groups.map((group) => (
               <Listbox.Group key={group.label} className="block pb-0.5">
@@ -70,8 +70,8 @@ export default function ExampleListboxDragWithinGroups() {
               </Listbox.Group>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }

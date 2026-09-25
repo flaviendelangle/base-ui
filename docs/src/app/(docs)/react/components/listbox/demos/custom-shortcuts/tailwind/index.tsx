@@ -57,24 +57,24 @@ export default function ExampleListboxCustomShortcuts() {
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.Root
-        defaultValue={['header']}
-        actionsRef={actionsRef}
-        onHighlightChange={(value, element) => {
-          highlightedRef.current = value != null && element != null ? { value, element } : null;
-        }}
+      <Listbox.KeyboardSortableProvider
+        onItemsReorder={(order) =>
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          })
+        }
       >
-        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
-          Layers
-        </Listbox.Label>
-        <Listbox.KeyboardSortableProvider
-          onItemsReorder={(order) =>
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            })
-          }
+        <Listbox.Root
+          defaultValue={['header']}
+          actionsRef={actionsRef}
+          onHighlightChange={(value, element) => {
+            highlightedRef.current = value != null && element != null ? { value, element } : null;
+          }}
         >
+          <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
+            Layers
+          </Listbox.Label>
           <Listbox.List
             className="box-border w-56 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-neutral-200 dark:outline-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500"
             onKeyDown={handleKeyDown}
@@ -90,8 +90,8 @@ export default function ExampleListboxCustomShortcuts() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.KeyboardSortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.KeyboardSortableProvider>
     </div>
   );
 }

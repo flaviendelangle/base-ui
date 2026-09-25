@@ -32,22 +32,22 @@ export default function ExampleListboxCrossListDnd() {
       <div className={styles.Layout}>
         {queues.map((items, queueIndex) => (
           <div key={queueIndex} className={styles.Field}>
-            <Listbox.Root>
-              <Listbox.Label className={styles.Label}>
-                {queueIndex === 0 ? 'Queue' : 'Up next'}
-              </Listbox.Label>
-              <Listbox.SortableProvider
-                kind={queueKind}
-                onItemsReorder={(order: string[]) => {
-                  setQueues((current) =>
-                    current.map((queue, index) =>
-                      index === queueIndex
-                        ? order.map((value) => queue.find((track) => track.value === value)!)
-                        : queue,
-                    ),
-                  );
-                }}
-              >
+            <Listbox.SortableProvider
+              kind={queueKind}
+              onItemsReorder={(order: string[]) => {
+                setQueues((current) =>
+                  current.map((queue, index) =>
+                    index === queueIndex
+                      ? order.map((value) => queue.find((track) => track.value === value)!)
+                      : queue,
+                  ),
+                );
+              }}
+            >
+              <Listbox.Root>
+                <Listbox.Label className={styles.Label}>
+                  {queueIndex === 0 ? 'Queue' : 'Up next'}
+                </Listbox.Label>
                 <Listbox.List
                   className={styles.List}
                   style={{ minHeight: 48 }}
@@ -84,8 +84,8 @@ export default function ExampleListboxCrossListDnd() {
                     </Listbox.ItemExternalDropTarget>
                   ))}
                 </Listbox.List>
-              </Listbox.SortableProvider>
-            </Listbox.Root>
+              </Listbox.Root>
+            </Listbox.SortableProvider>
           </div>
         ))}
       </div>

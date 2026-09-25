@@ -23,9 +23,9 @@ Import the component and assemble its parts:
 ```jsx title="Anatomy"
 import { Listbox } from '@base-ui/react/listbox';
 
-<Listbox.Root>
-  <Listbox.Label />
-  <Listbox.SortableProvider>
+<Listbox.SortableProvider>
+  <Listbox.Root>
+    <Listbox.Label />
     <Listbox.List>
       <Listbox.Item>
         <Listbox.ItemIndicator />
@@ -38,8 +38,8 @@ import { Listbox } from '@base-ui/react/listbox';
       </Listbox.Group>
       <Listbox.LoadingTrigger />
     </Listbox.List>
-  </Listbox.SortableProvider>
-</Listbox.Root>;
+  </Listbox.Root>
+</Listbox.SortableProvider>;
 ```
 
 ## Examples
@@ -66,7 +66,7 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 
 ### Sorting
 
-Wrap the list in `Listbox.KeyboardSortableProvider` to enable keyboard sorting. Pass `onItemsReorder` and render the values in the proposed order.
+Wrap `Listbox.Root` in `Listbox.KeyboardSortableProvider` to enable keyboard sorting. Pass `onItemsReorder` and render the values in the proposed order.
 Focus an item and press <kbd>Alt</kbd> + <kbd>ArrowUp</kbd> or <kbd>Alt</kbd> + <kbd>ArrowDown</kbd> to move it. Horizontal lists use <kbd>Alt</kbd> + <kbd>ArrowLeft</kbd> and <kbd>Alt</kbd> + <kbd>ArrowRight</kbd>, respecting the text direction.
 
 Completed keyboard moves and final pointer outcomes are announced politely. Live pointer sorting does not announce intermediate positions. Use `getAnnouncement` on either provider to customize the text. It receives `items` with their current values and positions, `destination`, `reason` (`'keyboard'` or `'drag'`), and `outcome` (`'moved'`, `'unchanged'`, or `'canceled'`). The destination describes the first moved item's resulting group and flat list index after the operation, or is `null` if no moved items remain. Return an empty string to suppress a message.
@@ -113,7 +113,9 @@ Give each `Listbox.Group` a stable `id` when your application allows items to mo
     setItems(details.order.map(({ value, groupId }) => ({ value, groupId })));
   }}
 >
-  {/* Render each item under the Group whose id matches its groupId. */}
+  <Listbox.Root>
+    {/* Render each item under the Group whose id matches its groupId. */}
+  </Listbox.Root>
 </Listbox.SortableProvider>
 ```
 
@@ -203,6 +205,14 @@ import { DemoListboxCustomShortcuts } from './demos/custom-shortcuts';
 
 import { TypesListbox, TypesListboxAdditional } from './types';
 
+### KeyboardSortableProvider
+
+<TypesListbox.KeyboardSortableProvider />
+
+### SortableProvider
+
+<TypesListbox.SortableProvider />
+
 ### Root
 
 <TypesListbox.Root />
@@ -214,14 +224,6 @@ import { TypesListbox, TypesListboxAdditional } from './types';
 ### List
 
 <TypesListbox.List />
-
-### KeyboardSortableProvider
-
-<TypesListbox.KeyboardSortableProvider />
-
-### SortableProvider
-
-<TypesListbox.SortableProvider />
 
 ### SortPreview
 

@@ -474,7 +474,8 @@ type ListboxItemExternalDropTargetPositionContext<TPayload = unknown, TItem = un
 
 ### KeyboardSortableProvider
 
-Enables keyboard sorting with Alt+Arrow keys. Renders a visually hidden announcement region.
+Enables keyboard sorting with Alt+Arrow keys in the listbox it wraps.
+Renders a visually hidden announcement region inside the listbox.
 
 **KeyboardSortableProvider Props:**
 
@@ -569,7 +570,8 @@ type ListboxLoadingTriggerState = {
 
 ### SortableProvider
 
-Enables keyboard and pointer sorting with automatic item registration.
+Enables keyboard and pointer sorting in the listbox it wraps, with automatic item registration.
+Renders a visually hidden announcement region inside the listbox.
 
 **SortableProvider Props:**
 

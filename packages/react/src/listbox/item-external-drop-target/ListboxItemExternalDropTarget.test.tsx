@@ -51,6 +51,9 @@ function Fixture({
       ))}
     </Listbox.List>
   );
+  const listbox = (
+    <Listbox.Root orientation={horizontal ? 'horizontal' : 'vertical'}>{content}</Listbox.Root>
+  );
   return (
     <Draggable.Provider>
       <Draggable.Root
@@ -63,19 +66,13 @@ function Fixture({
       <Draggable.Root kind={otherKind} payload="text" data-testid="other">
         text
       </Draggable.Root>
-      <Listbox.Root orientation={horizontal ? 'horizontal' : 'vertical'}>
-        {sortable ? (
-          <Listbox.SortableProvider
-            kind={kind}
-            disabled={sortingDisabled}
-            onItemsReorder={setItems}
-          >
-            {content}
-          </Listbox.SortableProvider>
-        ) : (
-          content
-        )}
-      </Listbox.Root>
+      {sortable ? (
+        <Listbox.SortableProvider kind={kind} disabled={sortingDisabled} onItemsReorder={setItems}>
+          {listbox}
+        </Listbox.SortableProvider>
+      ) : (
+        listbox
+      )}
     </Draggable.Provider>
   );
 }
@@ -256,13 +253,13 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
         const [right, setRight] = React.useState(['dest']);
         return (
           <Draggable.Provider>
-            <Listbox.Root>
-              <Listbox.SortableProvider
-                kind={kind}
-                reorderOn={reorderOn}
-                onItemsReorder={setLeft}
-                onSortEnd={onSortEnd}
-              >
+            <Listbox.SortableProvider
+              kind={kind}
+              reorderOn={reorderOn}
+              onItemsReorder={setLeft}
+              onSortEnd={onSortEnd}
+            >
+              <Listbox.Root>
                 <Listbox.List data-testid="left">
                   {left.map((value) => (
                     <Listbox.Item key={value} value={value}>
@@ -270,10 +267,10 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                     </Listbox.Item>
                   ))}
                 </Listbox.List>
-              </Listbox.SortableProvider>
-            </Listbox.Root>
-            <Listbox.Root>
-              <Listbox.SortableProvider kind={kind} onItemsReorder={setRight}>
+              </Listbox.Root>
+            </Listbox.SortableProvider>
+            <Listbox.SortableProvider kind={kind} onItemsReorder={setRight}>
+              <Listbox.Root>
                 <Listbox.List data-testid="right">
                   {right.map((value) => (
                     <Listbox.ItemExternalDropTarget
@@ -296,8 +293,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                     </Listbox.ItemExternalDropTarget>
                   ))}
                 </Listbox.List>
-              </Listbox.SortableProvider>
-            </Listbox.Root>
+              </Listbox.Root>
+            </Listbox.SortableProvider>
           </Draggable.Provider>
         );
       }

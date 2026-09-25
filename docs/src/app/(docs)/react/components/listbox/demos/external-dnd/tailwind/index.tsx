@@ -48,18 +48,18 @@ export default function ExampleListboxExternalDnd() {
           ))}
         </div>
         <div className="flex flex-col gap-1">
-          <Listbox.Root>
-            <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
-              Queue
-            </Listbox.Label>
-            <Listbox.SortableProvider
-              kind={queueKind}
-              onItemsReorder={(order: string[]) => {
-                setItems((current) =>
-                  order.map((value) => current.find((track) => track.value === value)!),
-                );
-              }}
-            >
+          <Listbox.SortableProvider
+            kind={queueKind}
+            onItemsReorder={(order: string[]) => {
+              setItems((current) =>
+                order.map((value) => current.find((track) => track.value === value)!),
+              );
+            }}
+          >
+            <Listbox.Root>
+              <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
+                Queue
+              </Listbox.Label>
               <Listbox.List
                 className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-neutral-200 dark:outline-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500"
                 style={{ minHeight: 48 }}
@@ -99,8 +99,8 @@ export default function ExampleListboxExternalDnd() {
                   </Listbox.ItemExternalDropTarget>
                 ))}
               </Listbox.List>
-            </Listbox.SortableProvider>
-          </Listbox.Root>
+            </Listbox.Root>
+          </Listbox.SortableProvider>
         </div>
         <div className="flex flex-col gap-1">
           <span className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">

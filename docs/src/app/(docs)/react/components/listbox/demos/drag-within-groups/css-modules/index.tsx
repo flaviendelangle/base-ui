@@ -30,16 +30,16 @@ export default function ExampleListboxDragWithinGroups() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={['billie-jean']}>
-        <Listbox.Label className={styles.Label}>Playlist</Listbox.Label>
-        <Listbox.SortableProvider
-          canMoveItems={({ items: movedItems, destination }) =>
-            movedItems.every((item) => item.groupId === destination.groupId)
-          }
-          onItemsReorder={(order) => {
-            setItems((prev) => reorderItems(prev, order));
-          }}
-        >
+      <Listbox.SortableProvider
+        canMoveItems={({ items: movedItems, destination }) =>
+          movedItems.every((item) => item.groupId === destination.groupId)
+        }
+        onItemsReorder={(order) => {
+          setItems((prev) => reorderItems(prev, order));
+        }}
+      >
+        <Listbox.Root defaultValue={['billie-jean']}>
+          <Listbox.Label className={styles.Label}>Playlist</Listbox.Label>
           <Listbox.List className={styles.List}>
             {groups.map((group) => (
               <Listbox.Group key={group.label} className={styles.Group}>
@@ -61,8 +61,8 @@ export default function ExampleListboxDragWithinGroups() {
               </Listbox.Group>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }

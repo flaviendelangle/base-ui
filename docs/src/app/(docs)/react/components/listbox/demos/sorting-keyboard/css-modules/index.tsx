@@ -16,16 +16,16 @@ export default function ExampleListboxSortingKeyboard() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={['bohemian-rhapsody']}>
-        <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.KeyboardSortableProvider
-          onItemsReorder={(order) => {
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            });
-          }}
-        >
+      <Listbox.KeyboardSortableProvider
+        onItemsReorder={(order) => {
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          });
+        }}
+      >
+        <Listbox.Root defaultValue={['bohemian-rhapsody']}>
+          <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
           <Listbox.List className={styles.List}>
             {items.map(({ title, artist, value }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
@@ -39,8 +39,8 @@ export default function ExampleListboxSortingKeyboard() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.KeyboardSortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.KeyboardSortableProvider>
     </div>
   );
 }

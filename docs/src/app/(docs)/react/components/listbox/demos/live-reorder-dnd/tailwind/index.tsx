@@ -29,11 +29,11 @@ export default function ExampleListboxLiveReorderDnd() {
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.Root defaultValue={[initialItems[0]]}>
-        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
-          Queue
-        </Listbox.Label>
-        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+      <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.Root defaultValue={[initialItems[0]]}>
+          <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
+            Queue
+          </Listbox.Label>
           <Listbox.List className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-neutral-200 dark:outline-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500">
             {items.map((item) => (
               <Listbox.Item key={item.value} value={item} className={ITEM_CLASS}>
@@ -55,8 +55,8 @@ export default function ExampleListboxLiveReorderDnd() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }

@@ -58,22 +58,22 @@ export default function ExampleListboxCustomShortcuts() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root
-        defaultValue={['header']}
-        actionsRef={actionsRef}
-        onHighlightChange={(value, element) => {
-          highlightedRef.current = value != null && element != null ? { value, element } : null;
-        }}
+      <Listbox.KeyboardSortableProvider
+        onItemsReorder={(order) =>
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          })
+        }
       >
-        <Listbox.Label className={styles.Label}>Layers</Listbox.Label>
-        <Listbox.KeyboardSortableProvider
-          onItemsReorder={(order) =>
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            })
-          }
+        <Listbox.Root
+          defaultValue={['header']}
+          actionsRef={actionsRef}
+          onHighlightChange={(value, element) => {
+            highlightedRef.current = value != null && element != null ? { value, element } : null;
+          }}
         >
+          <Listbox.Label className={styles.Label}>Layers</Listbox.Label>
           <Listbox.List className={styles.List} onKeyDown={handleKeyDown}>
             {items.map(({ label, value, icon }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
@@ -82,8 +82,8 @@ export default function ExampleListboxCustomShortcuts() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.KeyboardSortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.KeyboardSortableProvider>
     </div>
   );
 }

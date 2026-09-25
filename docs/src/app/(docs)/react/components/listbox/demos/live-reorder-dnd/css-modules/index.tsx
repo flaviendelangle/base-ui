@@ -22,9 +22,9 @@ export default function ExampleListboxLiveReorderDnd() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={[initialItems[0]]}>
-        <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+      <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.Root defaultValue={[initialItems[0]]}>
+          <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
           <Listbox.List className={styles.List}>
             {items.map((item) => (
               <Listbox.Item key={item.value} value={item} className={styles.Item}>
@@ -41,8 +41,8 @@ export default function ExampleListboxLiveReorderDnd() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }

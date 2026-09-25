@@ -47,16 +47,16 @@ export default function ExampleListboxExternalDnd() {
           ))}
         </div>
         <div className={styles.Field}>
-          <Listbox.Root>
-            <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-            <Listbox.SortableProvider
-              kind={queueKind}
-              onItemsReorder={(order: string[]) => {
-                setItems((current) =>
-                  order.map((value) => current.find((track) => track.value === value)!),
-                );
-              }}
-            >
+          <Listbox.SortableProvider
+            kind={queueKind}
+            onItemsReorder={(order: string[]) => {
+              setItems((current) =>
+                order.map((value) => current.find((track) => track.value === value)!),
+              );
+            }}
+          >
+            <Listbox.Root>
+              <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
               <Listbox.List
                 className={styles.List}
                 style={{ minHeight: 48 }}
@@ -91,8 +91,8 @@ export default function ExampleListboxExternalDnd() {
                   </Listbox.ItemExternalDropTarget>
                 ))}
               </Listbox.List>
-            </Listbox.SortableProvider>
-          </Listbox.Root>
+            </Listbox.Root>
+          </Listbox.SortableProvider>
         </div>
         <div className={styles.Field}>
           <span className={styles.Label}>Archive</span>

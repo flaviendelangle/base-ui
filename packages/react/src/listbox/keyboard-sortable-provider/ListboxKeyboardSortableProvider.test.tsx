@@ -21,16 +21,16 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     function Fixture({ onItemsReorder, ...props }: Listbox.KeyboardSortableProvider.Props<string>) {
       const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
       return (
-        <Listbox.Root selectionMode="multiple" defaultValue={['a', 'b']}>
-          <Provider
-            {...props}
-            onItemsReorder={(next, details) => {
-              onItemsReorder?.(next, details);
-              if (!details.isCanceled) {
-                setItems(next);
-              }
-            }}
-          >
+        <Provider
+          {...props}
+          onItemsReorder={(next, details) => {
+            onItemsReorder?.(next, details);
+            if (!details.isCanceled) {
+              setItems(next);
+            }
+          }}
+        >
+          <Listbox.Root selectionMode="multiple" defaultValue={['a', 'b']}>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -38,8 +38,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Provider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Provider>
       );
     }
     it('exposes movement metadata without disabled state', async () => {
@@ -75,8 +75,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       const onKeyDown = vi.fn();
       await render(
         <div onKeyDown={onKeyDown}>
-          <Listbox.Root>
-            <Provider onItemsReorder={onItemsReorder}>
+          <Provider onItemsReorder={onItemsReorder}>
+            <Listbox.Root>
               <Listbox.List>
                 <Listbox.Item value="a">
                   a <input aria-label="Rename" />
@@ -84,8 +84,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
                 </Listbox.Item>
                 <Listbox.Item value="b">b</Listbox.Item>
               </Listbox.List>
-            </Provider>
-          </Listbox.Root>
+            </Listbox.Root>
+          </Provider>
         </div>,
       );
       await keyDown(screen.getByRole('textbox'), { key: 'ArrowDown', altKey: true });
@@ -169,14 +169,14 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     it('does not announce or change focus when controlled order is rejected', async () => {
       const onItemsReorder = vi.fn();
       await render(
-        <Listbox.Root>
-          <Provider onItemsReorder={onItemsReorder}>
+        <Provider onItemsReorder={onItemsReorder}>
+          <Listbox.Root>
             <Listbox.List>
               <Listbox.Item value="a">a</Listbox.Item>
               <Listbox.Item value="b">b</Listbox.Item>
             </Listbox.List>
-          </Provider>
-        </Listbox.Root>,
+          </Listbox.Root>
+        </Provider>,
       );
       const a = screen.getByRole('option', { name: 'a' });
       await act(async () => a.focus());
@@ -217,14 +217,14 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       const onItemsReorder = vi.fn();
       await render(
         <DirectionProvider direction="rtl">
-          <Listbox.Root orientation="horizontal">
-            <Provider onItemsReorder={onItemsReorder}>
+          <Provider onItemsReorder={onItemsReorder}>
+            <Listbox.Root orientation="horizontal">
               <Listbox.List>
                 <Listbox.Item value="a">a</Listbox.Item>
                 <Listbox.Item value="b">b</Listbox.Item>
               </Listbox.List>
-            </Provider>
-          </Listbox.Root>
+            </Listbox.Root>
+          </Provider>
         </DirectionProvider>,
       );
       await keyDown(screen.getByRole('option', { name: 'a' }), {
@@ -239,8 +239,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     it('does not sort an outer list from a nested list', async () => {
       const onItemsReorder = vi.fn();
       await render(
-        <Listbox.Root>
-          <Provider onItemsReorder={onItemsReorder}>
+        <Provider onItemsReorder={onItemsReorder}>
+          <Listbox.Root>
             <Listbox.List>
               <Listbox.Item value="outer">
                 Outer
@@ -252,8 +252,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
               </Listbox.Item>
               <Listbox.Item value="other">Other</Listbox.Item>
             </Listbox.List>
-          </Provider>
-        </Listbox.Root>,
+          </Listbox.Root>
+        </Provider>,
       );
       await keyDown(screen.getByRole('option', { name: 'Inner' }), {
         key: 'ArrowDown',
@@ -265,8 +265,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       function Groups() {
         const [moved, setMoved] = React.useState(false);
         return (
-          <Listbox.Root>
-            <Provider onItemsReorder={() => setMoved(true)}>
+          <Provider onItemsReorder={() => setMoved(true)}>
+            <Listbox.Root>
               <Listbox.List>
                 <Listbox.Group>{!moved && <Listbox.Item value="a">a</Listbox.Item>}</Listbox.Group>
                 <Listbox.Group>
@@ -277,8 +277,8 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
                   ))}
                 </Listbox.Group>
               </Listbox.List>
-            </Provider>
-          </Listbox.Root>
+            </Listbox.Root>
+          </Provider>
         );
       }
       await render(<Groups />);
@@ -305,15 +305,15 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         );
       }
       await render(
-        <Listbox.Root>
-          <Provider
-            onItemsReorder={(items) => {
-              applyOrder = () => updateItems(items);
-            }}
-          >
+        <Provider
+          onItemsReorder={(items) => {
+            applyOrder = () => updateItems(items);
+          }}
+        >
+          <Listbox.Root>
             <Items />
-          </Provider>
-        </Listbox.Root>,
+          </Listbox.Root>
+        </Provider>,
       );
       await keyDown(screen.getByRole('option', { name: 'a' }), { key: 'ArrowDown', altKey: true });
       await flushRaf();

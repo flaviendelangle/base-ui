@@ -15,18 +15,18 @@ export default function ExampleListboxDragAndDrop() {
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.Root defaultValue={['bohemian-rhapsody']}>
-        <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
-          Queue
-        </Listbox.Label>
-        <Listbox.SortableProvider
-          onItemsReorder={(order) => {
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            });
-          }}
-        >
+      <Listbox.SortableProvider
+        onItemsReorder={(order) => {
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          });
+        }}
+      >
+        <Listbox.Root defaultValue={['bohemian-rhapsody']}>
+          <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
+            Queue
+          </Listbox.Label>
           <Listbox.List className="box-border w-64 max-h-80 overflow-y-auto py-1 rounded-md outline outline-1 outline-neutral-200 dark:outline-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-blue-500">
             {items.map(({ title, artist, value }) => (
               <Listbox.Item
@@ -47,8 +47,8 @@ export default function ExampleListboxDragAndDrop() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }

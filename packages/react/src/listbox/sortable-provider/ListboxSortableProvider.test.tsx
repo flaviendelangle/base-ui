@@ -38,19 +38,19 @@ function GroupedFixture({
     { value: 'c', groupId: 'two' },
   ]);
   return (
-    <Listbox.Root selectionMode="multiple" defaultValue={selected}>
-      <Listbox.SortableProvider
-        reorderOn={reorderOn}
-        onItemsReorder={(_, details) => {
-          const apply = () =>
-            setItems(details.order.map(({ value, groupId }) => ({ value, groupId })));
-          if (defer) {
-            defer(apply);
-          } else {
-            apply();
-          }
-        }}
-      >
+    <Listbox.SortableProvider
+      reorderOn={reorderOn}
+      onItemsReorder={(_, details) => {
+        const apply = () =>
+          setItems(details.order.map(({ value, groupId }) => ({ value, groupId })));
+        if (defer) {
+          defer(apply);
+        } else {
+          apply();
+        }
+      }}
+    >
+      <Listbox.Root selectionMode="multiple" defaultValue={selected}>
         <Listbox.List>
           {['one', 'two'].map((groupId) => (
             <Listbox.Group key={groupId} id={groupId} data-testid={groupId}>
@@ -64,8 +64,8 @@ function GroupedFixture({
             </Listbox.Group>
           ))}
         </Listbox.List>
-      </Listbox.SortableProvider>
-    </Listbox.Root>
+      </Listbox.Root>
+    </Listbox.SortableProvider>
   );
 }
 
@@ -82,16 +82,16 @@ describe('<Listbox.SortableProvider />', () => {
   }) {
     const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
     return (
-      <Listbox.Root selectionMode="multiple" defaultValue={['a', 'b']}>
-        <Listbox.SortableProvider
-          {...props}
-          onItemsReorder={(next, details) => {
-            onItemsReorder?.(next, details);
-            if (!details.isCanceled) {
-              setItems(next);
-            }
-          }}
-        >
+      <Listbox.SortableProvider
+        {...props}
+        onItemsReorder={(next, details) => {
+          onItemsReorder?.(next, details);
+          if (!details.isCanceled) {
+            setItems(next);
+          }
+        }}
+      >
+        <Listbox.Root selectionMode="multiple" defaultValue={['a', 'b']}>
           <Listbox.List>
             {items.map((value) => (
               <Listbox.Item key={value} value={value} draggableProps={draggableProps}>
@@ -100,8 +100,8 @@ describe('<Listbox.SortableProvider />', () => {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     );
   }
   it('restores a live proposal when its callback synchronously unmounts sorting', async () => {
@@ -110,17 +110,17 @@ describe('<Listbox.SortableProvider />', () => {
     function Example() {
       const [visible, setVisible] = React.useState(true);
       return visible ? (
-        <Listbox.Root>
-          <Listbox.SortableProvider
-            reorderOn="move"
-            onItemsReorder={(next) => {
-              current = next;
-              if (first) {
-                first = false;
-                ReactDOM.flushSync(() => setVisible(false));
-              }
-            }}
-          >
+        <Listbox.SortableProvider
+          reorderOn="move"
+          onItemsReorder={(next) => {
+            current = next;
+            if (first) {
+              first = false;
+              ReactDOM.flushSync(() => setVisible(false));
+            }
+          }}
+        >
+          <Listbox.Root>
             <Listbox.List>
               {['a', 'b', 'c'].map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -128,8 +128,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       ) : null;
     }
     await render(<Example />);
@@ -144,18 +144,18 @@ describe('<Listbox.SortableProvider />', () => {
       const [visible, setVisible] = React.useState(true);
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return visible ? (
-        <Listbox.Root>
-          <Listbox.SortableProvider
-            reorderOn="move"
-            onItemsReorder={(next) => {
-              proposals.push(next);
-              if (proposals.length === 2) {
-                ReactDOM.flushSync(() => setVisible(false));
-              } else {
-                setItems(next);
-              }
-            }}
-          >
+        <Listbox.SortableProvider
+          reorderOn="move"
+          onItemsReorder={(next) => {
+            proposals.push(next);
+            if (proposals.length === 2) {
+              ReactDOM.flushSync(() => setVisible(false));
+            } else {
+              setItems(next);
+            }
+          }}
+        >
+          <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -163,8 +163,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       ) : null;
     }
     await render(<Example />);
@@ -375,16 +375,16 @@ describe('<Listbox.SortableProvider />', () => {
   it('restricts pointer pickup to SortHandle while keeping row keyboard sorting', async () => {
     const onItemsReorder = vi.fn();
     await render(
-      <Listbox.Root>
-        <Listbox.SortableProvider onItemsReorder={onItemsReorder}>
+      <Listbox.SortableProvider onItemsReorder={onItemsReorder}>
+        <Listbox.Root>
           <Listbox.List>
             <Listbox.Item value="a">
               a<Listbox.SortHandle data-testid="handle" />
             </Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>,
+        </Listbox.Root>
+      </Listbox.SortableProvider>,
     );
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
@@ -441,8 +441,8 @@ describe('<Listbox.SortableProvider />', () => {
     function Groups() {
       const [moved, setMoved] = React.useState(false);
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider onItemsReorder={() => setMoved(true)}>
+        <Listbox.SortableProvider onItemsReorder={() => setMoved(true)}>
+          <Listbox.Root>
             <Listbox.List>
               <Listbox.Group>{!moved && <Listbox.Item value="a">a</Listbox.Item>}</Listbox.Group>
               <Listbox.Group>
@@ -453,8 +453,8 @@ describe('<Listbox.SortableProvider />', () => {
                 ))}
               </Listbox.Group>
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<Groups />);
@@ -475,8 +475,8 @@ describe('<Listbox.SortableProvider />', () => {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       updateItems = setItems;
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+          <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -484,8 +484,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<UpdatingList />);
@@ -509,8 +509,8 @@ describe('<Listbox.SortableProvider />', () => {
       ]);
       updateItems = setItems;
       return (
-        <Listbox.Root isItemEqualToValue={(a: Item, b: Item) => a.id === b.id}>
-          <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+          <Listbox.Root isItemEqualToValue={(a: Item, b: Item) => a.id === b.id}>
             <Listbox.List>
               {items.map((item) => (
                 <Listbox.Item key={item.id} value={item}>
@@ -518,8 +518,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<UpdatingList />);
@@ -545,8 +545,8 @@ describe('<Listbox.SortableProvider />', () => {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       updateItems = setItems;
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+          <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -554,8 +554,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<UpdatingList />);
@@ -629,11 +629,11 @@ describe('<Listbox.SortableProvider />', () => {
     function DeferredList() {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider
-            reorderOn="move"
-            onItemsReorder={(next) => updates.push(() => setItems(next))}
-          >
+        <Listbox.SortableProvider
+          reorderOn="move"
+          onItemsReorder={(next) => updates.push(() => setItems(next))}
+        >
+          <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -641,8 +641,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<DeferredList />);
@@ -682,13 +682,13 @@ describe('<Listbox.SortableProvider />', () => {
       );
     }
     await render(
-      <Listbox.Root>
-        <Listbox.SortableProvider onItemsReorder={() => {}}>
+      <Listbox.SortableProvider onItemsReorder={() => {}}>
+        <Listbox.Root>
           <Listbox.List>
             <Items />
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>,
+        </Listbox.Root>
+      </Listbox.SortableProvider>,
     );
     setItemRects();
     await lift(screen.getByRole('option', { name: '0' }), { clientY: 25 });
@@ -741,13 +741,13 @@ describe('<Listbox.SortableProvider />', () => {
     function DeferredList() {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider
-            getAnnouncement={getAnnouncement}
-            onItemsReorder={(next) => {
-              apply = () => setItems(next);
-            }}
-          >
+        <Listbox.SortableProvider
+          getAnnouncement={getAnnouncement}
+          onItemsReorder={(next) => {
+            apply = () => setItems(next);
+          }}
+        >
+          <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
                 <Listbox.Item key={value} value={value}>
@@ -755,8 +755,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Item>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<DeferredList />);
@@ -787,13 +787,13 @@ describe('<Listbox.SortableProvider />', () => {
       ]);
       insert = () => setItems((current) => [{ value: 'new', groupId: 'two' }, ...current]);
       return (
-        <Listbox.Root>
-          <Listbox.SortableProvider
-            reorderOn="move"
-            onItemsReorder={(_, details) =>
-              setItems(details.order.map(({ value, groupId }) => ({ value, groupId: groupId! })))
-            }
-          >
+        <Listbox.SortableProvider
+          reorderOn="move"
+          onItemsReorder={(_, details) =>
+            setItems(details.order.map(({ value, groupId }) => ({ value, groupId: groupId! })))
+          }
+        >
+          <Listbox.Root>
             <Listbox.List>
               {['one', 'two'].map((groupId) => (
                 <Listbox.Group key={groupId} id={groupId}>
@@ -807,8 +807,8 @@ describe('<Listbox.SortableProvider />', () => {
                 </Listbox.Group>
               ))}
             </Listbox.List>
-          </Listbox.SortableProvider>
-        </Listbox.Root>
+          </Listbox.Root>
+        </Listbox.SortableProvider>
       );
     }
     await render(<UpdatingGroups />);

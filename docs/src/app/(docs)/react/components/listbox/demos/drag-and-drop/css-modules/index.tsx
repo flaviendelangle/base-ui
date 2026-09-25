@@ -16,16 +16,16 @@ export default function ExampleListboxDragAndDrop() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={['bohemian-rhapsody']}>
-        <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.SortableProvider
-          onItemsReorder={(order) => {
-            setItems((prev) => {
-              const itemsByValue = new Map(prev.map((item) => [item.value, item]));
-              return order.map((value) => itemsByValue.get(value)!);
-            });
-          }}
-        >
+      <Listbox.SortableProvider
+        onItemsReorder={(order) => {
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          });
+        }}
+      >
+        <Listbox.Root defaultValue={['bohemian-rhapsody']}>
+          <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
           <Listbox.List className={styles.List}>
             {items.map(({ title, artist, value }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
@@ -42,8 +42,8 @@ export default function ExampleListboxDragAndDrop() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.SortableProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.SortableProvider>
     </div>
   );
 }
