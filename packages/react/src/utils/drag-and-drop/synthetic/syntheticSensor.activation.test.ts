@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { act } from '@mui/internal-test-utils';
+import { act, fireEvent } from '@mui/internal-test-utils';
 import { createDndRenderer, firePointer } from '#test-utils';
 import {
   createElement,
@@ -20,6 +20,81 @@ setupDragEngineTests({
 describe('syntheticDrag activation', () => {
   const { renderDnd } = createDndRenderer();
 
+  it.each(['mouse', 'touch', 'pen'] as const)(
+    'leaves disabled %s gestures to the app without picking up the parent',
+    async (pointerType) => {
+      const { engine } = await renderDnd();
+      const parent = createElement();
+      const source = createElement();
+      parent.appendChild(source);
+      const onBeforeMoveStart = vi.fn();
+      const onParentMoveStart = vi.fn();
+      const onPointerMove = vi.fn();
+      source.addEventListener('pointermove', onPointerMove);
+      const releasePointerCapture = vi.fn();
+      source.releasePointerCapture = releasePointerCapture;
+      engine.registerSource(parent, {
+        activation: { type: 'immediate' },
+        onMoveStart: onParentMoveStart,
+      });
+      engine.registerSource(source, {
+        activation: { [pointerType]: false },
+        onBeforeMoveStart,
+      });
+      const input = { pointerType, pointerId: 1, buttons: 1 };
+      firePointer.down(source, { ...input, timeStamp: 10 });
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 300);
+        });
+      });
+      expect(fireEvent.contextMenu(source)).toBe(true);
+      firePointer.move(source, { ...input, clientX: 30, timeStamp: 320 });
+      firePointer.up(source, { ...input, buttons: 0, clientX: 30, timeStamp: 330 });
+      expect(onPointerMove).toHaveBeenCalledTimes(1);
+      expect(onBeforeMoveStart).not.toHaveBeenCalled();
+      expect(onParentMoveStart).not.toHaveBeenCalled();
+      expect(releasePointerCapture).not.toHaveBeenCalled();
+      expect(fireEvent.click(source)).toBe(true);
+    },
+  );
+
+  it.each(['mouse', 'touch', 'pen'] as const)(
+    'does not let double-click or double-tap bypass disabled %s activation',
+    async (pointerType) => {
+      const { engine } = await renderDnd();
+      const source = createElement();
+      const onMoveStart = vi.fn();
+      engine.registerSource(source, {
+        activation: [{ type: 'double-click' }, { [pointerType]: false }],
+        onMoveStart,
+      });
+      const input = { pointerType, pointerId: 1, buttons: 1 };
+      firePointer.down(source, { ...input, timeStamp: 10 });
+      firePointer.up(source, { ...input, buttons: 0, timeStamp: 20 });
+      firePointer.down(source, { ...input, timeStamp: 100 });
+      firePointer.up(source, { ...input, buttons: 0, timeStamp: 110 });
+      fireEvent.doubleClick(source);
+      expect(onMoveStart).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps default mouse activation when touch and pen are disabled', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const onMoveStart = vi.fn();
+    engine.registerSource(source, {
+      activation: { touch: false, pen: false },
+      onMoveStart,
+    });
+    const input = { pointerType: 'mouse', pointerId: 1, buttons: 1 };
+    firePointer.down(source, { ...input, timeStamp: 10 });
+    expect(onMoveStart).not.toHaveBeenCalled();
+    firePointer.move(source, { ...input, clientX: 10, timeStamp: 20 });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    firePointer.up(source, { ...input, buttons: 0, clientX: 10, timeStamp: 30 });
+  });
+
   it('default press-hold: holds through a small drift, starts at the drifted point, and drops on a target', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
@@ -28,8 +103,8 @@ describe('syntheticDrag activation', () => {
     const onMoveEnd = vi.fn();
     const onDrop = vi.fn();
     // No `activation`: touch falls back to the default 250ms press-hold.
-    engine.registerDraggable(el, { onMoveStart, onMoveEnd });
-    engine.registerDropTarget(tgt, { onDraggableDrop: onDrop });
+    engine.registerSource(el, { onMoveStart, onMoveEnd });
+    engine.registerTarget(tgt, { onDraggableDrop: onDrop });
 
     const originalEFP = document.elementFromPoint;
     const hit = { current: null as Element | null };
@@ -53,7 +128,7 @@ describe('syntheticDrag activation', () => {
     expect(onMoveStart).toHaveBeenCalledTimes(1);
     expect(onMoveStart.mock.calls[0][0].source.element).toBe(el);
     // The drag starts at the drifted point, not the original press.
-    const startInput = onMoveStart.mock.calls[0][0].location.current.input;
+    const startInput = onMoveStart.mock.calls[0][1].location.current.input;
     expect(startInput.clientX).toBe(53);
     expect(startInput.clientY).toBe(52);
 
@@ -65,18 +140,18 @@ describe('syntheticDrag activation', () => {
 
     expect(onDrop).toHaveBeenCalledTimes(1);
     expect(onMoveEnd).toHaveBeenCalledTimes(1);
-    const endPayload = onMoveEnd.mock.calls[0][0];
-    expect(endPayload.canceled).toBe(false);
-    expect(endPayload.dropTarget?.element).toBe(tgt);
-    expect(endPayload.location.current.input.clientX).toBe(120);
-    expect(endPayload.location.current.input.clientY).toBe(80);
+    const [endValue, endDetails] = onMoveEnd.mock.calls[0];
+    expect(endDetails.reason).toBe('drop');
+    expect(endValue.target?.element).toBe(tgt);
+    expect(endDetails.location.current.input.clientX).toBe(120);
+    expect(endDetails.location.current.input.clientY).toBe(80);
   });
 
   it('cancels when pointerup fires before activation', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { type: 'press-hold', delay: 100, tolerance: 5 },
       onMoveStart,
     });
@@ -98,7 +173,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { type: 'press-hold', delay: 100, tolerance: 5 },
       onMoveStart,
     });
@@ -119,7 +194,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { type: 'press-hold', delay: 100, tolerance: 5 },
       onMoveStart,
     });
@@ -140,7 +215,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { type: 'press-hold', delay: 100, tolerance: 5 },
       onMoveStart,
     });
@@ -159,7 +234,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { type: 'distance', distance: 5 },
       onMoveStart,
     });
@@ -180,7 +255,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(el, {
+    engine.registerSource(el, {
       activation: { touch: { type: 'immediate' } },
       onMoveStart,
     });
@@ -200,7 +275,7 @@ describe('syntheticDrag activation', () => {
     // distance. A stationary click must NOT start a drag — otherwise a
     // pointerdown on a clickable child of the draggable (e.g. a Tree item's
     // expand chevron) would be hijacked into a drag instead of toggling.
-    engine.registerDraggable(el, { onMoveStart });
+    engine.registerSource(el, { onMoveStart });
 
     const dispatchMouse = (type: string, x: number, y: number, buttons: number) =>
       act(() => {
@@ -308,7 +383,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild();
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // x=192 is past the 185px content box: the vertical scrollbar's gutter.
       dispatchOn(list, 'pointerdown', 192, 50, 1);
@@ -327,7 +402,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild();
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // The positive control: x=100 is inside the content box, so this is an
       // ordinary press on the draggable and must behave as one.
@@ -345,7 +420,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild({ scale: 2 });
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // Visual x=300 maps to layout x=150, inside the 185px content box. Without
       // removing the transform scale, it is mistaken for the right scrollbar.
@@ -363,7 +438,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild({ rtl: true });
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // RTL puts the vertical scrollbar on the left, so the gutter is the strip
       // *before* the padding box rather than after it. x=8 is inside it.
@@ -381,7 +456,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild({ rtl: true });
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // The mirror of the LTR gutter test: with the scrollbar on the left, x=192
       // is past the padding box but is content (or the element's own border), not
@@ -400,7 +475,7 @@ describe('syntheticDrag activation', () => {
       const { engine } = await renderDnd();
       const { card, list } = renderScrollableChild({ borderLeft: 2 });
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       // A 2px left border on an LTR scroller: it sits before the padding box, so
       // it measures negative — but the scrollbar is on the *right*, so this is an
@@ -426,7 +501,7 @@ describe('syntheticDrag activation', () => {
       card.appendChild(inert);
       registerCleanup(() => inert.remove());
       const onMoveStart = vi.fn();
-      engine.registerDraggable(card, { onMoveStart });
+      engine.registerSource(card, { onMoveStart });
 
       dispatchOn(inert, 'pointerdown', 50, 50, 1);
       await flushRaf();
@@ -442,7 +517,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const source = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(source, {
+    engine.registerSource(source, {
       activation: [{ type: 'press-hold', delay: 1000 }, { type: 'immediate' }],
       onMoveStart,
     });
@@ -454,7 +529,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const source = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(source, {
+    engine.registerSource(source, {
       activation: [
         { type: 'press-hold', delay: 50, tolerance: 2 },
         { type: 'distance', distance: 20 },
@@ -496,7 +571,7 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const source = createElement();
     const onMoveStart = vi.fn();
-    engine.registerDraggable(source, {
+    engine.registerSource(source, {
       activation: [
         { type: 'press-hold', delay: 30, tolerance: 2 },
         { type: 'press-hold', delay: 120, tolerance: 10 },

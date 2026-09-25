@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
 import { Draggable } from '@base-ui/react/draggable';
 import {
   INITIAL_TASKS,
@@ -51,31 +52,43 @@ const Task = React.memo(function Task({
 
 export default function SortableLive() {
   const [tasks, setTasks] = React.useState(INITIAL_TASKS);
+  const [announcement, setAnnouncement] = React.useState('');
   const initialOrder = React.useRef(tasks);
   const listRef = useSortableAnimation(tasks);
   const destinationRef = React.useRef<TaskDestination | null>(null);
-  const reorder = useStableCallback((event: Draggable.CollisionProvider.CollisionEvent<string>) => {
-    const next = getTaskDestination(event.collision);
-    const previous = destinationRef.current;
-    if (next) {
-      const delta = event.location.current.input.clientY - event.location.previous.input.clientY;
-      if (delta !== 0) {
-        next.placement = delta > 0 ? 'after' : 'before';
-      } else if (next.id === previous?.id) {
-        next.placement = previous.placement;
+  const reorder = useStableCallback(
+    (
+      value: Draggable.CollisionProvider.CollisionChangeValue<string>,
+      { location }: Draggable.CollisionProvider.CollisionChangeEventDetails<string>,
+    ) => {
+      const next = getTaskDestination(value.target);
+      const previous = destinationRef.current;
+      if (next) {
+        const delta = location.current.input.clientY - location.previous.input.clientY;
+        if (delta !== 0) {
+          next.placement = delta > 0 ? 'after' : 'before';
+        } else if (next.id === previous?.id) {
+          next.placement = previous.placement;
+        }
       }
-    }
-    if (sameTaskDestination(next, previous)) {
+      if (sameTaskDestination(next, previous)) {
+        return;
+      }
+      destinationRef.current = next;
+      setTasks((current) => moveTask(current, value, next?.placement));
+    },
+  );
+  const swap = useStableCallback((task: string, direction: 'up' | 'down') => {
+    const next = swapTask(tasks, task, direction);
+    if (next === tasks) {
       return;
     }
-    destinationRef.current = next;
-    setTasks((current) => moveTask(current, event, next?.placement));
-  });
-  const swap = useStableCallback((task: string, direction: 'up' | 'down') => {
-    setTasks((current) => swapTask(current, task, direction));
+    setTasks(next);
+    setAnnouncement(`${task} moved to position ${next.indexOf(task) + 1} of ${next.length}.`);
   });
   return (
     <Draggable.Provider>
+      {/* @highlight-start @focus */}
       <Draggable.CollisionProvider
         kind={taskKind}
         onMoveStart={() => {
@@ -83,15 +96,16 @@ export default function SortableLive() {
           destinationRef.current = null;
         }}
         onCollisionChange={reorder}
-        onMoveEnd={(event) => {
-          if (event.canceled || !event.dropTarget) {
-            setTasks(initialOrder.current);
+        onMoveEnd={(value, eventDetails) => {
+          if (eventDetails.reason === 'drop') {
+            reorder(value, eventDetails);
           } else {
-            reorder(event);
+            setTasks(initialOrder.current);
           }
           destinationRef.current = null;
         }}
       >
+        {/* @highlight-end */}
         <div
           ref={listRef}
           className={styles.Root}
@@ -103,6 +117,9 @@ export default function SortableLive() {
           ))}
         </div>
       </Draggable.CollisionProvider>
+      <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHidden}>
+        {announcement}
+      </span>
     </Draggable.Provider>
   );
 }

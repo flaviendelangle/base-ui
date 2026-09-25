@@ -5,7 +5,7 @@
  * parameters and hands them to the lifecycle.
  */
 
-import { start, type DragSessionHandle } from './lifecycleManager';
+import { start, type DragSessionController } from './lifecycleManager';
 import { getRegistration } from '../draggableRegistry';
 import { setActivePreviewHandle } from '../activePreview';
 import { resolveDragPreview } from '../synthetic/dragPreviewSettings';
@@ -13,14 +13,16 @@ import { compileDragModifiers } from '../dragModifiers';
 import { attachDefaultDragPreview } from '../synthetic/defaultDragPreview';
 import { createSyntheticPreview, type SyntheticPreviewHandle } from '../synthetic/syntheticPreview';
 import type { DraggableConfig } from '../draggable';
-import type { DragSource, DragInput, DragStartReason } from '../../../types/drag';
+import type { DraggableInput, DragStartReason, DraggableRootRecord } from '../../../types/drag';
 
 export interface StartSensorSessionParameters {
   /** The draggable's latest parameters (kind/payload/event handlers). */
-  draggableParameters: DraggableConfig<any>;
+  draggableParameters: DraggableConfig<any, any>;
+  /** Source prepared for onBeforeMoveStart, carried unchanged into the session. */
+  dragSource: DraggableRootRecord;
   element: HTMLElement;
   dragHandle: Element | null;
-  initialInput: DragInput;
+  initialInput: DraggableInput;
   initialTarget: Element | null;
   /**
    * The native event the pickup committed on (see `StartParameters.initialEvent`),
@@ -40,7 +42,7 @@ export interface StartSensorSessionParameters {
 }
 
 /**
- * Resolve the draggable's `payload`, build the `DragSource` and the
+ * Resolve the draggable's `payload`, build the `DraggableRootRecord` and the
  * source-handler map, then start the lifecycle. Returns the session handle, or
  * `null` when the lifecycle declined to start (a concurrent drag is already
  * active, or a resolver or start handler canceled pickup).
@@ -48,11 +50,11 @@ export interface StartSensorSessionParameters {
  * Module-private: sensors go through `createPreviewAndStartSession` below, which
  * wraps this with the preview and undo handling a bare session start skips.
  */
-function startSensorSession(parameters: StartSensorSessionParameters): DragSessionHandle | null {
+function startSensorSession(
+  parameters: StartSensorSessionParameters,
+): DragSessionController | null {
   const {
     draggableParameters: source,
-    element,
-    dragHandle,
     initialInput,
     initialTarget,
     initialEvent,
@@ -60,27 +62,13 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
     preview,
     grabOffset,
     onForceCleanup,
+    dragSource,
   } = parameters;
-
-  const payload = source.getPayload
-    ? source.getPayload({ input: initialInput, element, dragHandle })
-    : source.payload;
-
-  if (parameters.isPickupCurrent?.() === false) {
-    return null;
-  }
-  const dragSource: DragSource = {
-    element,
-    kind: source.kind.id,
-    dragHandle,
-    payload,
-  };
 
   // Read the draggable's latest parameters live on each dispatch so a source that
   // re-renders mid-drag runs its current handler closures. Falls back to the
   // last compatible snapshot if the element unregisters or changes kind mid-drag.
-  // `kind`/`payload` stay start-time (they live in `dragSource`); only
-  // handlers are read fresh.
+  // The kind stays fixed for the session; payload changes are handled by `dragSource`.
   //
   // Read `dragSource.element` rather than the start-time `element`: a virtualizer
   // can remount the source to a fresh node mid-drag, which re-registers under
@@ -92,9 +80,9 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
   // registration layer already returns one object until its inputs change, and
   // this runs on every dispatch, so copying per call would rebuild the ~20-field
   // object each frame for nothing.
-  let lastCompatible: DraggableConfig<any> = source;
+  let lastCompatible: DraggableConfig<any, any> = source;
   let compatibleParameters = { ...source };
-  const getLatestParameters = (): DraggableConfig<any> => {
+  const getLatestParameters = (): DraggableConfig<any, any> => {
     const current = getRegistration(dragSource.element)?.();
     if (
       current !== undefined &&
@@ -124,10 +112,8 @@ function startSensorSession(parameters: StartSensorSessionParameters): DragSessi
 
 export interface CreatePreviewSessionParameters extends Omit<
   StartSensorSessionParameters,
-  'initialTarget' | 'preview'
+  'preview' | 'grabOffset'
 > {
-  /** The initial drop target, resolved before the preview is built and moved under the pointer. */
-  initialTarget: Element | null;
   /**
    * Where the user pressed, when the gesture has a press. The grab offset
    * anchors here rather than at `initialInput`: the activation threshold puts
@@ -145,7 +131,7 @@ export interface CreatePreviewSessionParameters extends Omit<
 }
 
 export interface PreviewSessionHandle {
-  session: DragSessionHandle;
+  session: DragSessionController;
   preview: SyntheticPreviewHandle;
 }
 
@@ -167,7 +153,7 @@ export function createPreviewAndStartSession(
   let preview: SyntheticPreviewHandle | null = null;
   let restoreActivePreviewSlot: (() => void) | null = null;
   let acquired = false;
-  let session: DragSessionHandle | null = null;
+  let session: DragSessionController | null = null;
 
   const undo = () => {
     restoreActivePreviewSlot?.();
@@ -191,7 +177,7 @@ export function createPreviewAndStartSession(
     // The press, carried as an input so the preview's default `'source'` offset can
     // anchor on it: the preview measures its own (untransformed) box, so it must not
     // reuse `grabOffset`, which is relative to the transformed rect above.
-    const pressInput: DragInput = pressPoint
+    const pressInput: DraggableInput = pressPoint
       ? { ...initialInput, clientX: pressPoint.x, clientY: pressPoint.y }
       : initialInput;
 

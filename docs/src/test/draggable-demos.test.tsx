@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
 import * as React from 'react';
+import { Draggable } from '@base-ui/react/draggable';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@mui/internal-test-utils';
+import { fireEvent, screen, waitFor, within } from '@mui/internal-test-utils';
 // eslint-disable-next-line import/no-relative-packages
 import { createDndRenderer } from '../../../packages/react/test/dndEngine';
 // eslint-disable-next-line import/no-relative-packages
@@ -12,8 +13,7 @@ import { firePointer } from '../../../packages/react/test/pointer';
 import { flushRaf, setupDragEngineTests } from '../../../packages/react/test/dnd';
 import ActivationCss from '../app/(docs)/react/utils/draggable/demos/activation/css-modules';
 import ActivationTailwind from '../app/(docs)/react/utils/draggable/demos/activation/tailwind';
-import FileExplorerCss from '../app/(docs)/react/utils/draggable/demos/examples/file-explorer/css-modules';
-import FileExplorerTailwind from '../app/(docs)/react/utils/draggable/demos/examples/file-explorer/tailwind';
+import FileExplorerExperiment from '../app/(private)/experiments/drag-engine/file-explorer';
 
 import SortableOnDropCss from '../app/(docs)/react/utils/draggable/demos/sortable-on-drop/css-modules';
 import SortableOnDropTailwind from '../app/(docs)/react/utils/draggable/demos/sortable-on-drop/tailwind';
@@ -23,19 +23,13 @@ import ScrollingTailwind from '../app/(docs)/react/utils/draggable/demos/scrolli
 import SortableLiveCss from '../app/(docs)/react/utils/draggable/demos/sortable-live/css-modules';
 import SortableLiveTailwind from '../app/(docs)/react/utils/draggable/demos/sortable-live/tailwind';
 
-import KanbanCss from '../app/(docs)/react/utils/draggable/demos/examples/kanban/css-modules';
-import KanbanTailwind from '../app/(docs)/react/utils/draggable/demos/examples/kanban/tailwind';
-import CalendarCss from '../app/(docs)/react/utils/draggable/demos/examples/scheduler/css-modules';
-import CalendarTailwind from '../app/(docs)/react/utils/draggable/demos/examples/scheduler/tailwind';
-import { findClosestSlot } from '../app/(docs)/react/utils/draggable/demos/examples/kanban/slots';
+import KanbanBoardExperiment from '../app/(private)/experiments/drag-engine/kanban-placeholder-card';
+import { findClosestSlot } from '../app/(private)/experiments/drag-engine/kanban-placeholder-card-slots';
 
-import TabsCss from '../app/(docs)/react/utils/draggable/demos/examples/tabs/css-modules';
-import TabsTailwind from '../app/(docs)/react/utils/draggable/demos/examples/tabs/tailwind';
+import { ControlledAddCloseExample } from '../app/(private)/experiments/drag-engine/draggable-tabs';
 
 import HandleCss from '../app/(docs)/react/utils/draggable/demos/handle/css-modules';
 import HandleTailwind from '../app/(docs)/react/utils/draggable/demos/handle/tailwind';
-import ConditionalCss from '../app/(docs)/react/utils/draggable/demos/conditional/css-modules';
-import ConditionalTailwind from '../app/(docs)/react/utils/draggable/demos/conditional/tailwind';
 import NestingCss from '../app/(docs)/react/utils/draggable/demos/targets/nesting/css-modules';
 import NestingTailwind from '../app/(docs)/react/utils/draggable/demos/targets/nesting/tailwind';
 
@@ -45,10 +39,14 @@ afterEach(() => vi.unstubAllGlobals());
 describe('draggable demos', () => {
   const { renderDnd } = createDndRenderer();
 
-  describe.each([
-    ['CSS Modules', TabsCss],
-    ['Tailwind', TabsTailwind],
-  ] as const)('closing tabs with %s', (_name, Demo) => {
+  describe('closing tabs', () => {
+    function Demo() {
+      return (
+        <Draggable.Provider>
+          <ControlledAddCloseExample />
+        </Draggable.Provider>
+      );
+    }
     it('focuses the next tab after deleting the focused middle tab', async () => {
       const { user } = await renderDnd(<Demo />);
       await user.click(screen.getByRole('tab', { name: 'Activity' }));
@@ -96,37 +94,66 @@ describe('draggable demos', () => {
   describe.each([
     ['CSS Modules', HandleCss],
     ['Tailwind', HandleTailwind],
-  ] as const)('dashboard controls with %s', (_name, Demo) => {
-    it('moves a widget without dragging and retains control focus', async () => {
+  ] as const)('dashboard keyboard shortcut with %s', (_name, Demo) => {
+    it('moves the focused widget to the next empty slot and keeps it focused', async () => {
       const { user } = await renderDnd(<Demo />);
-      await user.selectOptions(screen.getByLabelText('Widget'), 'conversion');
-      await user.selectOptions(screen.getByLabelText('Move to'), 'right');
-      const button = screen.getByRole('button', { name: 'Move widget' });
-      button.focus();
-      await user.keyboard('{Enter}');
-      expect(screen.getByRole('group', { name: 'Right dashboard slot' })).toHaveTextContent(
-        'Conversion',
-      );
+      const widget = screen.getByRole('group', { name: 'Center dashboard slot' })
+        .firstElementChild as HTMLElement;
+      widget.focus();
+      await user.keyboard('{Alt>}{ArrowRight}{/Alt}');
+      const rightSlot = screen.getByRole('group', { name: 'Right dashboard slot' });
+      expect(rightSlot).toHaveTextContent('Conversion');
       expect(screen.getByRole('group', { name: 'Center dashboard slot' })).toHaveTextContent(
         'Drop widget',
       );
-      expect(button).toHaveFocus();
+      await waitFor(() => expect(rightSlot.firstElementChild).toHaveFocus());
       expect(screen.getByRole('status')).toHaveTextContent(
         'Conversion moved to Right dashboard slot.',
       );
     });
-  });
 
-  describe.each([
-    ['CSS Modules', ConditionalCss],
-    ['Tailwind', ConditionalTailwind],
-  ] as const)('conditional dashboard controls with %s', (_name, Demo) => {
-    it('excludes the pinned widget from the move controls', async () => {
-      await renderDnd(<Demo />);
-      const options = Array.from(
-        (screen.getByLabelText('Widget') as HTMLSelectElement).options,
-      ).map((option) => option.value);
-      expect(options).toEqual(['visitors']);
+    it('keeps focus in the current dashboard when another dashboard is mounted', async () => {
+      const { user } = await renderDnd(
+        <React.Fragment>
+          <Demo />
+          <section data-testid="second-dashboard">
+            <Demo />
+          </section>
+        </React.Fragment>,
+      );
+      const dashboard = within(screen.getByTestId('second-dashboard'));
+      const widget = dashboard.getByRole('group', { name: 'Left dashboard slot' })
+        .firstElementChild as HTMLElement;
+      widget.focus();
+      await user.keyboard('{Alt>}{ArrowRight}{/Alt}');
+      const rightSlot = dashboard.getByRole('group', { name: 'Right dashboard slot' });
+      await waitFor(() => expect(rightSlot.firstElementChild).toHaveFocus());
+    });
+
+    it('skips an occupied slot to reach the next empty one', async () => {
+      const { user } = await renderDnd(<Demo />);
+      const widget = screen.getByRole('group', { name: 'Left dashboard slot' })
+        .firstElementChild as HTMLElement;
+      widget.focus();
+      await user.keyboard('{Alt>}{ArrowRight}{/Alt}');
+      expect(screen.getByRole('group', { name: 'Right dashboard slot' })).toHaveTextContent(
+        'Visitors',
+      );
+      expect(screen.getByRole('group', { name: 'Center dashboard slot' })).toHaveTextContent(
+        'Conversion',
+      );
+    });
+
+    it('does nothing when no empty slot exists in that direction', async () => {
+      const { user } = await renderDnd(<Demo />);
+      const widget = screen.getByRole('group', { name: 'Center dashboard slot' })
+        .firstElementChild as HTMLElement;
+      widget.focus();
+      await user.keyboard('{Alt>}{ArrowLeft}{/Alt}');
+      expect(screen.getByRole('group', { name: 'Center dashboard slot' })).toHaveTextContent(
+        'Conversion',
+      );
+      expect(widget).toHaveFocus();
     });
   });
 
@@ -147,10 +174,8 @@ describe('draggable demos', () => {
     });
   });
 
-  describe.each([
-    ['CSS Modules', KanbanCss],
-    ['Tailwind', KanbanTailwind],
-  ] as const)('Kanban controls with %s', (_name, Demo) => {
+  describe('Kanban controls', () => {
+    const Demo = KanbanBoardExperiment;
     it('moves a card without dragging and retains control focus', async () => {
       const { user } = await renderDnd(<Demo />);
       await user.selectOptions(screen.getByLabelText('Move to'), 'done');
@@ -167,44 +192,30 @@ describe('draggable demos', () => {
   });
 
   describe.each([
-    ['CSS Modules', CalendarCss],
-    ['Tailwind', CalendarTailwind],
-  ] as const)('calendar controls with %s', (_name, Demo) => {
-    it('changes day and time without dragging', async () => {
-      const { user } = await renderDnd(<Demo />);
-      await user.selectOptions(screen.getByLabelText('Day'), '2');
-      await user.selectOptions(screen.getByLabelText('Start time'), '120');
-      expect(screen.getByRole('status')).toHaveTextContent('Wednesday, 11:00 to 12:00');
-      const column = document.querySelectorAll('[data-day-column]')[2];
-      expect(column).toHaveTextContent('Design review');
-    });
-  });
-
-  describe.each([
     ['CSS Modules', ActivationCss],
     ['Tailwind', ActivationTailwind],
   ] as const)('activation with %s', (_name, Demo) => {
-    it.each(['touch', 'pen'])(
-      'keeps the dragging status on a %s double-tap',
-      async (pointerType) => {
-        await renderDnd(<Demo />);
-        fireEvent.click(screen.getByRole('button', { name: 'Double-click' }));
-        const source = screen.getByLabelText('Puck');
-        source.getBoundingClientRect = () => new DOMRect(0, 0, 100, 100);
-        const pointer = { pointerType, pointerId: 1, button: 0, clientX: 20, clientY: 20 };
-        firePointer.down(source, { ...pointer, buttons: 1, timeStamp: 100 });
-        firePointer.up(source, { ...pointer, buttons: 0, timeStamp: 150 });
-        firePointer.down(source, { ...pointer, buttons: 1, timeStamp: 200 });
-        expect(screen.getByRole('status')).toHaveTextContent('Move to the target');
-        firePointer.up(source, { ...pointer, buttons: 0, timeStamp: 250 });
-      },
-    );
+    it.each([
+      ['Double-click', 'touch'],
+      ['Double-click', 'pen'],
+      ['Move 5px or double-click', 'touch'],
+      ['Move 5px or double-click', 'pen'],
+    ])('keeps the dragging status for %s on a %s double-tap', async (mode, pointerType) => {
+      await renderDnd(<Demo />);
+      fireEvent.click(screen.getByRole('button', { name: mode }));
+      const source = screen.getByLabelText('Puck');
+      source.getBoundingClientRect = () => new DOMRect(0, 0, 100, 100);
+      const pointer = { pointerType, pointerId: 1, button: 0, clientX: 20, clientY: 20 };
+      firePointer.down(source, { ...pointer, buttons: 1, timeStamp: 100 });
+      firePointer.up(source, { ...pointer, buttons: 0, timeStamp: 150 });
+      firePointer.down(source, { ...pointer, buttons: 1, timeStamp: 200 });
+      expect(screen.getByRole('status')).toHaveTextContent('Move to the target');
+      firePointer.up(source, { ...pointer, buttons: 0, timeStamp: 250 });
+    });
   });
 
-  describe.each([
-    ['CSS Modules', FileExplorerCss],
-    ['Tailwind', FileExplorerTailwind],
-  ] as const)('file explorer with %s', (_name, Demo) => {
+  describe('file explorer', () => {
+    const Demo = FileExplorerExperiment;
     it('moves a file with the keyboard and retains focus', async () => {
       const { user } = await renderDnd(<Demo />);
       const button = screen.getByRole('button', { name: 'Move item' });
@@ -229,6 +240,35 @@ describe('draggable demos', () => {
       expect(screen.queryByText('budget.xlsx', { selector: 'span' })).toBeNull();
     });
   });
+  describe.each([
+    ['on-drop CSS Modules', SortableOnDropCss],
+    ['on-drop Tailwind', SortableOnDropTailwind],
+    ['live CSS Modules', SortableLiveCss],
+    ['live Tailwind', SortableLiveTailwind],
+  ] as const)('sorting announcements with %s', (_name, Demo) => {
+    it('announces accepted keyboard moves once and retains focus', async () => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn(() => ({ matches: true })),
+      );
+      const { user } = await renderDnd(<Demo />);
+      const source = screen.getByRole('button', { name: 'Write the spec' });
+      const status = screen.getByRole('status');
+      expect(status.textContent).toBe('');
+      source.focus();
+      await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
+      expect(status.textContent).toBe('');
+      await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+      expect(source).toHaveFocus();
+      expect(status.textContent).toBe('Write the spec moved to position 2 of 4.');
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
+      expect(status.textContent).toBe('Write the spec moved to position 1 of 4.');
+      await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
+      expect(status.textContent).toBe('Write the spec moved to position 1 of 4.');
+    });
+  });
+
   describe.each([
     ['CSS Modules', SortableOnDropCss],
     ['Tailwind', SortableOnDropTailwind],

@@ -1,10 +1,5 @@
 'use client';
-import {
-  Draggable,
-  type DragLocationHistory,
-  type DragModifier,
-  type DragModifiers,
-} from '@base-ui/react/draggable';
+import { Draggable } from '@base-ui/react/draggable';
 
 import * as React from 'react';
 import clsx from 'clsx';
@@ -207,7 +202,7 @@ interface AnnotationDragPayload {
   snapshot: Annotation;
 }
 
-const annotationKind = Draggable.createKind<AnnotationDragPayload>(
+const annotationKind = Draggable.createKind<undefined, AnnotationDragPayload>(
   'lineChartAnnotations:annotation',
 );
 
@@ -452,7 +447,7 @@ function moveAnnotation(
 /** The drag so far, as a data-space move of the annotation that was picked up. */
 function dragAnnotation(
   payload: AnnotationDragPayload,
-  location: DragLocationHistory,
+  location: Draggable.LocationHistory,
   snap: boolean,
   plotRect: DOMRect | null,
 ): Annotation {
@@ -551,7 +546,7 @@ function useAnnotationsContext(): AnnotationsContextValue {
  */
 function angleSnapModifier(
   getGeometry: () => { pivot: PxPoint; bounds: Bounds } | null,
-): DragModifier {
+): Draggable.Root.Modifier {
   return ({ point, shiftKey }) => {
     if (!shiftKey) {
       return point;
@@ -572,7 +567,7 @@ function AnnotationDraggable(props: {
   label: string;
   className: string;
   style: React.CSSProperties;
-  modifiers?: DragModifiers | undefined;
+  modifiers?: Draggable.Root.Modifiers | undefined;
   disabled?: boolean | undefined;
   onDoubleClick?: (() => void) | undefined;
   children?: React.ReactNode | undefined;
@@ -596,7 +591,9 @@ function AnnotationDraggable(props: {
       aria-label={label}
       // Read at pickup, which is exactly when the annotation has to be remembered:
       // from here on the state moves under the pointer and the original is gone.
-      getPayload={() => ({ id: annotation.id, handle, snapshot: annotation })}
+      onMoveStart={({ source }) => {
+        source.updateDragData({ id: annotation.id, handle, snapshot: annotation });
+      }}
       // A press also has to be able to mean "select" — and on a comment, "start
       // editing" — so the drag waits for real movement rather than the mouse
       // default of `immediate`.
@@ -611,22 +608,34 @@ function AnnotationDraggable(props: {
 
       modifiers={modifiers}
       disabled={disabled}
-      onMove={({ source, location }) => {
+      onMove={({ source }, { location }) => {
+        if (!source.dragData) {
+          return;
+        }
         change(
           dragAnnotation(
-            source.payload,
+            source.dragData,
             location,
             snap,
             plotRef.current?.getBoundingClientRect() ?? null,
           ),
         );
       }}
-      onMoveEnd={({ source, canceled }) => {
-        // A normal release has nothing to commit — the annotation has been moving
-        // all along. Escape is the case that needs the snapshot.
-        if (canceled) {
-          change(source.payload.snapshot);
+      onMoveEnd={({ source }, { canceled, location }) => {
+        if (!source.dragData) {
+          return;
         }
+        // The release can carry a newer position than the last animation frame.
+        change(
+          canceled
+            ? source.dragData.snapshot
+            : dragAnnotation(
+                source.dragData,
+                location,
+                snap,
+                plotRef.current?.getBoundingClientRect() ?? null,
+              ),
+        );
       }}
       className={className}
       style={style}
@@ -685,7 +694,7 @@ function AnnotationSegment(props: {
   to: PxPoint;
   selected: boolean;
   arrow?: boolean | undefined;
-  modifiers?: DragModifiers | undefined;
+  modifiers?: Draggable.Root.Modifiers | undefined;
 }) {
   const { annotation, handle, label, from, to, selected, arrow, modifiers } = props;
   return (
@@ -708,7 +717,7 @@ function AnnotationHandlePoint(props: {
   handle: AnnotationHandle;
   label: string;
   point: PxPoint;
-  modifiers?: DragModifiers | undefined;
+  modifiers?: Draggable.Root.Modifiers | undefined;
 }) {
   const { annotation, handle, label, point, modifiers } = props;
   return (
@@ -750,7 +759,7 @@ const PLOT_BOUNDS: Bounds = {
 function useEndpointAngleSnap(
   annotation: SegmentAnnotation | ChannelAnnotation,
   handle: 'start' | 'end',
-): DragModifier {
+): Draggable.Root.Modifier {
   const { plotRef } = useAnnotationsContext();
   const pivot = toPx(handle === 'start' ? annotation.end : annotation.start);
   const range = endpointRange(annotation);

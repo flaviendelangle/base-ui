@@ -5,18 +5,34 @@ import { useRenderElement } from '../../internals/useRenderElement';
 import type { StateAttributesMapping } from '../../internals/getStateAttributesProps';
 import type { BaseUIComponentProps } from '../../internals/types';
 import type {
-  RegisterDropTargetParameters,
-  DragParametersWithOptionalPayload,
-  DragParametersWithRequiredPayload,
+  RegisterTargetParameters,
   DragParametersWithRequiredAccept,
 } from '../../types/dragRegistration';
 import type {
   AcceptedDragPayload,
-  AnyDragAccept,
-  DragAccept,
-  DragKind,
-  DropTargetPayload,
-  DropTargetPayloadGetter,
+  AcceptedDragData,
+  DraggableAccept,
+  DraggableKind,
+  DraggableTargetRecord,
+  DraggableTargetResolutionContext,
+  DraggableTargetStartValue,
+  DraggableTargetStartEventDetails,
+  DraggableTargetStartEventReason,
+  DraggableTargetMoveValue,
+  DraggableTargetMoveEventDetails,
+  DraggableTargetMoveEventReason,
+  DraggableTargetEnterValue,
+  DraggableTargetEnterEventDetails,
+  DraggableTargetEnterEventReason,
+  DraggableTargetLeaveValue,
+  DraggableTargetLeaveEventDetails,
+  DraggableTargetLeaveEventReason,
+  DraggableTargetDropValue,
+  DraggableTargetDropEventDetails,
+  DraggableTargetDropEventReason,
+  DraggableTargetSnapSteps,
+  DraggableTargetLocalPoint,
+  DraggableTargetSnappedLocalPointOptions,
 } from '../../types/drag';
 import * as DraggableTargetDataAttributes from './DraggableTargetDataAttributes';
 import { useDraggableTargetElement } from './useDraggableTargetElement';
@@ -31,7 +47,7 @@ const stateAttributesMapping: StateAttributesMapping<DraggableTargetState> = {
 };
 
 /**
- * Makes its element a drop target, so matching drag sources can be released on it.
+ * An area where a matching draggable can be dropped.
  * Renders a `<div>` element.
  *
  * Documentation: [Base UI Draggable](https://base-ui.com/react/utils/draggable#drop-targets)
@@ -42,16 +58,14 @@ export const DraggableTarget = React.forwardRef(function DraggableTarget<
 >(
   componentProps: Omit<DraggableTargetPropsBase<TSourcePayload, TTargetPayload>, 'accept'> & {
     /**
-     * One or more drag source kinds accepted by this target. Defaults to the
-     * nearest provider's no-payload kind. Pass `Draggable.anyKind` to accept every
-     * drag. In that case, `source.payload` is `unknown`.
+     * One or more kinds of draggable this target accepts. Defaults to the kind of the
+     * nearest `<Draggable.Provider>`. Pass `Draggable.anyKind` to accept every drag,
+     * with `source.payload` typed as `unknown`.
      *
-     * The target ignores a source whose kind is not accepted. An ancestor target can
-     * still accept it. Base UI checks `accept` before `canDrop`.
+     * Drags of other kinds ignore this target, but an ancestor target can still accept them.
      */
-    accept?: DragAccept<TSourcePayload> | undefined;
-    payload?: DropTargetPayload<TTargetPayload> | undefined;
-    getPayload?: DropTargetPayloadGetter<TSourcePayload, TTargetPayload> | undefined;
+    accept?: DraggableAccept<TSourcePayload> | undefined;
+    payload?: TTargetPayload | undefined;
   },
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
@@ -69,7 +83,6 @@ export const DraggableTarget = React.forwardRef(function DraggableTarget<
     canDrop,
     disabled,
     payload,
-    getPayload,
     snap,
     trackDragOver,
     // Event handlers
@@ -91,7 +104,6 @@ export const DraggableTarget = React.forwardRef(function DraggableTarget<
     canDrop,
     disabled,
     payload,
-    getPayload,
     snap,
     trackDragOver,
     onDraggableStart,
@@ -118,174 +130,227 @@ export const DraggableTarget = React.forwardRef(function DraggableTarget<
     props: [{ children }, elementProps],
     stateAttributesMapping,
   });
-  // Overloaded like `Draggable.Root` so a declared `TTargetPayload` can't omit `payload`
+  // Overloaded, unlike `Draggable.Root`, so a declared `TTargetPayload` can't omit `payload`
   // and leave `target.payload` typed while the engine delivers `undefined`.
   // The fallback's target payload is `undefined`, not `unknown`: `kind` is typed from it,
   // so a payload-carrying `kind={column}` with no `payload` is rejected here rather
   // than compiling with `column.matches(target)` narrowing to a payload that is
   // `undefined` at runtime.
 }) as {
-  (
-    props: Omit<DraggableTargetPropsBase<undefined, undefined>, 'accept'> &
-      DragParametersWithOptionalPayload<DropTargetPayloadParameters<undefined, undefined>> & {
-        accept?: DragAccept<undefined> | undefined;
-      },
+  <TTargetDragData = unknown>(
+    props: DraggableTargetProps<undefined, undefined, unknown, TTargetDragData>,
   ): React.JSX.Element;
-  // Untagged targets infer their data from the payload. Tagged targets infer it
-  // from their own kind, so a partial payload cannot weaken that kind's contract.
-  <TSourcePayload = unknown, TTargetPayload = unknown>(
-    props: DraggableTargetPropsWithRequiredAccept<TSourcePayload, TTargetPayload> & {
-      kind?: undefined;
-    } & RequiredDropTargetPayload<TSourcePayload, TTargetPayload>,
+  <
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TSourceDragData = unknown,
+    TTargetDragData = unknown,
+  >(
+    props: DraggableTargetPropsBase<
+      TSourcePayload,
+      TTargetPayload,
+      TSourceDragData,
+      TTargetDragData
+    > & { kind?: undefined; payload: TTargetPayload },
   ): React.JSX.Element;
-  <TSourcePayload = unknown, TTargetPayload = unknown>(
-    props: DraggableTargetPropsWithRequiredAccept<TSourcePayload, TTargetPayload> & {
-      kind?: DragKind<TTargetPayload> | undefined;
-    } & RequiredDropTargetPayload<TSourcePayload, NoInfer<TTargetPayload>>,
+  <
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TSourceDragData = unknown,
+    TTargetDragData = unknown,
+  >(
+    props: Omit<
+      DraggableTargetPropsBase<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>,
+      'kind'
+    > & {
+      kind?: DraggableKind<TTargetPayload, TTargetDragData> | undefined;
+      payload: NoInfer<TTargetPayload>;
+    },
   ): React.JSX.Element;
-  <TSourcePayload = unknown>(
-    props: DraggableTargetPropsWithRequiredAccept<TSourcePayload, undefined> &
-      DragParametersWithOptionalPayload<DropTargetPayloadParameters<TSourcePayload, undefined>>,
+  <TSourcePayload = unknown, TSourceDragData = unknown, TTargetDragData = unknown>(
+    props: DraggableTargetPropsBase<TSourcePayload, undefined, TSourceDragData, TTargetDragData> & {
+      payload?: undefined;
+    },
   ): React.JSX.Element;
-  // Private inference overloads retain precise payload unions for heterogeneous
-  // `accept` arrays. Explicit component generics use the payload-keyed overloads above.
-  <TAccept extends AnyDragAccept = DragKind<unknown>, TTargetPayload = unknown>(
-    props: DraggableTargetPropsFromAccept<TAccept, TTargetPayload> & {
-      kind?: undefined;
-    } & RequiredDropTargetPayload<AcceptedDragPayload<TAccept>, TTargetPayload>,
-  ): React.JSX.Element;
-  <TAccept extends AnyDragAccept = DragKind<unknown>, TTargetPayload = unknown>(
-    props: DraggableTargetPropsFromAccept<TAccept, TTargetPayload> & {
-      kind?: DragKind<TTargetPayload> | undefined;
-    } & RequiredDropTargetPayload<AcceptedDragPayload<TAccept>, NoInfer<TTargetPayload>>,
-  ): React.JSX.Element;
-  <TAccept extends AnyDragAccept = DragKind<unknown>>(
-    props: DraggableTargetPropsFromAccept<TAccept, undefined> &
-      DragParametersWithOptionalPayload<
-        DropTargetPayloadParameters<AcceptedDragPayload<TAccept>, undefined>
+  <TAccept extends DraggableAccept<unknown>, TTargetPayload>(
+    props: DragParametersWithRequiredAccept<
+      DraggableTargetPropsBase<
+        AcceptedDragPayload<TAccept>,
+        TTargetPayload,
+        AcceptedDragData<TAccept>
       >,
+      TAccept
+    > & { kind?: undefined; payload: TTargetPayload },
+  ): React.JSX.Element;
+  <TAccept extends DraggableAccept<unknown>, TTargetPayload, TTargetDragData = unknown>(
+    props: DragParametersWithRequiredAccept<
+      Omit<
+        DraggableTargetPropsBase<
+          AcceptedDragPayload<TAccept>,
+          TTargetPayload,
+          AcceptedDragData<TAccept>,
+          TTargetDragData
+        >,
+        'kind'
+      >,
+      TAccept
+    > & { kind: DraggableKind<TTargetPayload, TTargetDragData>; payload: NoInfer<TTargetPayload> },
+  ): React.JSX.Element;
+  <TAccept extends DraggableAccept<unknown>, TTargetDragData = unknown>(
+    props: DragParametersWithRequiredAccept<
+      DraggableTargetPropsBase<
+        AcceptedDragPayload<TAccept>,
+        undefined,
+        AcceptedDragData<TAccept>,
+        TTargetDragData
+      >,
+      TAccept
+    > & { payload?: undefined },
   ): React.JSX.Element;
 };
 
 export interface DraggableTargetState {
   /**
-   * Whether a matching drag source is currently over this target or a nested
-   * descendant. Always `false` when `trackDragOver` is `false`.
+   * Whether a matching drag is over this target or one of its nested targets.
+   * Always `false` when `trackDragOver` is `false`.
    */
   dragOver: boolean;
   /**
-   * Whether this target accepts the current drag, regardless of pointer position.
-   * Use it to highlight all compatible drop targets. It is `false` when no drag is
-   * active, the target is disabled, or `trackDragOver` is `false`. The value is
-   * based on `accept`; `canDrop` is evaluated only for the current position.
+   * Whether this target accepts the drag in progress, regardless of the pointer position.
+   * Based on `accept` alone, so `canDrop` can still refuse the drop.
+   * Always `false` when `trackDragOver` is `false`.
    */
   accepting: boolean;
   /**
-   * Whether this is the innermost active target. A nested ancestor has `dragOver`
-   * true but `dragOverInnermost` false while a descendant target is active. Always
-   * `false` when `trackDragOver` is `false`.
+   * Whether this is the innermost target under the pointer, the one that would receive the drop.
+   * Always `false` when `trackDragOver` is `false`.
    */
   dragOverInnermost: boolean;
   /**
-   * Whether `canDrop` returned `'reject'` for the current position. Use it to
-   * display feedback such as a full column. It is mutually exclusive with
-   * `dragOver` and always `false` when `trackDragOver` is `false`.
+   * Whether `canDrop` returned `'reject'` for the current position.
+   * Always `false` when `trackDragOver` is `false`.
    */
   rejected: boolean;
   /** Whether the drop target is disabled. */
   disabled: boolean;
 }
 
-// Every `Draggable.Target` prop except its payload fields; the overloads and `Props` below
-// each add it back with their own optionality. See `DraggableConfig.payload`.
-type DraggableTargetPropsBase<TSourcePayload, TTargetPayload> = BaseUIComponentProps<
-  'div',
-  DraggableTargetState
-> &
-  Omit<RegisterDropTargetParameters<TSourcePayload, TTargetPayload>, 'payload' | 'getPayload'> & {
+type DraggableTargetPropsBase<
+  TSourcePayload,
+  TTargetPayload,
+  TSourceDragData = unknown,
+  TTargetDragData = unknown,
+> = BaseUIComponentProps<'div', DraggableTargetState> &
+  Omit<
+    RegisterTargetParameters<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>,
+    'payload'
+  > & {
     /**
-     * Whether to update drag-over state and its data attributes. Set to `false`
-     * when the target renders no drag-over feedback; drag callbacks still fire.
+     * Whether to track the drag-over state and expose it through data attributes.
+     * Disable it on targets that don't use them to avoid re-rendering as the drag moves.
      * @default true
      */
     trackDragOver?: boolean | undefined;
   };
 
-type DropTargetPayloadParameters<TSourcePayload, TTargetPayload> = Pick<
-  RegisterDropTargetParameters<TSourcePayload, TTargetPayload>,
-  'payload' | 'getPayload'
->;
+type DraggableTargetPayloadField<TTargetPayload> = [TTargetPayload] extends [undefined]
+  ? { payload?: undefined }
+  : { payload: NoInfer<TTargetPayload> };
 
-type RequiredDropTargetPayload<TSourcePayload, TTargetPayload> = DragParametersWithRequiredPayload<
-  DropTargetPayloadParameters<TSourcePayload, TTargetPayload>,
-  DropTargetPayload<TTargetPayload>,
-  DropTargetPayloadGetter<TSourcePayload, TTargetPayload>
->;
-
-/**
- * Component props with a required `accept` declaration.
- */
-type DraggableTargetPropsWithRequiredAccept<TSourcePayload, TTargetPayload> =
-  DraggableTargetPropsBase<TSourcePayload, TTargetPayload> &
-    Required<Pick<RegisterDropTargetParameters<TSourcePayload, TTargetPayload>, 'accept'>>;
-
-/** Component props with source payload inferred from the concrete `accept` value. */
-type DraggableTargetPropsFromAccept<
-  TAccept extends AnyDragAccept,
-  TTargetPayload,
-> = DragParametersWithRequiredAccept<
-  DraggableTargetPropsBase<AcceptedDragPayload<TAccept>, TTargetPayload>,
-  TAccept
->;
-
-/**
- * Requires `payload` when the caller declares target payload. Generic wrappers
- * use {@link DraggableTargetPropsWithPayload} instead.
- */
-type DraggableTargetPayloadField<TSourcePayload, TTargetPayload> = [TTargetPayload] extends [
-  undefined,
-]
-  ? DragParametersWithOptionalPayload<DropTargetPayloadParameters<TSourcePayload, TTargetPayload>>
-  : RequiredDropTargetPayload<TSourcePayload, TTargetPayload>;
-
-// Keyed on the payloads rather than on an `accept` value, so a wrapper's props stay
-// readable as `Props<Card, Slot>`.
-export type DraggableTargetProps<TSourcePayload = undefined, TTargetPayload = undefined> = Omit<
-  DraggableTargetPropsBase<TSourcePayload, TTargetPayload>,
+export type DraggableTargetProps<
+  TSourcePayload = undefined,
+  TTargetPayload = undefined,
+  TSourceDragData = unknown,
+  TTargetDragData = unknown,
+> = Omit<
+  DraggableTargetPropsBase<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>,
   'accept'
 > &
-  DraggableTargetPayloadField<TSourcePayload, TTargetPayload> &
+  DraggableTargetPayloadField<TTargetPayload> &
   ([TSourcePayload, TTargetPayload] extends [undefined, undefined]
-    ? {
-        /**
-         * One or more drag source kinds accepted by this target. Defaults to the
-         * nearest provider's no-payload kind. Pass `Draggable.anyKind` to accept every
-         * drag. In that case, `source.payload` is `unknown`.
-         *
-         * The target ignores a source whose kind is not accepted. An ancestor target can
-         * still accept it. Base UI checks `accept` before `canDrop`.
-         */
-        accept?: DragAccept<TSourcePayload> | undefined;
-      }
-    : Required<Pick<RegisterDropTargetParameters<TSourcePayload, TTargetPayload>, 'accept'>>);
+    ? { accept?: DraggableAccept<TSourcePayload, TSourceDragData> | undefined }
+    : { accept: DraggableAccept<TSourcePayload, TSourceDragData> });
 
-/**
- * Props for a generic `Draggable.Target` wrapper whose local payload is always
- * required. Use this alias when spreading props with unbound source and local
- * payload types into the root.
- */
-export type DraggableTargetPropsWithPayload<TSourcePayload, TTargetPayload> =
-  DraggableTargetPropsWithRequiredAccept<TSourcePayload, TTargetPayload> &
-    RequiredDropTargetPayload<TSourcePayload, TTargetPayload>;
+export type {
+  DraggableTargetRecord,
+  DraggableTargetResolutionContext,
+  DraggableTargetStartValue,
+  DraggableTargetStartEventDetails,
+  DraggableTargetStartEventReason,
+  DraggableTargetMoveValue,
+  DraggableTargetMoveEventDetails,
+  DraggableTargetMoveEventReason,
+  DraggableTargetEnterValue,
+  DraggableTargetEnterEventDetails,
+  DraggableTargetEnterEventReason,
+  DraggableTargetLeaveValue,
+  DraggableTargetLeaveEventDetails,
+  DraggableTargetLeaveEventReason,
+  DraggableTargetDropValue,
+  DraggableTargetDropEventDetails,
+  DraggableTargetDropEventReason,
+  DraggableTargetSnapSteps,
+  DraggableTargetLocalPoint,
+  DraggableTargetSnappedLocalPointOptions,
+} from '../../types/drag';
 
 export namespace DraggableTarget {
+  export type SnapSteps = DraggableTargetSnapSteps;
+  export type LocalPoint = DraggableTargetLocalPoint;
+  export type SnappedLocalPointOptions = DraggableTargetSnappedLocalPointOptions;
+  export type Record<TTargetPayload = unknown, TDragData = unknown> = DraggableTargetRecord<
+    TTargetPayload,
+    TDragData
+  >;
+  export type ResolutionContext<
+    TSourcePayload = unknown,
+    TDragData = unknown,
+  > = DraggableTargetResolutionContext<TSourcePayload, TDragData>;
+  export type StartValue<
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetStartValue<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>;
+  export type StartEventDetails = DraggableTargetStartEventDetails;
+  export type StartEventReason = DraggableTargetStartEventReason;
+  export type MoveValue<
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetMoveValue<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>;
+  export type MoveEventDetails = DraggableTargetMoveEventDetails;
+  export type MoveEventReason = DraggableTargetMoveEventReason;
+  export type EnterValue<
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetEnterValue<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>;
+  export type EnterEventDetails = DraggableTargetEnterEventDetails;
+  export type EnterEventReason = DraggableTargetEnterEventReason;
+  export type LeaveValue<
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetLeaveValue<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>;
+  export type LeaveEventDetails = DraggableTargetLeaveEventDetails;
+  export type LeaveEventReason = DraggableTargetLeaveEventReason;
+  export type DropValue<
+    TSourcePayload = unknown,
+    TTargetPayload = unknown,
+    TDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetDropValue<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>;
+  export type DropEventDetails = DraggableTargetDropEventDetails;
+  export type DropEventReason = DraggableTargetDropEventReason;
   export type State = DraggableTargetState;
-  export type Props<TSourcePayload = undefined, TTargetPayload = undefined> = DraggableTargetProps<
-    TSourcePayload,
-    TTargetPayload
-  >;
-  export type PropsWithPayload<TSourcePayload, TTargetPayload> = DraggableTargetPropsWithPayload<
-    TSourcePayload,
-    TTargetPayload
-  >;
+  export type Props<
+    TSourcePayload = undefined,
+    TTargetPayload = undefined,
+    TSourceDragData = unknown,
+    TTargetDragData = unknown,
+  > = DraggableTargetProps<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>;
 }

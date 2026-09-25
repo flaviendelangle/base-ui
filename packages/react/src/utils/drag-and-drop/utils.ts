@@ -1,7 +1,7 @@
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isShadowRoot } from '@floating-ui/utils/dom';
 import { contains } from '@base-ui/utils/shadowDom';
-import type { DragInput, DragPointerType, DragPosition } from '../../types/drag';
+import type { DraggableInput, DraggablePointerType, DraggablePosition } from '../../types/drag';
 import { getParentElement as getComposedParentElement } from '../getParentElement';
 import { getElementAtPoint } from '../getElementAtPoint';
 import {
@@ -13,7 +13,7 @@ import {
 } from './linearTransform';
 
 /** The four modifier keys, as every event that carries them reports them. */
-export type DragModifierKeys = Pick<DragInput, 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>;
+export type DragModifierKeys = Pick<DraggableInput, 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>;
 
 /**
  * Wrap a cleanup so calling it more than once (or after React has already run
@@ -33,7 +33,7 @@ export function onceCleanup(cleanup: () => void): () => void {
 
 /**
  * Resolve an element declared as a plain element, a ref, or a getter — the
- * shape shared by `dragHandle`, `container`, and `restrictToElement`'s `element`
+ * shape shared by `handle`, `container`, and `restrictToElement`'s `element`
  * — or `null` when unset. `argument` is handed to the getter form; `container`
  * passes the source element so a callback can find a container relative to it.
  */
@@ -168,15 +168,15 @@ export function isPointInRect(
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
-export function normalizePointerType(raw: string | undefined): DragPointerType {
+export function normalizePointerType(raw: string | undefined): DraggablePointerType {
   if (raw === 'touch' || raw === 'pen') {
     return raw;
   }
   return 'mouse';
 }
 
-/** Build an `DragInput` snapshot from a pointer event. */
-export function getInput(event: MouseEvent & { pointerType?: string | undefined }): DragInput {
+/** Build an `DraggableInput` snapshot from a pointer event. */
+export function getInput(event: MouseEvent & { pointerType?: string | undefined }): DraggableInput {
   return {
     button: event.button,
     buttons: event.buttons,
@@ -193,11 +193,11 @@ export function getInput(event: MouseEvent & { pointerType?: string | undefined 
 }
 
 /**
- * Rebase a `DragInput` onto `point`, shifting the page coordinates by the same
+ * Rebase a `DraggableInput` onto `point`, shifting the page coordinates by the same
  * delta. Shared by both sensor stacks so consumer predicates are asked about
  * the position the cursor would land on rather than the one it is leaving.
  */
-export function remapInput(input: DragInput, point: DragPosition): DragInput {
+export function remapInput(input: DraggableInput, point: DraggablePosition): DraggableInput {
   if (point.x === input.clientX && point.y === input.clientY) {
     return input;
   }
@@ -391,15 +391,21 @@ function usableScale(value: number): number {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+/**
+ * The element's own `zoom`, or `1` when it has none. Falls back to the inline
+ * declaration for engines whose computed style does not expose `zoom`.
+ */
+function getOwnZoom(node: Element, style: CSSStyleDeclaration): number {
+  const value = Number.parseFloat(style.zoom || (node as HTMLElement).style?.zoom || '');
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
 /** CSS zoom remains cumulative even when a preview enters the top layer. */
 export function getElementZoom(element: HTMLElement): number {
   const win = ownerWindow(element);
   let zoom = 1;
   for (let node: Element | null = element; node; node = getComposedParentElement(node)) {
-    const value = Number.parseFloat(win.getComputedStyle(node).zoom);
-    if (Number.isFinite(value) && value > 0) {
-      zoom *= value;
-    }
+    zoom *= getOwnZoom(node, win.getComputedStyle(node));
   }
   return zoom;
 }
@@ -415,9 +421,8 @@ export function getElementZoom(element: HTMLElement): number {
  * rotation at 1 and still reports the scale composed with it.
  *
  * Returns `1` on either axis it cannot read.
- * Set `includeZoom` to false when only transforms are escaped, as in a top-layer preview.
  */
-export function getElementScale(element: HTMLElement, includeZoom = true): DragPosition {
+export function getElementScale(element: HTMLElement): DraggablePosition {
   const win = ownerWindow(element);
   let matrix = identityLinearTransform;
   let zoom = 1;
@@ -446,10 +451,7 @@ export function getElementScale(element: HTMLElement, includeZoom = true): DragP
     }
     // `zoom` never reaches the matrix — it is not a transform — but it is the other way a
     // surface is scaled, and it compounds down the tree the same way.
-    const elementZoom = Number.parseFloat(style.zoom || (node as HTMLElement).style?.zoom || '');
-    if (includeZoom && Number.isFinite(elementZoom) && elementZoom > 0) {
-      zoom *= elementZoom;
-    }
+    zoom *= getOwnZoom(node, style);
     if (node.hasAttribute('popover') && node.matches(':popover-open')) {
       escapedTransforms = true;
     }

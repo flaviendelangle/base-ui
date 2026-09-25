@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ACTIVATION,
   evaluateActivation,
+  evaluateActivations,
   getActivationDelayMs,
   hasDoubleClickActivation,
   resolveActivation,
@@ -67,9 +68,9 @@ describe('activation', () => {
 
   describe('getActivationDelayMs', () => {
     it('returns the delay only for press-hold', () => {
-      expect(getActivationDelayMs({ type: 'immediate' })).toBeNull();
-      expect(getActivationDelayMs({ type: 'distance', distance: 5 })).toBeNull();
-      expect(getActivationDelayMs({ type: 'press-hold', delay: 250, tolerance: 5 })).toBe(250);
+      expect(getActivationDelayMs([{ type: 'immediate' }])).toBeNull();
+      expect(getActivationDelayMs([{ type: 'distance', distance: 5 }])).toBeNull();
+      expect(getActivationDelayMs([{ type: 'press-hold', delay: 250, tolerance: 5 }])).toBe(250);
     });
   });
 
@@ -153,13 +154,45 @@ describe('activation', () => {
     ).toBe(true);
   });
 
+  it.each(['mouse', 'touch', 'pen'] as const)(
+    'disables %s without disabling other pointer types',
+    (pointerType) => {
+      const config = { [pointerType]: false } as const;
+      expect(resolveActivation(config, pointerType)).toEqual([]);
+      expect(hasDoubleClickActivation(config, pointerType)).toBe(false);
+      const otherTypes = (['mouse', 'touch', 'pen'] as const).filter(
+        (type) => type !== pointerType,
+      );
+      for (const otherType of otherTypes) {
+        expect(resolveActivation(config, otherType)).toEqual([DEFAULT_ACTIVATION[otherType]]);
+      }
+    },
+  );
+
+  it.each(['mouse', 'touch', 'pen'] as const)(
+    'lets false override every activation method for %s regardless of order',
+    (pointerType) => {
+      const config = [
+        { type: 'immediate' },
+        { type: 'double-click' },
+        { [pointerType]: false },
+      ] as const;
+      for (const entries of [config, [...config].reverse()]) {
+        expect(resolveActivation(entries, pointerType)).toEqual([]);
+        expect(hasDoubleClickActivation(entries, pointerType)).toBe(false);
+      }
+    },
+  );
+
   it('uses OR semantics when a hold cancels but distance remains pending', () => {
     const config = [
       { type: 'press-hold', delay: 100, tolerance: 2 },
       { type: 'distance', distance: 10 },
     ] as const;
-    expect(evaluateActivation(config, { x: 0, y: 0 }, { x: 5, y: 0 }, 20)).toBe('pending');
-    expect(evaluateActivation(config, { x: 0, y: 0 }, { x: 10, y: 0 }, 30)).toBe('activate');
+    const first = evaluateActivations(config, { x: 0, y: 0 }, { x: 5, y: 0 }, 20);
+    expect(first.activate).toBe(false);
+    expect(first.remaining).toEqual([{ type: 'distance', distance: 10 }]);
+    expect(evaluateActivations(config, { x: 0, y: 0 }, { x: 10, y: 0 }, 30).activate).toBe(true);
   });
 
   it('chooses the earliest hold timer', () => {

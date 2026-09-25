@@ -4,9 +4,10 @@ import { Store, useStore } from '@base-ui/utils/store';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import { registerDropTarget } from '../../utils/drag-and-drop/registrations';
+import { syncDropTargetPayload } from '../../utils/drag-and-drop/dropTarget';
+import { registerTarget } from '../../utils/drag-and-drop/registrations';
 import { scheduleDropTargetParameterRefresh } from '../../utils/drag-and-drop/core/lifecycleManager';
-import type { RegisterDropTargetParameters } from '../../types/dragRegistration';
+import type { RegisterTargetParameters } from '../../types/dragRegistration';
 import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef';
 import {
   createDragTargetStateStore,
@@ -21,7 +22,7 @@ import { matchesAccept, sameAccept } from '../../utils/drag-and-drop/dragKind';
 function selectTargetState(
   state: number,
   disabled: boolean | undefined,
-  accept: RegisterDropTargetParameters['accept'],
+  accept: RegisterTargetParameters['accept'],
 ): number {
   const targetState = state % dragTargetStateStride;
   const source = dragSourceStore.state;
@@ -51,13 +52,14 @@ export function useDraggableTargetElement(
   parameters: UseDraggableTargetElementParameters,
 ): UseDraggableTargetElementReturnValue {
   const { trackDragOver = true, ...registrationParameters } = parameters;
-  const getParameters = useStableCallback(
-    () => registrationParameters as RegisterDropTargetParameters,
-  );
+  const getParameters = useStableCallback(() => registrationParameters as RegisterTargetParameters);
   const targetStateStore = useRefWithInit(createDragTargetStateStore).current;
   const elementRef = React.useRef<HTMLElement | null>(null);
+  useIsoLayoutEffect(() => {
+    syncDropTargetPayload(elementRef.current, parameters.kind?.id, parameters.payload);
+  });
   const registrationRef = useRegistrationRef<HTMLElement>((element) =>
-    registerDropTarget(element, getParameters),
+    registerTarget(element, getParameters),
   );
 
   // Forward the attached node to both the engine registration and the local ref.
@@ -114,7 +116,7 @@ export function useDraggableTargetElement(
   };
 }
 
-export type UseDraggableTargetElementParameters = RegisterDropTargetParameters & {
+export type UseDraggableTargetElementParameters = RegisterTargetParameters & {
   trackDragOver?: boolean | undefined;
 };
 

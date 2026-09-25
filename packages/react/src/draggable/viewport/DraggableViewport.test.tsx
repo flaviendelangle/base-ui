@@ -5,8 +5,8 @@ import { act } from '@mui/internal-test-utils';
 import { createDndRenderer, describeConformance, isJSDOM, testDragKind } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import type {
-  DragAutoScrollFrameContext,
-  DragAutoScrollEvent,
+  DraggableViewportDragScrollEventDetails,
+  DraggableViewportDragScrollValue,
 } from '../../utils/drag-and-drop/autoScroller';
 import {
   createElement,
@@ -18,10 +18,18 @@ import {
 import { createKind } from '../../utils/drag-and-drop/dragKind';
 
 type RootProps = Draggable.Viewport.Props;
-type ShouldScrollFn = (context: DragAutoScrollFrameContext) => boolean;
-type SelectDirectionFn = (context: DragAutoScrollFrameContext) => 'all' | 'horizontal' | 'vertical';
+type ShouldScrollFn = (
+  value: DraggableViewportDragScrollValue,
+  eventDetails: DraggableViewportDragScrollEventDetails,
+) => boolean;
+type SelectDirectionFn = (
+  value: DraggableViewportDragScrollValue,
+) => 'all' | 'horizontal' | 'vertical';
 type MaxSpeedFn = Extract<RootProps['maxSpeed'], (...args: never) => unknown>;
-type PanFn = (event: DragAutoScrollEvent) => void;
+type PanFn = (
+  value: DraggableViewportDragScrollValue,
+  eventDetails: DraggableViewportDragScrollEventDetails,
+) => void;
 
 setupDragEngineTests();
 
@@ -83,6 +91,32 @@ describe('Draggable.Viewport', () => {
     },
   }));
 
+  it('wakes for changed margins, compares edges by value, and does not forward the prop', async () => {
+    const scrollBy = vi.fn();
+    const { engine, rerender } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
+    const source = createElement();
+    engine.registerSource(source, {});
+    await liftOutside(source);
+    const scroller = screen.getByTestId('scroller');
+    await dragTo(scroller, 100, 120);
+    expect(scrollBy).not.toHaveBeenCalled();
+    await rerender(<Scroller scrollByMock={scrollBy} overflowMargin={{ bottom: 30 }} />);
+    await flushRaf();
+    await flushRaf();
+    expect(scrollBy).toHaveBeenCalled();
+    expect(scroller).not.toHaveAttribute('overflowMargin');
+
+    await rerender(<Scroller scrollByMock={scrollBy} overflowMargin={{ bottom: 10 }} />);
+    await flushRaf();
+    scrollBy.mockClear();
+    const measure = vi.spyOn(scroller, 'getBoundingClientRect');
+    await rerender(<Scroller scrollByMock={scrollBy} overflowMargin={{ bottom: 10 }} />);
+    await flushRaf();
+    expect(measure).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
+    fireEvent.drop(source);
+  });
+
   it('attaches and detaches cleanly without an active drag', async () => {
     const { unmount } = await renderDnd(<Scroller />);
     expect(screen.getByTestId('scroller')).toBeInTheDocument();
@@ -93,7 +127,7 @@ describe('Draggable.Viewport', () => {
     const observe = vi.spyOn(MutationObserver.prototype, 'observe');
     const { engine } = await renderDnd(<Scroller />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     expect(observe).not.toHaveBeenCalled();
@@ -113,14 +147,14 @@ describe('Draggable.Viewport', () => {
   it('shares an observer across nested scrollers and keeps observing after removal', async () => {
     const { engine } = await renderDnd();
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const outer = createElement();
     const inner = createElement();
     outer.appendChild(inner);
     stubScrollMetrics(outer);
     stubScrollMetrics(inner);
-    const releaseOuter = engine.registerAutoScroller(outer, {});
-    engine.registerAutoScroller(inner, {});
+    const releaseOuter = engine.registerViewport(outer, {});
+    engine.registerViewport(inner, {});
     const observe = vi.spyOn(MutationObserver.prototype, 'observe');
     registerCleanup(() => observe.mockRestore());
 
@@ -165,7 +199,7 @@ describe('Draggable.Viewport', () => {
     const scrollBy = vi.fn();
     const { engine, rerender } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -183,7 +217,7 @@ describe('Draggable.Viewport', () => {
   it('keeps one idle observer across parks instead of constructing one per wake', async () => {
     const { engine } = await renderDnd(<Scroller />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
     const OriginalObserver = window.MutationObserver;
     let constructed = 0;
@@ -215,7 +249,7 @@ describe('Draggable.Viewport', () => {
   it('wakes a parked loop for content growth without re-reading any computed style', async () => {
     const { engine } = await renderDnd(<Scroller />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -241,7 +275,7 @@ describe('Draggable.Viewport', () => {
   it('re-reads computed styles when a parked container itself is restyled', async () => {
     const { engine } = await renderDnd(<Scroller />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -266,7 +300,7 @@ describe('Draggable.Viewport', () => {
     const { engine } = await renderDnd(
       <Scroller
         onDragScroll={(details, eventDetails) => {
-          if (!shouldScroll(details)) {
+          if (!shouldScroll(details, eventDetails)) {
             eventDetails.cancel();
             return;
           }
@@ -274,19 +308,19 @@ describe('Draggable.Viewport', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
     await dragTo(scroller, 100, 95);
 
     expect(shouldScroll).toHaveBeenCalled();
-    const feedback = shouldScroll.mock.calls[0][0];
-    expect(feedback.element).toBe(scroller);
-    expect(feedback.source.element).toBe(source);
+    const [value, eventDetails] = shouldScroll.mock.calls[0];
+    expect(eventDetails.element).toBe(scroller);
+    expect(value.source.element).toBe(source);
     // The delivered pointer coordinates reached the callback.
-    expect(feedback.input.clientX).toBe(100);
-    expect(feedback.input.clientY).toBe(95);
+    expect(eventDetails.input.clientX).toBe(100);
+    expect(eventDetails.input.clientY).toBe(95);
   });
 
   it('forwards the ref to the same node it registers', async () => {
@@ -301,7 +335,7 @@ describe('Draggable.Viewport', () => {
           ref.current = node;
         }}
         onDragScroll={(details, eventDetails) => {
-          if (!shouldScroll(details)) {
+          if (!shouldScroll(details, eventDetails)) {
             eventDetails.cancel();
             return;
           }
@@ -310,13 +344,13 @@ describe('Draggable.Viewport', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
 
     await liftOutside(source);
     await dragTo(screen.getByTestId('scroller'), 100, 95);
 
     expect(ref.current).toBe(screen.getByTestId('scroller'));
-    expect(shouldScroll.mock.calls[0][0].element).toBe(ref.current);
+    expect(shouldScroll.mock.calls[0][1].element).toBe(ref.current);
   });
 
   it('scrolls the container while the pointer parks in an edge zone', async () => {
@@ -326,7 +360,7 @@ describe('Draggable.Viewport', () => {
     const scrollBy = vi.fn();
     const { engine } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -351,7 +385,7 @@ describe('Draggable.Viewport', () => {
     const scrollBy = vi.fn();
     const { engine } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -393,7 +427,7 @@ describe('Draggable.Viewport', () => {
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const scroller = screen.getByTestId('scroller');
 
       await liftOutside(source);
@@ -437,7 +471,7 @@ describe('Draggable.Viewport', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     // Bottom edge zone: the vertical axis is engaged and scrolls.
@@ -494,7 +528,7 @@ describe('Draggable.Viewport', () => {
       const scroller = screen.getByTestId('scroller');
       const source = createElement();
       scroller.appendChild(source);
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
 
       await liftOutside(source);
       await dragTo(scroller, 100, 95);
@@ -516,7 +550,7 @@ describe('Draggable.Viewport', () => {
       const { engine, rerender } = await renderDnd(
         <Scroller
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -525,7 +559,7 @@ describe('Draggable.Viewport', () => {
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const el = screen.getByTestId('scroller');
 
       // Engage in the bottom edge zone while enabled.
@@ -539,7 +573,7 @@ describe('Draggable.Viewport', () => {
         <Scroller
           disabled
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -566,7 +600,7 @@ describe('Draggable.Viewport', () => {
       await rerender(
         <Scroller
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -580,7 +614,7 @@ describe('Draggable.Viewport', () => {
       await flushRaf();
       await flushRaf();
       expect(shouldScroll).toHaveBeenCalled();
-      expect(shouldScroll.mock.calls[0][0].element).toBe(el);
+      expect(shouldScroll.mock.calls[0][1].element).toBe(el);
       expect(scrollBy).toHaveBeenCalled();
       fireEvent.drop(source);
     });
@@ -609,7 +643,7 @@ describe('Draggable.Viewport', () => {
 
     const { engine, rerender } = await renderDnd(<RestyledScroller open={false} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -650,7 +684,7 @@ describe('Draggable.Viewport', () => {
         </div>,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const scroller = screen.getByTestId('scroller');
 
       await liftOutside(source);
@@ -681,7 +715,7 @@ describe('Draggable.Viewport', () => {
     const scrollBy = vi.fn();
     const { engine } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -704,7 +738,7 @@ describe('Draggable.Viewport', () => {
     const scrollBy = vi.fn();
     const { engine } = await renderDnd(<Scroller scrollByMock={scrollBy} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
     let scrollHeight = 100;
     Object.defineProperty(scroller, 'scrollHeight', {
@@ -744,7 +778,7 @@ describe('Draggable.Viewport', () => {
       <Draggable.Viewport ref={ref} render={<div />} data-testid="scroller" />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const first = screen.getByTestId('scroller');
 
     await liftOutside(source);
@@ -779,7 +813,7 @@ describe('Draggable.Viewport', () => {
       <React.StrictMode>
         <Scroller
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -788,15 +822,15 @@ describe('Draggable.Viewport', () => {
       </React.StrictMode>,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const scroller = screen.getByTestId('scroller');
 
     await liftOutside(source);
     await dragTo(scroller, 100, 95);
 
     expect(shouldScroll).toHaveBeenCalled();
-    expect(shouldScroll.mock.calls[0][0].element).toBe(scroller);
-    expect(shouldScroll.mock.calls[0][0].input.clientY).toBe(95);
+    expect(shouldScroll.mock.calls[0][1].element).toBe(scroller);
+    expect(shouldScroll.mock.calls[0][1].input.clientY).toBe(95);
     fireEvent.drop(source);
 
     unmount();
@@ -819,7 +853,7 @@ describe('Draggable.Viewport', () => {
     const { rerender, engine } = await renderDnd(
       <Scroller
         onDragScroll={(details, eventDetails) => {
-          if (!first(details)) {
+          if (!first(details, eventDetails)) {
             eventDetails.cancel();
             return;
           }
@@ -828,13 +862,13 @@ describe('Draggable.Viewport', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const el = screen.getByTestId('scroller');
 
     await rerender(
       <Scroller
         onDragScroll={(details, eventDetails) => {
-          if (!second(details)) {
+          if (!second(details, eventDetails)) {
             eventDetails.cancel();
             return;
           }
@@ -852,7 +886,7 @@ describe('Draggable.Viewport', () => {
     expect(second).toHaveBeenCalled();
     // The frames genuinely reached this scroller at the delivered coordinates,
     // so the non-calls above and below are the swap and the `false` answer.
-    expect(second.mock.calls[0][0].input.clientY).toBe(95);
+    expect(second.mock.calls[0][1].input.clientY).toBe(95);
     expect(scrollBy).not.toHaveBeenCalled();
   });
 
@@ -866,7 +900,7 @@ describe('Draggable.Viewport', () => {
         <Scroller
           accept={otherKind}
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -875,7 +909,7 @@ describe('Draggable.Viewport', () => {
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {}); // defaults to testDragKind
+      engine.registerSource(source, {}); // defaults to testDragKind
       const scroller = screen.getByTestId('scroller');
 
       await liftOutside(source);
@@ -891,7 +925,7 @@ describe('Draggable.Viewport', () => {
         <Scroller
           accept={testDragKind}
           onDragScroll={(details, eventDetails) => {
-            if (!shouldScroll(details)) {
+            if (!shouldScroll(details, eventDetails)) {
               eventDetails.cancel();
               return;
             }
@@ -923,7 +957,7 @@ describe('Draggable.Viewport', () => {
       const scrollBy = vi.fn();
       const { engine } = await renderDnd(<Scroller maxSpeed={maxSpeed} scrollByMock={scrollBy} />);
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const scroller = screen.getByTestId('scroller');
 
       await liftOutside(source);
@@ -952,21 +986,21 @@ describe('Draggable.Viewport', () => {
         <Viewport
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            pan(details);
+            pan(details, eventDetails);
             eventDetails.consume();
           }}
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const viewport = screen.getByTestId('viewport');
 
       await liftOutside(source);
       await dragTo(viewport, 100, 95);
 
       expect(pan).toHaveBeenCalled();
-      expect(pan.mock.calls[0][0].element).toBe(viewport);
-      expect(pan.mock.calls[0][0].input.clientY).toBe(95);
+      expect(pan.mock.calls[0][1].element).toBe(viewport);
+      expect(pan.mock.calls[0][1].input.clientY).toBe(95);
     });
 
     it('does not render onDragScroll as a DOM attribute', async () => {
@@ -995,13 +1029,13 @@ describe('Draggable.Viewport', () => {
         <Viewport
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            pan(details);
+            pan(details, eventDetails);
             eventDetails.consume();
           }}
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const viewport = screen.getByTestId('viewport');
 
       await liftOutside(source);
@@ -1013,7 +1047,7 @@ describe('Draggable.Viewport', () => {
           disabled
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            pan(details);
+            pan(details, eventDetails);
             eventDetails.consume();
           }}
         />,
@@ -1030,7 +1064,7 @@ describe('Draggable.Viewport', () => {
         <Viewport
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            pan(details);
+            pan(details, eventDetails);
             eventDetails.consume();
           }}
         />,
@@ -1047,20 +1081,20 @@ describe('Draggable.Viewport', () => {
         <Viewport
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            first(details);
+            first(details, eventDetails);
             eventDetails.consume();
           }}
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, {});
+      engine.registerSource(source, {});
       const viewport = screen.getByTestId('viewport');
 
       await rerender(
         <Viewport
           onDragScroll={(details, eventDetails) => {
             eventDetails.cancel();
-            second(details);
+            second(details, eventDetails);
             eventDetails.consume();
           }}
         />,
