@@ -53,7 +53,7 @@ describe('SortableDropProvider target ownership', () => {
         neither: target,
         foreign: screen.getByTestId('ancestor'),
       };
-      expect(onMoveEnd.mock.calls[0][0].dropTarget?.element).toBe(expectedTargets[scenario]);
+      expect(onMoveEnd.mock.calls[0][0].target?.element).toBe(expectedTargets[scenario]);
     },
   );
 });

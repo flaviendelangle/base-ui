@@ -6,7 +6,7 @@ import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { getTarget, closest } from '@base-ui/utils/shadowDom';
 import { ownerWindow } from '@base-ui/utils/owner';
-import { isInteractiveElement } from '../../utils/isInteractiveElement';
+import { INTERACTIVE_ELEMENT_SELECTOR } from '../../utils/isInteractiveElement';
 import { getParentElement } from '../../utils/getParentElement';
 import { useDirection } from '../../internals/direction-context';
 import {
@@ -324,7 +324,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       return;
     }
     for (let node: Element | null = target; node && node !== row; node = getParentElement(node)) {
-      if (isInteractiveElement(node)) {
+      if (node.matches(INTERACTIVE_ELEMENT_SELECTOR)) {
         return;
       }
     }

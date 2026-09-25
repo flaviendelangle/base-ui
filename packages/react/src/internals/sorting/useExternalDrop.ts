@@ -11,13 +11,13 @@ export function useExternalDrop<
   Position extends { id: string | number; placement: string; index?: number | undefined },
   Context extends { position: Position },
 >(parameters: {
-  accept?: Draggable.AnyDragAccept | undefined;
+  accept?: Draggable.Accept<unknown> | undefined;
   collectionId: object;
   itemId: string | number | undefined;
   disabled: boolean;
-  resolve: (context: Draggable.DropTargetResolutionContext) => Context | null;
+  resolve: (context: Draggable.Target.ResolutionContext) => Context | null;
   onDraggableDrop?:
-    ((context: Context, details: Draggable.DragDropEventDetails) => void) | undefined;
+    ((value: Context, eventDetails: Draggable.Target.DropEventDetails) => void) | undefined;
   onDropPositionChange?: ((position: Position | null) => void) | undefined;
 }) {
   const shared = useExternalDropStore(parameters.collectionId);
@@ -46,7 +46,7 @@ export function useExternalDrop<
     parameters.onDropPositionChange?.(next);
   });
   const clear = useStableCallback(() => update(null));
-  const resolve = useStableCallback((context: Draggable.DropTargetResolutionContext) => {
+  const resolve = useStableCallback((context: Draggable.Target.ResolutionContext) => {
     if (parameters.disabled || !acceptsExternalDrop(parameters.accept, context.source)) {
       return null;
     }
@@ -61,18 +61,20 @@ export function useExternalDrop<
     }
     return parameters.resolve(context);
   });
-  const show = useStableCallback((event: Draggable.DropTargetEvent<'onDraggableMove'>) => {
-    if (event.location.current.dropTargets[0]?.element !== event.target.element) {
-      clear();
-      return;
-    }
-    const result = resolve({
-      source: event.source,
-      element: event.target.element,
-      input: event.location.current.input,
-    });
-    update(result?.position ?? null);
-  });
+  // `onDraggableEnter` details cover every reason `onDraggableMove` can report.
+  const show = useStableCallback(
+    (
+      { source, target }: Draggable.Target.MoveValue,
+      { location }: Draggable.Target.EnterEventDetails,
+    ) => {
+      if (location.current.targets[0]?.element !== target.element) {
+        clear();
+        return;
+      }
+      const result = resolve({ source, element: target.element, input: location.current.input });
+      update(result?.position ?? null);
+    },
+  );
   useIsoLayoutEffect(() => clear, [clear]);
   useIsoLayoutEffect(() => {
     if (parameters.disabled) {
@@ -98,18 +100,15 @@ export function useExternalDrop<
     onDraggableEnter: show,
     onDraggableMove: show,
     onDraggableLeave: clear,
-    onDraggableDrop: (event, details) => {
-      if (event.target.element !== event.dropTarget.element) {
-        return;
-      }
+    onDraggableDrop: ({ source, target }, eventDetails) => {
       const result = resolve({
-        source: event.source,
-        element: event.target.element,
-        input: event.location.current.input,
+        source,
+        element: target.element,
+        input: eventDetails.location.current.input,
       });
       clear();
       if (result) {
-        parameters.onDraggableDrop?.(result, details);
+        parameters.onDraggableDrop?.(result, eventDetails);
       }
     },
   };

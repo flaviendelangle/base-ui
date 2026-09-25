@@ -1,11 +1,6 @@
 'use client';
 import * as React from 'react';
 import { Draggable } from '../../draggable';
-import type {
-  BaseDragEvent,
-  DropTargetRecord,
-  DropTargetChangeEventDetails,
-} from '../../types/drag';
 
 export type ExternalDropTargetProps = Pick<
   Draggable.Target.Props<unknown, unknown>,
@@ -19,7 +14,6 @@ export type ExternalDropTargetProps = Pick<
   | 'onDraggableDrop'
 >;
 
-type Snapshot<T> = { payload: T; point: { x: number; y: number } };
 type RenderTarget = (
   element: React.ReactElement,
   payload: unknown,
@@ -37,71 +31,74 @@ export function SortableDropProvider<T extends { collectionId: object }>(
   },
 ) {
   const { kind, collectionId, disabled, isTargetDisabled } = props;
-  const [targetKind] = React.useState(() => Draggable.createKind<Snapshot<T>>('sortable-row'));
-  const previous = React.useRef<Draggable.CollisionProvider.Collision<T> | null>(null);
-  const previousRecord = React.useRef<DropTargetRecord | null>(null);
-  const resolve = (record: DropTargetRecord | null | undefined, sourceElement: Element) => {
+  const [targetKind] = React.useState(() => Draggable.createKind<T>('sortable-row'));
+  const previous = React.useRef<Draggable.Target.Record<T> | null>(null);
+  const previousRecord = React.useRef<Draggable.Target.Record | null>(null);
+  const resolve = (record: Draggable.Target.Record | null, sourceElement: Element) => {
     if (!record || record.element === sourceElement || !targetKind.matches(record)) {
       return null;
     }
-    return {
-      target: {
-        ...record,
-        payload: record.payload.payload,
-        getLocalPoint: () => record.payload.point,
-      },
-    };
+    // Capture geometry before callbacks can reorder or unmount the row.
+    record.getLocalPoint();
+    record.getSnappedLocalPoint();
+    return record;
   };
-  const update = (event: BaseDragEvent<T>, details: DropTargetChangeEventDetails) => {
-    if (event.source.payload.collectionId !== collectionId) {
+  const update = (
+    value: Draggable.Root.TargetChangeValue<T>,
+    eventDetails: Draggable.Root.TargetChangeEventDetails,
+  ) => {
+    if (value.source.payload.collectionId !== collectionId) {
       return;
     }
-    const record = event.location.current.dropTargets[0] ?? null;
-    if (record === previousRecord.current) {
+    if (value.target === previousRecord.current) {
       return;
     }
-    previousRecord.current = record;
-    const collision = resolve(record, event.source.element);
-    const previousCollision = previous.current;
-    previous.current = collision;
-    props.onCollisionChange?.({ ...event, collision, previousCollision }, details);
+    previousRecord.current = value.target;
+    const target = resolve(value.target, value.source.element);
+    const previousTarget = previous.current;
+    previous.current = target;
+    props.onCollisionChange?.(
+      { source: value.source, target },
+      { ...eventDetails, previousTarget },
+    );
   };
-  Draggable.useDragMonitor({
+  Draggable.useMonitor({
     accept: kind,
-    onMoveStart(event, details) {
-      if (event.source.payload.collectionId === collectionId) {
+    onMoveStart({ source, target }, eventDetails) {
+      if (source.payload.collectionId === collectionId) {
         previous.current = null;
         previousRecord.current = null;
-        props.onMoveStart?.(event, details);
+        props.onMoveStart?.({ source, target: resolve(target, source.element) }, eventDetails);
       }
     },
     onMove: update,
     onTargetChange: update,
-    onMoveEnd(event, details) {
-      if (event.source.payload.collectionId !== collectionId) {
+    onMoveEnd({ source, target }, eventDetails) {
+      if (source.payload.collectionId !== collectionId) {
         return;
       }
-      const collision = resolve(event.dropTarget, event.source.element);
-      const previousCollision = previous.current;
+      const previousTarget = previous.current;
+      const collision = resolve(target, source.element);
       previous.current = null;
       previousRecord.current = null;
-      props.onMoveEnd?.({ ...event, collision, previousCollision }, details);
+      props.onMoveEnd?.({ source, target: collision }, { ...eventDetails, previousTarget });
     },
   });
   const renderTarget = React.useCallback<RenderTarget>(
     (element, payload, externalProps, snap) => {
       // The provider supplies every row payload using the same T as its drag kind.
       const item = payload as T;
-      const owns = (source: Draggable.DragSource) =>
+      const owns = (source: Draggable.Root.Record) =>
         kind.matches(source) && source.payload.collectionId === collectionId;
       return (
-        <Draggable.Target<unknown, Snapshot<T>>
+        <Draggable.Target<unknown, T>
           render={element}
           trackDragOver={false}
           disabled={false}
           snap={snap}
           kind={targetKind}
           accept={Draggable.anyKind}
+          payload={item}
           canDrop={(context) => {
             if (kind.matches(context.source) && owns(context.source)) {
               // Local sorting rejection must not fall through to ancestor targets.
@@ -116,35 +113,24 @@ export function SortableDropProvider<T extends { collectionId: object }>(
             }
             return externalProps.canDrop?.(context) ?? true;
           }}
-          getPayload={({ element: node, input }) => {
-            // Capture geometry before callbacks can reorder or unmount the row.
-            const rect = node.getBoundingClientRect();
-            return {
-              payload: item,
-              point: {
-                x: rect.width ? (input.clientX - rect.left) / rect.width : 0,
-                y: rect.height ? (input.clientY - rect.top) / rect.height : 0,
-              },
-            };
-          }}
-          onDraggableEnter={(event, details) => {
-            if (!owns(event.source)) {
-              externalProps?.onDraggableEnter?.(event, details);
+          onDraggableEnter={(value, eventDetails) => {
+            if (!owns(value.source)) {
+              externalProps?.onDraggableEnter?.(value, eventDetails);
             }
           }}
-          onDraggableMove={(event, details) => {
-            if (!owns(event.source)) {
-              externalProps?.onDraggableMove?.(event, details);
+          onDraggableMove={(value, eventDetails) => {
+            if (!owns(value.source)) {
+              externalProps?.onDraggableMove?.(value, eventDetails);
             }
           }}
-          onDraggableLeave={(event, details) => {
-            if (!owns(event.source)) {
-              externalProps?.onDraggableLeave?.(event, details);
+          onDraggableLeave={(value, eventDetails) => {
+            if (!owns(value.source)) {
+              externalProps?.onDraggableLeave?.(value, eventDetails);
             }
           }}
-          onDraggableDrop={(event, details) => {
-            if (!owns(event.source) && event.target.element === event.dropTarget.element) {
-              externalProps?.onDraggableDrop?.(event, details);
+          onDraggableDrop={(value, eventDetails) => {
+            if (!owns(value.source)) {
+              externalProps?.onDraggableDrop?.(value, eventDetails);
             }
           }}
         />
@@ -166,8 +152,8 @@ export function SortableDropTarget(props: {
 }
 
 export function acceptsExternalDrop(
-  accept: Draggable.AnyDragAccept | undefined,
-  source: Draggable.DragSource,
+  accept: Draggable.Accept<unknown> | undefined,
+  source: Draggable.Root.Record,
 ): boolean {
   if (!accept) {
     return false;

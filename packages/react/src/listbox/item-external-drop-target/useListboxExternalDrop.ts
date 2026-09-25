@@ -1,6 +1,6 @@
 'use client';
 import { getListboxDropDestination } from '../sorting/dropPosition';
-import type { AnyDragAccept, AcceptedDragPayload, DragSource } from '../../types/drag';
+import type { AcceptedDragPayload, DraggableAccept, DraggableRootRecord } from '../../types/drag';
 import { useDirection } from '../../internals/direction-context';
 import { useExternalDrop } from '../../internals/sorting/useExternalDrop';
 import type { useListboxRootContext } from '../root/ListboxRootContext';
@@ -15,7 +15,7 @@ import { getListboxDropItems } from '../sorting/useListboxDropItem';
 type Store = ReturnType<typeof useListboxRootContext>;
 type Item = ListboxSortingItemRecord<unknown>;
 
-export function useListboxExternalDrop<TAccept extends AnyDragAccept, Value>(
+export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>, Value>(
   store: Store,
   item: Omit<Item, 'id'> & { id: ListboxItemId | undefined },
   options: ListboxItemExternalDropTargetOptions<TAccept, Value> | undefined,
@@ -44,7 +44,7 @@ export function useListboxExternalDrop<TAccept extends AnyDragAccept, Value>(
       };
       const context = {
         // useExternalDrop checked the accepted kinds before calling this resolver.
-        source: source as DragSource<AcceptedDragPayload<TAccept>>,
+        source: source as DraggableRootRecord<AcceptedDragPayload<TAccept>>,
         item: item.value as Value,
         itemId: item.id,
         itemMetadata: { index: item.index, groupId: item.groupId, disabled: item.disabled },

@@ -317,7 +317,10 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(screen.getByRole('status')).toHaveTextContent('Sorting canceled.');
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith({ itemIds: expect.any(Array), canceled: true });
+    expect(onSortEnd).toHaveBeenCalledWith(
+      { itemIds: expect.any(Array) },
+      expect.objectContaining({ canceled: true }),
+    );
   });
   it('keeps a live move when dropping over its source', async () => {
     const onSortEnd = vi.fn();
@@ -332,7 +335,10 @@ describe('<Listbox.SortableProvider />', () => {
     drop(a, { clientY: 250 });
     await flushRaf();
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
-    expect(onSortEnd).toHaveBeenCalledWith({ itemIds: expect.any(Array), canceled: false });
+    expect(onSortEnd).toHaveBeenCalledWith(
+      { itemIds: expect.any(Array) },
+      expect.objectContaining({ canceled: false }),
+    );
   });
   it('passes item draggable options through to the engine', async () => {
     const onBeforeMoveStart = vi.fn((_, details) => details.cancel());
@@ -406,7 +412,10 @@ describe('<Listbox.SortableProvider />', () => {
     drop(d, { clientY: 375 });
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith({ itemIds: expect.any(Array), canceled: true });
+    expect(onSortEnd).toHaveBeenCalledWith(
+      { itemIds: expect.any(Array) },
+      expect.objectContaining({ canceled: true }),
+    );
   });
   it('revalidates movement rules before keeping a live move over its source', async () => {
     const onSortEnd = vi.fn();
@@ -423,7 +432,10 @@ describe('<Listbox.SortableProvider />', () => {
     drop(a, { clientY: 250 });
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith({ itemIds: expect.any(Array), canceled: true });
+    expect(onSortEnd).toHaveBeenCalledWith(
+      { itemIds: expect.any(Array) },
+      expect.objectContaining({ canceled: true }),
+    );
   });
   it('restores focus after a pointer move remounts an item in another group', async () => {
     function Groups() {

@@ -312,7 +312,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('left').textContent).toBe('bc');
       expect(screen.getByTestId('right').textContent).toBe('desta');
-      expect(onSortEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
+      expect(onSortEnd.mock.calls.at(-1)?.[1].canceled).toBe(false);
     },
   );
   it('keeps a standalone externally disabled option selectable and visually enabled', async () => {

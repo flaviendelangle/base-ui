@@ -9,8 +9,10 @@ const count = Draggable.createKind<number>('count');
 <Listbox.ItemExternalDropTarget
   value="a"
   accept={text}
-  onDraggableDrop={({ source }) => {
-    expectType<string, typeof source.payload>(source.payload);
+  onDraggableDrop={(value, eventDetails) => {
+    expectType<string, typeof value.source.payload>(value.source.payload);
+    expectType<Listbox.ItemExternalDropTarget.DropValue<string, string>, typeof value>(value);
+    expectType<Listbox.ItemExternalDropTarget.DropEventDetails, typeof eventDetails>(eventDetails);
   }}
 />;
 

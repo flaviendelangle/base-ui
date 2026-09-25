@@ -326,23 +326,23 @@ Same-listbox drags remain owned by the sorting provider. Renders a `<div>` eleme
 
 **ItemExternalDropTarget Props:**
 
-| Prop                 | Type                                                                                                                                                   | Default | Description                                                                                                                                                                                   |
-| :------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| label                | `string`                                                                                                                                               | -       | Specifies the text label to use when the item is matched during keyboard text navigation.                                                                                                     |
-| value                | `TItem`                                                                                                                                                | -       | The unique value identifying this option.                                                                                                                                                     |
-| accept\*             | `AnyDragAccept`                                                                                                                                        | -       | One or more kinds of external drag sources accepted by this item.                                                                                                                             |
-| canDrop              | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>) => boolean)`                                                       | -       | Validates the resolved destination. Returning false rejects the drop, including ancestor targets.                                                                                             |
-| draggableProps       | `ListboxItemDraggableProps`                                                                                                                            | -       | Configures the underlying Draggable.Root without replacing managed sorting.                                                                                                                   |
-| dropDisabled         | `boolean`                                                                                                                                              | `false` | Disables external drops without disabling selection or internal sorting.                                                                                                                      |
-| getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
-| nativeButton         | `boolean`                                                                                                                                              | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
-| onDraggableDrop      | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>, eventDetails: DragDropEventDetails) => void)`                      | -       | Handles an accepted external drop. Does not automatically insert or remove items.                                                                                                             |
-| onDropPositionChange | `((position: ListboxSortingDropPosition \| null) => void)`                                                                                             | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
-| disabled             | `boolean`                                                                                                                                              | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
-| children             | `React.ReactNode`                                                                                                                                      | -       | -                                                                                                                                                                                             |
-| className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                       | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style                | `React.CSSProperties \| ((state: Listbox.Item.State) => React.CSSProperties \| undefined)`                                                             | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render               | `ReactElement \| ((props: HTMLProps, state: Listbox.Item.State) => ReactElement)`                                                                      | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+| Prop                 | Type                                                                                                                                                     | Default | Description                                                                                                                                                                                   |
+| :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| label                | `string`                                                                                                                                                 | -       | Specifies the text label to use when the item is matched during keyboard text navigation.                                                                                                     |
+| value                | `TItem`                                                                                                                                                  | -       | The unique value identifying this option.                                                                                                                                                     |
+| accept\*             | `DraggableAccept<unknown>`                                                                                                                               | -       | One or more kinds of external drag sources accepted by this item.                                                                                                                             |
+| canDrop              | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>) => boolean)`                                                         | -       | Validates the resolved destination. Returning false rejects the drop, including ancestor targets.                                                                                             |
+| draggableProps       | `ListboxItemDraggableProps`                                                                                                                              | -       | Configures the underlying Draggable.Root without replacing managed sorting.                                                                                                                   |
+| dropDisabled         | `boolean`                                                                                                                                                | `false` | Disables external drops without disabling selection or internal sorting.                                                                                                                      |
+| getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)`   | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
+| nativeButton         | `boolean`                                                                                                                                                | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
+| onDraggableDrop      | `((value: Listbox.ItemExternalDropTarget.DropValue<TPayload \| unknown, TItem>, eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails) => void)` | -       | Handles an accepted external drop. Does not automatically insert or remove items.                                                                                                             |
+| onDropPositionChange | `((position: ListboxSortingDropPosition \| null) => void)`                                                                                               | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
+| disabled             | `boolean`                                                                                                                                                | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
+| children             | `React.ReactNode`                                                                                                                                        | -       | -                                                                                                                                                                                             |
+| className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                         | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style                | `React.CSSProperties \| ((state: Listbox.Item.State) => React.CSSProperties \| undefined)`                                                               | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| render               | `ReactElement \| ((props: HTMLProps, state: Listbox.Item.State) => ReactElement)`                                                                        | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
 
 **ItemExternalDropTarget Data Attributes:**
 
@@ -395,7 +395,7 @@ type ListboxItemExternalDropTargetDropContext<TPayload = unknown, TItem = unknow
   /** Insertion index across the entire list, including groups. Not relative to the group. */
   destination: ListboxSortingDestination;
   /** The incoming drag source. */
-  source: DragSource<TPayload>;
+  source: DraggableRootRecord<TPayload, unknown>;
   /** The item under the pointer. */
   item: TItem;
   itemId: Listbox.ItemId;
@@ -403,6 +403,25 @@ type ListboxItemExternalDropTargetDropContext<TPayload = unknown, TItem = unknow
   /** Pointer coordinates normalized to the item's width and height. */
   point: { x: number; y: number };
 };
+```
+
+### ItemExternalDropTarget.DropEventDetails
+
+```typescript
+type ListboxItemExternalDropTargetDropEventDetails = {
+  /** The reason for the event. */
+  reason: 'drop';
+  /** The native event associated with the custom event. */
+  event: MouseEvent | PointerEvent;
+  /** The pointer position and drop targets, now and at previous moments of the drag. */
+  location: DraggableLocationHistory;
+};
+```
+
+### ItemExternalDropTarget.DropEventReason
+
+```typescript
+type ListboxItemExternalDropTargetDropEventReason = 'drop';
 ```
 
 ### ItemExternalDropTarget.DropPosition
@@ -420,12 +439,30 @@ type ListboxItemExternalDropTargetDropPosition = {
 };
 ```
 
+### ItemExternalDropTarget.DropValue
+
+```typescript
+type ListboxItemExternalDropTargetDropValue<TPayload = unknown, TItem = unknown> = {
+  position: ListboxSortingDropPosition;
+  /** Insertion index across the entire list, including groups. Not relative to the group. */
+  destination: ListboxSortingDestination;
+  /** The incoming drag source. */
+  source: DraggableRootRecord<TPayload, unknown>;
+  /** The item under the pointer. */
+  item: TItem;
+  itemId: Listbox.ItemId;
+  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
+  /** Pointer coordinates normalized to the item's width and height. */
+  point: { x: number; y: number };
+};
+```
+
 ### ItemExternalDropTarget.PositionContext
 
 ```typescript
 type ListboxItemExternalDropTargetPositionContext<TPayload = unknown, TItem = unknown> = {
   /** The incoming drag source. */
-  source: DragSource<TPayload>;
+  source: DraggableRootRecord<TPayload, unknown>;
   /** The item under the pointer. */
   item: TItem;
   itemId: Listbox.ItemId;
@@ -536,20 +573,20 @@ Enables keyboard and pointer sorting with automatic item registration.
 
 **SortableProvider Props:**
 
-| Prop                  | Type                                                                                                         | Default  | Description                                                                                        |
-| :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------- |
-| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                   |
-| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`                                      | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
-| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                   | -        | Returns application data stored in the drag payload's data field.                                  |
-| getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                    |
-| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                          |
-| kind                  | `DragKind<ListboxSortingDragPayload<Value>>`                                                                 | -        | An explicit kind for integrating sorting with external drag sources and targets.                   |
-| onDropPositionChange  | `((position: ListboxSortingDropPosition \| null) => void)`                                                   | -        | Called when pointer placement changes, including when sorting ends.                                |
-| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)`                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move. |
-| onSortEnd             | `((parameters: { itemIds: Listbox.ItemId[]; canceled: boolean }) => void)`                                   | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.               |
-| reorderOn             | `'drop' \| 'move'`                                                                                           | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                   |
-| disabled              | `boolean`                                                                                                    | `false`  | Disables keyboard and pointer sorting.                                                             |
-| children              | `React.ReactNode`                                                                                            | -        | -                                                                                                  |
+| Prop                  | Type                                                                                                         | Default  | Description                                                                                                                                                          |
+| :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                                                                                     |
+| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`                                      | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.                                                                             |
+| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                   | -        | Returns application data stored in the drag payload's data field.                                                                                                    |
+| getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                      |
+| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                                                                                            |
+| kind                  | `DraggableKind<ListboxSortingDragPayload<Value>, unknown>`                                                   | -        | An explicit kind for integrating sorting with external drag sources and targets.                                                                                     |
+| onDropPositionChange  | `((position: ListboxSortingDropPosition \| null) => void)`                                                   | -        | Called when pointer placement changes, including when sorting ends.                                                                                                  |
+| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)`                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move.                                                                   |
+| onSortEnd             | `((value: ListboxSortingSortEndValue, eventDetails: ListboxSortingSortEndEventDetails) => void)`             | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.&#xA;`eventDetails.canceled` tells whether the sort was canceled or rolled back. |
+| reorderOn             | `'drop' \| 'move'`                                                                                           | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                                                                                     |
+| disabled              | `boolean`                                                                                                    | `false`  | Disables keyboard and pointer sorting.                                                                                                                               |
+| children              | `React.ReactNode`                                                                                            | -        | -                                                                                                                                                                    |
 
 ### SortableProvider.Props
 
@@ -592,8 +629,10 @@ type ListboxSortableProviderDropContext<Value = any> = {
   itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
-  collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
-  source: DragSource<ListboxSortingDragPayload<Value>>;
+  /** The row under the pointer. Its payload identifies the row, not the dragged items. */
+  target: DraggableTargetRecord<ListboxSortingDragPayload<Value>, unknown>;
+  /** The item being dragged. */
+  source: DraggableRootRecord<ListboxSortingDragPayload<Value>, unknown>;
 };
 ```
 
@@ -645,6 +684,61 @@ type ListboxSortableProviderMoveItemsParameters<Value = any> = {
 };
 ```
 
+### SortableProvider.SortEndEventDetails
+
+```typescript
+type ListboxSortableProviderSortEndEventDetails = (
+  | { reason: 'escape-key'; event: KeyboardEvent }
+  | { reason: 'imperative-action'; event: Event }
+  | { reason: 'tab-key'; event: KeyboardEvent }
+  | { reason: 'window-blur'; event: FocusEvent }
+  | { reason: 'page-hidden'; event: Event }
+  | { reason: 'pointer-canceled'; event: PointerEvent }
+  | { reason: 'capture-lost'; event: PointerEvent }
+  | { reason: 'missed-release'; event: PointerEvent }
+  | { reason: 'document-detached'; event: Event }
+  | { reason: 'handler-error'; event: Event }
+  | { reason: 'drop'; event: MouseEvent | PointerEvent }
+  | { reason: 'outside-release'; event: MouseEvent | PointerEvent }
+) & {
+  /** The pointer position and drop targets, now and at previous moments of the drag. */
+  location: DraggableLocationHistory;
+  /**
+   * Whether the sort was canceled or rolled back: the drag was canceled, it was released
+   * where the items can't move, or `onItemsReorder` canceled the move.
+   * Unlike the drag's own `canceled` flag, it can be `true` when `reason` is `'drop'`.
+   */
+  canceled: boolean;
+};
+```
+
+### SortableProvider.SortEndEventReason
+
+```typescript
+type ListboxSortableProviderSortEndEventReason =
+  | 'escape-key'
+  | 'imperative-action'
+  | 'tab-key'
+  | 'window-blur'
+  | 'page-hidden'
+  | 'pointer-canceled'
+  | 'capture-lost'
+  | 'missed-release'
+  | 'document-detached'
+  | 'handler-error'
+  | 'drop'
+  | 'outside-release';
+```
+
+### SortableProvider.SortEndValue
+
+```typescript
+type ListboxSortableProviderSortEndValue = {
+  /** The IDs of the items that were dragged. */
+  itemIds: Listbox.ItemId[];
+};
+```
+
 ### SortHandle
 
 Limits pointer sorting to this handle. Render inside a sortable item.
@@ -653,7 +747,7 @@ Limits pointer sorting to this handle. Render inside a sortable item.
 
 | Prop      | Type                                                                                         | Default | Description                                                                                                                                                                                   |
 | :-------- | :------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| disabled  | `undefined`                                                                                  | -       | A handle has no independent disabled state. Setting `disabled` here would&#xA;leave the root draggable. Set `disabled` on `Draggable.Root` instead.                                           |
+| disabled  | `undefined`                                                                                  | -       | Not supported. A handle follows the disabled state of its `<Draggable.Root>`.                                                                                                                 |
 | className | `string \| ((state: DraggableHandleState) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
 | style     | `React.CSSProperties \| ((state: DraggableHandleState) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
 | render    | `ReactElement \| ((props: HTMLProps, state: DraggableHandleState) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
@@ -677,16 +771,16 @@ Customizes or hides the pointer preview. Render inside a sortable item.
 
 **SortPreview Props:**
 
-| Prop      | Type                                                                                                  | Default    | Description                                                                                                                                                                                                                                                                                                                                                                   |
-| :-------- | :---------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| modifiers | `DragModifiers`                                                                                       | -          | Constrains the preview without affecting the drag. The resolved drop target and&#xA;`location.current.input` remain unchanged.&#xA;Here the modifier's `point` is the preview's proposed top-left and `input` is the&#xA;cursor. Runs on every positioned frame, so keep modifiers cheap. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                  |
-| offset    | `DragPreviewOffset`                                                                                   | `'source'` | Determines where the preview sits relative to the pointer. See&#xA;`DragPreviewOffset` for the supported values.                                                                                                                                                                                                                                                              |
-| container | `DragPreviewContainer`                                                                                | -          | Determines where the preview is injected in the DOM.&#xA;Defaults to the source's own parent, so the app's CSS still applies to it. Pass a container to keep structural selectors such as `:nth-child` and&#xA;`:last-child` unchanged, or to keep the preview mounted if the source subtree&#xA;unmounts. CSS selectors based on the source's ancestors may no longer match. |
-| disabled  | `boolean`                                                                                             | `false`    | Whether to hide the preview. The drag continues while no preview is shown.                                                                                                                                                                                                                                                                                                    |
-| children  | `React.ReactNode \| ((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview.                                                                                                                                                                                                                                                                                                                 |
-| className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                   | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                      |
-| style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`         | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                   |
-| render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                  | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                 |
+| Prop      | Type                                                                                                  | Default    | Description                                                                                                                                                                                                                        |
+| :-------- | :---------------------------------------------------------------------------------------------------- | :--------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| modifiers | `DraggableRootModifiers`                                                                              | -          | One or more modifiers that constrain the preview only. The drop position still&#xA;follows the pointer. To constrain the drag itself, use `modifiers` on `Draggable.Root`.                                                         |
+| offset    | `DraggablePreviewOffset`                                                                              | `'source'` | Where the preview sits relative to the pointer.                                                                                                                                                                                    |
+| container | `DraggablePreviewContainer`                                                                           | -          | Where to insert the preview element in the DOM. Defaults to beside the source,&#xA;so the same CSS applies to it. Pass a container to keep selectors such as&#xA;`:last-child` on the source's siblings unchanged during the drag. |
+| disabled  | `boolean`                                                                                             | `false`    | Whether to show no preview. The drag still runs.                                                                                                                                                                                   |
+| children  | `React.ReactNode \| ((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview.                                                                                                                                                                      |
+| className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                   | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                           |
+| style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`         | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                        |
+| render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                  | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                      |
 
 ### SortPreview.Props
 
@@ -711,8 +805,8 @@ type ListboxItemId = string | number;
 ```typescript
 type ListboxItemDraggableProps = {
   /**
-   * Whether to disable dragging. Pointer presses keep their native behavior.
-   * Use `onBeforeMoveStart` instead when the decision depends on the gesture.
+   * Whether dragging is disabled. Pointer presses keep their normal behavior.
+   * Use `onBeforeMoveStart` when the decision depends on the gesture.
    * @default false
    */
   disabled?: boolean;
@@ -727,80 +821,85 @@ type ListboxItemDraggableProps = {
    */
   style?: React.CSSProperties | ((state: DraggableRootState) => React.CSSProperties | undefined);
   /**
-   * Stable identity used to reconnect a settling cloned preview to this source
-   * after it remounts. Use the same key for the same logical item across the move.
-   * Static payload identity is used as a fallback when it is referentially stable.
+   * A stable key that lets the settling preview find this item again after it remounts,
+   * for example when a virtualized or reordered list recreates it.
+   * Use the same key for the same item.
    */
   previewKey?: string | number;
   /**
-   * Event handler called when a drag is about to start, once the activation condition
-   * is met and before the preview is built and `getPayload` runs.
-   * Call `eventDetails.cancel()` to prevent the drag from starting.
+   * Event handler called just before a drag starts, once the activation threshold is met.
+   * Call `eventDetails.cancel()` to prevent the drag.
    */
   onBeforeMoveStart?: (
-    context: MoveStartContext,
-    eventDetails: BeforeMoveStartEventDetails,
+    value: DraggableRootBeforeMoveStartValue,
+    eventDetails: DraggableRootBeforeMoveStartEventDetails,
   ) => void;
   /**
-   * Determines when a pointer press starts a drag. Mouse and pen use a 5px distance
-   * by default. Touch uses a 250ms press and hold. Pass one `DragActivation` for
-   * every pointer type or a map with per-type values. An array allows any of its
-   * activation methods. Double-click pickup follows the mouse until the next click;
-   * on touch and pen, the second tap of a double-tap picks up and the release drops.
+   * Determines when a pointer press starts a drag. Accepts one activation method for
+   * every pointer type, a map with a method per pointer type, or an array to allow
+   * several methods. By default, mouse and pen start after 5px of movement, and touch
+   * after a 250ms hold. Set a pointer entry to `false` to disable pickup for that
+   * pointer type, overriding all methods in an array.
    */
-  activation?: DragActivationConfig | DragActivationConfig[];
+  activation?: DraggableRootActivationConfig | DraggableRootActivationConfig[];
   /**
-   * Constrains pointer movement with one modifier or an array applied
-   * in order. See [DragModifier](https://base-ui.com/react/utils/draggable#dragmodifier) and the exported modifier presets.
+   * One or more modifiers that constrain the drag, applied in order.
+   * They affect both the preview and the drop position.
+   * See [Constraining movement](https://base-ui.com/react/utils/draggable#constraining-movement).
    */
-  modifiers?: DragModifiers;
+  modifiers?: DraggableRootModifiers;
   /**
-   * CSS cursor applied across the document during a pointer drag. The drag preview
-   * has `pointer-events: none`, so otherwise the cursor would depend on the element
-   * under the pointer. Touch drags ignore this value.
+   * The CSS cursor shown across the document during a mouse or pen drag.
    * Pass `false` to manage the cursor yourself.
    * @default 'grabbing'
    */
   dragCursor?: string | false;
   /**
-   * Event handler called once, synchronously when the drag starts. The drag preview
-   * has already been resolved by then, so it is safe to measure or restyle the
-   * source from here.
+   * Event handler called once when the drag starts. The preview exists by then,
+   * so the source can be measured or restyled safely.
    */
-  onMoveStart?: (parameters: MoveStartEvent, eventDetails: MoveStartEventDetails) => void;
-  /**
-   * Event handler called as the pointer moves or a modifier key changes, limited
-   * to one call per animation frame. Drop target stack changes do not call this handler.
-   * Use the drop target's `onDraggableMove` for hover behavior.
-   */
-  onMove?: (parameters: MoveEvent, eventDetails: MoveEventDetails) => void;
-  /**
-   * Event handler called when the active drop targets change,
-   * because one was entered or left.
-   */
-  onTargetChange?: (
-    parameters: DropTargetChangeEvent,
-    eventDetails: DropTargetChangeEventDetails,
+  onMoveStart?: (
+    value: DraggableRootMoveStartValue,
+    eventDetails: DraggableRootMoveStartEventDetails,
   ) => void;
   /**
-   * Event handler called once when the drag ends after a drop, outside release, or
-   * cancellation. Commit changes when `eventDetails.reason` is `'drop'`. Use
-   * `try/finally` when cleanup must run even if committing throws or returns early.
+   * Event handler called as the pointer moves or a modifier key changes,
+   * at most once per animation frame. Use a drop target's `onDraggableMove`
+   * for hover feedback.
+   */
+  onMove?: (value: DraggableRootMoveValue, eventDetails: DraggableRootMoveEventDetails) => void;
+  /**
+   * Event handler called when the drop targets under the pointer change, including when
+   * the drag ends. Cancel-specific cleanup belongs in `onMoveEnd`, whose
+   * `eventDetails.canceled` flags a cancel.
+   */
+  onTargetChange?: (
+    value: DraggableRootTargetChangeValue,
+    eventDetails: DraggableRootTargetChangeEventDetails,
+  ) => void;
+  /**
+   * Event handler called once when the drag ends, after a drop, a release outside any
+   * target, or a cancellation. `target` is the target that received the drop, or `null`.
+   * `eventDetails.canceled` tells a cancel from a release, and `eventDetails.reason` says
+   * exactly why the drag ended.
    *
-   * A drag canceled during pickup, by a `cancelDrag()` from a target's `canDrop` or
-   * `getPayload` on the initial stack or while the preview is generated, fires this
-   * with `canceled: true` and no preceding `onMoveStart`.
+   * A drag canceled during pickup fires this handler without a preceding `onMoveStart`.
    */
-  onMoveEnd?: (parameters: MoveEndEvent, eventDetails: MoveEndEventDetails) => void;
+  onMoveEnd?: (
+    value: DraggableRootMoveEndValue,
+    eventDetails: DraggableRootMoveEndEventDetails,
+  ) => void;
   /**
-   * Divides the collision element into equal steps for `getSnappedLocalPoint()`.
-   * Accepts step counts or a callback returning them. Does not affect the drag preview's position.
+   * Divides this item into equal steps for `getSnappedLocalPoint()` when another item
+   * is dragged over it. Accepts step counts or a function returning them.
+   * Doesn't affect the preview's position.
    */
-  snap?: DragSnapSteps | ((context: DropTargetResolutionContext) => DragSnapSteps | undefined);
+  snap?:
+    | DraggableTargetSnapSteps
+    | ((context: DraggableTargetResolutionContext) => DraggableTargetSnapSteps | undefined);
   /**
-   * Returns the element used to detect collisions and measure pointer coordinates.
-   * Defaults to this root's element. Use a row wrapper to include padding around the item.
-   * Changing this callback alone does not change the measured element.
+   * Returns the element measured for collisions, for example a padded row wrapper
+   * so that the gaps between items count too. Defaults to the root's own element.
    */
   collisionElement?: (element: HTMLElement) => HTMLElement;
 };
@@ -810,7 +909,7 @@ type ListboxItemDraggableProps = {
 
 ```typescript
 type ListboxItemExternalDropTargetOptions<
-  TAccept extends AnyDragAccept = DragKind,
+  TAccept extends DraggableAccept<unknown> = DraggableKind,
   TItem = unknown,
 > = {
   /** One or more kinds of external drag sources accepted by this item. */
@@ -832,8 +931,8 @@ type ListboxItemExternalDropTargetOptions<
   onDropPositionChange?: (position: ListboxSortingDropPosition | null) => void;
   /** Handles an accepted external drop. Does not automatically insert or remove items. */
   onDraggableDrop?: (
-    context: Listbox.ItemExternalDropTarget.DropContext<TPayload | unknown, TItem>,
-    eventDetails: DragDropEventDetails,
+    value: Listbox.ItemExternalDropTarget.DropValue<TPayload | unknown, TItem>,
+    eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails,
   ) => void;
 };
 ```
@@ -877,8 +976,10 @@ type ListboxSortingDropContext<Value = any> = {
   itemId: Listbox.ItemId;
   /** Coordinates relative to the row, normalized to its width and height. */
   point: { x: number; y: number };
-  collision: DraggableCollisionProvider.Collision<ListboxSortingDragPayload<Value>>;
-  source: DragSource<ListboxSortingDragPayload<Value>>;
+  /** The row under the pointer. Its payload identifies the row, not the dragged items. */
+  target: DraggableTargetRecord<ListboxSortingDragPayload<Value>, unknown>;
+  /** The item being dragged. */
+  source: DraggableRootRecord<ListboxSortingDragPayload<Value>, unknown>;
 };
 ```
 
@@ -914,6 +1015,46 @@ type ListboxSortingItem<Value = any> = {
 };
 ```
 
+### ListboxSortingSortEndEventDetails
+
+The event details passed to `onSortEnd`. `reason` is the reason the drag ended.
+
+```typescript
+type ListboxSortingSortEndEventDetails = BaseUIGenericEventDetails<
+  DragEndReason,
+  { location: DraggableLocationHistory; canceled: boolean }
+>;
+```
+
+### ListboxSortingSortEndEventReason
+
+```typescript
+type ListboxSortingSortEndEventReason =
+  | 'escape-key'
+  | 'imperative-action'
+  | 'tab-key'
+  | 'window-blur'
+  | 'page-hidden'
+  | 'pointer-canceled'
+  | 'capture-lost'
+  | 'missed-release'
+  | 'document-detached'
+  | 'handler-error'
+  | 'drop'
+  | 'outside-release';
+```
+
+### ListboxSortingSortEndValue
+
+The first argument of `onSortEnd`.
+
+```typescript
+type ListboxSortingSortEndValue = {
+  /** The IDs of the items that were dragged. */
+  itemIds: Listbox.ItemId[];
+};
+```
+
 ### SelectionMode
 
 The selection mode determines how user interactions (clicks, keyboard)
@@ -940,11 +1081,11 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
 - `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.AnnouncementParameters`, `Listbox.KeyboardSortableProvider.Props`, `Listbox.KeyboardSortableProvider.ItemsReorderEventDetails`, `Listbox.KeyboardSortableProvider.MoveItemsParameters`
-- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`
+- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`, `Listbox.SortableProvider.SortEndValue`, `Listbox.SortableProvider.SortEndEventDetails`, `Listbox.SortableProvider.SortEndEventReason`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
-- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
-- `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropPosition`
+- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortingSortEndValue`, `ListboxSortingSortEndEventDetails`, `ListboxSortingSortEndEventReason`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropValue`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropValue`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPosition`
 
 ## Canonical Types
 
@@ -980,3 +1121,6 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.ItemExternalDropTarget.State`: `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget.PositionContext`: `ListboxItemExternalDropTargetPositionContext`
 - `Listbox.ItemExternalDropTarget.DropContext`: `ListboxItemExternalDropTargetDropContext`
+- `Listbox.ItemExternalDropTarget.DropValue`: `ListboxItemExternalDropTargetDropValue`
+- `Listbox.ItemExternalDropTarget.DropEventDetails`: `ListboxItemExternalDropTargetDropEventDetails`
+- `Listbox.ItemExternalDropTarget.DropEventReason`: `ListboxItemExternalDropTargetDropEventReason`

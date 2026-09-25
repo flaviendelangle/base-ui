@@ -4,10 +4,10 @@ import { Draggable } from '../../draggable';
 import { useListboxExternalDrop } from './useListboxExternalDrop';
 import type {
   AcceptedDragPayload,
-  AnyDragAccept,
-  DragKind,
-  DragSource,
-  DragDropEventDetails,
+  DraggableAccept,
+  DraggableKind,
+  DraggableRootRecord,
+  DraggableTargetDropEventDetails,
 } from '../../types/drag';
 import {
   useListboxItemElement,
@@ -27,7 +27,7 @@ import type { ListboxSortingDropPosition } from '../sortable-provider/ListboxSor
  */
 export const ListboxItemExternalDropTarget = React.forwardRef(
   function ListboxItemExternalDropTarget<
-    TAccept extends AnyDragAccept = DragKind<unknown>,
+    TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>,
     TItem = unknown,
   >(
     props: ListboxItemExternalDropTargetProps<TAccept, TItem>,
@@ -64,13 +64,13 @@ export const ListboxItemExternalDropTarget = React.forwardRef(
       ),
     });
   },
-) as <TAccept extends AnyDragAccept = DragKind<unknown>, TItem = unknown>(
+) as <TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>, TItem = unknown>(
   props: ListboxItemExternalDropTargetProps<TAccept, TItem> & React.RefAttributes<HTMLElement>,
 ) => React.JSX.Element;
 
 export interface ListboxItemExternalDropTargetPositionContext<TPayload = unknown, TItem = unknown> {
   /** The incoming drag source. */
-  source: DragSource<TPayload>;
+  source: DraggableRootRecord<TPayload>;
   /** The item under the pointer. */
   item: TItem;
   itemId: ListboxItemId;
@@ -86,8 +86,16 @@ export interface ListboxItemExternalDropTargetDropContext<
   /** Insertion index across the entire list, including groups. Not relative to the group. */
   destination: ListboxSortingDestination;
 }
+/** The first argument of `onDraggableDrop`: the accepted drop and its resolved destination. */
+export interface ListboxItemExternalDropTargetDropValue<
+  TPayload = unknown,
+  TItem = unknown,
+> extends ListboxItemExternalDropTargetDropContext<TPayload, TItem> {}
+export type ListboxItemExternalDropTargetDropEventDetails = DraggableTargetDropEventDetails;
+export type ListboxItemExternalDropTargetDropEventReason =
+  ListboxItemExternalDropTargetDropEventDetails['reason'];
 export interface ListboxItemExternalDropTargetOptions<
-  TAccept extends AnyDragAccept = DragKind<unknown>,
+  TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>,
   TItem = unknown,
 > {
   /** One or more kinds of external drag sources accepted by this item. */
@@ -111,13 +119,13 @@ export interface ListboxItemExternalDropTargetOptions<
   /** Handles an accepted external drop. Does not automatically insert or remove items. */
   onDraggableDrop?:
     | ((
-        context: ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, TItem>,
-        eventDetails: DragDropEventDetails,
+        value: ListboxItemExternalDropTargetDropValue<AcceptedDragPayload<TAccept>, TItem>,
+        eventDetails: ListboxItemExternalDropTargetDropEventDetails,
       ) => void)
     | undefined;
 }
 export interface ListboxItemExternalDropTargetProps<
-  TAccept extends AnyDragAccept = DragKind<unknown>,
+  TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>,
   TItem = unknown,
 >
   extends Omit<ListboxItemProps, 'value'>, ListboxItemExternalDropTargetOptions<TAccept, TItem> {
@@ -128,7 +136,7 @@ export type ListboxItemExternalDropTargetState = ListboxItemState;
 
 export namespace ListboxItemExternalDropTarget {
   export type Props<
-    TAccept extends AnyDragAccept = DragKind<unknown>,
+    TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>,
     TItem = unknown,
   > = ListboxItemExternalDropTargetProps<TAccept, TItem>;
   export type State = ListboxItemExternalDropTargetState;
@@ -140,5 +148,11 @@ export namespace ListboxItemExternalDropTarget {
     TPayload = unknown,
     TItem = unknown,
   > = ListboxItemExternalDropTargetDropContext<TPayload, TItem>;
+  export type DropValue<
+    TPayload = unknown,
+    TItem = unknown,
+  > = ListboxItemExternalDropTargetDropValue<TPayload, TItem>;
+  export type DropEventDetails = ListboxItemExternalDropTargetDropEventDetails;
+  export type DropEventReason = ListboxItemExternalDropTargetDropEventReason;
   export type DropPosition = ListboxSortingDropPosition;
 }

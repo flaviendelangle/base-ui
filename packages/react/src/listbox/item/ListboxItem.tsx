@@ -423,7 +423,7 @@ export interface ListboxItemProps
 
 export type ListboxItemDraggableProps = Omit<
   Draggable.Root.Props<unknown>,
-  'children' | 'render' | 'kind' | 'payload' | 'getPayload' | 'collisionPayload' | 'collision'
+  'children' | 'render' | 'kind' | 'payload' | 'collisionPayload' | 'collision'
 >;
 
 export namespace ListboxItem {
