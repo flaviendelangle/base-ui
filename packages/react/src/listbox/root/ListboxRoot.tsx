@@ -11,6 +11,7 @@ import { useTimeout } from '@base-ui/utils/useTimeout';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { EMPTY_ARRAY } from '@base-ui/utils/empty';
 import { areArraysEqual } from '@base-ui/utils/areArraysEqual';
+import { ListboxSortingContext, ListboxSortableContext } from '../sorting/ListboxSortingContext';
 import { useFieldRootContext } from '../../internals/field-root-context';
 import { useRegisterFieldControl } from '../../internals/field-register-control';
 import { useFormContext } from '../../internals/form-context';
@@ -24,6 +25,7 @@ import { stringifyAsValue } from '../../internals/resolveValueLabel';
 import { defaultItemEquality, findItemIndex } from '../../internals/itemEquality';
 import { useValueChanged } from '../../internals/useValueChanged';
 import { ListboxRootContext } from './ListboxRootContext';
+import { ListboxRootFeaturesContext } from './ListboxRootFeatures';
 import { ListboxStore } from '../store';
 import type { SelectionMode } from '../utils/selectionReducer';
 import { isMultipleSelectionMode } from '../utils/selectionReducer';
@@ -60,6 +62,8 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
     children,
   } = props;
 
+  const features = React.useContext(ListboxRootFeaturesContext);
+
   const { clearErrors } = useFormContext();
   const {
     setDirty,
@@ -86,7 +90,6 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
   const labelsRef = React.useRef<Array<string | null>>([]);
   const valuesRef = React.useRef<Array<any>>([]);
   const disabledItemsRef = React.useRef<Array<boolean | undefined>>([]);
-  const groupIdsRef = React.useRef<Array<string | undefined>>([]);
   const typingRef = React.useRef(false);
   const lastSelectedIndexRef = React.useRef<number | null>(null);
   const pointerMoveSuppressedRef = React.useRef(false);
@@ -117,7 +120,6 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
           valuesRef,
           labelsRef,
           disabledItemsRef,
-          groupIdsRef,
           typingRef,
           lastSelectedIndexRef,
           pointerMoveSuppressedRef,
@@ -286,55 +288,71 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
     });
   }, [value, name, itemToStringValue]);
 
+  // Memoized so that re-rendering the root alone doesn't re-render the features.
+  const content = React.useMemo(() => {
+    // The outermost provider's feature wraps the others.
+    let wrapped: React.ReactNode = children;
+    for (let index = features.length - 1; index >= 0; index -= 1) {
+      wrapped = features[index].render(wrapped);
+    }
+    return wrapped;
+  }, [features, children]);
+
   return (
     <ListboxRootContext.Provider value={store}>
-      {children}
-      <input
-        {...validation.getValidationProps(disabled, {
-          onFocus() {
-            store.state.listElement?.focus({
-              focusVisible: true,
-            } as FocusOptions);
-          },
-          // Handle browser autofill: match the autofilled string against registered
-          // values to resolve back to the original value type.
-          onChange(event: React.ChangeEvent<HTMLInputElement>) {
-            // Workaround for https://github.com/facebook/react/issues/9023
-            if (event.nativeEvent.defaultPrevented || disabled) {
-              return;
-            }
+      <ListboxRootFeaturesContext.Provider value={EMPTY_ARRAY}>
+        <ListboxSortingContext.Provider value={undefined}>
+          <ListboxSortableContext.Provider value={undefined}>
+            {content}
+            <input
+              {...validation.getValidationProps(disabled, {
+                onFocus() {
+                  store.state.listElement?.focus({
+                    focusVisible: true,
+                  } as FocusOptions);
+                },
+                // Handle browser autofill: match the autofilled string against registered
+                // values to resolve back to the original value type.
+                onChange(event: React.ChangeEvent<HTMLInputElement>) {
+                  // Workaround for https://github.com/facebook/react/issues/9023
+                  if (event.nativeEvent.defaultPrevented || disabled) {
+                    return;
+                  }
 
-            if (isMultipleSelectionMode(selectionMode)) {
-              // Browser autofill only writes a single scalar value.
-              return;
-            }
+                  if (isMultipleSelectionMode(selectionMode)) {
+                    // Browser autofill only writes a single scalar value.
+                    return;
+                  }
 
-            const nextValue = event.currentTarget.value;
-            const matchingValue = valuesRef.current.find((v) => {
-              const candidate = stringifyAsValue(v, itemToStringValue);
-              return candidate.toLowerCase() === nextValue.toLowerCase();
-            });
+                  const nextValue = event.currentTarget.value;
+                  const matchingValue = valuesRef.current.find((v) => {
+                    const candidate = stringifyAsValue(v, itemToStringValue);
+                    return candidate.toLowerCase() === nextValue.toLowerCase();
+                  });
 
-            if (matchingValue != null) {
-              const nextSelectedValue = [matchingValue];
-              const details = createChangeEventDetails(REASONS.none, event.nativeEvent);
-              setDirty(isSelectedValueDirty(nextSelectedValue));
-              setValue(nextSelectedValue, details);
-              validation.change(nextSelectedValue);
-            }
-          },
-        })}
-        id={generatedId ? `${generatedId}-hidden-input` : undefined}
-        name={hasSelection ? undefined : name}
-        value={serializedValue}
-        disabled={disabled}
-        required={required && !hasSelection}
-        ref={ref}
-        style={name ? visuallyHiddenInput : visuallyHidden}
-        tabIndex={-1}
-        aria-hidden
-      />
-      {hiddenInputs}
+                  if (matchingValue != null) {
+                    const nextSelectedValue = [matchingValue];
+                    const details = createChangeEventDetails(REASONS.none, event.nativeEvent);
+                    setDirty(isSelectedValueDirty(nextSelectedValue));
+                    setValue(nextSelectedValue, details);
+                    validation.change(nextSelectedValue);
+                  }
+                },
+              })}
+              id={generatedId ? `${generatedId}-hidden-input` : undefined}
+              name={hasSelection ? undefined : name}
+              value={serializedValue}
+              disabled={disabled}
+              required={required && !hasSelection}
+              ref={ref}
+              style={name ? visuallyHiddenInput : visuallyHidden}
+              tabIndex={-1}
+              aria-hidden
+            />
+            {hiddenInputs}
+          </ListboxSortableContext.Provider>
+        </ListboxSortingContext.Provider>
+      </ListboxRootFeaturesContext.Provider>
     </ListboxRootContext.Provider>
   );
 }
@@ -430,8 +448,7 @@ export interface ListboxRootProps<Value> {
    * Event handler called when the value of the listbox changes.
    */
   onValueChange?:
-    | ((value: Value[], eventDetails: ListboxRootChangeEventDetails) => void)
-    | undefined;
+    ((value: Value[], eventDetails: ListboxRootChangeEventDetails) => void) | undefined;
   /**
    * Event handler called when the highlighted item changes.
    * Receives the highlighted item's value and DOM element, or `null` for both
@@ -452,9 +469,7 @@ export interface ListboxRootProps<Value> {
 export interface ListboxRootState {}
 
 export type ListboxRootChangeEventReason =
-  | typeof REASONS.itemPress
-  | typeof REASONS.listNavigation
-  | typeof REASONS.none;
+  typeof REASONS.itemPress | typeof REASONS.listNavigation | typeof REASONS.none;
 
 export type ListboxRootChangeEventDetails = BaseUIChangeEventDetails<ListboxRootChangeEventReason>;
 

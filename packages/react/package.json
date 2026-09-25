@@ -106,7 +106,8 @@
     "./internals/useRenderElement": "./src/internals/useRenderElement.tsx",
     "./internals/useValueChanged": "./src/internals/useValueChanged.ts",
     "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts",
-    "./listbox": "./src/listbox/index.ts"
+    "./listbox": "./src/listbox/index.ts",
+    "./internals/sorting": "./src/internals/sorting/index.ts"
   },
   "imports": {
     "#test-utils": "./test/index.ts",
@@ -134,9 +135,7 @@
     "@base-ui/utils": "workspace:*",
     "@floating-ui/react-dom": "^2.1.9",
     "@floating-ui/utils": "^0.2.12",
-    "use-sync-external-store": "^1.7.0",
-    "@atlaskit/pragmatic-drag-and-drop": "^1.7.10",
-    "@atlaskit/pragmatic-drag-and-drop-hitbox": "^1.1.0"
+    "use-sync-external-store": "^1.7.0"
   },
   "devDependencies": {
     "@date-fns/tz": "1.5.0",

@@ -14,16 +14,14 @@ const initialItems = [
   { label: 'Background', value: 'background', icon: 'image' as IconType },
 ];
 
-function reorder(
-  prev: typeof initialItems,
-  event: { items: string[]; referenceItem: string; edge: 'before' | 'after' },
-) {
-  const movedValues = new Set(event.items);
-  const movedItems = prev.filter((item) => movedValues.has(item.value));
-  const rest = prev.filter((item) => !movedValues.has(item.value));
-  const refIndex = rest.findIndex((item) => item.value === event.referenceItem);
-  rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-  return rest;
+function moveItem(items: typeof initialItems, value: string, index: number) {
+  const item = items.find((candidate) => candidate.value === value);
+  if (!item) {
+    return items;
+  }
+  const nextItems = items.filter((candidate) => candidate !== item);
+  nextItems.splice(index, 0, item);
+  return nextItems;
 }
 
 export default function ExampleListboxCustomShortcuts() {
@@ -43,13 +41,7 @@ export default function ExampleListboxCustomShortcuts() {
       if (!first || first.value === highlighted.value) {
         return;
       }
-      setItems((prev) =>
-        reorder(prev, {
-          items: [highlighted.value],
-          referenceItem: first.value,
-          edge: 'before',
-        }),
-      );
+      setItems((prev) => moveItem(prev, highlighted.value, 0));
       actionsRef.current?.highlightValue(highlighted.value, highlighted.element);
     }
 
@@ -59,30 +51,29 @@ export default function ExampleListboxCustomShortcuts() {
       if (!last || last.value === highlighted.value) {
         return;
       }
-      setItems((prev) =>
-        reorder(prev, {
-          items: [highlighted.value],
-          referenceItem: last.value,
-          edge: 'after',
-        }),
-      );
+      setItems((prev) => moveItem(prev, highlighted.value, prev.length - 1));
       actionsRef.current?.highlightValue(highlighted.value, highlighted.element);
     }
   }
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root
-        defaultValue={['header']}
-        actionsRef={actionsRef}
-        onHighlightChange={(value, element) => {
-          highlightedRef.current = value != null && element != null ? { value, element } : null;
-        }}
+      <Listbox.KeyboardSortableProvider
+        onItemsReorder={(order) =>
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          })
+        }
       >
-        <Listbox.Label className={styles.Label}>Layers</Listbox.Label>
-        <Listbox.DragAndDropProvider
-          onItemsReorder={(event) => setItems((prev) => reorder(prev, event))}
+        <Listbox.Root
+          defaultValue={['header']}
+          actionsRef={actionsRef}
+          onHighlightChange={(value, element) => {
+            highlightedRef.current = value != null && element != null ? { value, element } : null;
+          }}
         >
+          <Listbox.Label className={styles.Label}>Layers</Listbox.Label>
           <Listbox.List className={styles.List} onKeyDown={handleKeyDown}>
             {items.map(({ label, value, icon }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
@@ -91,8 +82,8 @@ export default function ExampleListboxCustomShortcuts() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.KeyboardSortableProvider>
     </div>
   );
 }
