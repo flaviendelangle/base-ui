@@ -33,7 +33,7 @@ export interface ListboxSortingDestination {
   /** Group of the destination item, or null for ungrouped items. */
   groupId: string | null;
 }
-export interface ListboxMoveItemsParameters<Value = any> {
+export interface ListboxSortingMove<Value = any> {
   items: ListboxSortingItem<Value>[];
   destination: ListboxSortingDestination;
 }
@@ -41,7 +41,7 @@ export type ListboxItemsReorderEventDetails<Value = any> = Omit<
   BaseUIChangeEventDetails<typeof REASONS.none>,
   'reason'
 > &
-  ListboxMoveItemsParameters<Value> & {
+  ListboxSortingMove<Value> & {
     reason: typeof REASONS.keyboard | typeof REASONS.drag;
     /** Complete proposed order, including group membership. Use this when moving items between groups. */
     order: ListboxSortingItem<Value>[];
@@ -60,9 +60,9 @@ export interface ListboxSortingParameters<Value = any> {
   disabled?: boolean | undefined;
   /** Called with all values in their proposed order. Render the items in this order to accept the move. */
   onItemsReorder?:
-    ((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void) | undefined;
+    ((items: Value[], eventDetails: ListboxItemsReorderEventDetails<Value>) => void) | undefined;
   /** Applies the same movement rules to keyboard and pointer sorting. */
-  canMoveItems?: ((parameters: ListboxMoveItemsParameters<Value>) => boolean) | undefined;
+  canMoveItems?: ((move: ListboxSortingMove<Value>) => boolean) | undefined;
   /** Disables sorting for an item without disabling selection. */
   isItemSortingDisabled?: ((item: ListboxSortingItem<Value>) => boolean) | undefined;
   /** Customizes polite announcements for completed keyboard moves and final pointer outcomes. */
@@ -81,7 +81,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const pending = React.useRef<{
     order: ListboxSortingItemRecord<Value>[];
     sourceValue: Value;
-    parameters: ListboxMoveItemsParameters<Value> | null;
+    parameters: ListboxSortingMove<Value> | null;
     outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
     reason: 'keyboard' | 'drag';
   } | null>(null);
@@ -215,7 +215,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const notifyOrder = useStableCallback(
     (
       items: ListboxSortingItemRecord<Value>[],
-      parameters: ListboxMoveItemsParameters<Value>,
+      parameters: ListboxSortingMove<Value>,
       event: Event,
       reason: typeof REASONS.drag | typeof REASONS.keyboard,
     ) => {
@@ -286,7 +286,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     (
       order: ListboxSortingItemRecord<Value>[],
       sourceValue: Value,
-      parameters: ListboxMoveItemsParameters<Value>,
+      parameters: ListboxSortingMove<Value>,
       outcome: 'moved' | 'unchanged' | 'canceled',
     ) => {
       pending.current = { order, sourceValue, parameters, outcome, reason: 'drag' };

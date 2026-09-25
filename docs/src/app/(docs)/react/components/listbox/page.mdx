@@ -105,12 +105,12 @@ Use `canMoveItems` to restrict movement for both keyboard and pointer sorting. T
 ### Moving between groups
 
 Give each `Listbox.Group` a stable `id` when your application allows items to move between groups.
-`onItemsReorder` provides the complete proposed order as `details.order`, with each item's value and group ID. Apply that metadata to update both the order and group membership. It also contains the original groups when a live move is canceled.
+`onItemsReorder` provides the complete proposed order as `eventDetails.order`, with each item's value and group ID. Apply that metadata to update both the order and group membership. It also contains the original groups when a live move is canceled.
 
 ```tsx
 <Listbox.SortableProvider
-  onItemsReorder={(_, details) => {
-    setItems(details.order.map(({ value, groupId }) => ({ value, groupId })));
+  onItemsReorder={(_, eventDetails) => {
+    setItems(eventDetails.order.map(({ value, groupId }) => ({ value, groupId })));
   }}
 >
   <Listbox.Root>

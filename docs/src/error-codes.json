@@ -108,5 +108,6 @@
   "108": "Base UI: ListboxDragAndDropProviderContext is missing. Use <Listbox.DragAndDropProvider>.",
   "109": "Base UI: ListboxItemContext is missing. ListboxItem parts must be placed within <Listbox.Item>.",
   "110": "Base UI: ListboxGroupContext is missing. ListboxGroup parts must be placed within <Listbox.Group>.",
-  "111": "Base UI: ListboxRootContext is missing. Listbox parts must be placed within <Listbox.Root>."
+  "111": "Base UI: ListboxRootContext is missing. Listbox parts must be placed within <Listbox.Root>.",
+  "112": "Base UI: <Listbox.%s> must be placed in a listbox wrapped in <Listbox.SortableProvider>. It customizes pointer sorting, which a listbox without the provider does not have. Wrap the <Listbox.Root> it belongs to in <Listbox.SortableProvider>. See https://base-ui.com/react/components/listbox#pointer-sorting."
 }

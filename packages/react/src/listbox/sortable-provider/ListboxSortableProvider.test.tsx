@@ -178,6 +178,25 @@ describe('<Listbox.SortableProvider />', () => {
       ['a', 'b', 'c'],
     ]);
   });
+  it('reports drop position changes with the drag event details', async () => {
+    const onDropPositionChange = vi.fn();
+    await render(<Fixture onDropPositionChange={onDropPositionChange} />);
+    setItemRects();
+    const d = screen.getByRole('option', { name: 'd' });
+    await lift(screen.getByRole('option', { name: 'b' }), { clientY: 150 });
+    await dragEnter(d, { clientY: 375 });
+    await dragOver(d, { clientY: 375 });
+    expect(onDropPositionChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: expect.anything(), placement: 'after' }),
+      expect.objectContaining({ reason: 'pointer' }),
+    );
+    drop(d, { clientY: 375 });
+    await flushRaf();
+    expect(onDropPositionChange).toHaveBeenLastCalledWith(
+      null,
+      expect.objectContaining({ reason: 'drop' }),
+    );
+  });
   it('reorders selected items only on drop by default', async () => {
     const onItemsReorder = vi.fn();
     await render(<Fixture onItemsReorder={onItemsReorder} />);

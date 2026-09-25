@@ -12,5 +12,12 @@ export { ListboxSortableProvider as SortableProvider } from './sortable-provider
 export { ListboxSortHandle as SortHandle } from './sort-handle/ListboxSortHandle';
 export { ListboxSortPreview as SortPreview } from './sort-preview/ListboxSortPreview';
 export type { ListboxItemId as ItemId } from './utils/ListboxItemId';
+export type { ListboxSortingItem as SortingItem } from './sorting/ListboxSortingContext';
+export type {
+  ListboxSortingMove as SortingMove,
+  ListboxSortingAnnouncementParameters as SortingAnnouncementParameters,
+  ListboxItemsReorderEventDetails as ItemsReorderEventDetails,
+} from './sorting/useListboxSorting';
+export type { ListboxSortingDropPosition as SortingDropPosition } from './sortable-provider/ListboxSortableProvider';
 
 export { ListboxItemExternalDropTarget as ItemExternalDropTarget } from './item-external-drop-target/ListboxItemExternalDropTarget';

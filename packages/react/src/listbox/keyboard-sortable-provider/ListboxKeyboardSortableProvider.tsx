@@ -3,13 +3,7 @@ import * as React from 'react';
 import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
 import { ListboxRootFeatureProvider, type ListboxRootFeature } from '../root/ListboxRootFeatures';
 import { ListboxSortingContext } from '../sorting/ListboxSortingContext';
-import {
-  useListboxSorting,
-  type ListboxSortingParameters,
-  type ListboxItemsReorderEventDetails,
-  type ListboxMoveItemsParameters,
-  type ListboxSortingAnnouncementParameters,
-} from '../sorting/useListboxSorting';
+import { useListboxSorting, type ListboxSortingParameters } from '../sorting/useListboxSorting';
 
 /**
  * Enables keyboard sorting with Alt+Arrow keys in the listbox it wraps.
@@ -28,6 +22,7 @@ export function ListboxKeyboardSortableProvider<Value = any>(
   } = props;
   const feature = React.useMemo(
     (): ListboxRootFeature => ({
+      name: 'KeyboardSortableProvider',
       render: (rootChildren) => (
         <ListboxKeyboardSorting
           disabled={disabled}
@@ -42,11 +37,7 @@ export function ListboxKeyboardSortableProvider<Value = any>(
     }),
     [disabled, onItemsReorder, canMoveItems, isItemSortingDisabled, getAnnouncement],
   );
-  return (
-    <ListboxRootFeatureProvider name="KeyboardSortableProvider" feature={feature}>
-      {children}
-    </ListboxRootFeatureProvider>
-  );
+  return <ListboxRootFeatureProvider feature={feature}>{children}</ListboxRootFeatureProvider>;
 }
 
 /** The keyboard sorting of `Listbox.KeyboardSortableProvider`, rendered inside the root it wraps. */
@@ -68,8 +59,5 @@ export interface ListboxKeyboardSortableProviderProps<
   children?: React.ReactNode;
 }
 export namespace ListboxKeyboardSortableProvider {
-  export type AnnouncementParameters<Value = any> = ListboxSortingAnnouncementParameters<Value>;
   export type Props<Value = any> = ListboxKeyboardSortableProviderProps<Value>;
-  export type ItemsReorderEventDetails<Value = any> = ListboxItemsReorderEventDetails<Value>;
-  export type MoveItemsParameters<Value = any> = ListboxMoveItemsParameters<Value>;
 }

@@ -52,6 +52,20 @@ export const ListboxSortableContext = React.createContext<ListboxSortableContext
   undefined,
 );
 
+/** Reads the pointer sorting of the listbox a sorting part belongs to. */
+export function useListboxSortablePart(part: string): ListboxSortableContextValue {
+  const context = React.useContext(ListboxSortableContext);
+  if (context === undefined) {
+    throw new Error(
+      `Base UI: <Listbox.${part}> must be placed in a listbox wrapped in <Listbox.SortableProvider>. ` +
+        'It customizes pointer sorting, which a listbox without the provider does not have. ' +
+        'Wrap the <Listbox.Root> it belongs to in <Listbox.SortableProvider>. ' +
+        'See https://base-ui.com/react/components/listbox#pointer-sorting.',
+    );
+  }
+  return context;
+}
+
 /** Public movement metadata excludes internal interaction state. */
 export function toSortingItem<Value>(item: ListboxSortingItem<Value>): ListboxSortingItem<Value> {
   return { id: item.id, value: item.value, index: item.index, groupId: item.groupId };

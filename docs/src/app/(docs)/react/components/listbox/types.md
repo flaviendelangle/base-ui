@@ -334,10 +334,10 @@ Same-listbox drags remain owned by the sorting provider. Renders a `<div>` eleme
 | canDrop              | `((context: Listbox.ItemExternalDropTarget.DropContext<TPayload \| unknown, TItem>) => boolean)`                                                         | -       | Validates the resolved destination. Returning false rejects the drop, including ancestor targets.                                                                                             |
 | draggableProps       | `ListboxItemDraggableProps`                                                                                                                              | -       | Configures the underlying Draggable.Root without replacing managed sorting.                                                                                                                   |
 | dropDisabled         | `boolean`                                                                                                                                                | `false` | Disables external drops without disabling selection or internal sorting.                                                                                                                      |
-| getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)`   | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
+| getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| Listbox.SortingDropPosition \| null)`  | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
 | nativeButton         | `boolean`                                                                                                                                                | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
 | onDraggableDrop      | `((value: Listbox.ItemExternalDropTarget.DropValue<TPayload \| unknown, TItem>, eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails) => void)` | -       | Handles an accepted external drop. Does not automatically insert or remove items.                                                                                                             |
-| onDropPositionChange | `((position: ListboxSortingDropPosition \| null) => void)`                                                                                               | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
+| onDropPositionChange | `((position: Listbox.SortingDropPosition \| null) => void)`                                                                                              | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
 | disabled             | `boolean`                                                                                                                                                | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
 | children             | `React.ReactNode`                                                                                                                                        | -       | -                                                                                                                                                                                             |
 | className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                         | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
@@ -391,7 +391,7 @@ type ListboxItemExternalDropTargetState = {
 
 ```typescript
 type ListboxItemExternalDropTargetDropContext<TPayload = unknown, TItem = unknown> = {
-  position: ListboxSortingDropPosition;
+  position: Listbox.SortingDropPosition;
   /** Insertion index across the entire list, including groups. Not relative to the group. */
   destination: ListboxSortingDestination;
   /** The incoming drag source. */
@@ -443,7 +443,7 @@ type ListboxItemExternalDropTargetDropPosition = {
 
 ```typescript
 type ListboxItemExternalDropTargetDropValue<TPayload = unknown, TItem = unknown> = {
-  position: ListboxSortingDropPosition;
+  position: Listbox.SortingDropPosition;
   /** Insertion index across the entire list, including groups. Not relative to the group. */
   destination: ListboxSortingDestination;
   /** The incoming drag source. */
@@ -479,64 +479,18 @@ Renders a visually hidden announcement region inside the listbox.
 
 **KeyboardSortableProvider Props:**
 
-| Prop                  | Type                                                                          | Default | Description                                                                                        |
-| :-------------------- | :---------------------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------- |
-| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                | -       | Applies the same movement rules to keyboard and pointer sorting.                                   |
-| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`       | -       | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
-| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                              | -       | Disables sorting for an item without disabling selection.                                          |
-| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)` | -       | Called with all values in their proposed order. Render the items in this order to accept the move. |
-| disabled              | `boolean`                                                                     | `false` | Disables keyboard and pointer sorting.                                                             |
-| children              | `React.ReactNode`                                                             | -       | -                                                                                                  |
+| Prop                  | Type                                                                                | Default | Description                                                                                        |
+| :-------------------- | :---------------------------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                   | -       | Applies the same movement rules to keyboard and pointer sorting.                                   |
+| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string)`            | -       | Customizes polite announcements for completed keyboard moves and final pointer outcomes.           |
+| isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                   | -       | Disables sorting for an item without disabling selection.                                          |
+| onItemsReorder        | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)` | -       | Called with all values in their proposed order. Render the items in this order to accept the move. |
+| disabled              | `boolean`                                                                           | `false` | Disables keyboard and pointer sorting.                                                             |
+| children              | `React.ReactNode`                                                                   | -       | -                                                                                                  |
 
 ### KeyboardSortableProvider.Props
 
 Re-export of [KeyboardSortableProvider](#keyboardsortableprovider) props.
-
-### KeyboardSortableProvider.AnnouncementParameters
-
-```typescript
-type ListboxKeyboardSortableProviderAnnouncementParameters<Value = any> = {
-  /** Moved items with their current values and positions. */
-  items: ListboxSortingItem<Value>[];
-  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
-  destination: ListboxSortingDestination | null;
-  reason: 'keyboard' | 'drag';
-  outcome: 'moved' | 'unchanged' | 'canceled';
-};
-```
-
-### KeyboardSortableProvider.ItemsReorderEventDetails
-
-```typescript
-type ListboxKeyboardSortableProviderItemsReorderEventDetails<Value = any> = {
-  /** The native event associated with the custom event. */
-  event: Event;
-  /** Cancels Base UI from handling the event. */
-  cancel: () => void;
-  /** Allows the event to propagate in cases where Base UI will stop the propagation. */
-  allowPropagation: () => void;
-  /** Indicates whether the event has been canceled. */
-  isCanceled: boolean;
-  /** Indicates whether the event is allowed to propagate. */
-  isPropagationAllowed: boolean;
-  /** The element that triggered the event, if applicable. */
-  trigger: Element | undefined;
-  items: ListboxSortingItem<Value>[];
-  destination: ListboxSortingDestination;
-  reason: 'keyboard' | 'drag';
-  /** Complete proposed order, including group membership. Use this when moving items between groups. */
-  order: ListboxSortingItem<Value>[];
-};
-```
-
-### KeyboardSortableProvider.MoveItemsParameters
-
-```typescript
-type ListboxKeyboardSortableProviderMoveItemsParameters<Value = any> = {
-  items: ListboxSortingItem<Value>[];
-  destination: ListboxSortingDestination;
-};
-```
 
 ### LoadingTrigger
 
@@ -575,37 +529,24 @@ Renders a visually hidden announcement region inside the listbox.
 
 **SortableProvider Props:**
 
-| Prop                  | Type                                                                                                         | Default  | Description                                                                                                                                                          |
-| :-------------------- | :----------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| canMoveItems          | `((parameters: ListboxMoveItemsParameters<Value>) => boolean)`                                               | -        | Applies the same movement rules to keyboard and pointer sorting.                                                                                                     |
-| getAnnouncement       | `((parameters: ListboxSortingAnnouncementParameters<Value>) => string)`                                      | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.                                                                             |
-| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                   | -        | Returns application data stored in the drag payload's data field.                                                                                                    |
-| getDropPosition       | `((context: ListboxSortingDropContext<Value>) => 'before' \| 'after' \| ListboxSortingDropPosition \| null)` | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                      |
-| isItemSortingDisabled | `((item: ListboxSortingItem<Value>) => boolean)`                                                             | -        | Disables sorting for an item without disabling selection.                                                                                                            |
-| kind                  | `DraggableKind<ListboxSortingDragPayload<Value>, unknown>`                                                   | -        | An explicit kind for integrating sorting with external drag sources and targets.                                                                                     |
-| onDropPositionChange  | `((position: ListboxSortingDropPosition \| null) => void)`                                                   | -        | Called when pointer placement changes, including when sorting ends.                                                                                                  |
-| onItemsReorder        | `((items: Value[], details: ListboxItemsReorderEventDetails<Value>) => void)`                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move.                                                                   |
-| onSortEnd             | `((value: ListboxSortingSortEndValue, eventDetails: ListboxSortingSortEndEventDetails) => void)`             | -        | Called once when pointer sorting ends, after the final move or rollback is proposed.&#xA;`eventDetails.canceled` tells whether the sort was canceled or rolled back. |
-| reorderOn             | `'drop' \| 'move'`                                                                                           | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                                                                                     |
-| disabled              | `boolean`                                                                                                    | `false`  | Disables keyboard and pointer sorting.                                                                                                                               |
-| children              | `React.ReactNode`                                                                                            | -        | -                                                                                                                                                                    |
+| Prop                  | Type                                                                                                                               | Default  | Description                                                                                                                                                                        |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                                                                  | -        | Applies the same movement rules to keyboard and pointer sorting.                                                                                                                   |
+| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string)`                                                           | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.                                                                                           |
+| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                                         | -        | Returns application data stored in the drag payload's data field.                                                                                                                  |
+| getDropPosition       | `((context: Listbox.SortableProvider.DropContext<Value>) => 'before' \| 'after' \| Listbox.SortingDropPosition \| null)`           | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                    |
+| isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                                                                  | -        | Disables sorting for an item without disabling selection.                                                                                                                          |
+| kind                  | `DraggableKind<Listbox.SortableProvider.DragPayload<Value>, unknown>`                                                              | -        | An explicit kind for integrating sorting with external drag sources and targets.                                                                                                   |
+| onDropPositionChange  | `((position: Listbox.SortingDropPosition \| null, eventDetails: Listbox.SortableProvider.DropPositionChangeEventDetails) => void)` | -        | Event handler called when pointer placement changes, including when sorting ends.                                                                                                  |
+| onItemsReorder        | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`                                                | -        | Called with all values in their proposed order. Render the items in this order to accept the move.                                                                                 |
+| onSortEnd             | `((value: Listbox.SortableProvider.SortEndValue, eventDetails: Listbox.SortableProvider.SortEndEventDetails) => void)`             | -        | Event handler called once when pointer sorting ends, after the final move or rollback is&#xA;proposed. `eventDetails.canceled` tells whether the sort was canceled or rolled back. |
+| reorderOn             | `'drop' \| 'move'`                                                                                                                 | `'drop'` | When pointer sorting updates the items. Live moves are restored on cancellation.                                                                                                   |
+| disabled              | `boolean`                                                                                                                          | `false`  | Disables keyboard and pointer sorting.                                                                                                                                             |
+| children              | `React.ReactNode`                                                                                                                  | -        | -                                                                                                                                                                                  |
 
 ### SortableProvider.Props
 
 Re-export of [SortableProvider](#sortableprovider) props.
-
-### SortableProvider.AnnouncementParameters
-
-```typescript
-type ListboxSortableProviderAnnouncementParameters<Value = any> = {
-  /** Moved items with their current values and positions. */
-  items: ListboxSortingItem<Value>[];
-  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
-  destination: ListboxSortingDestination | null;
-  reason: 'keyboard' | 'drag';
-  outcome: 'moved' | 'unchanged' | 'canceled';
-};
-```
 
 ### SortableProvider.DragPayload
 
@@ -638,52 +579,50 @@ type ListboxSortableProviderDropContext<Value = any> = {
 };
 ```
 
-### SortableProvider.DropPosition
+### SortableProvider.DropPositionChangeEventDetails
 
 ```typescript
-type ListboxSortableProviderDropPosition = {
-  id: Listbox.ItemId;
-  placement: 'before' | 'after';
-  /**
-   * Override the zero-based insertion index across the entire list, including all
-   * groups, before removing the moved items. Not relative to the destination group.
-   * Tree uses indices within the current or destination parent.
-   */
-  index?: number;
-};
+type ListboxSortableProviderDropPositionChangeEventDetails =
+  | { reason: 'pointer'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'double-click'; event: MouseEvent | PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'modifier-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'escape-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'imperative-action'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'tab-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'window-blur'; event: FocusEvent; location: DraggableLocationHistory }
+  | { reason: 'page-hidden'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'pointer-canceled'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'capture-lost'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'missed-release'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'document-detached'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'handler-error'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'drop'; event: MouseEvent | PointerEvent; location: DraggableLocationHistory }
+  | {
+      reason: 'outside-release';
+      event: MouseEvent | PointerEvent;
+      location: DraggableLocationHistory;
+    };
 ```
 
-### SortableProvider.ItemsReorderEventDetails
+### SortableProvider.DropPositionChangeEventReason
 
 ```typescript
-type ListboxSortableProviderItemsReorderEventDetails<Value = any> = {
-  /** The native event associated with the custom event. */
-  event: Event;
-  /** Cancels Base UI from handling the event. */
-  cancel: () => void;
-  /** Allows the event to propagate in cases where Base UI will stop the propagation. */
-  allowPropagation: () => void;
-  /** Indicates whether the event has been canceled. */
-  isCanceled: boolean;
-  /** Indicates whether the event is allowed to propagate. */
-  isPropagationAllowed: boolean;
-  /** The element that triggered the event, if applicable. */
-  trigger: Element | undefined;
-  items: ListboxSortingItem<Value>[];
-  destination: ListboxSortingDestination;
-  reason: 'keyboard' | 'drag';
-  /** Complete proposed order, including group membership. Use this when moving items between groups. */
-  order: ListboxSortingItem<Value>[];
-};
-```
-
-### SortableProvider.MoveItemsParameters
-
-```typescript
-type ListboxSortableProviderMoveItemsParameters<Value = any> = {
-  items: ListboxSortingItem<Value>[];
-  destination: ListboxSortingDestination;
-};
+type ListboxSortableProviderDropPositionChangeEventReason =
+  | 'escape-key'
+  | 'pointer'
+  | 'imperative-action'
+  | 'double-click'
+  | 'modifier-key'
+  | 'tab-key'
+  | 'window-blur'
+  | 'page-hidden'
+  | 'pointer-canceled'
+  | 'capture-lost'
+  | 'missed-release'
+  | 'document-detached'
+  | 'handler-error'
+  | 'drop'
+  | 'outside-release';
 ```
 
 ### SortableProvider.SortEndEventDetails
@@ -800,6 +739,84 @@ type ListboxSortPreviewState = {};
 
 ```typescript
 type ListboxItemId = string | number;
+```
+
+### Listbox.ItemsReorderEventDetails
+
+```typescript
+type ListboxItemsReorderEventDetails<Value = any> = {
+  /** The native event associated with the custom event. */
+  event: Event;
+  /** Cancels Base UI from handling the event. */
+  cancel: () => void;
+  /** Allows the event to propagate in cases where Base UI will stop the propagation. */
+  allowPropagation: () => void;
+  /** Indicates whether the event has been canceled. */
+  isCanceled: boolean;
+  /** Indicates whether the event is allowed to propagate. */
+  isPropagationAllowed: boolean;
+  /** The element that triggered the event, if applicable. */
+  trigger: Element | undefined;
+  items: Listbox.SortingItem<Value>[];
+  destination: ListboxSortingDestination;
+  reason: 'keyboard' | 'drag';
+  /** Complete proposed order, including group membership. Use this when moving items between groups. */
+  order: Listbox.SortingItem<Value>[];
+};
+```
+
+### Listbox.SortingAnnouncementParameters
+
+```typescript
+type ListboxSortingAnnouncementParameters<Value = any> = {
+  /** Moved items with their current values and positions. */
+  items: Listbox.SortingItem<Value>[];
+  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  destination: ListboxSortingDestination | null;
+  reason: 'keyboard' | 'drag';
+  outcome: 'moved' | 'unchanged' | 'canceled';
+};
+```
+
+### Listbox.SortingDropPosition
+
+```typescript
+type ListboxSortingDropPosition = {
+  id: Listbox.ItemId;
+  placement: 'before' | 'after';
+  /**
+   * Override the zero-based insertion index across the entire list, including all
+   * groups, before removing the moved items. Not relative to the destination group.
+   * Tree uses indices within the current or destination parent.
+   */
+  index?: number;
+};
+```
+
+### Listbox.SortingItem
+
+```typescript
+type ListboxSortingItem<Value = any> = {
+  id: Listbox.ItemId;
+  value: Value;
+  /**
+   * Zero-based item index across the entire list, including all groups.
+   * This is not an index within the item's group.
+   * Tree uses indices within the current or destination parent.
+   */
+  index: number;
+  /** The containing group's ID, or null for an ungrouped item. */
+  groupId: string | null;
+};
+```
+
+### Listbox.SortingMove
+
+```typescript
+type ListboxSortingMove<Value = any> = {
+  items: Listbox.SortingItem<Value>[];
+  destination: ListboxSortingDestination;
+};
 ```
 
 ### ListboxItemDraggableProps
@@ -928,9 +945,9 @@ type ListboxItemExternalDropTargetOptions<
   /** Overrides the default before/after placement. Returning null rejects the drop. */
   getDropPosition?: (
     context: Listbox.ItemExternalDropTarget.PositionContext<TPayload | unknown, TItem>,
-  ) => 'before' | 'after' | ListboxSortingDropPosition | null;
+  ) => 'before' | 'after' | Listbox.SortingDropPosition | null;
   /** Called when external placement changes, including null when it clears. */
-  onDropPositionChange?: (position: ListboxSortingDropPosition | null) => void;
+  onDropPositionChange?: (position: Listbox.SortingDropPosition | null) => void;
   /** Handles an accepted external drop. Does not automatically insert or remove items. */
   onDraggableDrop?: (
     value: Listbox.ItemExternalDropTarget.DropValue<TPayload | unknown, TItem>,
@@ -985,36 +1002,33 @@ type ListboxSortingDropContext<Value = any> = {
 };
 ```
 
-### ListboxSortingDropPosition
+### ListboxSortingDropPositionChangeEventDetails
+
+The event details passed to `onDropPositionChange`: why the drop targets under the pointer changed.
 
 ```typescript
-type ListboxSortingDropPosition = {
-  id: Listbox.ItemId;
-  placement: 'before' | 'after';
-  /**
-   * Override the zero-based insertion index across the entire list, including all
-   * groups, before removing the moved items. Not relative to the destination group.
-   * Tree uses indices within the current or destination parent.
-   */
-  index?: number;
-};
+type ListboxSortingDropPositionChangeEventDetails = DropTargetChangeEventDetails;
 ```
 
-### ListboxSortingItem
+### ListboxSortingDropPositionChangeEventReason
 
 ```typescript
-type ListboxSortingItem<Value = any> = {
-  id: Listbox.ItemId;
-  value: Value;
-  /**
-   * Zero-based item index across the entire list, including all groups.
-   * This is not an index within the item's group.
-   * Tree uses indices within the current or destination parent.
-   */
-  index: number;
-  /** The containing group's ID, or null for an ungrouped item. */
-  groupId: string | null;
-};
+type ListboxSortingDropPositionChangeEventReason =
+  | 'escape-key'
+  | 'pointer'
+  | 'imperative-action'
+  | 'double-click'
+  | 'modifier-key'
+  | 'tab-key'
+  | 'window-blur'
+  | 'page-hidden'
+  | 'pointer-canceled'
+  | 'capture-lost'
+  | 'missed-release'
+  | 'document-detached'
+  | 'handler-error'
+  | 'drop'
+  | 'outside-release';
 ```
 
 ### ListboxSortingSortEndEventDetails
@@ -1082,11 +1096,11 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.Group`: `Listbox.Group`, `Listbox.Group.State`, `Listbox.Group.Props`
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
-- `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.AnnouncementParameters`, `Listbox.KeyboardSortableProvider.Props`, `Listbox.KeyboardSortableProvider.ItemsReorderEventDetails`, `Listbox.KeyboardSortableProvider.MoveItemsParameters`
-- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.AnnouncementParameters`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropPosition`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.ItemsReorderEventDetails`, `Listbox.SortableProvider.MoveItemsParameters`, `Listbox.SortableProvider.SortEndValue`, `Listbox.SortableProvider.SortEndEventDetails`, `Listbox.SortableProvider.SortEndEventReason`
+- `Listbox.KeyboardSortableProvider`: `Listbox.KeyboardSortableProvider`, `Listbox.KeyboardSortableProvider.Props`
+- `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.DropPositionChangeEventDetails`, `Listbox.SortableProvider.DropPositionChangeEventReason`, `Listbox.SortableProvider.SortEndValue`, `Listbox.SortableProvider.SortEndEventDetails`, `Listbox.SortableProvider.SortEndEventReason`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.State`
-- `Default`: `Listbox.ItemId`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortingSortEndValue`, `ListboxSortingSortEndEventDetails`, `ListboxSortingSortEndEventReason`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropValue`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Default`: `Listbox.ItemId`, `Listbox.SortingItem`, `Listbox.SortingMove`, `Listbox.SortingAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.SortingDropPosition`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxSortingMove`, `ListboxSortingAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortingSortEndValue`, `ListboxSortingSortEndEventDetails`, `ListboxSortingSortEndEventReason`, `ListboxSortingDropPositionChangeEventDetails`, `ListboxSortingDropPositionChangeEventReason`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropValue`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropValue`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPosition`
 
 ## Canonical Types
@@ -1119,6 +1133,11 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.SortHandle.Props`: `ListboxSortHandleProps`
 - `Listbox.SortPreview.Props`: `ListboxSortPreviewProps`
 - `Listbox.ItemId`: `ListboxItemId`
+- `Listbox.SortingItem`: `ListboxSortingItem`
+- `Listbox.SortingMove`: `ListboxSortingMove`
+- `Listbox.SortingAnnouncementParameters`: `ListboxSortingAnnouncementParameters`
+- `Listbox.ItemsReorderEventDetails`: `ListboxItemsReorderEventDetails`
+- `Listbox.SortingDropPosition`: `ListboxSortingDropPosition`
 - `Listbox.ItemExternalDropTarget.Props`: `ListboxItemExternalDropTargetProps`
 - `Listbox.ItemExternalDropTarget.State`: `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget.PositionContext`: `ListboxItemExternalDropTargetPositionContext`

@@ -25,7 +25,7 @@ import { stringifyAsValue } from '../../internals/resolveValueLabel';
 import { defaultItemEquality, findItemIndex } from '../../internals/itemEquality';
 import { useValueChanged } from '../../internals/useValueChanged';
 import { ListboxRootContext } from './ListboxRootContext';
-import { ListboxRootFeaturesContext, markListboxRootFeaturesConsumed } from './ListboxRootFeatures';
+import { ListboxRootFeaturesContext } from './ListboxRootFeatures';
 import { ListboxStore } from '../store';
 import type { SelectionMode } from '../utils/selectionReducer';
 import { isMultipleSelectionMode } from '../utils/selectionReducer';
@@ -63,7 +63,6 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
   } = props;
 
   const features = React.useContext(ListboxRootFeaturesContext);
-  markListboxRootFeaturesConsumed(features);
 
   const { clearErrors } = useFormContext();
   const {

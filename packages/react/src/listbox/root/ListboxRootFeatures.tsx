@@ -10,6 +10,8 @@ import { ListboxRootContext } from './ListboxRootContext';
  * render the provider don't bundle it.
  */
 export interface ListboxRootFeature {
+  /** The provider's part name, such as `SortableProvider`, for warnings. */
+  name: string;
   /**
    * Wraps the root's children with the feature's React logic, which reads the store
    * with `useListboxRootContext()`.
@@ -24,15 +26,12 @@ export interface ListboxRootFeature {
 export const ListboxRootFeaturesContext =
   React.createContext<readonly ListboxRootFeature[]>(EMPTY_ARRAY);
 
-const consumedFeatures = new WeakSet<ListboxRootFeature>();
-
-/** Records the features a root applied, so a misplaced provider can warn. */
-export function markListboxRootFeaturesConsumed(features: readonly ListboxRootFeature[]) {
-  if (process.env.NODE_ENV !== 'production') {
-    for (const feature of features) {
-      consumedFeatures.add(feature);
-    }
-  }
+function warnMisplacedProvider(name: string) {
+  warn(
+    `<Listbox.${name}> has no effect inside <Listbox.Root>.`,
+    'Providers configure the listbox they wrap.',
+    `Render <Listbox.${name}> around <Listbox.Root> instead.`,
+  );
 }
 
 /**
@@ -40,20 +39,18 @@ export function markListboxRootFeaturesConsumed(features: readonly ListboxRootFe
  * providers around it.
  */
 export function ListboxRootFeatureProvider(props: ListboxRootFeatureProvider.Props) {
-  const { name, feature, children } = props;
+  const { feature, children } = props;
   const parentFeatures = React.useContext(ListboxRootFeaturesContext);
   const features = React.useMemo(() => [...parentFeatures, feature], [parentFeatures, feature]);
 
+  // A provider without children can't wrap a root, so inside a root it's misplaced.
   const insideRoot = React.useContext(ListboxRootContext) !== null;
+  const childlessInsideRoot = insideRoot && children == null;
   React.useEffect(() => {
-    if (process.env.NODE_ENV !== 'production' && insideRoot && !consumedFeatures.has(feature)) {
-      warn(
-        `<Listbox.${name}> has no effect inside <Listbox.Root>.`,
-        'Providers configure the listbox they wrap.',
-        `Render <Listbox.${name}> around <Listbox.Root> instead.`,
-      );
+    if (process.env.NODE_ENV !== 'production' && childlessInsideRoot) {
+      warnMisplacedProvider(feature.name);
     }
-  }, [insideRoot, feature, name]);
+  }, [childlessInsideRoot, feature.name]);
 
   return (
     <ListboxRootFeaturesContext.Provider value={features}>
@@ -64,9 +61,23 @@ export function ListboxRootFeatureProvider(props: ListboxRootFeatureProvider.Pro
 
 export namespace ListboxRootFeatureProvider {
   export interface Props {
-    /** The provider's part name, such as `SortableProvider`, for warnings. */
-    name: string;
     feature: ListboxRootFeature;
     children?: React.ReactNode;
   }
+}
+
+/**
+ * Warns about the providers between a root and its list. The root resets the
+ * features it applies, so any feature a list still sees comes from a provider
+ * rendered inside the root, where it configures nothing.
+ */
+export function useWarnMisplacedListboxRootFeatures() {
+  const features = React.useContext(ListboxRootFeaturesContext);
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      for (const feature of features) {
+        warnMisplacedProvider(feature.name);
+      }
+    }
+  }, [features]);
 }

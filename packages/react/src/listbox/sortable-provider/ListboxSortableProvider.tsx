@@ -23,6 +23,7 @@ import type {
   DraggableKind,
   DraggableRootRecord,
   DraggableTargetRecord,
+  DropTargetChangeEventDetails,
 } from '../../types/drag';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 import { ListboxRootFeatureProvider, type ListboxRootFeature } from '../root/ListboxRootFeatures';
@@ -31,13 +32,7 @@ import {
   ListboxSortableContext,
   type ListboxSortingItemRecord,
 } from '../sorting/ListboxSortingContext';
-import {
-  useListboxSorting,
-  type ListboxSortingParameters,
-  type ListboxItemsReorderEventDetails,
-  type ListboxMoveItemsParameters,
-  type ListboxSortingAnnouncementParameters,
-} from '../sorting/useListboxSorting';
+import { useListboxSorting, type ListboxSortingParameters } from '../sorting/useListboxSorting';
 
 export interface ListboxSortingDragPayload<Value = any> {
   id: ListboxItemId;
@@ -88,29 +83,41 @@ export type ListboxSortingSortEndEventDetails = BaseUIGenericEventDetails<
   }
 >;
 export type ListboxSortingSortEndEventReason = ListboxSortingSortEndEventDetails['reason'];
+/** The event details passed to `onDropPositionChange`: why the drop targets under the pointer changed. */
+export type ListboxSortingDropPositionChangeEventDetails = DropTargetChangeEventDetails;
+export type ListboxSortingDropPositionChangeEventReason =
+  ListboxSortingDropPositionChangeEventDetails['reason'];
 export interface ListboxSortableProviderProps<Value = any> extends ListboxSortingParameters<Value> {
   children?: React.ReactNode;
   /** Resolves pointer placement. Returning null disallows dropping at this position. */
   getDropPosition?:
     | ((
-        context: ListboxSortingDropContext<Value>,
+        context: ListboxSortableProvider.DropContext<Value>,
       ) => ListboxSortingDropPosition['placement'] | ListboxSortingDropPosition | null)
     | undefined;
-  /** Called when pointer placement changes, including when sorting ends. */
-  onDropPositionChange?: ((position: ListboxSortingDropPosition | null) => void) | undefined;
+  /** Event handler called when pointer placement changes, including when sorting ends. */
+  onDropPositionChange?:
+    | ((
+        position: ListboxSortingDropPosition | null,
+        eventDetails: ListboxSortableProvider.DropPositionChangeEventDetails,
+      ) => void)
+    | undefined;
   /** When pointer sorting updates the items. Live moves are restored on cancellation. @default 'drop' */
   reorderOn?: 'drop' | 'move' | undefined;
   /** An explicit kind for integrating sorting with external drag sources and targets. */
-  kind?: DraggableKind<ListboxSortingDragPayload<Value>> | undefined;
+  kind?: DraggableKind<ListboxSortableProvider.DragPayload<Value>> | undefined;
   /** Returns application data stored in the drag payload's data field. */
   getDragPayload?:
     ((parameters: { itemIds: ListboxItemId[]; items: Value[] }) => unknown) | undefined;
   /**
-   * Called once when pointer sorting ends, after the final move or rollback is proposed.
-   * `eventDetails.canceled` tells whether the sort was canceled or rolled back.
+   * Event handler called once when pointer sorting ends, after the final move or rollback is
+   * proposed. `eventDetails.canceled` tells whether the sort was canceled or rolled back.
    */
   onSortEnd?:
-    | ((value: ListboxSortingSortEndValue, eventDetails: ListboxSortingSortEndEventDetails) => void)
+    | ((
+        value: ListboxSortableProvider.SortEndValue,
+        eventDetails: ListboxSortableProvider.SortEndEventDetails,
+      ) => void)
     | undefined;
 }
 
@@ -135,6 +142,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
   } = props;
   const feature = React.useMemo(
     (): ListboxRootFeature => ({
+      name: 'SortableProvider',
       render: (rootChildren) => (
         <ListboxPointerSorting
           disabled={disabled}
@@ -167,11 +175,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       onSortEnd,
     ],
   );
-  return (
-    <ListboxRootFeatureProvider name="SortableProvider" feature={feature}>
-      {children}
-    </ListboxRootFeatureProvider>
-  );
+  return <ListboxRootFeatureProvider feature={feature}>{children}</ListboxRootFeatureProvider>;
 }
 
 /** The sorting of `Listbox.SortableProvider`, rendered inside the root it wraps. */
@@ -265,20 +269,25 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
         : null;
     },
   );
-  const setPosition = useStableCallback((next: ListboxSortingDropPosition | null) => {
-    const previous = position.current;
-    if (
-      previous?.id === next?.id &&
-      previous?.placement === next?.placement &&
-      previous?.index === next?.index
-    ) {
-      return;
-    }
-    position.current = next;
-    store.set('dragOverItemId', next?.id ?? null);
-    store.set('dropPosition', next?.placement ?? null);
-    onDropPositionChange?.(next);
-  });
+  const setPosition = useStableCallback(
+    (
+      next: ListboxSortingDropPosition | null,
+      eventDetails: ListboxSortingDropPositionChangeEventDetails,
+    ) => {
+      const previous = position.current;
+      if (
+        previous?.id === next?.id &&
+        previous?.placement === next?.placement &&
+        previous?.index === next?.index
+      ) {
+        return;
+      }
+      position.current = next;
+      store.set('dragOverItemId', next?.id ?? null);
+      store.set('dropPosition', next?.placement ?? null);
+      onDropPositionChange?.(next, eventDetails);
+    },
+  );
   const rollback = useStableCallback(() => {
     const source = activePayload.current;
     if (!source || !lastEvent.current) {
@@ -477,7 +486,8 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
           onCollisionChange={({ source, target }, eventDetails) => {
             const next = resolve(target, source);
             const previous = position.current;
-            setPosition(next);
+            const { previousTarget, ...details } = eventDetails;
+            setPosition(next, details);
             lastEvent.current = eventDetails.event;
             if (
               reorderOn === 'move' &&
@@ -512,7 +522,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
             // `previousTarget` belongs to the internal collision events, not to `onSortEnd`.
             const { previousTarget, ...sortEndDetails } = eventDetails;
             if (externalCompletion.current) {
-              setPosition(null);
+              setPosition(null, sortEndDetails);
               store.set('dragActiveItemIds', null);
               activePayload.current = null;
               lastMovePosition.current = null;
@@ -554,7 +564,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
             if (canceled) {
               focusOrder = rollback() ?? focusOrder;
             }
-            setPosition(null);
+            setPosition(null, sortEndDetails);
             store.set('dragActiveItemIds', null);
             transaction.reset();
             activePayload.current = null;
@@ -593,13 +603,11 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
   );
 }
 export namespace ListboxSortableProvider {
-  export type AnnouncementParameters<Value = any> = ListboxSortingAnnouncementParameters<Value>;
   export type Props<Value = any> = ListboxSortableProviderProps<Value>;
   export type DragPayload<Value = any> = ListboxSortingDragPayload<Value>;
-  export type DropPosition = ListboxSortingDropPosition;
   export type DropContext<Value = any> = ListboxSortingDropContext<Value>;
-  export type ItemsReorderEventDetails<Value = any> = ListboxItemsReorderEventDetails<Value>;
-  export type MoveItemsParameters<Value = any> = ListboxMoveItemsParameters<Value>;
+  export type DropPositionChangeEventDetails = ListboxSortingDropPositionChangeEventDetails;
+  export type DropPositionChangeEventReason = ListboxSortingDropPositionChangeEventReason;
   export type SortEndValue = ListboxSortingSortEndValue;
   export type SortEndEventDetails = ListboxSortingSortEndEventDetails;
   export type SortEndEventReason = ListboxSortingSortEndEventReason;

@@ -3,10 +3,12 @@ import * as React from 'react';
 import { Draggable } from '../../draggable';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxSortingDragPayload } from '../sortable-provider/ListboxSortableProvider';
+import { useListboxSortablePart } from '../sorting/ListboxSortingContext';
 
 /** Customizes or hides the pointer preview. Render inside a sortable item. */
 export function ListboxSortPreview<Value = any>(props: ListboxSortPreview.Props<Value>) {
   const { children, ...other } = props;
+  useListboxSortablePart('SortPreview');
   return (
     <Draggable.Preview {...other}>
       {typeof children === 'function'
