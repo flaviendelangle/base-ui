@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useDraggableRootContext } from '../root/DraggableRootContext';
 import type { DragPreviewDeclaration } from '../../utils/drag-and-drop/dragPreviewDeclaration';
-import type { DragPreviewSettings } from '../../types/drag';
+import type { DraggablePreviewSettings } from '../../types/drag';
 import { useDragPreviewContext } from '../../utils/drag-and-drop/overlay/DragPreviewContext';
 import { throwMissingPreviewProvider } from '../../utils/drag-and-drop/overlay/missingPreviewProvider';
 import type { DragPreviewElementFactory } from '../../utils/drag-and-drop/synthetic/cloneDragPreview';
@@ -13,13 +13,16 @@ import type { DragPreviewElementFactory } from '../../utils/drag-and-drop/synthe
  * `null` for a clone of the source.
  * @internal
  */
-export function useDeclaredPreview<TPayload = unknown>(
-  getProps: () => DragPreviewSettings,
-  render: DragPreviewDeclaration<TPayload>['render'],
+export function useDeclaredPreview<TPayload = unknown, TDragData = unknown>(
+  getProps: () => DraggablePreviewSettings,
+  render: DragPreviewDeclaration<TPayload, TDragData>['render'],
   createPreviewElement: DragPreviewElementFactory,
   disabled = false,
 ): void {
-  const { previewHandle, previewContext: rootPreviewContext } = useDraggableRootContext<TPayload>();
+  const { previewHandle, previewContext: rootPreviewContext } = useDraggableRootContext<
+    TPayload,
+    TDragData
+  >();
   const previewContext = useDragPreviewContext();
 
   // Content needs a React tree to render in. Fail here rather than at drag start,
@@ -41,12 +44,15 @@ export function useDeclaredPreview<TPayload = unknown>(
     );
   }
 
-  const declaration = React.useMemo<DragPreviewDeclaration<TPayload>>(() => {
+  const declaration = React.useMemo<DragPreviewDeclaration<TPayload, TDragData>>(() => {
     // Mapped over `Required<…>` so every setting has to be plucked here: settings
-    // are all optional, so a new one added to `DragPreviewSettings` would
+    // are all optional, so a new one added to `DraggablePreviewSettings` would
     // otherwise type-check while being silently dropped on its way to the engine.
     const declared: {
-      [K in keyof Required<DragPreviewDeclaration<TPayload>>]: DragPreviewDeclaration<TPayload>[K];
+      [K in keyof Required<DragPreviewDeclaration<TPayload, TDragData>>]: DragPreviewDeclaration<
+        TPayload,
+        TDragData
+      >[K];
     } = {
       render,
       createPreviewElement,

@@ -14,73 +14,94 @@ import { createRenderer, type BaseUIRenderResult } from './createRenderer';
 import { installDndTestEnv, registerCleanup } from './dnd';
 import { anyDragKind, createKind } from '../src/utils/drag-and-drop/dragKind';
 import { DraggableProvider } from '../src/draggable/DraggableProvider';
-import { useDragDropManager } from '../src/draggable/use-drag-drop-manager/useDragDropManager';
-import type { DragAccept, DragKind, MoveStartContext } from '../src/types/drag';
+import { useManager } from '../src/draggable/use-manager/useManager';
+import type { DraggableAccept, DraggableKind } from '../src/types/drag';
 import type {
-  DragDropManager,
-  RegisterDraggableParameters,
-  RegisterAutoScrollerParameters,
+  DraggableManager,
+  RegisterSourceParameters,
+  RegisterViewportParameters,
   RegisterMonitorParameters,
 } from '../src/types/dragRegistration';
-import type { RegisterDropTargetParameters } from '../src/utils/drag-and-drop/dropTarget';
+import type { RegisterTargetParameters } from '../src/utils/drag-and-drop/dropTarget';
 
 /**
- * The kind {@link DndTestEngine}'s `registerDraggable` defaults to, so a fixture only
+ * The kind {@link DndTestEngine}'s `registerSource` defaults to, so a fixture only
  * declares one when the test is about kind matching. Exported for the targets and
  * monitors that have to accept it.
  */
 export const testDragKind = createKind<any>('base-ui-test/item');
 
 /**
- * {@link RegisterDraggableParameters} loosened for fixtures: `kind` is optional and
+ * {@link RegisterSourceParameters} loosened for fixtures: `kind` is optional and
  * defaults to {@link testDragKind}, and `payload` still infers the payload type — the
  * public type pins that to the kind, but most fixtures declare only a payload.
  */
-type TestDraggableParameters<TPayload> = Omit<
-  RegisterDraggableParameters<TPayload>,
-  'kind' | 'payload' | 'getPayload'
+type TestDraggableParameters<TPayload, TDragData = unknown> = Omit<
+  RegisterSourceParameters<TPayload, TDragData>,
+  'kind' | 'payload'
 > & {
-  kind?: DragKind<TPayload> | undefined;
+  kind?: DraggableKind<TPayload, TDragData> | undefined;
   payload?: TPayload | undefined;
-  getPayload?: ((context: MoveStartContext) => TPayload) | undefined;
 };
+
+type TestTargetParameters<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData> = Omit<
+  RegisterTargetParameters<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>,
+  'kind'
+> & { kind?: DraggableKind<TTargetPayload, TTargetDragData> };
 
 /** A plain value or a getter for it — a test-only convenience (see {@link asGetter}). */
 type MaybeGetter<T> = T | (() => T);
 
-type InternalRegisterDraggable = <TPayload = undefined>(
+type InternalRegisterSource = <TPayload = undefined, TDragData = unknown>(
   element: HTMLElement,
-  getParameters: () => RegisterDraggableParameters<TPayload>,
+  getParameters: () => RegisterSourceParameters<TPayload, TDragData>,
 ) => () => void;
 
-type InternalRegisterDropTarget = <TSourcePayload = unknown, TTargetPayload = unknown>(
+type InternalRegisterTarget = <
+  TSourcePayload = unknown,
+  TTargetPayload = unknown,
+  TSourceDragData = unknown,
+  TTargetDragData = unknown,
+>(
   element: HTMLElement,
-  getParameters: () => RegisterDropTargetParameters<TSourcePayload, TTargetPayload>,
+  getParameters: () => RegisterTargetParameters<
+    TSourcePayload,
+    TTargetPayload,
+    TSourceDragData,
+    TTargetDragData
+  >,
 ) => () => void;
 
 /**
  * The drag engine as exposed to tests: identical to the public
- * getter-only {@link DragDropManager}, but each `register*` also accepts a plain
+ * getter-only {@link DraggableManager}, but each `register*` also accepts a plain
  * parameters object (wrapped into a getter by {@link asGetter}) so fixtures stay
  * terse. Production code never sees this loosened shape.
  */
 export interface DndTestEngine {
-  registerDraggable: <TPayload = undefined>(
+  registerSource: <TPayload = undefined, TDragData = unknown>(
     element: HTMLElement,
-    parameters: MaybeGetter<TestDraggableParameters<TPayload>>,
-  ) => ReturnType<DragDropManager['registerDraggable']>;
-  registerDropTarget: <TSourcePayload = unknown, TTargetPayload = undefined>(
+    parameters: MaybeGetter<TestDraggableParameters<TPayload, TDragData>>,
+  ) => ReturnType<DraggableManager['registerSource']>;
+  registerTarget: <
+    TSourcePayload = unknown,
+    TTargetPayload = undefined,
+    TSourceDragData = unknown,
+    TTargetDragData = unknown,
+  >(
     element: HTMLElement,
-    parameters: MaybeGetter<RegisterDropTargetParameters<TSourcePayload, TTargetPayload>>,
-  ) => ReturnType<DragDropManager['registerDropTarget']>;
-  registerAutoScroller: <TSourcePayload = unknown>(
+    parameters: MaybeGetter<
+      TestTargetParameters<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>
+    >,
+  ) => ReturnType<DraggableManager['registerTarget']>;
+  registerViewport: <TSourcePayload = unknown, TSourceDragData = unknown>(
     element: HTMLElement,
-    parameters: MaybeGetter<RegisterAutoScrollerParameters<TSourcePayload>>,
-  ) => ReturnType<DragDropManager['registerAutoScroller']>;
-  registerMonitor: <TSourcePayload = unknown>(
-    parameters: MaybeGetter<RegisterMonitorParameters<TSourcePayload>>,
-  ) => ReturnType<DragDropManager['registerMonitor']>;
-  cancelDrag: DragDropManager['cancelDrag'];
+    parameters: MaybeGetter<RegisterViewportParameters<TSourcePayload, TSourceDragData>>,
+  ) => ReturnType<DraggableManager['registerViewport']>;
+  registerMonitor: <TSourcePayload = unknown, TSourceDragData = unknown>(
+    parameters: MaybeGetter<RegisterMonitorParameters<TSourcePayload, TSourceDragData>>,
+  ) => ReturnType<DraggableManager['registerMonitor']>;
+  cancelDrag: DraggableManager['cancelDrag'];
 }
 
 export interface DndRenderResult extends BaseUIRenderResult {
@@ -105,21 +126,21 @@ function asGetter<T>(parameters: MaybeGetter<T>): () => T {
  * idempotent (the engine latches on first run), so a test may still call the
  * returned cleanup early to assert deregistration.
  */
-function withAutoCleanup(engine: DragDropManager): DndTestEngine {
+function withAutoCleanup(engine: DraggableManager): DndTestEngine {
   return {
-    registerDraggable: <TPayload = undefined,>(
+    registerSource: <TPayload = undefined, TDragData = unknown>(
       element: HTMLElement,
-      parameters: MaybeGetter<TestDraggableParameters<TPayload>>,
+      parameters: MaybeGetter<TestDraggableParameters<TPayload, TDragData>>,
     ) => {
-      // The public `registerDraggable` is overloaded so an explicit `TPayload`
+      // The public `registerSource` is overloaded so an explicit `TPayload`
       // requires a `payload`. Fixtures declare `TPayload` and omit the payload all
       // the time (they assert on other things), so register through the engine's
       // internal, payload-optional signature instead.
-      const registerDraggableInternal = engine.registerDraggable as InternalRegisterDraggable;
+      const registerSourceInternal = engine.registerSource as InternalRegisterSource;
       const getParameters = asGetter(parameters);
       // `kind` is required on a real draggable; default it so only the fixtures that
       // exercise kind matching have to declare one.
-      const cleanup = registerDraggableInternal<TPayload>(element, () => {
+      const cleanup = registerSourceInternal<TPayload, TDragData>(element, () => {
         const declared = getParameters();
         // The test-local payload union stays inference-friendly; the public alias
         // adds a callable-value guard an unresolved `TPayload` can't satisfy
@@ -127,55 +148,67 @@ function withAutoCleanup(engine: DragDropManager): DndTestEngine {
         return {
           ...declared,
           kind: declared.kind ?? testDragKind,
-        } as ReturnType<Parameters<typeof registerDraggableInternal<TPayload>>[1]>;
+        } as ReturnType<Parameters<typeof registerSourceInternal<TPayload, TDragData>>[1]>;
       });
       registerCleanup(cleanup);
       return cleanup;
     },
-    registerDropTarget: <TSourcePayload = unknown, TTargetPayload = undefined>(
+    registerTarget: <
+      TSourcePayload = unknown,
+      TTargetPayload = undefined,
+      TSourceDragData = unknown,
+      TTargetDragData = unknown,
+    >(
       element: HTMLElement,
-      parameters: MaybeGetter<RegisterDropTargetParameters<TSourcePayload, TTargetPayload>>,
+      parameters: MaybeGetter<
+        TestTargetParameters<TSourcePayload, TTargetPayload, TSourceDragData, TTargetDragData>
+      >,
     ) => {
-      // Same as `registerDraggable` above: the public signature is overloaded so
+      // Same as `registerSource` above: the public signature is overloaded so
       // an explicit `TTargetPayload` requires a `payload`, but fixtures declare the
       // type and omit the payload all the time.
-      const registerDropTargetInternal = engine.registerDropTarget as InternalRegisterDropTarget;
+      const registerTargetInternal = engine.registerTarget as InternalRegisterTarget;
       const getParameters = asGetter(parameters);
-      const cleanup = registerDropTargetInternal<TSourcePayload, TTargetPayload>(element, () => {
+      const cleanup = registerTargetInternal<
+        TSourcePayload,
+        TTargetPayload,
+        TSourceDragData,
+        TTargetDragData
+      >(element, () => {
         const declared = getParameters();
         // Fixtures omit `accept` for brevity; opt them into take-everything
         // explicitly so the accept-less dev warning stays reserved for consumer
         // code. Left alone when `kind` is declared: the kind-without-accept
         // warning has its own test and must keep firing.
         return declared.accept === undefined && declared.kind === undefined
-          ? { ...declared, accept: anyDragKind as DragAccept<TSourcePayload> }
+          ? { ...declared, accept: anyDragKind as DraggableAccept<TSourcePayload, TSourceDragData> }
           : declared;
       });
       registerCleanup(cleanup);
       return cleanup;
     },
-    registerAutoScroller: <TSourcePayload = unknown,>(
+    registerViewport: <TSourcePayload = unknown, TSourceDragData = unknown>(
       element: HTMLElement,
-      parameters: MaybeGetter<RegisterAutoScrollerParameters<TSourcePayload>>,
+      parameters: MaybeGetter<RegisterViewportParameters<TSourcePayload, TSourceDragData>>,
     ) => {
       // The public signature infers the payload from `accept`; fixtures declare
       // it and pass their kinds, so register through the payload-keyed shape.
-      const registerAutoScrollerInternal = engine.registerAutoScroller as (
+      const registerViewportInternal = engine.registerViewport as (
         element: HTMLElement,
-        getParameters: () => RegisterAutoScrollerParameters<TSourcePayload>,
-      ) => ReturnType<DragDropManager['registerAutoScroller']>;
-      const cleanup = registerAutoScrollerInternal(element, asGetter(parameters));
+        getParameters: () => RegisterViewportParameters<TSourcePayload, TSourceDragData>,
+      ) => ReturnType<DraggableManager['registerViewport']>;
+      const cleanup = registerViewportInternal(element, asGetter(parameters));
       registerCleanup(cleanup);
       return cleanup;
     },
-    registerMonitor: <TSourcePayload = unknown,>(
-      parameters: MaybeGetter<RegisterMonitorParameters<TSourcePayload>>,
+    registerMonitor: <TSourcePayload = unknown, TSourceDragData = unknown>(
+      parameters: MaybeGetter<RegisterMonitorParameters<TSourcePayload, TSourceDragData>>,
     ) => {
       // The public signature infers the observed payload from `accept`; fixtures
       // declare it and pass their kinds, so register through the payload-keyed shape.
       const registerMonitorInternal = engine.registerMonitor as (
-        getParameters: () => RegisterMonitorParameters<TSourcePayload>,
-      ) => ReturnType<DragDropManager['registerMonitor']>;
+        getParameters: () => RegisterMonitorParameters<TSourcePayload, TSourceDragData>,
+      ) => ReturnType<DraggableManager['registerMonitor']>;
       const cleanup = registerMonitorInternal(asGetter(parameters));
       registerCleanup(cleanup);
       return cleanup;
@@ -215,10 +248,10 @@ export function createDndRenderer(globalOptions?: CreateRendererOptions): DndTes
     ui?: React.ReactElement,
     options?: RenderOptions,
   ): Promise<DndRenderResult> {
-    let captured: DragDropManager | null = null;
+    let captured: DraggableManager | null = null;
 
     function Capture(): null {
-      captured = useDragDropManager();
+      captured = useManager();
       return null;
     }
 

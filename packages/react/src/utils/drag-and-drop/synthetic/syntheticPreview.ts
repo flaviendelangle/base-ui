@@ -4,16 +4,16 @@ import { getFiniteAnimations } from '../../getFiniteAnimations';
 import { WindowAnimationFrame } from '../../windowAnimationFrame';
 import { WindowTimeout } from '../../windowTimeout';
 import { measurePreviewSource, type DragPreviewElementHandle } from './cloneDragPreview';
-import type { DragModifier, DragPosition } from '../../../types/drag';
+import type { DraggableRootModifier, DraggablePosition } from '../../../types/drag';
 import type { DragModifierKeys } from '../utils';
 import { applyDragModifiers } from '../dragModifiers';
 import { getSharedSlot } from '../sharedState';
 import { DRAGGING_ATTR, ENDING_STYLE_ATTR } from '../dragAttributes';
 import { getElementScale, NO_MODIFIER_KEYS } from '../utils';
 
-const ZERO_OFFSET: DragPosition = { x: 0, y: 0 };
+const ZERO_OFFSET: DraggablePosition = { x: 0, y: 0 };
 /** No ancestor transform: what `getElementScale` reports for an unscaled element. */
-const DEFAULT_SCALE: DragPosition = { x: 1, y: 1 };
+const DEFAULT_SCALE: DraggablePosition = { x: 1, y: 1 };
 const MIN_SETTLING_WATCHDOG_MS = 1000;
 const MAX_SETTLING_WATCHDOG_MS = 30000;
 
@@ -27,7 +27,7 @@ const endingPreviews = getSharedSlot(
 export interface SyntheticPreviewSourceIdentity {
   kind: symbol;
   previewKey: string | number | undefined;
-  /** The static declaration, not the value returned by `getPayload`. */
+  /** The declared payload, used to reconnect the preview after a source remounts. */
   payload: unknown;
 }
 
@@ -91,13 +91,13 @@ export function createSyntheticPreview(
   // Opt-in preview-level `modifiers`, compiled to a non-empty list, or
   // `null` for none. Constrains where the preview is drawn without touching the
   // drag itself (the root's `modifiers` does that).
-  let modifiers: ReadonlyArray<DragModifier> | null = null;
+  let modifiers: ReadonlyArray<DraggableRootModifier> | null = null;
   // The preview's proposed top-left on the first frame positioned with the
   // current element and offset — the reference a preview-level axis lock or grid
   // snaps against. Reset whenever the element or offset changes (a preview
   // adopted mid-drag, a callback offset resolving late), so the anchor is never
   // a proposal computed from a stale offset.
-  let initialProposed: DragPosition | null = null;
+  let initialProposed: DraggablePosition | null = null;
   // The ancestor scale applied to the preview, measured once rather than per frame:
   // `getElementScale` walks to the root reading computed styles, which is a style
   // recalc this would otherwise pay for on every positioned frame. The scale can only
@@ -113,8 +113,7 @@ export function createSyntheticPreview(
   // retrying once it is drawn. `getClientRects` is that signal without a size
   // requirement: an empty host still reports its box, a hidden or detached one
   // reports none.
-  let previewScale: DragPosition = DEFAULT_SCALE;
-  let previewScaleMeasured = false;
+  let previewScale: DraggablePosition | null = null;
   // The last coordinates written to the current preview. Axis locks and grid
   // snaps often resolve several pointer samples to the same point; avoid
   // invalidating style for an identical `translate`.
@@ -128,60 +127,59 @@ export function createSyntheticPreview(
   let lastKeys: DragModifierKeys = NO_MODIFIER_KEYS;
 
   function positionPreviewElement(): void {
-    if (previewElement) {
-      // A virtualizer can recycle the source's row (and its parent) mid-drag,
-      // taking the clone's host with it. Re-home it before writing the position.
-      previewElement.ensureConnected();
-      let proposedX = lastX - previewOffsetX;
-      let proposedY = lastY - previewOffsetY;
-      initialProposed ??= { x: proposedX, y: proposedY };
-      if (modifiers) {
-        const currentPreview = previewElement;
-        const { element } = currentPreview;
-        if (!previewScaleMeasured && element.getClientRects().length > 0) {
-          previewScale = getElementScale(element);
-          previewScaleMeasured = true;
-        }
-        const constrained = applyDragModifiers(
-          modifiers,
-          { x: proposedX, y: proposedY },
-          {
-            initialPoint: initialProposed,
-            input: { x: lastX, y: lastY },
-            sourceElement: sourceElement as HTMLElement,
-            sourceRect: previewElement.sourceRect,
-            // The preview is what these modifiers move, so a step in "its own units" is
-            // measured against the preview rather than the source.
-            scale: previewScale,
-            // `point` is the top-left itself here, so the offset is zero.
-            previewOffset: ZERO_OFFSET,
-            keys: lastKeys,
-            ownerWindow: ownerWindow(element),
-            getPreviewRect: () => element.getBoundingClientRect(),
-          },
-        );
-        if (destroyed || previewElement !== currentPreview) {
-          return;
-        }
-        proposedX = constrained.x;
-        proposedY = constrained.y;
+    if (!previewElement) {
+      return;
+    }
+    const currentPreview = previewElement;
+    const element = currentPreview.element;
+    // A virtualizer can recycle the source's row (and its parent) mid-drag,
+    // taking the clone's host with it. Re-home it before writing the position.
+    currentPreview.ensureConnected();
+    let proposedX = lastX - previewOffsetX;
+    let proposedY = lastY - previewOffsetY;
+    initialProposed ??= { x: proposedX, y: proposedY };
+    if (modifiers) {
+      if (previewScale === null && element.getClientRects().length > 0) {
+        previewScale = getElementScale(element);
       }
-      // The `translate` property, not `transform`: the individual properties
-      // compose as `translate × rotate × scale × transform`, so `translate` is
-      // outermost and a consumer `rotate`/`scale` on the preview spins it about
-      // its own box. Through `transform`, the shared `transform-origin` sits at
-      // the box's *layout* position (the viewport corner — the preview is `fixed`
-      // at 0,0), so a `rotate: 4deg` would swing the translated preview around a
-      // pivot hundreds of pixels away, dozens of pixels off the pointer.
-      const element = previewElement.element;
-      proposedX /= previewElement.positionScale.x;
-      proposedY /= previewElement.positionScale.y;
-      if (element !== positionedElement || proposedX !== positionedX || proposedY !== positionedY) {
-        element.style.translate = `${proposedX}px ${proposedY}px`;
-        positionedElement = element;
-        positionedX = proposedX;
-        positionedY = proposedY;
+      const constrained = applyDragModifiers(
+        modifiers,
+        { x: proposedX, y: proposedY },
+        {
+          initialPoint: initialProposed,
+          input: { x: lastX, y: lastY },
+          sourceElement: sourceElement as HTMLElement,
+          sourceRect: currentPreview.sourceRect,
+          // The preview is what these modifiers move, so a step in "its own units" is
+          // measured against the preview rather than the source.
+          scale: previewScale ?? DEFAULT_SCALE,
+          // `point` is the top-left itself here, so the offset is zero.
+          previewOffset: ZERO_OFFSET,
+          keys: lastKeys,
+          ownerWindow: ownerWindow(element),
+          getPreviewRect: () => element.getBoundingClientRect(),
+        },
+      );
+      if (destroyed || previewElement !== currentPreview) {
+        return;
       }
+      proposedX = constrained.x;
+      proposedY = constrained.y;
+    }
+    // The `translate` property, not `transform`: the individual properties
+    // compose as `translate × rotate × scale × transform`, so `translate` is
+    // outermost and a consumer `rotate`/`scale` on the preview spins it about
+    // its own box. Through `transform`, the shared `transform-origin` sits at
+    // the box's *layout* position (the viewport corner — the preview is `fixed`
+    // at 0,0), so a `rotate: 4deg` would swing the translated preview around a
+    // pivot hundreds of pixels away, dozens of pixels off the pointer.
+    proposedX /= currentPreview.positionScale.x;
+    proposedY /= currentPreview.positionScale.y;
+    if (element !== positionedElement || proposedX !== positionedX || proposedY !== positionedY) {
+      element.style.translate = `${proposedX}px ${proposedY}px`;
+      positionedElement = element;
+      positionedX = proposedX;
+      positionedY = proposedY;
     }
   }
 
@@ -224,7 +222,7 @@ export function createSyntheticPreview(
       hasPosition = true;
       positionPreviewElement();
     },
-    setPreviewElement(preview: DragPreviewElementHandle | null, offset?: DragPosition): void {
+    setPreviewElement(preview: DragPreviewElementHandle | null, offset?: DraggablePosition): void {
       if (destroyed) {
         preview?.destroy();
         return;
@@ -232,8 +230,7 @@ export function createSyntheticPreview(
       previewElement?.destroy();
       previewElement = preview;
       positionedElement = null;
-      previewScale = DEFAULT_SCALE;
-      previewScaleMeasured = false;
+      previewScale = null;
       previewOffsetX = offset?.x ?? 0;
       previewOffsetY = offset?.y ?? 0;
       initialProposed = null;
@@ -249,7 +246,7 @@ export function createSyntheticPreview(
       sourceElement.setAttribute(DRAGGING_ATTR, '');
     },
     retargetSource,
-    setPreviewOffset(offset: DragPosition): void {
+    setPreviewOffset(offset: DraggablePosition): void {
       // A `Draggable.Preview` whose offset is a callback can only be resolved once React
       // has rendered its content and the element has a size, which happens after
       // the engine placed it. Re-anchor it then, without waiting for a pointer move
@@ -274,10 +271,10 @@ export function createSyntheticPreview(
     getPreviewElement(): DragPreviewElementHandle | null {
       return previewElement;
     },
-    getPreviewOffset(): DragPosition {
+    getPreviewOffset(): DraggablePosition {
       return { x: previewOffsetX, y: previewOffsetY };
     },
-    setModifiers(next: ReadonlyArray<DragModifier> | null): void {
+    setModifiers(next: ReadonlyArray<DraggableRootModifier> | null): void {
       modifiers = next;
     },
     prepareForDrop(): void {
@@ -331,7 +328,7 @@ export function createSyntheticPreview(
           endingPreviewRegistrations.add(registration);
         }
         element.setAttribute(ENDING_STYLE_ATTR, '');
-        endingPreview.prepareForDrop?.();
+        endingPreview.prepareForDrop();
 
         // Drop-handler updates scheduled later in the release event commit before
         // this frame. Measure then, so the destination is the source's final
@@ -382,7 +379,7 @@ export interface SyntheticPreviewHandle {
    * Adopt the preview element to position with the drag, or `null` to release it.
    * The engine writes only its `translate`.
    */
-  setPreviewElement(preview: DragPreviewElementHandle | null, offset?: DragPosition): void;
+  setPreviewElement(preview: DragPreviewElementHandle | null, offset?: DraggablePosition): void;
   /**
    * Mark the source as being dragged. Called once the preview exists, so a
    * `[data-dragging]` rule can't affect the geometry the preview was measured from.
@@ -391,19 +388,19 @@ export interface SyntheticPreviewHandle {
   /** Follow the drag source to a fresh node when a virtualizer remounts it mid-drag. */
   retargetSource(element: HTMLElement): void;
   /** Re-anchor the preview once React has rendered content into it and it has a size. */
-  setPreviewOffset(offset: DragPosition): void;
+  setPreviewOffset(offset: DraggablePosition): void;
   /** Destroy the preview element. */
   removePreviewElement(): void;
   /** The adopted preview element, or `null`. */
   getPreviewElement(): DragPreviewElementHandle | null;
   /** The offset from the preview's top-left to the cursor (see `setPreviewOffset`). */
-  getPreviewOffset(): DragPosition;
+  getPreviewOffset(): DraggablePosition;
   /**
    * Install preview-level modifiers, applied to the preview's proposed
    * position each frame. Pass `null` to remove them.
-   * See `DragPreviewSettings.modifiers`.
+   * See `DraggablePreviewSettings.modifiers`.
    */
-  setModifiers(modifiers: ReadonlyArray<DragModifier> | null): void;
+  setModifiers(modifiers: ReadonlyArray<DraggableRootModifier> | null): void;
   /** Preserve an engine-owned clone long enough to animate it back to the source after release. */
   prepareForDrop(): void;
   destroy(): void;

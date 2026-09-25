@@ -1,7 +1,7 @@
 import { resolveDragPreviewOffset } from '../customDragPreview';
 import type { SyntheticPreviewHandle } from './syntheticPreview';
 import type { ResolvedDragPreview } from './dragPreviewSettings';
-import type { DragInput, DragPosition } from '../../../types/drag';
+import type { DraggableInput, DraggablePosition } from '../../../types/drag';
 
 /**
  * Build the element that follows the pointer, unless the draggable opted out.
@@ -21,23 +21,26 @@ export function attachDefaultDragPreview(
   preview: SyntheticPreviewHandle,
   element: HTMLElement,
   settings: ResolvedDragPreview<any>,
-  input: DragInput,
-  pressInput: DragInput,
+  input: DraggableInput,
+  pressInput: DraggableInput,
 ): void {
   if (settings.disabled) {
     return;
   }
 
-  const previewElement = settings.createPreviewElement?.(element, settings.container);
+  const previewElement = settings.createPreviewElement(element, settings.container);
   if (!previewElement) {
     return;
   }
+
+  // Own the element before invoking consumer code so pickup cleanup can release it.
+  preview.setPreviewElement(previewElement);
 
   // An offset callback needs the preview's rendered size, which a host doesn't have
   // until React fills it — so leave it to the renderer, which resolves it exactly
   // once, after the content lands. Every other form depends only on the source rect
   // and is correct right now, including for a host.
-  let offset: DragPosition;
+  let offset: DraggablePosition;
   if (previewElement.isHost && typeof settings.offset === 'function') {
     offset = { x: 0, y: 0 };
   } else {
@@ -52,5 +55,5 @@ export function attachDefaultDragPreview(
       input: isSourceOffset ? pressInput : input,
     });
   }
-  preview.setPreviewElement(previewElement, offset);
+  preview.setPreviewOffset(offset);
 }

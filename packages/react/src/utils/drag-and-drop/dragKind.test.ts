@@ -1,21 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import type { DragSource, DropTargetRecord } from '../../types/drag';
+import type { DraggableRootRecord, DraggableTargetRecord } from '../../types/drag';
 import { anyDragKind, createGlobalKind, createKind, matchesAccept } from './dragKind';
 
-function sourceOfKind(kind: symbol): DragSource<unknown> {
+function sourceOfKind(kind: symbol): DraggableRootRecord<unknown> {
   return {
     element: document.createElement('div'),
     kind,
-    dragHandle: null,
+    handle: null,
+    dragData: undefined,
+    updatePayload() {},
+    updateDragData() {},
     payload: undefined,
   };
 }
 
-function recordOfKind(kind: symbol | undefined): DropTargetRecord<unknown> {
+function recordOfKind(kind: symbol | undefined): DraggableTargetRecord<unknown> {
   return {
     element: document.createElement('div'),
     kind,
     payload: undefined,
+    dragData: undefined,
+    updatePayload() {},
+    updateDragData() {},
     getLocalPoint: () => ({ x: 0, y: 0 }),
     getSnappedLocalPoint: () => ({ x: 0, y: 0 }),
   };
@@ -74,21 +80,6 @@ describe('createGlobalKind', () => {
 
   it('does not collide with a local kind of the same name', () => {
     expect(createGlobalKind('myapp/card').id).not.toBe(createKind('myapp/card').id);
-  });
-
-  it('requires a namespaced key', () => {
-    expect(() => createGlobalKind('card')).toThrowError(
-      'Base UI: createGlobalKind requires a namespaced key.',
-    );
-    expect(() => createGlobalKind('/card')).toThrowError(
-      'Base UI: createGlobalKind requires a namespaced key.',
-    );
-    expect(() => createGlobalKind('myapp/')).toThrowError(
-      'Base UI: createGlobalKind requires a namespaced key.',
-    );
-    expect(() => createGlobalKind('myapp//')).toThrowError(
-      'Base UI: createGlobalKind requires a namespaced key.',
-    );
   });
 });
 

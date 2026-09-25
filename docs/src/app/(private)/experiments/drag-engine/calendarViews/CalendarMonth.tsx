@@ -12,8 +12,8 @@ import {
   calEventMoveKind,
   calEventResizeKind,
   CalendarEvent,
-  DAY_MS,
-  DayCellDropPayload,
+  addDays,
+  addMonths,
   diffDays,
   formatRange,
   isSameDay,
@@ -92,7 +92,7 @@ function MonthWeekRow(props: { weekStartMs: number; monthStart: number; events: 
     if (!dropPreview) {
       return null;
     }
-    const weekEnd = weekStartMs + 7 * DAY_MS;
+    const weekEnd = addDays(weekStartMs, 7);
     if (dropPreview.start >= weekEnd || dropPreview.end <= weekStartMs) {
       return null;
     }
@@ -105,7 +105,7 @@ function MonthWeekRow(props: { weekStartMs: number; monthStart: number; events: 
   }, [dropPreview, weekStartMs]);
 
   const days = React.useMemo(
-    () => Array.from({ length: 7 }, (_, i) => weekStartMs + i * DAY_MS),
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStartMs, i)),
     [weekStartMs],
   );
 
@@ -155,33 +155,28 @@ function MonthDayCell(props: { dayMs: number; monthStart: number }) {
   const { dayMs, monthStart } = props;
   const { dispatch, dropPreviewRef, setDropPreview, consumeDropPreview, todayMs } =
     useCalendarView();
-  const dayMsRef = useValueAsRef(dayMs);
 
   const today = isSameDay(dayMs, todayMs);
-  const inMonth =
-    startOfDay(dayMs) >= monthStart && startOfDay(dayMs) < startOfMonth(monthStart + 32 * DAY_MS);
+  const inMonth = startOfDay(dayMs) >= monthStart && startOfDay(dayMs) < addMonths(monthStart, 1);
   const dayNum = new Date(dayMs).getDate();
 
   // The cell is both a draggable (for create) and a drop target (for any
   // calendar drag landing on it). The two registrations live on the same
   // element; drag activation falls through to the cell only when the
   // pointerdown didn't land on a child draggable (e.g. an event bar).
+  const createPayload = React.useMemo(() => ({ anchorMs: dayMs, allDay: true }), [dayMs]);
+  const cellPayload = React.useMemo(() => ({ dayMs }), [dayMs]);
   return (
     <Draggable.Root
       kind={calEventCreateKind}
-      payload={{
-        anchorMs: dayMsRef.current,
-        allDay: true,
-      }}
+      payload={createPayload}
       // Month cells accept all calendar drag kinds; `accept` declares them
       // once and the engine filters before any callback fires.
       render={
         <Draggable.Target
           kind={calDayCellKind}
           accept={CAL_DRAG_KINDS}
-          getPayload={(): DayCellDropPayload => ({
-            dayMs: dayMsRef.current,
-          })}
+          payload={cellPayload}
           onDraggableMove={({ source, target }) => {
             const next = resolveDropPreview(source, target);
             if (!next) {
@@ -200,8 +195,8 @@ function MonthDayCell(props: { dayMs: number; monthStart: number }) {
           }}
         />
       }
-      onMoveEnd={(moveEvent, moveDetails) => {
-        if (moveDetails.reason === 'drop' && moveEvent.dropTarget !== null) {
+      onMoveEnd={({ target }) => {
+        if (target !== null) {
           const preview = consumeDropPreview();
           if (preview?.intent !== 'create') {
             return;
@@ -253,24 +248,28 @@ function MonthEventBar(props: { event: CalendarEvent; segment: WeekEventSegment 
 
   const showTime = !event.allDay && inMonth;
 
+  const movePayload = React.useMemo(
+    () => ({
+      eventId: event.id,
+      anchorStart: event.start,
+      anchorEnd: event.end,
+      allDay: event.allDay,
+      // Month view doesn't grab at a sub-day offset: drop targets always
+      // realign the move to the day cell. Using 0 keeps `resolveDropPreview`
+      // consistent without month-specific branching.
+      segmentOffsetMs: 0,
+    }),
+    [event.id, event.start, event.end, event.allDay],
+  );
   return (
     <Draggable.Root
       kind={calEventMoveKind}
       // The day cells form a grid the default navigation already walks; the
       // preset removes the pixel-nudge fallback at the month's edges.
 
-      payload={{
-        eventId: eventRef.current.id,
-        anchorStart: eventRef.current.start,
-        anchorEnd: eventRef.current.end,
-        allDay: eventRef.current.allDay,
-        // Month view doesn't grab at a sub-day offset: drop targets always
-        // realign the move to the day cell. Using 0 keeps `resolveDropPreview`
-        // consistent without month-specific branching.
-        segmentOffsetMs: 0,
-      }}
-      onMoveEnd={(moveEvent, moveDetails) => {
-        if (moveDetails.reason === 'drop' && moveEvent.dropTarget !== null) {
+      payload={movePayload}
+      onMoveEnd={({ target }) => {
+        if (target !== null) {
           const preview = consumeDropPreview();
           if (preview?.intent !== 'move') {
             return;
@@ -321,6 +320,16 @@ function MonthResizeHandle(props: { event: CalendarEvent; edge: 'start' | 'end' 
   const { dispatch, consumeDropPreview } = useCalendarView();
   const eventRef = useValueAsRef(event);
 
+  const resizePayload = React.useMemo(
+    () => ({
+      eventId: event.id,
+      edge,
+      anchorStart: event.start,
+      anchorEnd: event.end,
+      allDay: event.allDay,
+    }),
+    [event.id, edge, event.start, event.end, event.allDay],
+  );
   return (
     <Draggable.Root
       render={<span />}
@@ -328,15 +337,9 @@ function MonthResizeHandle(props: { event: CalendarEvent; edge: 'start' | 'end' 
       // The handle is `aria-hidden`; without this it would still get
       // `tabIndex={0}` — focusable but invisible to screen readers.
 
-      payload={{
-        eventId: eventRef.current.id,
-        edge,
-        anchorStart: eventRef.current.start,
-        anchorEnd: eventRef.current.end,
-        allDay: eventRef.current.allDay,
-      }}
-      onMoveEnd={(moveEvent, moveDetails) => {
-        if (moveDetails.reason === 'drop' && moveEvent.dropTarget !== null) {
+      payload={resizePayload}
+      onMoveEnd={({ target }) => {
+        if (target !== null) {
           const preview = consumeDropPreview();
           if (preview?.intent !== 'resize') {
             return;

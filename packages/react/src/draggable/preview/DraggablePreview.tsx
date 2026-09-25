@@ -3,7 +3,15 @@ import * as React from 'react';
 import { warn } from '@base-ui/utils/warn';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import type { BaseUIComponentProps } from '../../internals/types';
-import type { DragKind, DragPreviewSettings, DragPreviewRenderEvent } from '../../types/drag';
+import type {
+  DraggableKind,
+  DraggablePreviewSettings,
+  DraggablePreviewRenderParameters,
+  DraggablePreviewOffset,
+  DraggablePreviewOffsetParameters,
+  DraggablePreviewContainer,
+  DraggablePreviewParameters,
+} from '../../types/drag';
 import { DraggablePreviewElement } from './DraggablePreviewElement';
 import { useDeclaredPreview } from './useDeclaredPreview';
 import {
@@ -12,20 +20,19 @@ import {
 } from '../../utils/drag-and-drop/synthetic/cloneDragPreview';
 
 /**
- * Customizes what follows the pointer while the draggable is dragged.
- * Omit children, or pass null or false, to configure the default clone of the source.
- * Renders a `<div>` beside the source in the DOM by default, and nothing where the
- * component is written. Receives React context from above the nearest `Draggable.Provider`.
- * Place the provider inside any contexts the preview needs.
+ * Configures what follows the pointer during a drag.
+ * Without children, it configures the default clone of the source and renders nothing.
+ * With children, it renders them in a `<div>` element inserted beside the source
+ * while dragging. That element reads React context from above the nearest `<Draggable.Provider>`.
  *
  * Documentation: [Base UI Draggable](https://base-ui.com/react/utils/draggable)
  */
-export function DraggablePreview<TPayload>(
-  props: DraggablePreviewTypedProps<TPayload>,
+export function DraggablePreview<TPayload, TDragData = unknown>(
+  props: DraggablePreviewTypedProps<TPayload, TDragData>,
 ): React.ReactNode;
 export function DraggablePreview(props: DraggablePreviewProps): React.ReactNode;
-export function DraggablePreview<TPayload = unknown>(
-  props: DraggablePreviewProps | DraggablePreviewTypedProps<TPayload>,
+export function DraggablePreview<TPayload = unknown, TDragData = unknown>(
+  props: DraggablePreviewProps | DraggablePreviewTypedProps<TPayload, TDragData>,
 ): React.ReactNode {
   const getProps = useStableCallback(() => props);
   const useClone = props.children == null || props.children === false;
@@ -44,28 +51,30 @@ export function DraggablePreview<TPayload = unknown>(
   }, [useClone, props.className, props.style, props.render]);
 
   // Resolved per drag, not per render.
-  const render = useStableCallback((parameters: DragPreviewRenderEvent<TPayload>) => {
-    // The settings belong to the engine, which reads them off the declaration;
-    // everything else belongs to the rendered element.
-    const { children, kind, offset, modifiers, disabled, container, ...componentProps } =
-      getProps();
-    // A typed preview must never call its render function with a payload of a
-    // different kind. This can happen only when the part is composed under the
-    // wrong root; decline the preview for that drag rather than violating the
-    // callback's public type.
-    if (kind !== undefined && !kind.matches(parameters.source)) {
-      return null;
-    }
-    const resolved = typeof children === 'function' ? children(parameters) : children;
-    // Declining the preview has to reach the engine as-is: it tears the host it
-    // already built back down, which rendering an empty element would not.
-    if (resolved == null || resolved === false) {
-      return resolved;
-    }
-    return <DraggablePreviewElement componentProps={{ ...componentProps, children: resolved }} />;
-  });
+  const render = useStableCallback(
+    (parameters: DraggablePreviewRenderParameters<TPayload, TDragData>) => {
+      // The settings belong to the engine, which reads them off the declaration;
+      // everything else belongs to the rendered element.
+      const { children, kind, offset, modifiers, disabled, container, ...componentProps } =
+        getProps();
+      // A typed preview must never call its render function with a payload of a
+      // different kind. This can happen only when the part is composed under the
+      // wrong root; decline the preview for that drag rather than violating the
+      // callback's public type.
+      if (kind !== undefined && !kind.matches(parameters.source)) {
+        return null;
+      }
+      const resolved = typeof children === 'function' ? children(parameters) : children;
+      // Declining the preview has to reach the engine as-is: it tears the host it
+      // already built back down, which rendering an empty element would not.
+      if (resolved == null || resolved === false) {
+        return resolved;
+      }
+      return <DraggablePreviewElement componentProps={{ ...componentProps, children: resolved }} />;
+    },
+  );
 
-  useDeclaredPreview<TPayload>(
+  useDeclaredPreview<TPayload, TDragData>(
     getProps,
     useClone ? null : render,
     useClone ? createClonedDragPreviewElement : createDragPreviewHostElement,
@@ -86,45 +95,72 @@ export interface DraggablePreviewProps
       // so there is no node for a ref to point at when this component renders.
       'children' | 'ref'
     >,
-    DragPreviewSettings {
+    DraggablePreviewSettings {
   /**
-   * Whether to hide the preview. The drag continues while no preview is shown.
+   * Whether to show no preview. The drag still runs.
    * @default false
    */
   disabled?: boolean | undefined;
   /**
-   * The preview content. Omit it, or pass null or false, to clone the source.
-   * A render function returning null or false hides the preview. Pass a function
-   * to build it from the drag payload, resolved once at drag start.
-   * Its payload is `unknown` until a `kind` is
-   * supplied through {@link DraggablePreviewTypedProps}.
+   * The preview content. Omit it to clone the source instead.
+   * Pass a function to build the content from the drag source when the drag starts.
+   * It can return `null` to show no preview for that drag. Its `source.payload` is
+   * `unknown` unless a `kind` is passed.
    */
   children?:
-    React.ReactNode | ((parameters: DragPreviewRenderEvent) => React.ReactNode) | undefined;
-  /** Omitted on an untyped preview. */
+    | React.ReactNode
+    | ((parameters: DraggablePreviewRenderParameters) => React.ReactNode)
+    | undefined;
+  /** Omitted when the preview content doesn't depend on the payload. */
   kind?: undefined;
 }
 
 /**
- * Props for a payload-aware preview. `kind` both types the render callback and
- * checks the active source before that callback runs.
+ * Props for a preview whose content depends on the payload.
  */
-export type DraggablePreviewTypedProps<TPayload> = Omit<
+type DraggablePreviewTypedProps<TPayload, TDragData = unknown> = Omit<
   DraggablePreviewProps,
   'children' | 'kind'
 > & {
-  /** The source kind whose payload the render callback accepts. */
-  kind: DragKind<TPayload>;
-  /** Preview content, resolved once at drag start with the kind's payload type. */
+  /**
+   * The kind of the dragged item, which types `source.payload` in the render function.
+   * Drags of other kinds show no preview.
+   */
+  kind: DraggableKind<TPayload, TDragData>;
+  /**
+   * The preview content. Pass a function to build the content from the drag source
+   * when the drag starts. It can return `null` to show no preview for that drag.
+   */
   children?:
     | React.ReactNode
-    | ((parameters: DragPreviewRenderEvent<TPayload>) => React.ReactNode)
+    | ((parameters: DraggablePreviewRenderParameters<TPayload, TDragData>) => React.ReactNode)
     | undefined;
 };
 
+export type {
+  DraggablePreviewRenderParameters,
+  DraggablePreviewOffset,
+  DraggablePreviewOffsetParameters,
+  DraggablePreviewContainer,
+  DraggablePreviewSettings,
+  DraggablePreviewParameters,
+} from '../../types/drag';
+
 export namespace DraggablePreview {
+  export type Offset = DraggablePreviewOffset;
+  export type OffsetParameters = DraggablePreviewOffsetParameters;
+  export type Container = DraggablePreviewContainer;
+  export type Settings = DraggablePreviewSettings;
+  export type Parameters<
+    TSourcePayload = unknown,
+    TDragData = unknown,
+  > = DraggablePreviewParameters<TSourcePayload, TDragData>;
+  export type RenderParameters<
+    TPayload = unknown,
+    TDragData = unknown,
+  > = DraggablePreviewRenderParameters<TPayload, TDragData>;
   export type State = DraggablePreviewState;
-  export type Props<TPayload = unknown> = unknown extends TPayload
+  export type Props<TPayload = unknown, TDragData = unknown> = unknown extends TPayload
     ? DraggablePreviewProps
-    : DraggablePreviewTypedProps<TPayload>;
+    : DraggablePreviewTypedProps<TPayload, TDragData>;
 }

@@ -44,7 +44,7 @@ describe('Draggable.Target', () => {
     }
     const { engine, rerender } = await renderDnd(<Swappable swapped={false} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const first = screen.getByTestId('a');
     fireEvent.dragStart(source);
     fireEvent.dragEnter(first);
@@ -128,7 +128,7 @@ describe('Draggable.Target', () => {
           calls.push('canDrop');
           return true;
         }}
-        getPayload={() => ({ id: 'slot-1' })}
+        payload={{ id: 'slot-1' }}
         snap={() => {
           calls.push('snap');
           return { y: 4 };
@@ -149,7 +149,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, { kind: cardKind, payload: { id: 'a' } });
+    engine.registerSource(source, { kind: cardKind, payload: { id: 'a' } });
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -203,7 +203,7 @@ describe('Draggable.Target', () => {
     const nestedSource = screen.getByTestId('nested-source') as HTMLElement;
     wrapper.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
     nestedSource.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
-    engine.registerDraggable(nestedSource, {
+    engine.registerSource(nestedSource, {
       kind: cardKind,
       payload: { id: 'a' },
       activation: { touch: { type: 'immediate' } },
@@ -219,11 +219,49 @@ describe('Draggable.Target', () => {
     await flushRaf();
 
     expect(nestedStart).toHaveBeenCalledTimes(1);
-    const payload = nestedStart.mock.calls[0][0];
-    expect(payload.source.element).toBe(nestedSource);
-    expect(payload.target.element).toBe(wrapper);
+    const value = nestedStart.mock.calls[0][0];
+    expect(value.source.element).toBe(nestedSource);
+    expect(value.target.element).toBe(wrapper);
     // The unrelated target was never in the stack, so it saw nothing.
     expect(outsideStart).not.toHaveBeenCalled();
+
+    touchUp(10, 10);
+  });
+
+  it('reports the target under the pickup point as `target` to the source and monitor onMoveStart', async () => {
+    const { engine } = await renderDnd(
+      <Draggable.Target accept={Draggable.anyKind} data-testid="pickup-target">
+        <div data-testid="pickup-source" />
+      </Draggable.Target>,
+    );
+
+    const wrapper = screen.getByTestId('pickup-target');
+    const nestedSource = screen.getByTestId('pickup-source') as HTMLElement;
+    wrapper.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
+    nestedSource.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
+    const sourceStart = vi.fn();
+    const monitorStart = vi.fn();
+    engine.registerSource(nestedSource, {
+      kind: cardKind,
+      payload: { id: 'a' },
+      activation: { touch: { type: 'immediate' } },
+      onMoveStart: sourceStart,
+    });
+    engine.registerMonitor({ onMoveStart: monitorStart });
+
+    // Raw pointer events: the bridge starts every drag with nothing under the pointer.
+    const hitTest = vi.spyOn(document, 'elementFromPoint').mockReturnValue(nestedSource);
+    registerCleanup(() => hitTest.mockRestore());
+
+    touchDown(nestedSource, 10, 10);
+    await flushRaf();
+
+    expect(sourceStart).toHaveBeenCalledTimes(1);
+    const [sourceValue, sourceDetails] = sourceStart.mock.calls[0];
+    expect(sourceValue.target?.element).toBe(wrapper);
+    expect(sourceValue.target).toBe(sourceDetails.location.current.targets[0]);
+    expect(monitorStart).toHaveBeenCalledTimes(1);
+    expect(monitorStart.mock.calls[0][0].target?.element).toBe(wrapper);
 
     touchUp(10, 10);
   });
@@ -244,7 +282,7 @@ describe('Draggable.Target', () => {
       </React.StrictMode>,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -299,18 +337,18 @@ describe('Draggable.Target', () => {
           key={swapped ? 'after' : 'before'}
           data-testid="target"
           payload={{ id: swapped ? 'after' : 'before' }}
-          onDraggableEnter={(event) => {
-            log.push(`enter:${(event.target.payload as any).id}`);
-            (swapped ? enterAfter : enterBefore)(event);
+          onDraggableEnter={(value) => {
+            log.push(`enter:${(value.target.payload as any).id}`);
+            (swapped ? enterAfter : enterBefore)(value);
           }}
-          onDraggableLeave={(event) => log.push(`leave:${(event.target.payload as any).id}`)}
+          onDraggableLeave={(value) => log.push(`leave:${(value.target.payload as any).id}`)}
         />
       );
     }
 
     const { rerender, engine } = await renderDnd(<Fixture swapped={false} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const first = screen.getByTestId('target');
     first.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -342,9 +380,9 @@ describe('Draggable.Target', () => {
     expect(second).not.toBe(first);
     // The next event reads the new render's params, not the previous ones.
     expect(enterAfter).toHaveBeenCalledTimes(1);
-    const event = enterAfter.mock.calls[0][0];
-    expect(event.target.element).toBe(second);
-    expect(event.target.payload).toEqual({ id: 'after' });
+    const value = enterAfter.mock.calls[0][0];
+    expect(value.target.element).toBe(second);
+    expect(value.target.payload).toEqual({ id: 'after' });
     // The old node is unmounted garbage — React never updates a detached node's
     // attributes, so only its disconnection is assertable.
     expect(first.isConnected).toBe(false);
@@ -367,7 +405,7 @@ describe('Draggable.Target', () => {
     }
     const { rerender, engine } = await renderDnd(<Fixture mounted />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     engine.registerMonitor({ onMoveEnd });
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
@@ -387,7 +425,7 @@ describe('Draggable.Target', () => {
     expect(onDrop).not.toHaveBeenCalled();
     expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onMoveEnd.mock.calls[0][1].reason).toBe('outside-release');
-    expect(onMoveEnd.mock.calls[0][0].dropTarget).toBeNull();
+    expect(onMoveEnd.mock.calls[0][0].target).toBeNull();
   });
 
   it('fires consumer callbacks with stable references across re-renders', async () => {
@@ -401,7 +439,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -463,7 +501,7 @@ describe('Draggable.Target', () => {
 
     const { engine } = await renderDnd(<App />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -493,7 +531,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -520,11 +558,11 @@ describe('Draggable.Target', () => {
     // still be in the stack once the tick flushes.
     const { engine } = await renderDnd();
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const outer = createElement();
     const inner = document.createElement('div');
     outer.appendChild(inner);
-    engine.registerDropTarget(outer, {});
+    engine.registerTarget(outer, {});
 
     fireEvent.dragStart(source);
     await flushRaf();
@@ -533,13 +571,13 @@ describe('Draggable.Target', () => {
     await flushRaf();
 
     // Only the outer target is registered so far.
-    expect(dragSessionStore.getSnapshot()?.location.current.dropTargets[0]?.element).toBe(outer);
+    expect(dragSessionStore.getSnapshot()?.location.current.targets[0]?.element).toBe(outer);
 
     // The inner target registers mid-drag, under the pointer.
-    engine.registerDropTarget(inner, {});
+    engine.registerTarget(inner, {});
     await flushRaf();
 
-    expect(dragSessionStore.getSnapshot()?.location.current.dropTargets[0]?.element).toBe(inner);
+    expect(dragSessionStore.getSnapshot()?.location.current.targets[0]?.element).toBe(inner);
 
     fireEvent.drop(inner);
   });
@@ -555,7 +593,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -595,7 +633,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -632,7 +670,7 @@ describe('Draggable.Target', () => {
 
     const { rerender, engine } = await renderDnd(<Fixture />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -688,7 +726,7 @@ describe('Draggable.Target', () => {
 
     const { rerender, engine } = await renderDnd(<Fixture accepted="both" />);
     const source = createElement();
-    engine.registerDraggable(source, { kind: cardKind });
+    engine.registerSource(source, { kind: cardKind });
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -732,7 +770,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, { kind: columnKind });
+    engine.registerSource(source, { kind: columnKind });
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -755,7 +793,7 @@ describe('Draggable.Target', () => {
       </Draggable.Target>,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const outer = screen.getByTestId('outer');
     const inner = screen.getByTestId('inner');
     outer.getBoundingClientRect = () => new DOMRect(0, 0, 200, 200);
@@ -810,7 +848,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -848,7 +886,7 @@ describe('Draggable.Target', () => {
       <Draggable.Target accept={Draggable.anyKind} data-testid="target" />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -881,7 +919,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -929,7 +967,7 @@ describe('Draggable.Target', () => {
 
     const { rerender, engine } = await renderDnd(<Fixture allowed />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -966,7 +1004,7 @@ describe('Draggable.Target', () => {
     }
     const { rerender, engine } = await renderDnd(<Fixture allowed />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('active');
     fireEvent.dragStart(source);
     await flushRaf();
@@ -999,7 +1037,7 @@ describe('Draggable.Target', () => {
 
     const { rerender, engine } = await renderDnd(<Fixture revision={0} />);
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target-0');
 
     fireEvent.dragStart(source);
@@ -1024,7 +1062,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1063,7 +1101,7 @@ describe('Draggable.Target', () => {
       </React.Fragment>,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const tracked = screen.getByTestId('tracked');
     const untracked = screen.getByTestId('untracked');
     tracked.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
@@ -1101,7 +1139,7 @@ describe('Draggable.Target', () => {
       </React.Fragment>,
     );
     const source = createElement();
-    engine.registerDraggable(source, { kind: cardKind });
+    engine.registerSource(source, { kind: cardKind });
     const acceptingBefore = acceptingRenders.mock.calls.length;
     const rejectingBefore = rejectingRenders.mock.calls.length;
 
@@ -1135,7 +1173,7 @@ describe('Draggable.Target', () => {
       </React.Fragment>,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const hovered = screen.getByTestId('hovered');
     hovered.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1162,7 +1200,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const rendersBeforeDrag = className.mock.calls.length;
 
     fireEvent.dragStart(source);
@@ -1182,7 +1220,7 @@ describe('Draggable.Target', () => {
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1205,14 +1243,14 @@ describe('Draggable.Target', () => {
       <Draggable.Target
         accept={Draggable.anyKind}
         data-testid="target"
-        getPayload={() => ({ id: 'slot-1' })}
+        payload={{ id: 'slot-1' }}
         onDraggableDrop={({ target }) => {
           observed = target.payload.id;
         }}
       />,
     );
     const source = createElement();
-    engine.registerDraggable(source, {});
+    engine.registerSource(source, {});
     const target = screen.getByTestId('target');
     target.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 
@@ -1254,7 +1292,7 @@ describe('Draggable.Target', () => {
         />,
       );
       const source = createElement();
-      engine.registerDraggable(source, { kind: cardKind, payload: { id: 'a' } });
+      engine.registerSource(source, { kind: cardKind, payload: { id: 'a' } });
       const item = screen.getByTestId('item');
       item.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
 

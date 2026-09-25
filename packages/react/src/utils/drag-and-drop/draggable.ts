@@ -1,19 +1,24 @@
 import type {
   DragCleanupFn,
-  DragHandle,
-  DragKind,
-  MoveStartContext,
+  DraggableHandleReference,
+  DraggableKind,
   DraggablePayload,
-  DraggablePayloadGetter,
-  DragPreviewParameters,
-  BeforeMoveStartEventDetails,
-  DraggableEventDetailsMap,
-  DraggableEventMap,
-  DragPreviewRenderEvent,
-  DragModifiers,
+  DraggablePreviewRenderParameters,
+  DraggableRootBeforeMoveStartEventDetails,
+  DraggableRootBeforeMoveStartValue,
+  DraggableRootMoveEndEventDetails,
+  DraggableRootMoveEndValue,
+  DraggableRootMoveEventDetails,
+  DraggableRootMoveStartEventDetails,
+  DraggableRootMoveStartValue,
+  DraggableRootMoveValue,
+  DraggableRootTargetChangeEventDetails,
+  DraggableRootTargetChangeValue,
+  DraggableRootModifiers,
+  DraggablePreviewParameters,
 } from '../../types/drag';
 import type { DragPreviewDeclaration } from './dragPreviewDeclaration';
-import type { DragActivationConfig } from './activation';
+import type { DraggableRootActivationConfig } from './activation';
 import { bindPointerListeners, unbindPointerListeners } from './synthetic/syntheticSensor';
 import { getRegistration } from './draggableRegistry';
 import { getSharedSlot } from './sharedState';
@@ -30,9 +35,17 @@ const gestureSetups = getSharedSlot<WeakMap<Element, GestureSetupEntry>>(
   () => new WeakMap<Element, GestureSetupEntry>(),
 );
 
+/** The inline styles that make an element pick up pointer gestures instead of the browser. */
+const GESTURE_STYLES = [
+  { property: 'touchAction', cssName: 'touch-action', value: 'manipulation' },
+  { property: 'userSelect', cssName: 'user-select', value: 'none' },
+  { property: 'webkitUserSelect', cssName: '-webkit-user-select', value: 'none' },
+  { property: 'webkitTouchCallout', cssName: '-webkit-touch-callout', value: 'none' },
+] as const;
+
 interface DraggableStaticSetupParameters {
   element: HTMLElement;
-  dragHandle?: DragHandle | undefined;
+  handle?: DraggableHandleReference | undefined;
   disabled?: boolean | undefined;
 }
 
@@ -51,57 +64,29 @@ function applyGestureSetup(
   let entry = gestureSetups.get(gestureElement);
   if (!entry) {
     const gestureStyle = gestureElement.style as CSSStyleDeclaration & Record<string, string>;
-    // Some CSS properties are unavailable in jsdom or other browser engines.
-    // Restore those to an empty string instead of assigning undefined.
-    const previous = {
-      touchAction: gestureStyle.touchAction ?? '',
-      userSelect: gestureStyle.userSelect ?? '',
-      webkitUserSelect: gestureStyle.webkitUserSelect ?? '',
-      webkitTouchCallout: gestureStyle.webkitTouchCallout ?? '',
-    };
-    const priorities = {
-      touchAction: gestureStyle.getPropertyPriority('touch-action'),
-      userSelect: gestureStyle.getPropertyPriority('user-select'),
-      webkitUserSelect: gestureStyle.getPropertyPriority('-webkit-user-select'),
-      webkitTouchCallout: gestureStyle.getPropertyPriority('-webkit-touch-callout'),
-    };
-    gestureStyle.touchAction = 'manipulation';
-    gestureStyle.userSelect = 'none';
-    gestureStyle.webkitUserSelect = 'none';
-    gestureStyle.webkitTouchCallout = 'none';
+    // Read every previous value before writing any: `userSelect` and
+    // `webkitUserSelect` alias each other in some engines. Some properties are
+    // unavailable in jsdom or other engines; restore those to an empty string
+    // instead of assigning undefined.
+    const saved = GESTURE_STYLES.map((declaration) => ({
+      ...declaration,
+      previous: gestureStyle[declaration.property] ?? '',
+      priority: gestureStyle.getPropertyPriority(declaration.cssName),
+    }));
+    for (const { property, value } of saved) {
+      gestureStyle[property] = value;
+    }
     entry = {
       count: 0,
       restore() {
-        if (gestureStyle.touchAction === 'manipulation') {
-          gestureStyle.touchAction = previous.touchAction;
-          if (priorities.touchAction) {
-            gestureStyle.setProperty('touch-action', previous.touchAction, priorities.touchAction);
+        for (const { property, cssName, value, previous, priority } of saved) {
+          // Left alone when a consumer wrote something else since.
+          if (gestureStyle[property] !== value) {
+            continue;
           }
-        }
-        if (gestureStyle.userSelect === 'none') {
-          gestureStyle.userSelect = previous.userSelect;
-          if (priorities.userSelect) {
-            gestureStyle.setProperty('user-select', previous.userSelect, priorities.userSelect);
-          }
-        }
-        if (gestureStyle.webkitUserSelect === 'none') {
-          gestureStyle.webkitUserSelect = previous.webkitUserSelect;
-          if (priorities.webkitUserSelect) {
-            gestureStyle.setProperty(
-              '-webkit-user-select',
-              previous.webkitUserSelect,
-              priorities.webkitUserSelect,
-            );
-          }
-        }
-        if (gestureStyle.webkitTouchCallout === 'none') {
-          gestureStyle.webkitTouchCallout = previous.webkitTouchCallout;
-          if (priorities.webkitTouchCallout) {
-            gestureStyle.setProperty(
-              '-webkit-touch-callout',
-              previous.webkitTouchCallout,
-              priorities.webkitTouchCallout,
-            );
+          gestureStyle[property] = previous;
+          if (priority) {
+            gestureStyle.setProperty(cssName, previous, priority);
           }
         }
       },
@@ -132,9 +117,11 @@ export function applyDraggableStaticSetup(
   parameters: DraggableStaticSetupParameters,
 ): DragCleanupFn {
   const { element } = parameters;
+  /** The node the gesture styles land on: the handle when there is one, else the element. */
+  const resolveGestureElement = (dragHandle: DraggableHandleReference | undefined): HTMLElement =>
+    (resolveElementReference(dragHandle, undefined) as HTMLElement | null) ?? element;
   let appliedDisabled = Boolean(parameters.disabled);
-  let appliedElement =
-    (resolveElementReference(parameters.dragHandle, undefined) as HTMLElement | null) ?? element;
+  let appliedElement = resolveGestureElement(parameters.handle);
   let releaseSetup = applyGestureSetup(appliedElement, parameters.disabled);
 
   const refreshFromRegistration = () => {
@@ -144,8 +131,7 @@ export function applyDraggableStaticSetup(
     }
     const latest = getParameters();
     const nextDisabled = Boolean(latest.disabled);
-    const nextElement =
-      (resolveElementReference(latest.dragHandle, undefined) as HTMLElement | null) ?? element;
+    const nextElement = resolveGestureElement(latest.handle);
     if (nextDisabled === appliedDisabled && nextElement === appliedElement) {
       return;
     }
@@ -172,96 +158,90 @@ export function bindDraggableSensors(element: Element): DragCleanupFn {
   });
 }
 
-export type DraggableConfig<TPayload = undefined> = {
+export type DraggableConfig<TPayload = undefined, TDragData = unknown> = {
   element: HTMLElement;
   /** CSP nonce for the drag cursor stylesheet, wired by the React layer. @internal */
   styleNonce?: string | undefined;
   /** Whether the React layer has disabled runtime style elements. @internal */
   disableStyleElements?: boolean | undefined;
   /**
-   * The payload to attach to this drag, surfaced as `source.payload` on every
-   * drag-and-drop event. Functions are preserved as ordinary payload values.
+   * The data attached to this item, available as `source.payload` in every drag
+   * event and drop target handler.
    */
-  // Optional here so the conditional requirement lives in one place: `Draggable.Root`
-  // and `registerDraggable` re-impose it through an overload, which also keeps a
-  // wrapper spreading their `Props` from hitting a deferred conditional.
+  // Optional here so the requirement lives at the public boundaries:
+  // `Draggable.Root.Props` re-imposes it with a conditional type, and
+  // `registerSource` with an overload.
   payload?: DraggablePayload<TPayload> | undefined;
   /**
-   * Resolves the payload attached to this drag at drag start. Use this instead of
-   * `payload` when the value depends on the pickup gesture.
-   */
-  getPayload?: DraggablePayloadGetter<TPayload> | undefined;
-  /**
-   * Stable identity used to reconnect a settling cloned preview to this source
-   * after it remounts. Use the same key for the same logical item across the move.
-   * Static payload identity is used as a fallback when it is referentially stable.
+   * A stable key that lets the settling preview find this item again after it remounts,
+   * for example when a virtualized or reordered list recreates it.
+   * Use the same key for the same item.
    */
   previewKey?: string | number | undefined;
   /**
-   * The drag kind created with `Draggable.createKind`. Drop targets and monitors
-   * list accepted kinds in `accept`. The kind determines the type of `payload` and
-   * `source.payload`.
+   * The kind of this item, created with `Draggable.createKind`. Drop targets and
+   * monitors list the kinds they accept in `accept`. It determines the type of `payload`.
    */
-  kind: DragKind<TPayload>;
+  kind: DraggableKind<TPayload, TDragData>;
   /**
-   * Restricts drag initiation to a specific child element, ref, or resolver.
-   * The handle should be available when the draggable is registered so it receives
-   * the gesture styles.
+   * The element that must be pressed to start a drag. Accepts an element, a ref,
+   * or a function returning one. It should exist when the item is registered.
    *
-   * For sources registered imperatively. A draggable component restricts pickup
-   * by rendering a `Draggable.Handle` instead.
+   * For sources registered with `registerSource`. `<Draggable.Root>` uses
+   * `<Draggable.Handle>` instead.
    */
-  dragHandle?: DragHandle | undefined;
+  handle?: DraggableHandleReference | undefined;
   /**
-   * Whether to disable dragging. Pointer presses keep their native behavior.
-   * Use `onBeforeMoveStart` instead when the decision depends on the gesture.
+   * Whether dragging is disabled. Pointer presses keep their normal behavior.
+   * Use `onBeforeMoveStart` when the decision depends on the gesture.
    * @default false
    */
   disabled?: boolean | undefined;
   /**
-   * Event handler called when a drag is about to start, once the activation condition
-   * is met and before the preview is built and `getPayload` runs.
-   * Call `eventDetails.cancel()` to prevent the drag from starting.
+   * Event handler called just before a drag starts, once the activation threshold is met.
+   * Call `eventDetails.cancel()` to prevent the drag.
    */
   onBeforeMoveStart?:
-    ((context: MoveStartContext, eventDetails: BeforeMoveStartEventDetails) => void) | undefined;
+    | ((
+        value: DraggableRootBeforeMoveStartValue<NoInfer<TPayload>, NoInfer<TDragData>>,
+        eventDetails: DraggableRootBeforeMoveStartEventDetails,
+      ) => void)
+    | undefined;
   /**
-   * Determines when a pointer press starts a drag. Mouse and pen use a 5px distance
-   * by default. Touch uses a 250ms press and hold. Pass one `DragActivation` for
-   * every pointer type or a map with per-type values. An array allows any of its
-   * activation methods. Double-click pickup follows the mouse until the next click;
-   * on touch and pen, the second tap of a double-tap picks up and the release drops.
+   * Determines when a pointer press starts a drag. Accepts one activation method for
+   * every pointer type, a map with a method per pointer type, or an array to allow
+   * several methods. By default, mouse and pen start after 5px of movement, and touch
+   * after a 250ms hold. Set a pointer entry to `false` to disable pickup for that
+   * pointer type, overriding all methods in an array.
    */
-  activation?: DragActivationConfig | readonly DragActivationConfig[] | undefined;
+  activation?: DraggableRootActivationConfig | readonly DraggableRootActivationConfig[] | undefined;
   /**
-   * Constrains pointer movement with one modifier or an array applied
-   * in order. See [DragModifier](https://base-ui.com/react/utils/draggable#dragmodifier) and the exported modifier presets.
+   * One or more modifiers that constrain the drag, applied in order.
+   * They affect both the preview and the drop position.
+   * See [Constraining movement](https://base-ui.com/react/utils/draggable#constraining-movement).
    */
-  modifiers?: DragModifiers | undefined;
+  modifiers?: DraggableRootModifiers | undefined;
   /**
-   * CSS cursor applied across the document during a pointer drag. The drag preview
-   * has `pointer-events: none`, so otherwise the cursor would depend on the element
-   * under the pointer. Touch drags ignore this value.
+   * The CSS cursor shown across the document during a mouse or pen drag.
    * Pass `false` to manage the cursor yourself.
    * @default 'grabbing'
    */
   dragCursor?: string | false | undefined;
   /**
-   * The content and DOM container of the drag preview.
-   * Omit it to use a clone of the source. The clone preserves classes
-   * and live element state, but rewrites IDs to keep the document unique.
+   * The drag preview of this item. Omit it to use a clone of the source.
    *
-   * For sources registered imperatively. A draggable that renders a preview part
-   * describes its preview there instead.
+   * For sources registered with `registerSource`. `<Draggable.Root>` uses
+   * `<Draggable.Preview>` instead.
    */
-  dragPreview?: DragPreviewParameters<NoInfer<TPayload>> | undefined;
+  preview?: DraggablePreviewParameters<NoInfer<TPayload>, NoInfer<TDragData>> | undefined;
   /**
    * The preview part declared for this draggable, if any. Wired by the React layer;
    * the engine reads it once at drag start, before React can run, to decide between
    * cloning the source and building a host for custom content.
    * @internal
    */
-  getDragPreviewDeclaration?: (() => DragPreviewDeclaration<NoInfer<TPayload>> | null) | undefined;
+  getDragPreviewDeclaration?:
+    (() => DragPreviewDeclaration<NoInfer<TPayload>, NoInfer<TDragData>> | null) | undefined;
   /**
    * Event handler called once at the start of a drag, before `onMoveStart`,
    * while the preview is being built. The React layer installs its preview
@@ -269,52 +249,54 @@ export type DraggableConfig<TPayload = undefined> = {
    * @internal
    */
   onGenerateDragPreview?:
-    ((parameters: DragPreviewRenderEvent<NoInfer<TPayload>>) => void) | undefined;
+    | ((
+        parameters: DraggablePreviewRenderParameters<NoInfer<TPayload>, NoInfer<TDragData>>,
+      ) => void)
+    | undefined;
   /**
-   * Event handler called once, synchronously when the drag starts. The drag preview
-   * has already been resolved by then, so it is safe to measure or restyle the
-   * source from here.
+   * Event handler called once when the drag starts. The preview exists by then,
+   * so the source can be measured or restyled safely.
    */
   onMoveStart?:
     | ((
-        parameters: DraggableEventMap<NoInfer<TPayload>>['onMoveStart'],
-        eventDetails: DraggableEventDetailsMap['onMoveStart'],
+        value: DraggableRootMoveStartValue<NoInfer<TPayload>, NoInfer<TDragData>>,
+        eventDetails: DraggableRootMoveStartEventDetails,
       ) => void)
     | undefined;
   /**
-   * Event handler called as the pointer moves or a modifier key changes, limited
-   * to one call per animation frame. Drop target stack changes do not call this handler.
-   * Use the drop target's `onDraggableMove` for hover behavior.
+   * Event handler called as the pointer moves or a modifier key changes,
+   * at most once per animation frame. Use a drop target's `onDraggableMove`
+   * for hover feedback.
    */
   onMove?:
     | ((
-        parameters: DraggableEventMap<NoInfer<TPayload>>['onMove'],
-        eventDetails: DraggableEventDetailsMap['onMove'],
+        value: DraggableRootMoveValue<NoInfer<TPayload>, NoInfer<TDragData>>,
+        eventDetails: DraggableRootMoveEventDetails,
       ) => void)
     | undefined;
   /**
-   * Event handler called when the active drop targets change,
-   * because one was entered or left.
+   * Event handler called when the drop targets under the pointer change, including when
+   * the drag ends. Cancel-specific cleanup belongs in `onMoveEnd`, whose
+   * `eventDetails.canceled` flags a cancel.
    */
   onTargetChange?:
     | ((
-        parameters: DraggableEventMap<NoInfer<TPayload>>['onTargetChange'],
-        eventDetails: DraggableEventDetailsMap['onTargetChange'],
+        value: DraggableRootTargetChangeValue<NoInfer<TPayload>, NoInfer<TDragData>>,
+        eventDetails: DraggableRootTargetChangeEventDetails,
       ) => void)
     | undefined;
   /**
-   * Event handler called once when the drag ends after a drop, outside release, or
-   * cancellation. Commit changes when `eventDetails.reason` is `'drop'`. Use
-   * `try/finally` when cleanup must run even if committing throws or returns early.
+   * Event handler called once when the drag ends, after a drop, a release outside any
+   * target, or a cancellation. `target` is the target that received the drop, or `null`.
+   * `eventDetails.canceled` tells a cancel from a release, and `eventDetails.reason` says
+   * exactly why the drag ended.
    *
-   * A drag canceled during pickup, by a `cancelDrag()` from a target's `canDrop` or
-   * `getPayload` on the initial stack or while the preview is generated, fires this
-   * with `canceled: true` and no preceding `onMoveStart`.
+   * A drag canceled during pickup fires this handler without a preceding `onMoveStart`.
    */
   onMoveEnd?:
     | ((
-        parameters: DraggableEventMap<NoInfer<TPayload>>['onMoveEnd'],
-        eventDetails: DraggableEventDetailsMap['onMoveEnd'],
+        value: DraggableRootMoveEndValue<NoInfer<TPayload>, NoInfer<TDragData>>,
+        eventDetails: DraggableRootMoveEndEventDetails,
       ) => void)
     | undefined;
 };

@@ -26,14 +26,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.Controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-
 .Grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -96,6 +88,15 @@
     border-color: white;
     background-color: oklch(14.5% 0 0deg);
     color: white;
+  }
+
+  &:focus-visible {
+    outline: 2px solid oklch(14.5% 0 0deg);
+    outline-offset: -1px;
+
+    @media (prefers-color-scheme: dark) {
+      outline-color: white;
+    }
   }
 
   &[data-dragging] {

@@ -4,7 +4,7 @@
  * Deliberately their own module, separate from `DragEngineImpl`: a drop target,
  * a monitor or an auto-scroller needs none of the engine's preview wiring or
  * draggable static setup. Importing them from
- * here keeps `Draggable.Target`, `Draggable.Viewport` and `useDragMonitor` off
+ * here keeps `Draggable.Target`, `Draggable.Viewport` and `useMonitor` off
  * that whole graph — the preview clone and pointer sensor — so an app that only
  * accepts drops pays for what it uses.
  *
@@ -28,17 +28,33 @@ import {
 } from './core/lifecycleManager';
 import { dragSessionStore } from './dragSessionStore';
 import type {
-  RegisterAutoScrollerParameters,
+  RegisterViewportParameters,
   RegisterMonitorParameters,
   DragParametersWithInferredAccept,
 } from '../../types/dragRegistration';
-import type { RegisterDropTargetParameters } from './dropTarget';
-import type { AcceptedDragPayload, AnyDragAccept, DragCleanupFn, DragKind } from '../../types/drag';
+import type { RegisterTargetParameters } from './dropTarget';
+import type {
+  AcceptedDragData,
+  AcceptedDragPayload,
+  DraggableAccept,
+  DragCleanupFn,
+  DraggableKind,
+} from '../../types/drag';
 import { onceCleanup } from './utils';
 
-export function registerDropTarget<TSourcePayload = unknown, TTargetPayload = unknown>(
+export function registerTarget<
+  TSourcePayload = unknown,
+  TTargetPayload = unknown,
+  TDragData = unknown,
+  TTargetDragData = unknown,
+>(
   element: HTMLElement,
-  getParameters: () => RegisterDropTargetParameters<TSourcePayload, TTargetPayload>,
+  getParameters: () => RegisterTargetParameters<
+    TSourcePayload,
+    TTargetPayload,
+    TDragData,
+    TTargetDragData
+  >,
 ): DragCleanupFn {
   if (process.env.NODE_ENV !== 'production') {
     // `kind` is what this target *is*; `accept` is what it takes. Reading the
@@ -51,7 +67,12 @@ export function registerDropTarget<TSourcePayload = unknown, TTargetPayload = un
     // and a dev-only check must neither let that escape registration nor report
     // it — the dispatch path already surfaces a throwing getter properly, and
     // logging it here too would double up.
-    let parameters: RegisterDropTargetParameters<TSourcePayload, TTargetPayload> | null = null;
+    let parameters: RegisterTargetParameters<
+      TSourcePayload,
+      TTargetPayload,
+      TDragData,
+      TTargetDragData
+    > | null = null;
     try {
       parameters = getParameters();
     } catch {
@@ -88,12 +109,10 @@ export function registerDropTarget<TSourcePayload = unknown, TTargetPayload = un
   // registers here while the lifecycle's stack still points at the old, detached
   // one, so re-resolve to let this fresh target re-enter the stack.
   //
-  // Not gated on `firstRegistration`: an element re-registering from inside its own
+  // Not gated on first registration: an element re-registering from inside its own
   // `onDraggableLeave` keeps its existing entry, yet still needs the refresh to rejoin
-  // the stack before the next pointer update.
-  if (isActive()) {
-    scheduleDropTargetParameterRefresh(undefined, true);
-  }
+  // the stack before the next pointer update. A no-op without an active drag.
+  scheduleDropTargetParameterRefresh(undefined, true);
 
   return onceCleanup(() => {
     // A hovered element must re-resolve *synchronously* so reactive subscribers,
@@ -137,10 +156,10 @@ export function registerDropTarget<TSourcePayload = unknown, TTargetPayload = un
 }
 
 // Keyed on the `accept` value it infers, like every other `accept`-taking API.
-export function registerAutoScroller<TAccept extends AnyDragAccept = DragKind<unknown>>(
+export function registerViewport<TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>>(
   element: HTMLElement,
   getParameters: () => DragParametersWithInferredAccept<
-    RegisterAutoScrollerParameters<AcceptedDragPayload<TAccept>>,
+    RegisterViewportParameters<AcceptedDragPayload<TAccept>, AcceptedDragData<TAccept>>,
     TAccept
   >,
 ): DragCleanupFn {
@@ -157,9 +176,9 @@ export function registerAutoScroller<TAccept extends AnyDragAccept = DragKind<un
 }
 
 // Keyed on the `accept` value it infers, like every other `accept`-taking API.
-export function registerMonitor<TAccept extends AnyDragAccept = DragKind<unknown>>(
+export function registerMonitor<TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>>(
   getMonitor: () => DragParametersWithInferredAccept<
-    RegisterMonitorParameters<AcceptedDragPayload<TAccept>>,
+    RegisterMonitorParameters<AcceptedDragPayload<TAccept>, AcceptedDragData<TAccept>>,
     TAccept
   >,
 ): DragCleanupFn {

@@ -59,11 +59,12 @@ describe('Draggable.CollisionProvider', () => {
     b.getBoundingClientRect = () => new DOMRect(0, 100, 100, 100);
     await lift(a);
     await dragOver(b, { clientY: 120 });
-    expect(changed.mock.lastCall?.[0].collision.target.payload).toBe('b');
+    expect(changed.mock.lastCall?.[0].target.payload).toBe('b');
     await rerender(<Example collision={false} />);
-    expect(changed.mock.lastCall?.[0].collision).toBeNull();
+    expect(changed.mock.lastCall?.[0].target).toBeNull();
+    expect(changed.mock.lastCall?.[1].previousTarget.payload).toBe('b');
     drop(b, { clientY: 120 });
-    expect(ended.mock.lastCall?.[0].collision).toBeNull();
+    expect(ended.mock.lastCall?.[0].target).toBeNull();
   });
 
   it('does not report a collision after a replayed start cancels the drag', async () => {
@@ -109,23 +110,22 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     spies.forEach((spy) => spy.mockClear());
     await dragOver(b, { clientY: 120 });
-    expect(changed.mock.lastCall?.[0].collision).toMatchObject({
-      target: { payload: 'b' },
-    });
+    expect(changed.mock.lastCall?.[0].target).toMatchObject({ payload: 'b' });
     const calls = changed.mock.calls.length;
     await dragOver(b, { clientY: 130 });
     expect(changed).toHaveBeenCalledTimes(calls + 1);
-    expect(changed.mock.lastCall?.[0].previousCollision.target.getLocalPoint().y).toBe(0.2);
-    expect(changed.mock.lastCall?.[0].collision.target.getLocalPoint().y).toBe(0.3);
+    expect(changed.mock.lastCall?.[1].previousTarget.getLocalPoint().y).toBe(0.2);
+    expect(changed.mock.lastCall?.[0].target.getLocalPoint().y).toBe(0.3);
     expect(spies[2]).not.toHaveBeenCalled();
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].collision.target.getLocalPoint().y).toBe(0.8);
+    expect(changed.mock.lastCall?.[0].target.getLocalPoint().y).toBe(0.8);
     drop(b, { clientY: 120 });
-    expect(ended.mock.lastCall?.[0].dropTarget?.element).toBe(b);
-    expect(ended.mock.lastCall?.[0]).toMatchObject({
-      canceled: false,
-      collision: { target: { payload: 'b' } },
-    });
+    expect(ended.mock.lastCall?.[1].reason).toBe('drop');
+    expect(ended.mock.lastCall?.[0].target?.element).toBe(b);
+    expect(ended.mock.lastCall?.[0].target).toMatchObject({ payload: 'b' });
+    // The end reports the last collision delivered as its previous target.
+    expect(ended.mock.lastCall?.[1].previousTarget).not.toBeNull();
+    expect(ended.mock.lastCall?.[1].previousTarget).toBe(changed.mock.lastCall?.[0].target);
   });
 
   it('lets a consumer bail out within the same computed position', async () => {
@@ -133,11 +133,11 @@ describe('Draggable.CollisionProvider', () => {
     await renderDnd(
       <Draggable.CollisionProvider
         kind={kind}
-        onCollisionChange={({ collision, previousCollision }) => {
-          const position = (value: typeof collision) =>
-            value && `${value.target.payload}:${value.target.getLocalPoint().y > 0.5}`;
-          if (position(collision) !== position(previousCollision)) {
-            positions(position(collision));
+        onCollisionChange={({ target }, { previousTarget }) => {
+          const position = (record: typeof target) =>
+            record && `${record.payload}:${record.getLocalPoint().y > 0.5}`;
+          if (position(target) !== position(previousTarget)) {
+            positions(position(target));
           }
         }}
       >
@@ -172,7 +172,7 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a, { clientX: 20, clientY: 20 });
     drop(b, { clientX: 68, clientY: 168 });
-    const target = ended.mock.lastCall?.[0].collision.target;
+    const target = ended.mock.lastCall?.[0].target;
     expect(target.getLocalPoint()).toEqual({ x: 0.68, y: 0.68 });
     expect(target.getSnappedLocalPoint()).toEqual({ x: 0.75, y: 0.75 });
     expect(target.getSnappedLocalPoint({ anchor: 'source' })).toEqual({ x: 0.5, y: 0.5 });
@@ -180,7 +180,7 @@ describe('Draggable.CollisionProvider', () => {
 
   it('captures dynamic snap steps and geometry before a source moves the target', async () => {
     let steps = 4;
-    const snap = vi.fn((_context: Draggable.DropTargetResolutionContext<string>) => ({ y: steps }));
+    const snap = vi.fn((_context: Draggable.Target.ResolutionContext<string>) => ({ y: steps }));
     const changed = vi.fn();
     let target: HTMLElement;
     await renderDnd(
@@ -205,7 +205,7 @@ describe('Draggable.CollisionProvider', () => {
     steps = 4;
     target.getBoundingClientRect = () => new DOMRect(0, 100, 100, 100);
     drop(target, { clientX: 40, clientY: 168 });
-    const record = changed.mock.lastCall?.[0].collision.target;
+    const record = changed.mock.lastCall?.[0].target;
     expect(record.getLocalPoint()).toEqual({ x: 0.4, y: 0.68 });
     expect(record.getSnappedLocalPoint()).toEqual({ x: 0.4, y: 0.75 });
     expect(snap).toHaveBeenCalledTimes(1);
@@ -233,11 +233,11 @@ describe('Draggable.CollisionProvider', () => {
       </Draggable.CollisionProvider>,
     );
     await dragOver(b, { clientY: 169 });
-    expect(changed.mock.lastCall?.[0].collision.target.getSnappedLocalPoint().y).toBe(0.7);
-    expect(changed.mock.lastCall?.[0].previousCollision.target.getSnappedLocalPoint().y).toBe(0.75);
+    expect(changed.mock.lastCall?.[0].target.getSnappedLocalPoint().y).toBe(0.7);
+    expect(changed.mock.lastCall?.[1].previousTarget.getSnappedLocalPoint().y).toBe(0.75);
   });
 
-  it('starts each drag with no previous collision', async () => {
+  it('starts each drag with no previous target', async () => {
     const changed = vi.fn();
     await renderDnd(
       <Draggable.CollisionProvider kind={kind} onCollisionChange={changed}>
@@ -252,7 +252,7 @@ describe('Draggable.CollisionProvider', () => {
     drop(b, { clientY: 180 });
     await lift(a);
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].previousCollision).toBeNull();
+    expect(changed.mock.lastCall?.[1].previousTarget).toBeNull();
   });
 
   it('keeps group ownership when the source unmounts during pickup', async () => {
@@ -288,12 +288,10 @@ describe('Draggable.CollisionProvider', () => {
     await dragOver(b, { clientY: 180 });
     firePointer.up(b, { pointerId: 1, pointerType: 'mouse', clientY: 180, timeStamp: 1000 });
     expect(ended).toHaveBeenCalledOnce();
-    expect(ended.mock.lastCall?.[0].collision).toMatchObject({
-      target: { payload: 'b' },
-    });
+    expect(ended.mock.lastCall?.[0].target).toMatchObject({ payload: 'b' });
   });
 
-  it('reports no final collision on cancellation', async () => {
+  it('reports no final target on cancellation', async () => {
     const ended = vi.fn();
     await renderDnd(
       <Draggable.CollisionProvider kind={kind} onMoveEnd={ended}>
@@ -306,7 +304,10 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     await dragOver(b, { clientY: 180 });
     cancel();
-    expect(ended.mock.lastCall?.[0]).toMatchObject({ canceled: true, collision: null });
+    expect(ended.mock.lastCall?.[1].reason).toBe('escape-key');
+    expect(ended.mock.lastCall?.[1].canceled).toBe(true);
+    expect(ended.mock.lastCall?.[0].target).toBeNull();
+    expect(ended.mock.lastCall?.[1].previousTarget).toBeNull();
   });
 
   it('clears collisions on explicit nested targets without overriding their drop', async () => {
@@ -328,10 +329,11 @@ describe('Draggable.CollisionProvider', () => {
     await dragOver(b, { clientY: 180 });
     const target = screen.getByTestId('explicit');
     await dragOver(target);
-    expect(changed.mock.lastCall?.[0].collision).toBeNull();
+    expect(changed.mock.lastCall?.[0].target).toBeNull();
     drop(target);
     expect(targetDrop).toHaveBeenCalledOnce();
-    expect(ended.mock.lastCall?.[0].collision).toBeNull();
+    expect(ended.mock.lastCall?.[1].reason).toBe('drop');
+    expect(ended.mock.lastCall?.[0].target).toBeNull();
   });
 
   it('preserves parent rejection', async () => {
@@ -353,7 +355,9 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     await dragOver(b);
     drop(b);
-    expect(ended.mock.lastCall?.[0]).toMatchObject({ dropTarget: null, collision: null });
+    expect(ended.mock.lastCall?.[1].reason).toBe('outside-release');
+    expect(ended.mock.lastCall?.[1].canceled).toBe(false);
+    expect(ended.mock.lastCall?.[0].target).toBeNull();
   });
 
   it('supports cross-provider drops while only the destination resolves a collision', async () => {
@@ -379,10 +383,8 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     await dragOver(b, { clientY: 180 });
     drop(b, { clientY: 180 });
-    expect(sourceEnd.mock.lastCall?.[0].collision).toBeNull();
-    expect(targetEnd.mock.lastCall?.[0].collision).toMatchObject({
-      target: { payload: 'b' },
-    });
+    expect(sourceEnd.mock.lastCall?.[0].target).toBeNull();
+    expect(targetEnd.mock.lastCall?.[0].target).toMatchObject({ payload: 'b' });
   });
 
   it('replays onMoveStart to a group that only becomes involved through a collision', async () => {
@@ -399,17 +401,17 @@ describe('Draggable.CollisionProvider', () => {
         </Draggable.CollisionProvider>
         <Draggable.CollisionProvider
           kind={kind}
-          onMoveStart={(event) => {
+          onMoveStart={(value) => {
             order.push('start');
-            targetStart(event);
+            targetStart(value);
           }}
-          onCollisionChange={(event) => {
+          onCollisionChange={(value) => {
             order.push('change');
-            targetChange(event);
+            targetChange(value);
           }}
-          onMoveEnd={(event) => {
+          onMoveEnd={(value) => {
             order.push('end');
-            targetEnd(event);
+            targetEnd(value);
           }}
         >
           <Draggable.Root kind={kind} payload="b" data-testid="b">
@@ -427,9 +429,29 @@ describe('Draggable.CollisionProvider', () => {
     await dragOver(b, { clientY: 180 });
     expect(targetStart).toHaveBeenCalledTimes(1);
     expect(targetStart.mock.calls[0][0].source.element).toBe(a);
+    // The replayed start names the item the drag reached.
+    expect(targetStart.mock.calls[0][0].target?.element).toBe(b);
+    expect(targetStart.mock.calls[0][0].target).toMatchObject({ payload: 'b' });
     cancel();
     expect(targetEnd).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['start', 'change', 'change', 'end']);
+  });
+
+  it('reports no target to onMoveStart when the drag starts on one of its items', async () => {
+    const started = vi.fn();
+    await renderDnd(
+      <Draggable.CollisionProvider kind={kind} onMoveStart={started}>
+        <Items />
+      </Draggable.CollisionProvider>,
+    );
+    const {
+      items: [a],
+    } = measure();
+    await lift(a);
+    expect(started).toHaveBeenCalledTimes(1);
+    expect(started.mock.calls[0][0].source.element).toBe(a);
+    expect(started.mock.calls[0][0].target).toBeNull();
+    cancel();
   });
 
   it('does not replay onMoveStart to a group the drag never reached', async () => {
@@ -476,9 +498,7 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a);
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].collision).toMatchObject({
-      target: { payload: 'b' },
-    });
+    expect(changed.mock.lastCall?.[0].target).toMatchObject({ payload: 'b' });
   });
 
   it('reports a new item under a stationary pointer', async () => {
@@ -493,13 +513,11 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a);
     await dragOver(b, { clientY: 120 });
-    expect(changed.mock.lastCall?.[0].collision.target.getLocalPoint().y).toBe(0.2);
+    expect(changed.mock.lastCall?.[0].target.getLocalPoint().y).toBe(0.2);
     // Same pointer position, different item: what auto-scroll produces when the
     // list moves under a held pointer. Coordinates belong to the new item.
     await dragOver(c, { clientY: 120 });
-    expect(changed.mock.lastCall?.[0].collision).toMatchObject({
-      target: { payload: 'c' },
-    });
+    expect(changed.mock.lastCall?.[0].target).toMatchObject({ payload: 'c' });
   });
 
   it('does not re-register participants when an inline collisionElement changes identity', async () => {
@@ -509,8 +527,8 @@ describe('Draggable.CollisionProvider', () => {
       return (
         <Draggable.CollisionProvider
           kind={kind}
-          onCollisionChange={(event) => {
-            changed(event);
+          onCollisionChange={(value, details) => {
+            changed(value, details);
             rerender((count) => count + 1);
           }}
         >
@@ -547,26 +565,7 @@ describe('Draggable.CollisionProvider', () => {
     // and then the same collision again.
     await dragOver(b, { clientY: 181 });
     expect(changed).toHaveBeenCalledTimes(2);
-    expect(changed.mock.calls.every(([event]) => event.collision !== null)).toBe(true);
-  });
-
-  it('warns when a getPayload source has no collisionPayload', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      await renderDnd(
-        <Draggable.CollisionProvider kind={kind}>
-          <Draggable.Root kind={kind} getPayload={() => 'a'} data-testid="a">
-            <Draggable.Preview disabled />
-          </Draggable.Root>
-        </Draggable.CollisionProvider>,
-      );
-      // `warn()` dedupes per message process-wide, so this must be the first
-      // such mount of the file.
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0][0]).toMatch(/`getPayload` without `collisionPayload`/);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    expect(changed.mock.calls.every(([value]) => value.target !== null)).toBe(true);
   });
 
   it('reorders live from onCollisionChange and keeps resolving after the re-render', async () => {
@@ -577,13 +576,13 @@ describe('Draggable.CollisionProvider', () => {
         <Draggable.CollisionProvider
           kind={kind}
 
-          onCollisionChange={({ source, collision, location }) => {
-            if (!collision) {
+          onCollisionChange={({ source, target }, { location }) => {
+            if (!target) {
               return;
             }
             setItems((current) => {
               const remaining = current.filter((item) => item !== source.payload);
-              const index = remaining.indexOf(collision.target.payload);
+              const index = remaining.indexOf(target.payload);
               remaining.splice(
                 index + (location.current.input.clientY > location.previous.input.clientY ? 1 : 0),
                 0,
@@ -592,8 +591,10 @@ describe('Draggable.CollisionProvider', () => {
               return remaining;
             });
           }}
-          onMoveEnd={(event) => {
-            if (event.canceled) {
+          onMoveEnd={(_, { canceled }) => {
+            // A drop onto the dragged item's own slot also reports no target, so
+            // restore on `canceled` rather than on `target === null`.
+            if (canceled) {
               setItems(initial);
             }
           }}
@@ -633,8 +634,8 @@ describe('Draggable.CollisionProvider', () => {
       return (
         <Draggable.CollisionProvider
           kind={objectKind}
-          onCollisionChange={(event) => {
-            changed(event);
+          onCollisionChange={(value, details) => {
+            changed(value, details);
             rerender((count) => count + 1);
           }}
         >
@@ -656,11 +657,11 @@ describe('Draggable.CollisionProvider', () => {
     await dragOver(b, { clientY: 181 });
     await dragOver(b, { clientY: 182 });
     expect(changed).toHaveBeenCalledTimes(3);
-    expect(changed.mock.lastCall?.[0].collision.target.payload).toEqual({ id: 'b' });
-    expect(changed.mock.lastCall?.[0].previousCollision.target.payload).toEqual({ id: 'b' });
+    expect(changed.mock.lastCall?.[0].target.payload).toEqual({ id: 'b' });
+    expect(changed.mock.lastCall?.[1].previousTarget.payload).toEqual({ id: 'b' });
   });
 
-  it('completes a drop onto the dragged item itself with no collision', async () => {
+  it('completes a drop onto the dragged item itself with no target', async () => {
     const ended = vi.fn();
     await renderDnd(
       <Draggable.CollisionProvider kind={kind} onMoveEnd={ended}>
@@ -675,7 +676,31 @@ describe('Draggable.CollisionProvider', () => {
     drop(a, { clientY: 80 });
     expect(ended).toHaveBeenCalledTimes(1);
     expect(ended.mock.calls[0][1].reason).toBe('drop');
-    expect(ended.mock.calls[0][0]).toMatchObject({ canceled: false, collision: null });
+    expect(ended.mock.calls[0][1].canceled).toBe(false);
+    expect(ended.mock.calls[0][0].target).toBeNull();
+  });
+
+  it('passes the item under the pointer to canCollide', async () => {
+    const canCollide = vi.fn(() => true);
+    await renderDnd(
+      <Draggable.CollisionProvider kind={kind} canCollide={canCollide}>
+        <Items />
+      </Draggable.CollisionProvider>,
+    );
+    const {
+      items: [a, b],
+    } = measure();
+    await lift(a);
+    await dragOver(b, { clientY: 180 });
+    expect(canCollide).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: expect.objectContaining({ element: a }),
+        input: expect.objectContaining({ clientY: 180 }),
+        element: b,
+        payload: 'b',
+      }),
+    );
+    cancel();
   });
 
   it("vetoes the whole target stack when canCollide returns 'reject'", async () => {
@@ -686,7 +711,7 @@ describe('Draggable.CollisionProvider', () => {
         <Draggable.CollisionProvider
           kind={kind}
           onCollisionChange={changed}
-          canCollide={({ target }) => (target === 'b' ? 'reject' : true)}
+          canCollide={({ payload }) => (payload === 'b' ? 'reject' : true)}
         >
           <Items />
         </Draggable.CollisionProvider>
@@ -697,7 +722,7 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a);
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].collision ?? null).toBeNull();
+    expect(changed.mock.lastCall?.[0].target ?? null).toBeNull();
     expect(b).not.toHaveAttribute('data-collision-after');
     drop(b, { clientY: 180 });
     // The ancestor target is vetoed too, not handed the drop.
@@ -718,7 +743,7 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     await dragOver(b, { clientX: 180, clientY: 50 });
     drop(b, { clientX: 180, clientY: 50 });
-    expect(ended.mock.lastCall?.[0].collision.target.getLocalPoint().x).toBe(0.8);
+    expect(ended.mock.lastCall?.[0].target.getLocalPoint().x).toBe(0.8);
   });
 
   it('reports physical coordinates in RTL too', async () => {
@@ -738,7 +763,7 @@ describe('Draggable.CollisionProvider', () => {
     await lift(a);
     await dragOver(b, { clientX: 80, clientY: 120 });
     drop(b, { clientX: 80, clientY: 120 });
-    expect(ended.mock.lastCall?.[0].collision.target.getLocalPoint().x).toBe(0.8);
+    expect(ended.mock.lastCall?.[0].target.getLocalPoint().x).toBe(0.8);
   });
 
   it('allows individual draggables to opt out', async () => {
@@ -755,7 +780,9 @@ describe('Draggable.CollisionProvider', () => {
     );
     await lift(screen.getByTestId('a'));
     drop(screen.getByTestId('b'));
-    expect(ended.mock.lastCall?.[0]).toMatchObject({ dropTarget: null, collision: null });
+    expect(ended.mock.lastCall?.[1].reason).toBe('outside-release');
+    expect(ended.mock.lastCall?.[1].canceled).toBe(false);
+    expect(ended.mock.lastCall?.[0].target).toBeNull();
   });
   it('captures final coordinates before a source callback changes layout', async () => {
     const ended = vi.fn();
@@ -781,7 +808,7 @@ describe('Draggable.CollisionProvider', () => {
     target.getBoundingClientRect = () => new DOMRect(0, 100, 100, 100);
     await lift(screen.getByTestId('a'));
     drop(target, { clientY: 180 });
-    expect(ended.mock.lastCall?.[0].collision.target.getLocalPoint().y).toBe(0.8);
+    expect(ended.mock.lastCall?.[0].target.getLocalPoint().y).toBe(0.8);
   });
 
   it('measures the configured row box and ignores the source row', async () => {
@@ -807,8 +834,8 @@ describe('Draggable.CollisionProvider', () => {
     await dragOver(screen.getByTestId('row-a'));
     expect(changed).not.toHaveBeenCalled();
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].collision.target.getLocalPoint().y).toBe(0.8);
-    expect(changed.mock.lastCall?.[0].collision.target.element).toBe(b);
+    expect(changed.mock.lastCall?.[0].target.getLocalPoint().y).toBe(0.8);
+    expect(changed.mock.lastCall?.[0].target.element).toBe(b);
     expect(b).not.toHaveAttribute('data-collision-after');
     cancel();
     expect(screen.getByTestId('b')).not.toHaveAttribute('data-collision-after');
@@ -826,17 +853,17 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a);
     await dragOver(b, { clientY: 180 });
-    expect(changed.mock.lastCall?.[0].collision.target.payload).toBe('b');
+    expect(changed.mock.lastCall?.[0].target.payload).toBe('b');
     await rerender(
       <Draggable.CollisionProvider kind={kind} onCollisionChange={changed} canCollide={() => false}>
         <Items />
       </Draggable.CollisionProvider>,
     );
-    expect(changed.mock.lastCall?.[0].collision).toBeNull();
+    expect(changed.mock.lastCall?.[0].target).toBeNull();
     expect(b).not.toHaveAttribute('data-collision-after');
   });
 
-  it('does not call a pickup accessor to read destination identity', async () => {
+  it('does not call a pickup handler to read destination identity', async () => {
     const pickup = vi.fn(() => 'b');
     const ended = vi.fn();
     await renderDnd(
@@ -844,7 +871,13 @@ describe('Draggable.CollisionProvider', () => {
         <Draggable.Root kind={kind} payload="a" data-testid="a">
           <Draggable.Preview disabled />
         </Draggable.Root>
-        <Draggable.Root kind={kind} getPayload={pickup} collisionPayload="b" data-testid="b">
+        <Draggable.Root
+          kind={kind}
+          payload="b"
+          onMoveStart={pickup}
+          collisionPayload="b"
+          data-testid="b"
+        >
           <Draggable.Preview disabled />
         </Draggable.Root>
       </Draggable.CollisionProvider>,
@@ -854,7 +887,7 @@ describe('Draggable.CollisionProvider', () => {
     await lift(screen.getByTestId('a'));
     await dragOver(b, { clientY: 180 });
     drop(b, { clientY: 180 });
-    expect(ended.mock.lastCall?.[0].collision.target.payload).toBe('b');
+    expect(ended.mock.lastCall?.[0].target.payload).toBe('b');
     expect(pickup).not.toHaveBeenCalled();
   });
 
@@ -874,7 +907,7 @@ describe('Draggable.CollisionProvider', () => {
     } = measure();
     await lift(a);
     drop(b, { clientY: 180 });
-    expect(outer.mock.lastCall?.[0].collision.target.payload).toBe('b');
+    expect(outer.mock.lastCall?.[0].target.payload).toBe('b');
     expect(inner).not.toHaveBeenCalled();
   });
 });
