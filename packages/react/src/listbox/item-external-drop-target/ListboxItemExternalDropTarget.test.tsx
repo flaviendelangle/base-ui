@@ -129,8 +129,9 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       await flushRaf();
       expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(onDraggableDrop.mock.calls[0][0]).toMatchObject({
+        reason: 'drop',
         item: 'b',
-        destination: { groupId: null, index: 2 },
+        listboxDestination: { groupId: null, index: 2 },
       });
       expect(target).not.toHaveAttribute('data-drag-over');
       expect(changes).toHaveBeenLastCalledWith(null);
@@ -210,7 +211,23 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(target).toHaveAttribute('data-drop-position', 'after');
     drop(target, { clientX: 125, clientY: 125 });
     await flushRaf();
-    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({ groupId: null, index: 2 });
+    expect(onDraggableDrop.mock.calls[0][0].listboxDestination).toEqual({
+      groupId: null,
+      index: 2,
+    });
+  });
+  it('passes where the pointer is within the option to getDropPosition', async () => {
+    const getDropPosition = vi.fn(
+      (_context: Listbox.ItemExternalDropTarget.PositionContext) => 'after' as const,
+    );
+    await render(<Fixture getDropPosition={getDropPosition} />);
+    setRects();
+    await lift(screen.getByTestId('source'));
+    // The option spans 100 to 200 on both axes.
+    await dragEnter(screen.getByRole('option', { name: 'b' }), { clientX: 125, clientY: 175 });
+    expect(getDropPosition.mock.lastCall![0].getLocalPoint()).toEqual({ x: 0.25, y: 0.75 });
+    cancel();
+    await flushRaf();
   });
   it('reports a list-wide insertion index for a grouped destination', async () => {
     const onDraggableDrop = vi.fn();
@@ -241,7 +258,10 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     await dragEnter(target, { clientY: 175 });
     drop(target, { clientY: 175 });
     await flushRaf();
-    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({ groupId: 'two', index: 2 });
+    expect(onDraggableDrop.mock.calls[0][0].listboxDestination).toEqual({
+      groupId: 'two',
+      index: 2,
+    });
   });
   it.each(['drop', 'move'] as const)(
     'finishes a cross-list transfer after reorderOn=%s without rolling back the transfer',
@@ -277,15 +297,16 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                       key={value}
                       value={value}
                       accept={kind}
-                      onDraggableDrop={(context) => {
-                        onDraggableDrop(context);
+                      onDraggableDrop={(eventDetails) => {
+                        onDraggableDrop(eventDetails);
+                        const { listboxDestination, source } = eventDetails;
                         setRight((current) => [
-                          ...current.slice(0, context.destination.index),
-                          ...context.source.payload.items,
-                          ...current.slice(context.destination.index),
+                          ...current.slice(0, listboxDestination.index),
+                          ...source.payload.items,
+                          ...current.slice(listboxDestination.index),
                         ]);
                         setLeft((current) =>
-                          current.filter((entry) => !context.source.payload.items.includes(entry)),
+                          current.filter((entry) => !source.payload.items.includes(entry)),
                         );
                       }}
                     >
@@ -309,7 +330,46 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('left').textContent).toBe('bc');
       expect(screen.getByTestId('right').textContent).toBe('desta');
-      expect(onSortEnd.mock.calls.at(-1)?.[1].canceled).toBe(false);
+      expect(onSortEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
+    },
+  );
+  it.each([true, false])(
+    'leaves placement to a drop target nested in the option with sorting=%s',
+    async (sortable) => {
+      const listbox = (
+        <Listbox.Root>
+          <Listbox.List>
+            <Listbox.ItemExternalDropTarget value="a" accept={kind}>
+              a
+              <Draggable.Target accept={kind} data-testid="nested" />
+            </Listbox.ItemExternalDropTarget>
+          </Listbox.List>
+        </Listbox.Root>
+      );
+      await render(
+        <Draggable.Provider>
+          <Draggable.Root
+            kind={kind}
+            payload={{ id: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
+            data-testid="source"
+          />
+          {sortable ? (
+            <Listbox.SortableProvider kind={kind} onItemsReorder={() => {}}>
+              {listbox}
+            </Listbox.SortableProvider>
+          ) : (
+            listbox
+          )}
+        </Draggable.Provider>,
+      );
+      setRects();
+      const option = screen.getByRole('option', { name: 'a' });
+      await lift(screen.getByTestId('source'));
+      await dragEnter(option, { clientY: 75 });
+      expect(option).toHaveAttribute('data-drop-position', 'after');
+      await dragEnter(screen.getByTestId('nested'), { clientY: 75 });
+      expect(option).not.toHaveAttribute('data-drop-position');
+      cancel();
     },
   );
   it('keeps a standalone externally disabled option selectable and visually enabled', async () => {

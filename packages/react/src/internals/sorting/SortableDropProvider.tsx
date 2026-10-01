@@ -43,45 +43,44 @@ export function SortableDropProvider<T extends { collectionId: object }>(
     record.getSnappedLocalPoint();
     return record;
   };
-  const update = (
-    value: Draggable.Root.TargetChangeValue<T>,
-    eventDetails: Draggable.Root.TargetChangeEventDetails,
-  ) => {
-    if (value.source.payload.collectionId !== collectionId) {
+  const update = (eventDetails: Draggable.Root.TargetChangeEventDetails<T>) => {
+    if (eventDetails.source.payload.collectionId !== collectionId) {
       return;
     }
-    if (value.target === previousRecord.current) {
+    if (eventDetails.target === previousRecord.current) {
       return;
     }
-    previousRecord.current = value.target;
-    const target = resolve(value.target, value.source.element);
+    previousRecord.current = eventDetails.target;
+    const target = resolve(eventDetails.target, eventDetails.source.element);
     const previousTarget = previous.current;
     previous.current = target;
-    props.onCollisionChange?.(
-      { source: value.source, target },
-      { ...eventDetails, previousTarget },
-    );
+    props.onCollisionChange?.({ ...eventDetails, target, previousTarget });
   };
   Draggable.useMonitor({
     accept: kind,
-    onMoveStart({ source, target }, eventDetails) {
+    onMoveStart(eventDetails) {
+      const source = eventDetails.source;
       if (source.payload.collectionId === collectionId) {
         previous.current = null;
         previousRecord.current = null;
-        props.onMoveStart?.({ source, target: resolve(target, source.element) }, eventDetails);
+        props.onMoveStart?.({
+          ...eventDetails,
+          target: resolve(eventDetails.target, source.element),
+        });
       }
     },
     onMove: update,
     onTargetChange: update,
-    onMoveEnd({ source, target }, eventDetails) {
+    onMoveEnd(eventDetails) {
+      const source = eventDetails.source;
       if (source.payload.collectionId !== collectionId) {
         return;
       }
       const previousTarget = previous.current;
-      const collision = resolve(target, source.element);
+      const target = resolve(eventDetails.target, source.element);
       previous.current = null;
       previousRecord.current = null;
-      props.onMoveEnd?.({ source, target: collision }, { ...eventDetails, previousTarget });
+      props.onMoveEnd?.({ ...eventDetails, target, previousTarget });
     },
   });
   const renderTarget = React.useCallback<RenderTarget>(
@@ -113,24 +112,24 @@ export function SortableDropProvider<T extends { collectionId: object }>(
             }
             return externalProps.canDrop?.(context) ?? true;
           }}
-          onDraggableEnter={(value, eventDetails) => {
-            if (!owns(value.source)) {
-              externalProps?.onDraggableEnter?.(value, eventDetails);
+          onDraggableEnter={(eventDetails) => {
+            if (!owns(eventDetails.source)) {
+              externalProps?.onDraggableEnter?.(eventDetails);
             }
           }}
-          onDraggableMove={(value, eventDetails) => {
-            if (!owns(value.source)) {
-              externalProps?.onDraggableMove?.(value, eventDetails);
+          onDraggableMove={(eventDetails) => {
+            if (!owns(eventDetails.source)) {
+              externalProps?.onDraggableMove?.(eventDetails);
             }
           }}
-          onDraggableLeave={(value, eventDetails) => {
-            if (!owns(value.source)) {
-              externalProps?.onDraggableLeave?.(value, eventDetails);
+          onDraggableLeave={(eventDetails) => {
+            if (!owns(eventDetails.source)) {
+              externalProps?.onDraggableLeave?.(eventDetails);
             }
           }}
-          onDraggableDrop={(value, eventDetails) => {
-            if (!owns(value.source)) {
-              externalProps?.onDraggableDrop?.(value, eventDetails);
+          onDraggableDrop={(eventDetails) => {
+            if (!owns(eventDetails.source)) {
+              externalProps?.onDraggableDrop?.(eventDetails);
             }
           }}
         />

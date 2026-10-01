@@ -122,7 +122,7 @@ Give each `Listbox.Group` a stable `id` when your application allows items to mo
 ### Drop positions
 
 By default, the first half of a row inserts before it, and the second half inserts after it. Horizontal lists use the corresponding left and right halves.
-Use `getDropPosition` to change these zones. It receives the application value as `item`, sorting metadata as `itemMetadata`, the drag source as `source`, the row under the pointer as `target`, and normalized pointer coordinates as `point`. `source` is a `Draggable.Root.Record`, matching external-drop callbacks; read dragged items from `source.payload.items`. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
+Use `getDropPosition` to change these zones. It receives the application value as `item`, sorting metadata as `itemMetadata`, the drag source as `source`, the row under the pointer as `target`, and `getLocalPoint()`, which returns where the pointer is within the row, from 0 to 1 across its width and height. `source` is a `Draggable.Root.Record`, matching external-drop callbacks; read dragged items from `source.payload.items`. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
 
 `groupId` is `null` for ungrouped items. Item and destination indices are zero-based and span the entire list, including all groups. They do not reset at group boundaries. Destination insertion indices refer to the order before removing the moved items.
 
@@ -147,6 +147,8 @@ The default preview clones the dragged row. Render `Listbox.SortPreview` inside 
 </Listbox.Item>
 ```
 
+The preview renders a `<div>` at the end of the list or group the item is in. If items render `<li>` elements, pass `render={<li />}` to `Listbox.SortPreview` to keep the list valid HTML.
+
 Pass `draggableProps` to `Listbox.Item` to configure activation, modifiers, or drag event handlers on its existing `Draggable.Root`. You can customize one drag option while keeping managed sorting.
 
 ### Drag and drop outside the list
@@ -161,8 +163,10 @@ To accept incoming drags on individual options, use `Listbox.ItemExternalDropTar
 <Listbox.ItemExternalDropTarget
   value={item}
   accept={fileKind}
-  canDrop={({ source, destination }) => canImport(source.payload, destination)}
-  onDraggableDrop={({ source, destination }) => transferFiles(source.payload, destination)}
+  canDrop={({ source, listboxDestination }) => canImport(source.payload, listboxDestination)}
+  onDraggableDrop={(eventDetails) =>
+    transferFiles(eventDetails.source.payload, eventDetails.listboxDestination)
+  }
 >
   <Listbox.ItemText>{item.label}</Listbox.ItemText>
   <Listbox.ItemIndicator />
@@ -173,7 +177,7 @@ Same-list drags remain owned by sorting, even when sorting rejects the move. Ext
 
 The default placement is before or after the option, respecting horizontal orientation and text direction. `getDropPosition` can override placement; returning `null` rejects the drop. `canDrop` validates the resolved destination; returning `false` rejects the drop, including ancestor targets. Unmatched kinds can fall through to an ancestor target.
 
-The destination contains `groupId` and a zero-based `index` across the entire list, including all groups. It is not an index within the group. Tree's destination index is relative to the destination parent. `onDrop` retains its native HTML drag-and-drop meaning. `onDraggableDrop` handles the application transfer and does not automatically mutate either collection. For controlled collections, confirm the destination update before deleting source items.
+`onDraggableDrop`'s `eventDetails` carry the drag's `source` and the resolved listbox data: the item under the pointer, the `dropPosition` relative to it, and the `listboxDestination` to insert at. `listboxDestination` contains `groupId` and a zero-based `index` across the entire list, including all groups. It is not an index within the group. Tree's `treeDestination` index is relative to the destination parent. `onDrop` retains its native HTML drag-and-drop meaning. `onDraggableDrop` handles the application transfer and does not automatically mutate either collection. For controlled collections, confirm the destination update before deleting source items.
 
 External placement uses the existing `dragOver` and `dropPosition` item states. `onDropPositionChange` receives `null` when placement clears.
 

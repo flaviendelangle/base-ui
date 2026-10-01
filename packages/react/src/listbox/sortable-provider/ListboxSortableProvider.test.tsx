@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { expect, vi, describe, it } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
+import type { Draggable } from '@base-ui/react/draggable';
 import { Listbox } from '@base-ui/react/listbox';
 import {
   cancel,
@@ -288,7 +289,9 @@ describe('<Listbox.SortableProvider />', () => {
 
   it('uses custom drop zones and shares movement validation with the keyboard', async () => {
     const canMoveItems = vi.fn(() => true);
-    const getDropPosition = vi.fn(() => 'before' as const);
+    const getDropPosition = vi.fn(
+      (_context: Listbox.SortableProvider.DropContext<string>) => 'before' as const,
+    );
     await render(<Fixture getDropPosition={getDropPosition} canMoveItems={canMoveItems} />);
     setItemRects();
     const d = screen.getByRole('option', { name: 'd' });
@@ -305,6 +308,8 @@ describe('<Listbox.SortableProvider />', () => {
         }),
       }),
     );
+    // The row is 100px tall from y = 300.
+    expect(getDropPosition.mock.lastCall![0].getLocalPoint().y).toBe(0.75);
     drop(d, { clientY: 375 });
     await flushRaf();
     expect(values()).toEqual(['c', 'a', 'b', 'd']);
@@ -337,8 +342,7 @@ describe('<Listbox.SortableProvider />', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Sorting canceled.');
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onSortEnd).toHaveBeenCalledWith(
-      { itemIds: expect.any(Array) },
-      expect.objectContaining({ canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
   it('keeps a live move when dropping over its source', async () => {
@@ -355,12 +359,13 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
     expect(onSortEnd).toHaveBeenCalledWith(
-      { itemIds: expect.any(Array) },
-      expect.objectContaining({ canceled: false }),
+      expect.objectContaining({ itemIds: expect.any(Array), canceled: false }),
     );
   });
   it('passes item draggable options through to the engine', async () => {
-    const onBeforeMoveStart = vi.fn((_, details) => details.cancel());
+    const onBeforeMoveStart = vi.fn((eventDetails: Draggable.Root.BeforeMoveStartEventDetails) =>
+      eventDetails.cancel(),
+    );
     await render(<Fixture draggableProps={{ onBeforeMoveStart }} />);
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
@@ -379,6 +384,34 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     expect(screen.getByTestId('preview')).toHaveTextContent('2 items');
+    cancel();
+  });
+  it('shows drag state in a custom preview through source.renderPreview()', async () => {
+    await render(
+      <Fixture
+        draggableProps={{
+          onMove: (eventDetails) => {
+            eventDetails.source.updateDragData(
+              Math.round(eventDetails.location.current.input.clientY),
+            );
+            eventDetails.source.renderPreview();
+          },
+        }}
+        preview={{
+          children: (parameters) => (
+            <span data-testid="preview">{String(parameters.source.dragData ?? 'start')}</span>
+          ),
+        }}
+      />,
+    );
+    setItemRects();
+    const a = screen.getByRole('option', { name: 'a' });
+    await lift(a, { clientY: 25 });
+    // The pickup's own move already rendered it again.
+    expect(screen.getByTestId('preview')).toHaveTextContent('25');
+
+    await dragOver(a, { clientY: 60 });
+    expect(screen.getByTestId('preview')).toHaveTextContent('60');
     cancel();
   });
   it('hides the preview without disabling sorting', async () => {
@@ -432,8 +465,7 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onSortEnd).toHaveBeenCalledWith(
-      { itemIds: expect.any(Array) },
-      expect.objectContaining({ canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
   it('revalidates movement rules before keeping a live move over its source', async () => {
@@ -452,8 +484,7 @@ describe('<Listbox.SortableProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onSortEnd).toHaveBeenCalledWith(
-      { itemIds: expect.any(Array) },
-      expect.objectContaining({ canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
   it('restores focus after a pointer move remounts an item in another group', async () => {
@@ -598,6 +629,39 @@ describe('<Listbox.SortableProvider />', () => {
     expect(within(screen.getByTestId('one')).queryAllByRole('option')).toHaveLength(0);
     expect(within(screen.getByTestId('two')).getAllByRole('option')).toHaveLength(3);
     expect(screen.getByRole('option', { name: 'a' })).toHaveFocus();
+  });
+  it('does not report the drag preview as the highlighted option', async () => {
+    const onHighlightChange = vi.fn();
+    await render(
+      <Listbox.SortableProvider onItemsReorder={() => {}}>
+        <Listbox.Root onHighlightChange={onHighlightChange}>
+          <Listbox.List>
+            <Listbox.Group id="one">
+              <Listbox.Item value="a">
+                a<Listbox.SortHandle data-testid="handle" />
+              </Listbox.Item>
+            </Listbox.Group>
+            <Listbox.Group id="two">
+              <Listbox.Item value="b">b</Listbox.Item>
+            </Listbox.Group>
+          </Listbox.List>
+        </Listbox.Root>
+      </Listbox.SortableProvider>,
+    );
+    setItemRects();
+    await act(async () => screen.getByRole('option', { name: 'a' }).focus());
+    fireEvent.keyDown(screen.getByRole('option', { name: 'a' }), { key: 'ArrowDown' });
+    await flushRaf();
+    expect(onHighlightChange).toHaveBeenLastCalledWith(
+      'b',
+      screen.getByRole('option', { name: 'b' }),
+    );
+    onHighlightChange.mockClear();
+    // The preview of `a` goes at the end of the first group, before `b` in tree order.
+    await lift(screen.getByTestId('handle'), { clientY: 25 });
+    expect(document.querySelector('[data-drag-preview]')).not.toBe(null);
+    expect(onHighlightChange).not.toHaveBeenCalled();
+    cancel();
   });
   it.each([{ selected: [] }, { selected: ['a', 'b'] }])(
     'restores original groups when canceling live sorting, selection $selected',

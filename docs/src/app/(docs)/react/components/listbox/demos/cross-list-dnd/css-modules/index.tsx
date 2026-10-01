@@ -55,8 +55,8 @@ export default function ExampleListboxCrossListDnd() {
                     <Draggable.Target
                       accept={queueKind}
                       canDrop={() => items.length === 0}
-                      onDraggableDrop={({ source }) =>
-                        transfer(source.payload.items, queueIndex, 0)
+                      onDraggableDrop={(eventDetails) =>
+                        transfer(eventDetails.source.payload.items, queueIndex, 0)
                       }
                     />
                   }
@@ -64,8 +64,12 @@ export default function ExampleListboxCrossListDnd() {
                   {items.map(({ title, artist, value }) => (
                     <Listbox.ItemExternalDropTarget
                       accept={queueKind}
-                      onDraggableDrop={({ source, destination }) =>
-                        transfer(source.payload.items, queueIndex, destination.index)
+                      onDraggableDrop={(eventDetails) =>
+                        transfer(
+                          eventDetails.source.payload.items,
+                          queueIndex,
+                          eventDetails.listboxDestination.index,
+                        )
                       }
                       key={value}
                       value={value}

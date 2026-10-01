@@ -1,9 +1,11 @@
 'use client';
 import * as React from 'react';
 import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
-import { ListboxRootFeatureProvider, type ListboxRootFeature } from '../root/ListboxRootFeatures';
+import { ListboxRootFeatureProvider } from '../root/ListboxRootFeatures';
+import type { ListboxRootFeature } from '../root/ListboxRootFeatures';
 import { ListboxSortingContext } from '../sorting/ListboxSortingContext';
-import { useListboxSorting, type ListboxSortingParameters } from '../sorting/useListboxSorting';
+import { useListboxSorting } from '../sorting/useListboxSorting';
+import type { ListboxSortingParameters } from '../sorting/useListboxSorting';
 
 /**
  * Enables keyboard sorting with Alt+Arrow keys in the listbox it wraps.

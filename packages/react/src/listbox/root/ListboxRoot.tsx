@@ -15,10 +15,8 @@ import { ListboxSortingContext, ListboxSortableContext } from '../sorting/Listbo
 import { useFieldRootContext } from '../../internals/field-root-context';
 import { useRegisterFieldControl } from '../../internals/field-register-control';
 import { useFormContext } from '../../internals/form-context';
-import {
-  type BaseUIChangeEventDetails,
-  createChangeEventDetails,
-} from '../../internals/createBaseUIEventDetails';
+import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails';
+import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails';
 import { REASONS } from '../../internals/reasons';
 import { useLabelableId } from '../../internals/labelable-provider';
 import { stringifyAsValue } from '../../internals/resolveValueLabel';
@@ -29,7 +27,7 @@ import { ListboxRootFeaturesContext } from './ListboxRootFeatures';
 import { ListboxStore } from '../store';
 import type { SelectionMode } from '../utils/selectionReducer';
 import { isMultipleSelectionMode } from '../utils/selectionReducer';
-import { useHighlightChangeNotifier } from '../utils/useHighlightChangeNotifier';
+import { OPTION_SELECTOR, useHighlightChangeNotifier } from '../utils/useHighlightChangeNotifier';
 import { afterDomSettle } from '../utils/afterDomSettle';
 
 /**
@@ -203,7 +201,7 @@ export function ListboxRoot<Value>(props: ListboxRoot.Props<Value>): React.JSX.E
           if (!target || !target.isConnected) {
             const idx = findItemIndex(valuesRef.current, itemValue, isItemEqualToValue);
             if (idx !== -1) {
-              target = listEl.querySelectorAll<HTMLElement>('[role="option"]')[idx];
+              target = listEl.querySelectorAll<HTMLElement>(OPTION_SELECTOR)[idx];
             }
           }
 

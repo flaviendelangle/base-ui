@@ -1,6 +1,8 @@
 'use client';
 import { getListboxDropDestination } from '../sorting/dropPosition';
-import type { AcceptedDragPayload, DraggableAccept, DraggableRootRecord } from '../../types/drag';
+import type { AcceptedDragPayload } from '../../utils/drag-and-drop/types';
+import type { DraggableAccept } from '../../draggable/DraggableProvider';
+import type { DraggableRootRecord } from '../../draggable/root/DraggableRoot';
 import { useDirection } from '../../internals/direction-context';
 import { useExternalDrop } from '../../internals/sorting/useExternalDrop';
 import type { useListboxRootContext } from '../root/ListboxRootContext';
@@ -31,25 +33,20 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
     onDropPositionChange: options?.onDropPositionChange,
     resolve: ({
       source,
-      element,
-      input,
+      getLocalPoint,
     }): ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, Value> | null => {
       if (!options || item.id === undefined) {
         return null;
       }
-      const rect = element.getBoundingClientRect();
-      const point = {
-        x: rect.width ? (input.clientX - rect.left) / rect.width : 0,
-        y: rect.height ? (input.clientY - rect.top) / rect.height : 0,
-      };
       const context = {
         // useExternalDrop checked the accepted kinds before calling this resolver.
         source: source as DraggableRootRecord<AcceptedDragPayload<TAccept>>,
         item: item.value as Value,
         itemId: item.id,
         itemMetadata: { index: item.index, groupId: item.groupId, disabled: item.disabled },
-        point,
+        getLocalPoint,
       };
+      const point = getLocalPoint();
       const horizontalCoordinate = direction === 'rtl' ? 1 - point.x : point.x;
       const coordinate = store.state.orientation === 'horizontal' ? horizontalCoordinate : point.y;
       const defaultPlacement = coordinate < 0.5 ? 'before' : 'after';
@@ -68,7 +65,7 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
       if (!destination) {
         return null;
       }
-      const drop = { ...context, position, destination };
+      const drop = { ...context, dropPosition: position, listboxDestination: destination };
       return (options.canDrop?.(drop) ?? true) ? drop : null;
     },
   });

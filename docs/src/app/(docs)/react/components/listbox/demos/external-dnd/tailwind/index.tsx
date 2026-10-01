@@ -67,15 +67,15 @@ export default function ExampleListboxExternalDnd() {
                   <Draggable.Target
                     accept={paletteKind}
                     canDrop={() => items.length === 0}
-                    onDraggableDrop={({ source }) => addTrack(source.payload, 0)}
+                    onDraggableDrop={(eventDetails) => addTrack(eventDetails.source.payload, 0)}
                   />
                 }
               >
                 {items.map(({ title, artist, value }) => (
                   <Listbox.ItemExternalDropTarget
                     accept={paletteKind}
-                    onDraggableDrop={({ source, destination }) =>
-                      addTrack(source.payload, destination.index)
+                    onDraggableDrop={(eventDetails) =>
+                      addTrack(eventDetails.source.payload, eventDetails.listboxDestination.index)
                     }
                     key={value}
                     value={value}
@@ -110,15 +110,15 @@ export default function ExampleListboxExternalDnd() {
             accept={queueKind}
             aria-label="Archive tracks"
             className="w-64 rounded-md p-2 text-sm text-neutral-900 dark:text-neutral-100 outline outline-1 outline-neutral-200 dark:outline-neutral-700 data-[drag-over]:outline-blue-500"
-            onDraggableDrop={({ source }) => {
+            onDraggableDrop={(eventDetails) => {
               setArchived((current) => [
                 ...current,
-                ...source.payload.items.map(
+                ...eventDetails.source.payload.items.map(
                   (value) => tracks.find((track) => track.value === value)!.title,
                 ),
               ]);
               setItems((current) =>
-                current.filter((track) => !source.payload.items.includes(track.value)),
+                current.filter((track) => !eventDetails.source.payload.items.includes(track.value)),
               );
             }}
           >

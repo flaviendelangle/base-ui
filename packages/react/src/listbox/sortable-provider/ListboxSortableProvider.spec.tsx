@@ -10,8 +10,8 @@ import { expectType } from '#test-utils';
     expectType<Listbox.ItemId, typeof target.payload.id>(target.payload.id);
     return 'before';
   }}
-  onSortEnd={({ itemIds }, eventDetails) => {
-    expectType<Listbox.ItemId[], typeof itemIds>(itemIds);
+  onSortEnd={(eventDetails) => {
+    expectType<Listbox.ItemId[], typeof eventDetails.itemIds>(eventDetails.itemIds);
     expectType<boolean, typeof eventDetails.canceled>(eventDetails.canceled);
   }}
 />;

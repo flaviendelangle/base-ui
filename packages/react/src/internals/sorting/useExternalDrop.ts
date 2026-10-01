@@ -3,13 +3,14 @@ import * as React from 'react';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { Draggable } from '../../draggable';
-import { acceptsExternalDrop, type ExternalDropTargetProps } from './SortableDropProvider';
+import { acceptsExternalDrop } from './SortableDropProvider';
+import type { ExternalDropTargetProps } from './SortableDropProvider';
 
 import { useExternalDropStore, useExternalDropPosition } from './externalDropPosition';
 
 export function useExternalDrop<
   Position extends { id: string | number; placement: string; index?: number | undefined },
-  Context extends { position: Position },
+  Context extends { dropPosition: Position },
 >(parameters: {
   accept?: Draggable.Accept<unknown> | undefined;
   collectionId: object;
@@ -17,7 +18,7 @@ export function useExternalDrop<
   disabled: boolean;
   resolve: (context: Draggable.Target.ResolutionContext) => Context | null;
   onDraggableDrop?:
-    ((value: Context, eventDetails: Draggable.Target.DropEventDetails) => void) | undefined;
+    ((eventDetails: Draggable.Target.DropEventDetails & Context) => void) | undefined;
   onDropPositionChange?: ((position: Position | null) => void) | undefined;
 }) {
   const shared = useExternalDropStore(parameters.collectionId);
@@ -62,19 +63,16 @@ export function useExternalDrop<
     return parameters.resolve(context);
   });
   // `onDraggableEnter` details cover every reason `onDraggableMove` can report.
-  const show = useStableCallback(
-    (
-      { source, target }: Draggable.Target.MoveValue,
-      { location }: Draggable.Target.EnterEventDetails,
-    ) => {
-      if (location.current.targets[0]?.element !== target.element) {
-        clear();
-        return;
-      }
-      const result = resolve({ source, element: target.element, input: location.current.input });
-      update(result?.position ?? null);
-    },
-  );
+  const show = useStableCallback((eventDetails: Draggable.Target.EnterEventDetails) => {
+    const element = eventDetails.currentTarget.element;
+    // A drop target nested in this item owns the pointer.
+    if (eventDetails.target.element !== element) {
+      clear();
+      return;
+    }
+    const result = resolve(getResolutionContext(eventDetails));
+    update(result?.dropPosition ?? null);
+  });
   useIsoLayoutEffect(() => clear, [clear]);
   useIsoLayoutEffect(() => {
     if (parameters.disabled) {
@@ -100,17 +98,29 @@ export function useExternalDrop<
     onDraggableEnter: show,
     onDraggableMove: show,
     onDraggableLeave: clear,
-    onDraggableDrop: ({ source, target }, eventDetails) => {
-      const result = resolve({
-        source,
-        element: target.element,
-        input: eventDetails.location.current.input,
-      });
+    onDraggableDrop: (eventDetails) => {
+      const result = resolve(getResolutionContext(eventDetails));
       clear();
       if (result) {
-        parameters.onDraggableDrop?.(result, eventDetails);
+        parameters.onDraggableDrop?.({ ...eventDetails, ...result });
       }
     },
   };
   return { position, targetProps, isOwner: shared.owner === owner };
+}
+
+/**
+ * The resolution context of a target from its own event details. The record measures
+ * the pointer as `canDrop` does, so its point readers stand in for the context's.
+ */
+function getResolutionContext(
+  eventDetails: Pick<Draggable.Target.EnterEventDetails, 'source' | 'currentTarget' | 'location'>,
+): Draggable.Target.ResolutionContext {
+  return {
+    source: eventDetails.source,
+    input: eventDetails.location.current.input,
+    element: eventDetails.currentTarget.element,
+    getLocalPoint: eventDetails.currentTarget.getLocalPoint,
+    getSnappedLocalPoint: eventDetails.currentTarget.getSnappedLocalPoint,
+  };
 }

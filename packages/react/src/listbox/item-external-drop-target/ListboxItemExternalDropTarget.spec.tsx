@@ -9,10 +9,14 @@ const count = Draggable.createKind<number>('count');
 <Listbox.ItemExternalDropTarget
   value="a"
   accept={text}
-  onDraggableDrop={(value, eventDetails) => {
-    expectType<string, typeof value.source.payload>(value.source.payload);
-    expectType<Listbox.ItemExternalDropTarget.DropValue<string, string>, typeof value>(value);
-    expectType<Listbox.ItemExternalDropTarget.DropEventDetails, typeof eventDetails>(eventDetails);
+  onDraggableDrop={(eventDetails) => {
+    expectType<string, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    expectType<string, typeof eventDetails.item>(eventDetails.item);
+    expectType<
+      Listbox.ItemExternalDropTarget.DropEventDetails<string, string>,
+      typeof eventDetails
+    >(eventDetails);
+    expectType<'drop', typeof eventDetails.reason>(eventDetails.reason);
   }}
 />;
 
@@ -23,16 +27,16 @@ const count = Draggable.createKind<number>('count');
     expectType<string | number, typeof source.payload>(source.payload);
     return true;
   }}
-  onDraggableDrop={({ source }) => {
-    expectType<string | number, typeof source.payload>(source.payload);
+  onDraggableDrop={(eventDetails) => {
+    expectType<string | number, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
 <Listbox.ItemExternalDropTarget
   value="a"
   accept={Draggable.anyKind}
-  onDraggableDrop={({ source }) => {
-    expectType<unknown, typeof source.payload>(source.payload);
+  onDraggableDrop={(eventDetails) => {
+    expectType<unknown, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 

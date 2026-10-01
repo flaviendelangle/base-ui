@@ -4,8 +4,15 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useTimeout } from '@base-ui/utils/useTimeout';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
+import * as DraggablePreviewDataAttributes from '../../draggable/preview/DraggablePreviewDataAttributes';
 import type { ListboxStore } from '../store';
 import { afterDomSettle } from './afterDomSettle';
+
+/**
+ * The rendered options, in the order the composite indexes them. A drag preview that
+ * clones an option is inserted into the list, so it is excluded.
+ */
+export const OPTION_SELECTOR = `[role="option"]:not([${DraggablePreviewDataAttributes.dragPreview}])`;
 
 interface ResolvedHighlight<Value> {
   activeIndex: number | null;
@@ -58,7 +65,7 @@ export function useHighlightChangeNotifier<Value>(params: {
 
     const itemValue = store.context.valuesRef.current[activeIndex] as Value | undefined;
     const listEl = store.state.listElement;
-    const element = listEl?.querySelectorAll<HTMLElement>('[role="option"]')[activeIndex] ?? null;
+    const element = listEl?.querySelectorAll<HTMLElement>(OPTION_SELECTOR)[activeIndex] ?? null;
 
     return {
       activeIndex,

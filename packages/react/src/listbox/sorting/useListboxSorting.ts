@@ -6,21 +6,19 @@ import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { getTarget, closest } from '@base-ui/utils/shadowDom';
 import { ownerWindow } from '@base-ui/utils/owner';
-import { INTERACTIVE_ELEMENT_SELECTOR } from '../../utils/isInteractiveElement';
+import { INTERACTIVE_ELEMENT_SELECTOR } from '../../floating-ui-react/utils/constants';
 import { getParentElement } from '../../utils/getParentElement';
 import { useDirection } from '../../internals/direction-context';
-import {
-  createChangeEventDetails,
-  type BaseUIChangeEventDetails,
-} from '../../internals/createBaseUIEventDetails';
+import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails';
+import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails';
 import { REASONS } from '../../internals/reasons';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import { useListboxRootContext } from '../root/ListboxRootContext';
-import {
-  toSortingItem,
-  type ListboxSortingItem,
-  type ListboxSortingItemRecord,
-  type ListboxSortingContextValue,
+import { toSortingItem } from './ListboxSortingContext';
+import type {
+  ListboxSortingItem,
+  ListboxSortingItemRecord,
+  ListboxSortingContextValue,
 } from './ListboxSortingContext';
 
 export interface ListboxSortingDestination {
