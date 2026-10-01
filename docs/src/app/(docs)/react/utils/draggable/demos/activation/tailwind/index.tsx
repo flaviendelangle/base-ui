@@ -79,7 +79,7 @@ const ACTIVATION_GROUPS = [
 ];
 
 const PUCK_CLASS =
-  'size-14 rounded-full border-0 bg-neutral-950 transition-opacity data-[dragging]:opacity-0 motion-safe:data-[drag-preview]:data-ending-style:transition-[translate] motion-safe:data-[drag-preview]:data-ending-style:duration-200 motion-safe:data-[drag-preview]:data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950 dark:bg-white dark:focus-visible:outline-white';
+  'size-14 rounded-full bg-neutral-950 transition-opacity data-[dragging]:opacity-0 motion-safe:data-[drag-preview]:data-ending-style:transition-[translate] motion-safe:data-[drag-preview]:data-ending-style:duration-200 motion-safe:data-[drag-preview]:data-ending-style:ease-[cubic-bezier(0.2,0,0,1)] dark:bg-white';
 
 function hasDoubleClickActivation(activation: ActivationMode['activation']) {
   const criteria = Array.isArray(activation) ? activation : [activation];
@@ -113,7 +113,7 @@ function Puck({
       onPointerUp={() => onPhaseChange('ready')}
       onPointerCancel={() => onPhaseChange('ready')}
       onMoveStart={() => onPhaseChange('dragging')}
-      onMoveEnd={(_, eventDetails) => {
+      onMoveEnd={(eventDetails) => {
         if (eventDetails.reason !== 'drop') {
           onPhaseChange('ready');
         }
@@ -144,7 +144,7 @@ export default function ActivationLab() {
     waiting: mode.waitingMessage,
     dragging: hasDoubleClickActivation(mode.activation)
       ? 'Move to the target and click or release to drop. Escape cancels.'
-      : 'Activated — drag the puck to the target.',
+      : 'Activated. Drag the puck to the target.',
     dropped: 'Dropped. Reset to try again.',
   }[phase];
 

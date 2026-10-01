@@ -37,12 +37,14 @@ import {
   moveNode,
   removeNode,
   updateNode,
-  type BookmarkNode,
-  type BookmarkPage,
-  type BookmarkSeed,
-  type BookmarkTree,
-  type MoveValidity,
-  type ParentId,
+} from './bookmark-bar-model';
+import type {
+  BookmarkNode,
+  BookmarkPage,
+  BookmarkSeed,
+  BookmarkTree,
+  MoveValidity,
+  ParentId,
 } from './bookmark-bar-model';
 import styles from './bookmark-bar.module.css';
 
@@ -177,7 +179,6 @@ interface BookmarkBarContextValue {
   getMoveValidity: (sourceId: string, parentId: ParentId, index: number) => MoveValidity;
   moveNode: (sourceId: string, parentId: ParentId, index: number) => void;
   setMenuOpen: (id: string, open: boolean) => void;
-  resolveFocusTarget: (id: string) => HTMLElement | null;
   editNode: (id: string) => void;
   deleteNode: (id: string) => void;
   cutNode: (id: string) => void;
@@ -270,13 +271,11 @@ function useOverflowCount(
 
 function DropZone({
   intent,
-  label: _label,
   className,
   onDraggableEnter,
   onDraggableLeave,
 }: {
   intent: DropIntent;
-  label: string;
   className: string;
   onDraggableEnter?: (() => void) | undefined;
   onDraggableLeave?: (() => void) | undefined;
@@ -301,12 +300,10 @@ function DropZone({
 
 function FolderDropZone({
   intent,
-  label,
   className,
   folderId,
 }: {
   intent: DropIntent;
-  label: string;
   className: string;
   folderId: string;
 }) {
@@ -320,7 +317,6 @@ function FolderDropZone({
   return (
     <DropZone
       intent={intent}
-      label={label}
       className={className}
       onDraggableEnter={handleDragEnter}
       onDraggableLeave={handleDragLeave}
@@ -362,11 +358,7 @@ function DropZones({
       data-folder={node.type === 'folder' ? '' : undefined}
       aria-hidden="true"
     >
-      <DropZone
-        intent={beforeIntent}
-        label={`Place before ${node.name}`}
-        className={styles.dropBefore}
-      />
+      <DropZone intent={beforeIntent} className={styles.dropBefore} />
       {node.type === 'folder' && (
         <FolderDropZone
           intent={{
@@ -375,16 +367,11 @@ function DropZones({
             index: tree.children[node.id]?.length ?? 0,
             surfaceId,
           }}
-          label={`Move into ${node.name}`}
           className={styles.dropInside}
           folderId={node.id}
         />
       )}
-      <DropZone
-        intent={afterIntent}
-        label={`Place after ${node.name}`}
-        className={styles.dropAfter}
-      />
+      <DropZone intent={afterIntent} className={styles.dropAfter} />
     </span>
   );
 }
@@ -482,10 +469,7 @@ function DraggableEntry({
     node.type === 'folder' && dropIntent?.type === 'inside' && dropIntent.parentId === node.id;
 
   const handleBeforeDragStart = useStableCallback(
-    (
-      _value: Draggable.Root.BeforeMoveStartValue<AcceptedBookmarkDragPayload>,
-      eventDetails: Draggable.Root.BeforeMoveStartEventDetails,
-    ) => {
+    (eventDetails: Draggable.Root.BeforeMoveStartEventDetails<AcceptedBookmarkDragPayload>) => {
       if (eventDetails.input.pointerType === 'touch') {
         eventDetails.cancel();
       }
@@ -562,8 +546,8 @@ function MenuPopup({ folderId }: { folderId: string }) {
           render={
             <Draggable.Viewport
               accept={acceptedBookmarkKinds}
-              onDragScroll={({ direction }, eventDetails) => {
-                if (direction !== 'vertical') {
+              onDragScroll={(eventDetails) => {
+                if (eventDetails.direction !== 'vertical') {
                   eventDetails.cancel();
                 }
               }}
@@ -748,8 +732,8 @@ function MoreMenu({
             render={
               <Draggable.Viewport
                 accept={acceptedBookmarkKinds}
-                onDragScroll={({ direction }, eventDetails) => {
-                  if (direction !== 'vertical') {
+                onDragScroll={(eventDetails) => {
+                  if (eventDetails.direction !== 'vertical') {
                     eventDetails.cancel();
                   }
                 }}
@@ -878,8 +862,8 @@ function BrowserTabs({
             trackDragOver={false}
             render={
               <Draggable.Viewport
-                onDragScroll={({ direction }, eventDetails) => {
-                  if (direction !== 'horizontal') {
+                onDragScroll={(eventDetails) => {
+                  if (eventDetails.direction !== 'horizontal') {
                     eventDetails.cancel();
                   }
                 }}
@@ -890,8 +874,7 @@ function BrowserTabs({
       >
         {tabs.map((tab, index) => {
           const handleBeforeDragStart = (
-            _value: Draggable.Root.BeforeMoveStartValue<AcceptedBookmarkDragPayload>,
-            eventDetails: Draggable.Root.BeforeMoveStartEventDetails,
+            eventDetails: Draggable.Root.BeforeMoveStartEventDetails<AcceptedBookmarkDragPayload>,
           ) => {
             if (eventDetails.trigger?.closest('[data-close-tab]')) {
               eventDetails.cancel();
@@ -899,13 +882,15 @@ function BrowserTabs({
             }
             onActiveTabChange(tab.id);
           };
-          const handleDrag = ({
-            source,
-            target,
-          }: Draggable.Target.MoveValue<AcceptedBookmarkDragPayload, TabDropTargetPayload>) => {
-            if (source.payload.type === 'tab') {
-              const movingRight = target.getLocalPoint().x > 0.5;
-              const sourceId = source.payload.id;
+          const handleDrag = (
+            eventDetails: Draggable.Target.MoveEventDetails<
+              AcceptedBookmarkDragPayload,
+              TabDropTargetPayload
+            >,
+          ) => {
+            if (eventDetails.source.payload.type === 'tab') {
+              const movingRight = eventDetails.currentTarget.getLocalPoint().x > 0.5;
+              const sourceId = eventDetails.source.payload.id;
               onTabsChange((current) => {
                 const targetIndex = current.findIndex((candidate) => candidate.id === tab.id);
                 return moveTabToIndex(current, sourceId, targetIndex + (movingRight ? 1 : 0));
@@ -951,19 +936,17 @@ function BrowserTabs({
                 <Draggable.Root<AcceptedBookmarkDragPayload>
                   kind={tabKind}
                   payload={tabPayloads[index]}
-                  activation={{ mouse: { type: 'distance', distance: 5 } }}
                   onBeforeMoveStart={handleBeforeDragStart}
                   onMoveStart={handleDragStart}
-                  onMoveEnd={({ target }) => {
+                  onMoveEnd={(eventDetails) => {
                     try {
-                      if (target !== null) {
+                      if (eventDetails.target !== null) {
                         handleDrop();
                       }
                     } finally {
                       handleDragEnd();
                     }
                   }}
-
                   render={
                     <Draggable.Target<AcceptedBookmarkDragPayload, TabDropTargetPayload>
                       accept={acceptedTabKinds}
@@ -975,7 +958,7 @@ function BrowserTabs({
                         <button
                           type="button"
                           aria-label={tab.name}
-                          aria-keyshortcuts="Alt+Enter Alt+ArrowLeft Alt+ArrowRight Delete"
+                          aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Delete"
                           onKeyDown={handleKeyDown}
                         />
                       }
@@ -996,7 +979,6 @@ function BrowserTabs({
               >
                 ×
               </span>
-              <Draggable.Preview />
             </Tabs.Tab>
           );
         })}
@@ -1465,15 +1447,12 @@ function BookmarkBar() {
     resolveFocusTarget(editorFocusIdRef.current),
   );
 
-  // Reads the whole target stack, not only the innermost `target`: a bookmark slot and
-  // a tab position can be under the pointer at once, nested in other drop targets.
+  // Reads the whole target stack, not only the innermost `target`. A bookmark slot and a
+  // tab position can both be under the pointer, nested in other drop targets.
   const syncDropIntents = useStableCallback(
-    (
-      value: { source: { payload: AcceptedBookmarkDragPayload } },
-      eventDetails: Draggable.Root.TargetChangeEventDetails,
-    ) => {
+    (eventDetails: Draggable.Root.TargetChangeEventDetails<AcceptedBookmarkDragPayload>) => {
       const { targets } = eventDetails.location.current;
-      const source = value.source.payload;
+      const source = eventDetails.source.payload;
       const target = targets.find((candidate) => bookmarkDropKind.matches(candidate));
       const nextIntent = target && bookmarkDropKind.matches(target) ? target.payload : null;
       setDropIntent((current) =>
@@ -1492,18 +1471,19 @@ function BookmarkBar() {
 
   Draggable.useMonitor({
     accept: acceptedTabKinds,
-    onMoveStart(value, eventDetails) {
-      setActiveDragId(value.source.payload.id);
-      syncDropIntents(value, eventDetails);
+    onMoveStart(eventDetails) {
+      setActiveDragId(eventDetails.source.payload.id);
+      syncDropIntents(eventDetails);
     },
     onMove: syncDropIntents,
     onTargetChange: syncDropIntents,
-    onMoveEnd({ source }, { reason, location }) {
+    onMoveEnd(eventDetails) {
+      const source = eventDetails.source;
       try {
-        if (reason !== 'drop') {
+        if (eventDetails.reason !== 'drop') {
           return;
         }
-        const bookmarkTarget = location.current.targets.find((candidate) =>
+        const bookmarkTarget = eventDetails.location.current.targets.find((candidate) =>
           bookmarkDropKind.matches(candidate),
         );
         if (bookmarkTarget && bookmarkDropKind.matches(bookmarkTarget)) {
@@ -1527,7 +1507,7 @@ function BookmarkBar() {
         const sourceNode =
           source.payload.type === 'existing' ? tree.nodes[source.payload.id] : null;
         const tabIntent = resolveTabDropIntent(
-          location.current.targets,
+          eventDetails.location.current.targets,
           sourceNode?.type === 'bookmark',
         );
         if (!tabIntent) {
@@ -1566,7 +1546,7 @@ function BookmarkBar() {
     },
   });
 
-  // Hovering a tab with a bookmark for a moment previews it in that tab.
+  // Hovering a tab with a bookmark for a moment switches to that tab.
   const replacementTabId = tabDropIntent?.type === 'replace' ? tabDropIntent.tabId : null;
   React.useEffect(() => {
     if (!replacementTabId) {
@@ -1908,7 +1888,6 @@ function BookmarkBar() {
       getMoveValidity: getValidity,
       moveNode: handleMoveNode,
       setMenuOpen,
-      resolveFocusTarget,
       editNode: handleEditNode,
       deleteNode: handleDeleteNode,
       cutNode: handleCutNode,
@@ -1929,7 +1908,6 @@ function BookmarkBar() {
       getValidity,
       handleMoveNode,
       setMenuOpen,
-      resolveFocusTarget,
       handleEditNode,
       handleDeleteNode,
       handleCutNode,

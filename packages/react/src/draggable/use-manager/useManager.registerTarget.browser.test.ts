@@ -3,6 +3,7 @@ import { act } from '@mui/internal-test-utils';
 import { createDndRenderer, isJSDOM } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { flushRaf, registerCleanup, setupDragEngineTests } from '../../../test/dnd';
+import { isActive } from '../../utils/drag-and-drop/core/lifecycleManager';
 
 setupDragEngineTests();
 
@@ -12,12 +13,11 @@ const cardKind = Draggable.createKind<string>('card');
  * End-to-end drop-target resolution against real layout and a real
  * `document.elementFromPoint`.
  *
- * Every other engine test drives drags through the native→synthetic bridge,
- * which stubs `elementFromPoint` to return the element the test named — so the
- * test hands the engine the answer and the point→element path never runs. These
- * drive raw pointer events instead, which the bridge ignores (it only patches
- * `elementFromPoint` once it sees a native `dragstart`), leaving the engine to
- * hit-test the pointer for real.
+ * Every other engine test drives drags through `fireDrag`, which stubs
+ * `elementFromPoint` to return the element the test named. The test hands the
+ * engine the answer, so the point→element path never runs. These tests dispatch
+ * raw pointer events instead and leave `elementFromPoint` unpatched, so the engine
+ * hit-tests the pointer for real.
  */
 describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
   const { renderDnd } = createDndRenderer();
@@ -81,7 +81,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
 
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][0].target.element).toBe(target);
+    expect(onDrop.mock.calls[0][0].currentTarget.element).toBe(target);
   });
 
   it('resolves a target inside a closed shadow root', async () => {
@@ -117,27 +117,62 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     pointer('pointerup', source, 50, 225);
     await flushRaf();
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][0].target.element).toBe(target);
+    expect(onDrop.mock.calls[0][0].currentTarget.element).toBe(target);
   });
 
-  it('resolves a shadow-tree target around slotted content', async () => {
+  // `assignedSlot` hides the slot of a closed root, so the engine looks it up in
+  // the closed root it knows from the registered target.
+  it.each(['open', 'closed'] as const)(
+    'resolves a shadow-tree target around slotted content (%s root)',
+    async (mode) => {
+      const { engine } = await renderDnd();
+      const source = createBox(0, 0);
+      const host = createBox(0, 200);
+      const shadowRoot = host.attachShadow({ mode });
+      const target = document.createElement('div');
+      target.style.cssText = 'display: block; width: 100%; height: 100%;';
+      target.appendChild(document.createElement('slot'));
+      shadowRoot.appendChild(target);
+      const slotted = document.createElement('button');
+      slotted.style.cssText = 'display: block; width: 100%; height: 100%;';
+      host.appendChild(slotted);
+
+      const onDrop = vi.fn();
+      engine.registerSource(source, {
+        kind: cardKind,
+        payload: 'card-1',
+        activation: { mouse: { type: 'immediate' } },
+      });
+      engine.registerTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
+
+      pointer('pointerdown', source, 50, 25);
+      await flushRaf();
+      pointer('pointermove', source, 50, 225);
+      await flushRaf();
+      await flushRaf();
+      pointer('pointerup', source, 50, 225);
+      await flushRaf();
+
+      expect(document.elementFromPoint(50, 225)).toBe(slotted);
+      expect(onDrop).toHaveBeenCalledTimes(1);
+      expect(onDrop.mock.calls[0][0].currentTarget.element).toBe(target);
+    },
+  );
+
+  it('ends the drag normally when a modifier returns non-finite coordinates', async () => {
     const { engine } = await renderDnd();
     const source = createBox(0, 0);
-    const host = createBox(0, 200);
-    const shadowRoot = host.attachShadow({ mode: 'open' });
-    const target = document.createElement('div');
-    target.style.cssText = 'display: block; width: 100%; height: 100%;';
-    target.appendChild(document.createElement('slot'));
-    shadowRoot.appendChild(target);
-    const slotted = document.createElement('button');
-    slotted.style.cssText = 'display: block; width: 100%; height: 100%;';
-    host.appendChild(slotted);
-
+    const target = createBox(0, 200);
     const onDrop = vi.fn();
+    const onMoveEnd = vi.fn();
     engine.registerSource(source, {
       kind: cardKind,
       payload: 'card-1',
       activation: { mouse: { type: 'immediate' } },
+      // `elementFromPoint` throws on a non-finite coordinate, which would fail
+      // every frame and the release, and leave the engine refusing pickups.
+      modifiers: ({ point }) => ({ x: Number.NaN, y: point.y }),
+      onMoveEnd,
     });
     engine.registerTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
 
@@ -149,9 +184,15 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     pointer('pointerup', source, 50, 225);
     await flushRaf();
 
-    expect(document.elementFromPoint(50, 225)).toBe(slotted);
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][0].target.element).toBe(target);
+    expect(isActive()).toBe(false);
+
+    pointer('pointerdown', source, 50, 25);
+    await flushRaf();
+    expect(isActive()).toBe(true);
+    pointer('pointerup', source, 50, 25);
+    await flushRaf();
   });
 
   it('resolves the innermost target when they nest', async () => {
@@ -216,12 +257,12 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     expect(onDrop).not.toHaveBeenCalled();
     expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onMoveEnd.mock.calls[0][0].target).toBeNull();
-    expect(onMoveEnd.mock.calls[0][1].reason).toBe('outside-release');
+    expect(onMoveEnd.mock.calls[0][0].reason).toBe('outside-release');
   });
 
   /**
-   * `getLocalPoint` against real geometry: the fraction only means anything if the rect it
-   * divides by is one the browser laid out. Boxes here are 100×50 at fixed viewport
+   * `getLocalPoint` against real geometry. The fraction only means something if the
+   * browser laid out the rect it divides by. Boxes here are 100×50 at fixed viewport
    * positions, so every expected fraction is arithmetic rather than a snapshot.
    */
   describe('getLocalPoint', () => {
@@ -248,7 +289,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
 
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop.mock.calls[0][0].target.getLocalPoint()).toEqual({ x: 0.25, y: 0.6 });
+      expect(onDrop.mock.calls[0][0].currentTarget.getLocalPoint()).toEqual({ x: 0.25, y: 0.6 });
     });
 
     it('quantizes the snapped point against real geometry, on both anchors', async () => {
@@ -279,7 +320,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
 
       expect(onDrop).toHaveBeenCalledTimes(1);
-      const record = onDrop.mock.calls[0][0].target;
+      const record = onDrop.mock.calls[0][0].currentTarget;
       // Pointer: (0.35, 0.66) → nearest of (4, 10) steps.
       expect(record.getSnappedLocalPoint()).toEqual({ x: 0.25, y: 0.7 });
       // Source's leading edges: ((35−10)/100, (233−20−200)/50) = (0.25, 0.26).
@@ -314,46 +355,13 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
       await flushRaf();
 
-      const { targets } = onMove.mock.calls.at(-1)![1].location.current;
+      const { targets } = onMove.mock.calls.at(-1)![0].location.current;
       expect(targets).toHaveLength(2);
       // Innermost first.
       expect(targets[0].element).toBe(inner);
       expect(targets[0].getLocalPoint()).toEqual({ x: 0.5, y: 0.5 });
       expect(targets[1].element).toBe(outer);
       expect(targets[1].getLocalPoint()).toEqual({ x: 0.4, y: 0.5 });
-    });
-
-    it('measures once per record, however many times it is asked', async () => {
-      const { engine } = await renderDnd();
-      const source = createBox(0, 0);
-      const target = createBox(0, 200);
-
-      const onDrop = vi.fn();
-      engine.registerSource(source, {
-        kind: cardKind,
-        payload: 'card-1',
-        activation: { mouse: { type: 'immediate' } },
-      });
-      engine.registerTarget(target, { accept: cardKind, onDraggableDrop: onDrop });
-
-      pointer('pointerdown', source, 50, 25);
-      await flushRaf();
-      pointer('pointermove', source, 50, 225);
-      await flushRaf();
-      await flushRaf();
-      pointer('pointerup', source, 50, 225);
-      await flushRaf();
-
-      const { target: targetRecord } = onDrop.mock.calls[0][0];
-      const first = targetRecord.getLocalPoint();
-
-      // Armed only after the first call, which is the one that is meant to measure.
-      const measure = vi.spyOn(target, 'getBoundingClientRect');
-      const second = targetRecord.getLocalPoint();
-
-      expect(second).toBe(first);
-      expect(measure).not.toHaveBeenCalled();
-      measure.mockRestore();
     });
 
     it('does not measure anything unless it is called', async () => {
@@ -371,8 +379,8 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
 
-      // Armed after the pickup so the preview's own measurements are not counted: this is
-      // about what resolving a target over several moves costs a caller that never asks.
+      // Armed after the pickup so the preview's own measurements are not counted. The test
+      // checks what resolving a target over several moves costs a caller that never reads it.
       const measure = vi.spyOn(target, 'getBoundingClientRect');
       pointer('pointermove', source, 20, 210);
       await flushRaf();
@@ -407,9 +415,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerup', source, 50, 225);
       await flushRaf();
 
-      // Detached after the record was made and before it is read, which measures as all
-      // zeros: the case that would otherwise divide by zero.
-      const { target: targetRecord } = onDrop.mock.calls[0][0];
+      // Detached after the record was made and before it is read, so it measures as all
+      // zeros. Without the guard, this would divide by zero.
+      const { currentTarget: targetRecord } = onDrop.mock.calls[0][0];
       target.remove();
 
       expect(targetRecord.getLocalPoint()).toEqual({ x: 0, y: 0 });

@@ -2,13 +2,15 @@
 import { Draggable } from '@base-ui/react/draggable';
 
 import * as React from 'react';
+import { visuallyHidden } from '@base-ui/utils/visuallyHidden';
 import { GripIcon } from '../../GripIcon';
-import { SLOTS, useDashboardWidgets, type SlotId, type WidgetData } from '../../dashboardWidgets';
+import { SLOTS, useDashboardWidgets } from '../../dashboardWidgets';
+import type { SlotId, WidgetData } from '../../dashboardWidgets';
 
 const widgetKind = Draggable.createKind<string>('draggable/preview-widget');
 
 const WIDGET_CLASS =
-  'box-border flex min-h-32 w-full cursor-grab flex-col border border-neutral-950 bg-white text-neutral-950 transition data-[dragging]:opacity-40 hover:bg-neutral-100 dark:border-white dark:bg-neutral-950 dark:text-white dark:hover:bg-neutral-800 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white';
+  'box-border flex min-h-32 w-full cursor-grab flex-col border border-neutral-950 bg-white text-neutral-950 transition-[background-color,opacity] data-[dragging]:opacity-40 hover:bg-neutral-100 dark:border-white dark:bg-neutral-950 dark:text-white dark:hover:bg-neutral-800 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white';
 const BADGE_CLASS =
   'inline-flex items-center gap-1.5 whitespace-nowrap border border-neutral-950 bg-white px-2 py-1 text-xs leading-4 font-semibold text-neutral-950 shadow-[0.25rem_0.25rem_0_rgb(0_0_0_/_12%)] dark:border-white dark:bg-neutral-950 dark:text-white dark:shadow-none';
 const BADGE_VALUE_CLASS = 'bg-neutral-950 px-1 text-white dark:bg-white dark:text-neutral-950';
@@ -71,7 +73,7 @@ function DockSlot({
       data-empty={widget ? undefined : ''}
       accept={widgetKind}
       canDrop={() => widget === undefined}
-      onDraggableDrop={({ source }) => onMoveWidget(source.payload, id)}
+      onDraggableDrop={(eventDetails) => onMoveWidget(eventDetails.source.payload, id)}
     >
       {widget ? (
         <Widget widget={widget} onKeyDown={onWidgetKeyDown} />
@@ -91,7 +93,7 @@ export default function CustomPreviewDashboard() {
   return (
     <Draggable.Provider>
       <div ref={dashboardRef} className="flex w-full flex-col gap-4 select-none">
-        <div role="status" className="sr-only">
+        <div role="status" style={visuallyHidden}>
           {announcement}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

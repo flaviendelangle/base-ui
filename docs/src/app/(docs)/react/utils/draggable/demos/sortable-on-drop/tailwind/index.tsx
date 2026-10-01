@@ -10,8 +10,8 @@ import {
   getTaskRow,
   getTaskDestination,
   sameTaskDestination,
-  type TaskDestination,
 } from '../../sortableTasks';
+import type { TaskDestination } from '../../sortableTasks';
 
 const taskKind = Draggable.createKind<string>('sortable-drop-task');
 
@@ -28,9 +28,11 @@ const Task = React.memo(function Task({
 }) {
   const rowRef = React.useRef<HTMLDivElement | null>(null);
   const [selfDrop, setSelfDrop] = React.useState(false);
-  const trackSelfDrop = useStableCallback(({ target }: Draggable.Root.MoveStartValue<string>) => {
-    setSelfDrop(target?.element === rowRef.current);
-  });
+  const trackSelfDrop = useStableCallback(
+    (eventDetails: Draggable.Root.TargetChangeEventDetails<string>) => {
+      setSelfDrop(eventDetails.target?.element === rowRef.current);
+    },
+  );
 
   return (
     <div data-sortable-row ref={rowRef} className="px-[9px] py-1">
@@ -44,7 +46,7 @@ const Task = React.memo(function Task({
         onTargetChange={trackSelfDrop}
         onMoveEnd={() => setSelfDrop(false)}
         render={<button type="button" aria-label={task} />}
-        className="relative box-border min-h-10 w-full cursor-grab select-none border border-neutral-900 bg-white px-4 py-2 text-sm leading-5 text-neutral-900 after:pointer-events-none after:absolute after:inset-x-[-9px] after:hidden after:h-[3px] after:bg-blue-500 data-[drop-position=before]:after:top-[-6.5px] data-[drop-position=before]:after:block data-[self-drop]:after:top-[-6.5px] data-[self-drop]:after:block data-[drop-position=after]:after:bottom-[-6.5px] data-[drop-position=after]:after:block data-[dragging]:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-white dark:bg-neutral-950 dark:text-white"
+        className="relative box-border min-h-10 w-full cursor-grab select-none border border-neutral-950 bg-white px-4 py-2 text-sm leading-5 text-neutral-950 after:pointer-events-none after:absolute after:inset-x-[-9px] after:hidden after:h-[3px] after:bg-blue-500 data-[drop-position=before]:after:top-[-6.5px] data-[drop-position=before]:after:block data-[self-drop]:after:top-[-6.5px] data-[self-drop]:after:block data-[drop-position=after]:after:bottom-[-6.5px] data-[drop-position=after]:after:block data-[dragging]:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-white dark:bg-neutral-950 dark:text-white"
         modifiers={Draggable.restrictToVerticalAxis}
         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
         onKeyDown={(event) => {
@@ -65,21 +67,20 @@ export default function SortableOnDrop() {
   const [announcement, setAnnouncement] = React.useState('');
   const [destination, setDestination] = React.useState<TaskDestination | null>(null);
   const trackCollision = useStableCallback(
-    (
-      { target }: Draggable.CollisionProvider.CollisionChangeValue<string>,
-      { previousTarget }: Draggable.CollisionProvider.CollisionChangeEventDetails<string>,
-    ) => {
-      const next = getTaskDestination(target);
-      if (sameTaskDestination(next, getTaskDestination(previousTarget))) {
+    (eventDetails: Draggable.CollisionProvider.CollisionChangeEventDetails<string>) => {
+      const next = getTaskDestination(eventDetails.target);
+      if (sameTaskDestination(next, getTaskDestination(eventDetails.previousTarget))) {
         return;
       }
       setDestination(next);
     },
   );
-  const reorder = useStableCallback((value: Draggable.CollisionProvider.MoveEndValue<string>) => {
-    setDestination(null);
-    setTasks((current) => moveTask(current, value));
-  });
+  const reorder = useStableCallback(
+    (eventDetails: Draggable.CollisionProvider.MoveEndEventDetails<string>) => {
+      setDestination(null);
+      setTasks((current) => moveTask(current, eventDetails));
+    },
+  );
   const swap = useStableCallback((task: string, direction: 'up' | 'down') => {
     const next = swapTask(tasks, task, direction);
     if (next === tasks) {
@@ -108,7 +109,7 @@ export default function SortableOnDrop() {
           ))}
         </div>
       </Draggable.CollisionProvider>
-      <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHidden}>
+      <span role="status" style={visuallyHidden}>
         {announcement}
       </span>
     </Draggable.Provider>

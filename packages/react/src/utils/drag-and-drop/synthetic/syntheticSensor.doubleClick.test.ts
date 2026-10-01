@@ -8,9 +8,8 @@ import {
   setupDragEngineTests,
 } from '../../../../test/dnd';
 import { restrictToVerticalAxis } from '../dragModifiers';
-import * as syntheticSensor from './syntheticSensor';
 
-setupDragEngineTests({ extraAfterEach: () => syntheticSensor.resetForTests() });
+setupDragEngineTests();
 
 describe('syntheticDrag double-click activation', () => {
   const { renderDnd } = createDndRenderer();
@@ -42,8 +41,8 @@ describe('syntheticDrag double-click activation', () => {
 
     fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
     expect(onMoveStart).toHaveBeenCalledTimes(1);
-    expect(onBeforeMoveStart.mock.calls[0][1].reason).toBe('double-click');
-    expect(onBeforeMoveStart.mock.calls[0][1].event.type).toBe('dblclick');
+    expect(onBeforeMoveStart.mock.calls[0][0].reason).toBe('double-click');
+    expect(onBeforeMoveStart.mock.calls[0][0].event.type).toBe('dblclick');
     firePointer.move(target, {
       pointerType: 'mouse',
       pointerId: 1,
@@ -53,16 +52,127 @@ describe('syntheticDrag double-click activation', () => {
       timeStamp: 20,
     });
     await flushRaf();
-    expect(onMove.mock.lastCall?.[1].location.current.input.clientX).toBe(20);
-    expect(onMove.mock.lastCall?.[1].location.current.input.clientY).toBe(80);
+    expect(onMove.mock.lastCall?.[0].location.current.input.clientX).toBe(20);
+    expect(onMove.mock.lastCall?.[0].location.current.input.clientY).toBe(80);
     firePointer.up(target, { pointerType: 'mouse', pointerId: 1, button: 0, timeStamp: 30 });
     expect(onDrop).not.toHaveBeenCalled();
     fireEvent.click(target, { detail: 1, button: 0, clientX: 90, clientY: 80 });
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop.mock.calls[0][1].location.current.input.clientX).toBe(20);
+    expect(onDrop.mock.calls[0][0].location.current.input.clientX).toBe(20);
     expect(onClick).not.toHaveBeenCalled();
     fireEvent.click(target, { detail: 1 });
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows and drops with a pointer that reports an empty pointerType', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const target = createElement();
+    const onMove = vi.fn();
+    const onDrop = vi.fn();
+    engine.registerSource(source, { activation: { type: 'double-click' }, onMove });
+    engine.registerTarget(target, { onDraggableDrop: onDrop });
+    const original = document.elementFromPoint;
+    document.elementFromPoint = () => target;
+    registerCleanup(() => {
+      document.elementFromPoint = original;
+    });
+
+    fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
+    // An empty `pointerType` counts as mouse, as it does at pickup. The session
+    // follows it, swallows its press, and drops on its click.
+    firePointer.move(target, {
+      pointerType: '',
+      pointerId: 1,
+      buttons: 0,
+      clientX: 90,
+      clientY: 80,
+      timeStamp: 20,
+    });
+    await flushRaf();
+    expect(onMove.mock.lastCall?.[0].location.current.input.clientX).toBe(90);
+
+    const press = new PointerEvent('pointerdown', {
+      pointerType: '',
+      button: 0,
+      buttons: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+    target.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+
+    fireEvent(
+      target,
+      new PointerEvent('click', {
+        pointerType: '',
+        button: 0,
+        detail: 1,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(onDrop).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not pick the item up again when the drop is a double-click', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const onMoveStart = vi.fn();
+    const onMoveEnd = vi.fn();
+    const onDoubleClick = vi.fn();
+    engine.registerSource(source, { activation: { type: 'double-click' }, onMoveStart, onMoveEnd });
+
+    fireEvent.doubleClick(source, { detail: 2, button: 0 });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    document.addEventListener('dblclick', onDoubleClick);
+    registerCleanup(() => document.removeEventListener('dblclick', onDoubleClick));
+
+    // Double-clicking the destination, here where the dropped item now lies. The
+    // first click drops, and the rest of the double-click belongs to it.
+    fireEvent.click(source, { detail: 1, button: 0 });
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    expect(fireEvent.click(source, { detail: 2, button: 0 })).toBe(false);
+    fireEvent.doubleClick(source, { detail: 2, button: 0 });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onDoubleClick).not.toHaveBeenCalled();
+
+    // A new double-click picks it up again.
+    fireEvent.click(source, { detail: 1, button: 0 });
+    fireEvent.click(source, { detail: 2, button: 0 });
+    fireEvent.doubleClick(source, { detail: 2, button: 0 });
+    expect(onMoveStart).toHaveBeenCalledTimes(2);
+    expect(onDoubleClick).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+  });
+
+  it('fires the first onMove for the first pointer move, not for the double-click', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const onMoveStart = vi.fn();
+    const onMove = vi.fn();
+    engine.registerSource(source, { activation: { type: 'double-click' }, onMoveStart, onMove });
+
+    fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
+    await flushRaf();
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    // `'pointer'` moves report a `PointerEvent`, which the `dblclick` isn't in
+    // every browser.
+    expect(onMove).not.toHaveBeenCalled();
+
+    firePointer.move(source, {
+      pointerType: 'mouse',
+      pointerId: 1,
+      buttons: 0,
+      clientX: 40,
+      clientY: 50,
+      timeStamp: 20,
+    });
+    await flushRaf();
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].reason).toBe('pointer');
+    expect(onMove.mock.calls[0][0].event.type).toBe('pointermove');
+    fireEvent.keyDown(document.body, { key: 'Escape' });
   });
 
   it('cancels the press that drops so the destination is neither focused nor pressed', async () => {
@@ -91,7 +201,7 @@ describe('syntheticDrag double-click activation', () => {
     expect(mouseDown.defaultPrevented).toBe(true);
     expect(onPress).not.toHaveBeenCalled();
 
-    // A touch press during a mouse double-click session is somebody else's.
+    // A touch press during a mouse double-click session belongs to another gesture.
     const touchPress = new PointerEvent('pointerdown', {
       pointerType: 'touch',
       button: 0,
@@ -124,7 +234,7 @@ describe('syntheticDrag double-click activation', () => {
     registerCleanup(() => source.removeEventListener('click', onClick));
     fireEvent.doubleClick(source, { detail: 2 });
     fireEvent.keyDown(document.body, { key: 'Escape' });
-    expect(onMoveEnd.mock.calls[0][1].reason).toBe('escape-key');
+    expect(onMoveEnd.mock.calls[0][0].reason).toBe('escape-key');
     fireEvent.click(source, { detail: 1 });
     expect(onClick).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +246,7 @@ describe('syntheticDrag double-click activation', () => {
     engine.registerSource(source, {
       activation: { type: 'double-click' },
       onMoveStart,
-      onBeforeMoveStart: (_, details) => details.cancel(),
+      onBeforeMoveStart: (details) => details.cancel(),
     });
     fireEvent.doubleClick(source, { detail: 2 });
     expect(onMoveStart).not.toHaveBeenCalled();
@@ -190,7 +300,7 @@ describe('syntheticDrag double-click activation', () => {
     fireEvent.click(source, { detail: 0 });
     expect(onMoveEnd).not.toHaveBeenCalled();
     fireEvent.blur(window);
-    expect(onMoveEnd.mock.calls[0][1].reason).toBe('window-blur');
+    expect(onMoveEnd.mock.calls[0][0].reason).toBe('window-blur');
   });
   it('allows either distance pickup or double-click pickup on the same source', async () => {
     const { engine } = await renderDnd();
@@ -210,11 +320,11 @@ describe('syntheticDrag double-click activation', () => {
       clientX: 15,
       timeStamp: 20,
     });
-    expect(onBeforeMoveStart.mock.calls[0][1].reason).toBe('pointer');
+    expect(onBeforeMoveStart.mock.calls[0][0].reason).toBe('pointer');
     firePointer.up(source, { pointerType: 'mouse', pointerId: 1, timeStamp: 30 });
     fireEvent.click(source, { detail: 1 });
     fireEvent.doubleClick(source, { detail: 2 });
-    expect(onBeforeMoveStart.mock.calls[1][1].reason).toBe('double-click');
+    expect(onBeforeMoveStart.mock.calls[1][0].reason).toBe('double-click');
     fireEvent.click(source, { detail: 1 });
     expect(onMoveEnd).toHaveBeenCalledTimes(2);
   });
@@ -225,7 +335,7 @@ describe('syntheticDrag double-click activation', () => {
     const root = host.attachShadow({ mode: 'open' });
     const source = document.createElement('div');
     root.append(source);
-    const onBeforeMoveStart = vi.fn((_, details) => details.cancel());
+    const onBeforeMoveStart = vi.fn((details) => details.cancel());
     engine.registerSource(host, { activation: { type: 'double-click' }, onBeforeMoveStart });
     engine.registerSource(source, { activation: { type: 'double-click' }, onBeforeMoveStart });
     fireEvent.doubleClick(source, { detail: 2, composed: true });
@@ -262,12 +372,12 @@ describe('syntheticDrag double-click activation', () => {
       firePointer.up(source, { ...tap, pointerType: 'touch', pointerId: 1, timeStamp: 60 });
       expect(onMoveStart).not.toHaveBeenCalled();
 
-      // Browsers hand each touch contact a new pointerId; the pair is matched on
-      // the source, not the id.
+      // Browsers give each touch contact a new `pointerId`, so the pair is matched
+      // by source, not by id.
       firePointer.down(source, { ...tap, pointerType: 'touch', pointerId: 2, timeStamp: 200 });
       expect(onMoveStart).toHaveBeenCalledTimes(1);
-      expect(onBeforeMoveStart.mock.calls[0][1].reason).toBe('double-click');
-      expect(onBeforeMoveStart.mock.calls[0][1].event.type).toBe('pointerdown');
+      expect(onBeforeMoveStart.mock.calls[0][0].reason).toBe('double-click');
+      expect(onBeforeMoveStart.mock.calls[0][0].event.type).toBe('pointerdown');
 
       firePointer.move(target, {
         pointerType: 'touch',
@@ -278,7 +388,7 @@ describe('syntheticDrag double-click activation', () => {
         timeStamp: 220,
       });
       await flushRaf();
-      expect(onMove.mock.lastCall?.[1].location.current.input.clientY).toBe(80);
+      expect(onMove.mock.lastCall?.[0].location.current.input.clientY).toBe(80);
 
       firePointer.up(target, {
         pointerType: 'touch',
@@ -290,7 +400,7 @@ describe('syntheticDrag double-click activation', () => {
       });
       expect(onDrop).toHaveBeenCalledTimes(1);
       expect(onMoveEnd).toHaveBeenCalledTimes(1);
-      expect(onMoveEnd.mock.calls[0][1].reason).toBe('drop');
+      expect(onMoveEnd.mock.calls[0][0].reason).toBe('drop');
     });
 
     it('picks up on a pen double-tap', async () => {
@@ -317,7 +427,7 @@ describe('syntheticDrag double-click activation', () => {
       expect(onMoveStart).not.toHaveBeenCalled();
       firePointer.up(source, { ...tap, pointerType: 'touch', pointerId: 2, timeStamp: 420 });
 
-      // Too far: the second press lands 40px from the first.
+      // Too far. The second press lands 40px from the first.
       firePointer.down(source, {
         ...tap,
         pointerType: 'touch',
@@ -381,7 +491,7 @@ describe('syntheticDrag double-click activation', () => {
         onBeforeMoveStart,
         onMoveStart,
       });
-      // Mouse keeps its default distance activation: no double-click pickup.
+      // Mouse keeps its default distance activation, so there is no double-click pickup.
       firePointer.down(source, { ...tap, pointerType: 'mouse', pointerId: 1, timeStamp: 10 });
       firePointer.up(source, { ...tap, pointerType: 'mouse', pointerId: 1, timeStamp: 30 });
       fireEvent.doubleClick(source, { detail: 2, button: 0 });
@@ -391,7 +501,7 @@ describe('syntheticDrag double-click activation', () => {
       firePointer.up(source, { ...tap, pointerType: 'touch', pointerId: 2, timeStamp: 530 });
       firePointer.down(source, { ...tap, pointerType: 'touch', pointerId: 3, timeStamp: 600 });
       expect(onMoveStart).toHaveBeenCalledTimes(1);
-      expect(onBeforeMoveStart.mock.calls[0][1].reason).toBe('double-click');
+      expect(onBeforeMoveStart.mock.calls[0][0].reason).toBe('double-click');
     });
 
     it('ignores a dblclick synthesized from a touch double-tap', async () => {
@@ -400,7 +510,7 @@ describe('syntheticDrag double-click activation', () => {
       const onMoveStart = vi.fn();
       engine.registerSource(source, { activation: { type: 'double-click' }, onMoveStart });
 
-      // Chromium: `dblclick` is a `PointerEvent` reporting the touch.
+      // Chromium fires `dblclick` as a `PointerEvent` that reports the touch.
       source.dispatchEvent(
         new PointerEvent('dblclick', { pointerType: 'touch', button: 0, detail: 2, bubbles: true }),
       );

@@ -10,8 +10,8 @@ import {
   getTaskRow,
   getTaskDestination,
   sameTaskDestination,
-  type TaskDestination,
 } from '../../sortableTasks';
+import type { TaskDestination } from '../../sortableTasks';
 import { useSortableAnimation } from '../../useSortableAnimation';
 import styles from '../sortable.module.css';
 
@@ -57,14 +57,13 @@ export default function SortableLive() {
   const listRef = useSortableAnimation(tasks);
   const destinationRef = React.useRef<TaskDestination | null>(null);
   const reorder = useStableCallback(
-    (
-      value: Draggable.CollisionProvider.CollisionChangeValue<string>,
-      { location }: Draggable.CollisionProvider.CollisionChangeEventDetails<string>,
-    ) => {
-      const next = getTaskDestination(value.target);
+    (eventDetails: Draggable.CollisionProvider.CollisionChangeEventDetails<string>) => {
+      const next = getTaskDestination(eventDetails.target);
       const previous = destinationRef.current;
       if (next) {
-        const delta = location.current.input.clientY - location.previous.input.clientY;
+        const delta =
+          eventDetails.location.current.input.clientY -
+          eventDetails.location.previous.input.clientY;
         if (delta !== 0) {
           next.placement = delta > 0 ? 'after' : 'before';
         } else if (next.id === previous?.id) {
@@ -75,7 +74,7 @@ export default function SortableLive() {
         return;
       }
       destinationRef.current = next;
-      setTasks((current) => moveTask(current, value, next?.placement));
+      setTasks((current) => moveTask(current, eventDetails, next?.placement));
     },
   );
   const swap = useStableCallback((task: string, direction: 'up' | 'down') => {
@@ -96,9 +95,9 @@ export default function SortableLive() {
           destinationRef.current = null;
         }}
         onCollisionChange={reorder}
-        onMoveEnd={(value, eventDetails) => {
+        onMoveEnd={(eventDetails) => {
           if (eventDetails.reason === 'drop') {
-            reorder(value, eventDetails);
+            reorder(eventDetails);
           } else {
             setTasks(initialOrder.current);
           }
@@ -117,7 +116,7 @@ export default function SortableLive() {
           ))}
         </div>
       </Draggable.CollisionProvider>
-      <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHidden}>
+      <span role="status" style={visuallyHidden}>
         {announcement}
       </span>
     </Draggable.Provider>

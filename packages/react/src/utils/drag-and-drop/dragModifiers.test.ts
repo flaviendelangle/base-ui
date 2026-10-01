@@ -11,11 +11,12 @@ import {
   restrictToElement,
   snapToGrid,
 } from './dragModifiers';
+import { NO_MODIFIER_KEYS } from './utils';
+import type { DraggablePosition } from '../../draggable/DraggableProvider';
 import type {
   DraggableRootModifier,
   DraggableRootModifierContext,
-  DraggablePosition,
-} from '../../types/drag';
+} from '../../draggable/root/DraggableRoot';
 
 function makeRect(left: number, top: number, width: number, height: number): DOMRect {
   return {
@@ -101,13 +102,6 @@ describe('restrictToHorizontalAxis', () => {
 });
 
 describe('snapToGrid', () => {
-  it('snaps to a square grid anchored at the drag origin', () => {
-    const result = snapToGrid(20)(
-      makeContext({ initialPoint: { x: 100, y: 100 }, point: { x: 132, y: 145 } }),
-    );
-    expect(result).toEqual({ x: 140, y: 140 });
-  });
-
   it('snaps leftward and upward drags symmetrically to rightward and downward ones', () => {
     const snap = snapToGrid(20);
     const origin = { x: 100, y: 100 };
@@ -155,8 +149,8 @@ describe('snapToGrid', () => {
     expect(result).toEqual({ x: 40, y: 47 });
   });
 
-  // The step names a distance on the surface being dragged over, so a scaled ancestor — a
-  // zoomable canvas — has to stretch it into client pixels, or the grid lands between cells.
+  // The step is a distance on the surface being dragged over. A scaled ancestor, such as a
+  // zoomable canvas, has to stretch it into client pixels, or the grid lands between cells.
   it('scales the step by the ancestor scale', () => {
     const result = snapToGrid(20)(
       makeContext({
@@ -165,7 +159,7 @@ describe('snapToGrid', () => {
         scale: { x: 0.5, y: 0.5 },
       }),
     );
-    // A 20-unit grid at 50% zoom is 10 client pixels; 22 rounds to 20.
+    // A 20-unit grid at 50% zoom is 10 client pixels, so 22 rounds to 20.
     expect(result).toEqual({ x: 20, y: 20 });
   });
 
@@ -189,8 +183,8 @@ describe('restrictToWindowEdges', () => {
   });
 
   it('prefers documentElement.clientWidth/Height over the window size when non-zero', () => {
-    // `innerWidth/innerHeight` include the scrollbar gutter; the layout viewport
-    // is what `elementFromPoint` can actually hit.
+    // `innerWidth/innerHeight` include the scrollbar gutter. `elementFromPoint`
+    // can only hit the layout viewport.
     const context = makeContext({
       point: { x: 900, y: 700 },
       ownerWindow: makeWindow(800, 600, 400, 300),
@@ -268,14 +262,14 @@ describe('restrictToElement', () => {
       previewRect: makeRect(0, 0, 200, 200),
     });
     // The max edge (rect.right − previewRect.width + offset) falls below the min
-    // edge; the point pins to rect.left + offset instead of an inverted range.
+    // edge, so the point pins to rect.left + offset instead of an inverted range.
     expect(modifier({ ...context, point: { x: 500, y: 500 } })).toEqual({ x: 110, y: 120 });
     expect(modifier({ ...context, point: { x: 130, y: 130 } })).toEqual({ x: 110, y: 120 });
   });
 
   it('passes the point through when the element reports a zero-size rect', () => {
-    // display: none or a detached element reports 0×0 at the origin; clamping to
-    // it would pin the drag to (0, 0).
+    // An element with display: none, or a detached one, reports 0×0 at the origin.
+    // Clamping to it would pin the drag to (0, 0).
     const element = document.createElement('div');
     element.getBoundingClientRect = () => makeRect(0, 0, 0, 0);
     const result = restrictToElement(element)(makeContext({ point: { x: 350, y: 50 } }));
@@ -320,6 +314,27 @@ describe('restrictToParentElement', () => {
       makeContext({ sourceElement: child, point: { x: 400, y: 150 } }),
     );
     expect(result).toEqual({ x: 300, y: 150 });
+  });
+
+  it('clamps to the box that lays out a source slotted into a shadow root', () => {
+    // The composed parent is the `<slot>`, which is `display: contents` and
+    // measures 0×0. The wrapper around it is what the source visually sits in.
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const wrapper = document.createElement('div');
+    wrapper.getBoundingClientRect = () => makeRect(0, 0, 200, 200);
+    wrapper.appendChild(document.createElement('slot'));
+    host.attachShadow({ mode: 'open' }).appendChild(wrapper);
+    const child = document.createElement('div');
+    host.appendChild(child);
+    try {
+      const result = restrictToParentElement(
+        makeContext({ sourceElement: child, point: { x: 600, y: 150 } }),
+      );
+      expect(result).toEqual({ x: 200, y: 150 });
+    } finally {
+      host.remove();
+    }
   });
 
   it('passes the point through when the source has no parent', () => {
@@ -388,7 +403,7 @@ describe('applyDragModifiers', () => {
   it('measures the preview lazily, and at most once per application', () => {
     const getPreviewRect = vi.fn(() => makeRect(0, 0, 40, 40));
 
-    // An axis lock never reads previewRect, so it must not pay for the measure.
+    // An axis lock never reads previewRect, so it must not trigger the measurement.
     applyDragModifiers(
       [restrictToVerticalAxis],
       { x: 10, y: 10 },
@@ -406,6 +421,34 @@ describe('applyDragModifiers', () => {
     expect(reads).toHaveLength(2);
     expect(reads[0]?.width).toBe(40);
     expect(reads[1]).toBe(reads[0]);
+  });
+
+  it('keeps the input of an axis a modifier leaves non-finite', () => {
+    const seen: DraggablePosition[] = [];
+    const result = applyDragModifiers(
+      [
+        ({ point }) => ({ x: Number.NaN, y: point.y + 5 }),
+        ({ point }) => {
+          seen.push(point);
+          return { x: point.x + 1, y: Infinity };
+        },
+      ],
+      { x: 3, y: 9 },
+      makeApplyOptions(),
+    );
+    // The second modifier sees the first's finite result, not the `NaN`.
+    expect(seen).toEqual([{ x: 3, y: 14 }]);
+    expect(result).toEqual({ x: 4, y: 14 });
+  });
+
+  it('leaves the point unconstrained for an infinite grid step', () => {
+    // `0 * Infinity` is `NaN`, which would make every hit-test throw.
+    const result = applyDragModifiers(
+      [snapToGrid(Infinity)],
+      { x: 30, y: 40 },
+      makeApplyOptions({ initialPoint: { x: 30, y: 40 } }),
+    );
+    expect(result).toEqual({ x: 30, y: 40 });
   });
 
   it('returns the original point and logs when a modifier throws', () => {
@@ -435,16 +478,11 @@ describe('createDragModifiersState', () => {
   it('returns null and skips the source measure when nothing is declared', () => {
     const measure = vi.fn(() => makeRect(0, 0, 10, 10));
     const source = document.createElement('div');
+    source.getBoundingClientRect = measure;
     const start = { x: 0, y: 0 };
-    expect(
-      createDragModifiersState(undefined, source, start, { measureSourceRect: measure }),
-    ).toBeNull();
-    expect(createDragModifiersState([], source, start, { measureSourceRect: measure })).toBeNull();
-    expect(
-      createDragModifiersState([false, null], source, start, {
-        measureSourceRect: measure,
-      }),
-    ).toBeNull();
+    expect(createDragModifiersState(undefined, source, start, NO_MODIFIER_KEYS)).toBeNull();
+    expect(createDragModifiersState([], source, start, NO_MODIFIER_KEYS)).toBeNull();
+    expect(createDragModifiersState([false, null], source, start, NO_MODIFIER_KEYS)).toBeNull();
     expect(measure).not.toHaveBeenCalled();
   });
 
@@ -453,11 +491,12 @@ describe('createDragModifiersState', () => {
     boundary.getBoundingClientRect = () => makeRect(100, 100, 200, 200);
     const source = document.createElement('div');
     const measure = vi.fn(() => makeRect(40, 40, 20, 20));
+    source.getBoundingClientRect = measure;
     const state = createDragModifiersState(
       restrictToElement(boundary),
       source,
       { x: 50, y: 350 },
-      { measureSourceRect: measure },
+      NO_MODIFIER_KEYS,
     )!;
     expect(state.initialPoint).toEqual({ x: 100, y: 300 });
     expect(state.sourceElement).toBe(source);
@@ -476,11 +515,12 @@ describe('modifyDragPoint', () => {
       return context.point;
     };
     const source = document.createElement('div');
+    source.getBoundingClientRect = () => makeRect(0, 0, 20, 20);
     const state = createDragModifiersState(
       [probe, restrictToElement(boundary)],
       source,
       { x: 50, y: 50 },
-      { measureSourceRect: () => makeRect(0, 0, 20, 20) },
+      NO_MODIFIER_KEYS,
     )!;
     // State creation applies the modifiers with no preview yet.
     expect(offsets).toEqual([{ x: 0, y: 0 }]);
@@ -492,7 +532,7 @@ describe('modifyDragPoint', () => {
       getPreviewElement: () => ({ element: previewElement }),
       getPreviewOffset: () => ({ x: 5, y: 7 }),
     };
-    const result = modifyDragPoint(state, { x: 500, y: 500 }, previewLike);
+    const result = modifyDragPoint(state, { x: 500, y: 500 }, previewLike, NO_MODIFIER_KEYS);
     expect(offsets[1]).toEqual({ x: 5, y: 7 });
     // Edges shifted by the offset and inset by the preview rect:
     // max x = 200 − 50 + 5, max y = 200 − 30 + 7.
@@ -501,11 +541,12 @@ describe('modifyDragPoint', () => {
 
   it('does not measure the preview when no modifier reads its rect', () => {
     const source = document.createElement('div');
+    source.getBoundingClientRect = () => makeRect(0, 0, 20, 20);
     const state = createDragModifiersState(
       restrictToVerticalAxis,
       source,
       { x: 10, y: 10 },
-      { measureSourceRect: () => makeRect(0, 0, 20, 20) },
+      NO_MODIFIER_KEYS,
     )!;
     const previewElement = document.createElement('div');
     const getRect = vi.fn(() => makeRect(0, 0, 50, 30));
@@ -514,7 +555,7 @@ describe('modifyDragPoint', () => {
       getPreviewElement: () => ({ element: previewElement }),
       getPreviewOffset: () => ({ x: 0, y: 0 }),
     };
-    const result = modifyDragPoint(state, { x: 40, y: 60 }, previewLike);
+    const result = modifyDragPoint(state, { x: 40, y: 60 }, previewLike, NO_MODIFIER_KEYS);
     expect(result).toEqual({ x: 10, y: 60 });
     expect(getRect).not.toHaveBeenCalled();
   });
