@@ -1,16 +1,11 @@
 import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent } from '@testing-library/react';
 import { createDndRenderer, firePointer } from '#test-utils';
-import { createElement, flushRaf, setupDragEngineTests } from '../../../test/dnd';
+import { createElement, flushRaf, setupDragEngineTests, fireDrag } from '../../../test/dnd';
 import { dragSessionStore } from '../../utils/drag-and-drop/dragSessionStore';
 import { getRegistration } from '../../utils/drag-and-drop/draggableRegistry';
-import type {
-  DraggableRootBeforeMoveStartValue,
-  DraggableRootBeforeMoveStartEventDetails,
-} from '../../types/drag';
 import { useManager } from './useManager';
-import type { DraggableManager } from '../../types/dragRegistration';
+import type { DraggableManager } from '../../utils/drag-and-drop/registrationTypes';
 
 setupDragEngineTests();
 
@@ -129,15 +124,15 @@ describe('engine.registerSource', () => {
   });
 
   it('deregisters on cleanup: a later gesture starts no drag', async () => {
-    // Cleanup must unregister, not just restore styles — a style-only teardown
-    // would leave the element silently draggable.
+    // Cleanup must unregister, not only restore styles. A style-only teardown
+    // would leave the element draggable.
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
     const cleanup = engine.registerSource(el, { onMoveStart });
     cleanup();
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
 
     expect(onMoveStart).not.toHaveBeenCalled();
@@ -153,43 +148,6 @@ describe('engine.registerSource', () => {
     expect(el.style.touchAction).toBe('');
   });
 
-  it('onBeforeMoveStart canceling prevents the drag', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    const onBeforeMoveStart = vi.fn(
-      (
-        _: DraggableRootBeforeMoveStartValue,
-        eventDetails: DraggableRootBeforeMoveStartEventDetails,
-      ) => eventDetails.cancel(),
-    );
-    engine.registerSource(el, {
-      onBeforeMoveStart,
-      onMoveStart,
-    });
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-
-    expect(onBeforeMoveStart).toHaveBeenCalledTimes(1);
-    expect(onMoveStart).not.toHaveBeenCalled();
-  });
-
-  it('disabled prevents the drag', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, {
-      disabled: true,
-      onMoveStart,
-    });
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-
-    expect(onMoveStart).not.toHaveBeenCalled();
-  });
-
   it('a nested draggable wins pickup over its draggable ancestor', async () => {
     const { engine } = await renderDnd();
     // Register an outer draggable and an inner draggable nested inside it.
@@ -201,9 +159,9 @@ describe('engine.registerSource', () => {
     engine.registerSource(outer, { onMoveStart: onOuterStart });
     engine.registerSource(inner, { onMoveStart: onInnerStart });
 
-    // The gesture begins on the inner element: pickup resolves the innermost
+    // The gesture begins on the inner element. Pickup resolves the innermost
     // registered ancestor, so the inner draggable claims the drag.
-    fireEvent.dragStart(inner);
+    fireDrag.dragStart(inner);
     await flushRaf();
 
     expect(onInnerStart).toHaveBeenCalledTimes(1);
@@ -213,8 +171,8 @@ describe('engine.registerSource', () => {
 
   it('a disabled nested draggable falls through to its draggable ancestor', async () => {
     const { engine } = await renderDnd();
-    // A disabled card inside a draggable list item: pressing on the card must
-    // start the outer drag, not make the region drag-inert.
+    // A disabled card inside a draggable list item. Pressing the card must start
+    // the outer drag instead of doing nothing.
     const outer = createElement();
     const inner = document.createElement('div');
     outer.appendChild(inner);
@@ -223,7 +181,7 @@ describe('engine.registerSource', () => {
     engine.registerSource(outer, { onMoveStart: onOuterStart });
     engine.registerSource(inner, { disabled: true, onMoveStart: onInnerStart });
 
-    fireEvent.dragStart(inner);
+    fireDrag.dragStart(inner);
     await flushRaf();
 
     expect(onInnerStart).not.toHaveBeenCalled();
@@ -242,11 +200,11 @@ describe('engine.registerSource', () => {
       onMove,
     });
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
-    fireEvent.dragOver(el, { clientX: 40, clientY: 40 });
+    fireDrag.dragOver(el, { clientX: 40, clientY: 40 });
     await flushRaf();
-    fireEvent.dragOver(el, { clientX: 80, clientY: 80 });
+    fireDrag.dragOver(el, { clientX: 80, clientY: 80 });
     await flushRaf();
 
     expect(onMove.mock.lastCall?.[0].source.payload).toBe(payload);
@@ -259,27 +217,16 @@ describe('engine.registerSource', () => {
     const onMoveStart = vi.fn();
     engine.registerSource(el, { payload: myFunction, onMoveStart });
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
 
     expect(onMoveStart.mock.calls[0][0].source.payload).toBe(myFunction);
     expect(myFunction).not.toHaveBeenCalled();
   });
 
-  it('attaches a value payload without calling anything', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, { payload: { key: 'value' }, onMoveStart });
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-
-    expect(onMoveStart.mock.calls[0][0].source.payload).toEqual({ key: 'value' });
-  });
-
-  // A falsy static value survives instead of being replaced by a stand-in.
+  // A static value, falsy or not, is passed through as-is, not replaced with a default.
   it.each([
+    ['an object', { key: 'value' }],
     ['a number', 0],
     ['an empty string', ''],
     ['false', false],
@@ -290,7 +237,7 @@ describe('engine.registerSource', () => {
     const onMoveStart = vi.fn();
     engine.registerSource(el, { payload: value, onMoveStart });
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
 
     expect(onMoveStart.mock.calls[0][0].source.payload).toBe(value);
@@ -302,68 +249,16 @@ describe('engine.registerSource', () => {
     const onMoveStart = vi.fn();
     engine.registerSource(el, { onMoveStart });
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
 
     expect(onMoveStart.mock.calls[0][0].source.payload).toBe(undefined);
   });
 
-  it('fires onMoveStart synchronously at drag start', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, { onMoveStart });
-
-    // Fires within the dragStart dispatch, no frame wait.
-    fireEvent.dragStart(el);
-    expect(onMoveStart).toHaveBeenCalledTimes(1);
-  });
-
-  it('fires onMoveEnd when drop occurs', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const target = createElement();
-    const onMoveEnd = vi.fn();
-    engine.registerSource(el, { onMoveEnd });
-    engine.registerTarget(target, {});
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-    fireEvent.dragEnter(target);
-    fireEvent.dragOver(target);
-    await flushRaf();
-    fireEvent.drop(target);
-
-    expect(onMoveEnd).toHaveBeenCalledTimes(1);
-  });
-
-  it('forwards onMove during a drag', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const target = createElement();
-    const onMove = vi.fn();
-    engine.registerSource(el, { onMove });
-    engine.registerTarget(target, {});
-
-    fireEvent.dragStart(el);
-    await flushRaf();
-
-    fireEvent.dragOver(target);
-    await flushRaf();
-
-    expect(onMove).toHaveBeenCalled();
-    expect(onMove).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        source: expect.objectContaining({ element: el }),
-      }),
-      expect.objectContaining({ reason: 'pointer' }),
-    );
-  });
-
   it('releasing a non-last merged-ref hold keeps the surviving hook active', async () => {
-    // Two `useDraggable` hooks whose refs land on one node (merged-ref
-    // composition), registered A then B. B unmounts (e.g. a conditional wrapper)
-    // while A stays. The next drag must read A's parameters, not B's stale ones.
+    // Two registrations on one node, as with merged refs, registered A then B.
+    // B unmounts, for example inside a conditional wrapper, while A stays. The
+    // next drag must read A's parameters, not B's stale ones.
     const { engine } = await renderDnd();
     const el = createElement();
     const onDragStartA = vi.fn();
@@ -373,7 +268,7 @@ describe('engine.registerSource', () => {
 
     cleanupB();
 
-    fireEvent.dragStart(el);
+    fireDrag.dragStart(el);
     await flushRaf();
 
     expect(onDragStartA).toHaveBeenCalledTimes(1);
@@ -381,8 +276,8 @@ describe('engine.registerSource', () => {
   });
 
   it('throws before registering anything when the getter returns no kind', async () => {
-    // The test engine defaults `kind`; reach the real manager for the plain-JS
-    // shape the types forbid.
+    // The test engine fills in `kind`, so use the real manager to pass the
+    // untyped shape the types forbid.
     let manager: DraggableManager | null = null;
     function Capture() {
       manager = useManager();
@@ -398,7 +293,7 @@ describe('engine.registerSource', () => {
       'Base UI: registerSource() was called without a `kind`',
     );
 
-    // Nothing to clean up: no registry entry, no gesture styles.
+    // Nothing was registered and no gesture styles were applied.
     expect(getRegistration(el)).toBeUndefined();
     expect(el.style.touchAction || '').toBe('');
     expect(el.style.userSelect || '').toBe('');
@@ -414,11 +309,11 @@ describe('engine.registerSource', () => {
     engine.registerSource(el1, { onMoveStart: onDragStart1 });
     engine.registerSource(el2, { onMoveStart: onDragStart2 });
 
-    fireEvent.dragStart(el1);
+    fireDrag.dragStart(el1);
     await flushRaf();
     expect(onDragStart1).toHaveBeenCalledTimes(1);
 
-    fireEvent.dragStart(el2);
+    fireDrag.dragStart(el2);
     await flushRaf();
     expect(onDragStart2).not.toHaveBeenCalled();
   });

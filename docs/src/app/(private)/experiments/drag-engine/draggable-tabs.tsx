@@ -2,14 +2,14 @@
 import { Draggable } from '@base-ui/react/draggable';
 
 import * as React from 'react';
-import { getHorizontalCollisionAfter } from 'docs/src/utils/getHorizontalCollisionAfter';
 import clsx from 'clsx';
 import { Tabs } from '@base-ui/react/tabs';
 import { useAnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { activeElement } from '@base-ui/utils/shadowDom';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
-import { DragPageAutoScroll } from './_components/DragPageAutoScroll';
+import { getHorizontalCollisionAfter } from './getHorizontalCollisionAfter';
+import { DragPageAutoScroll } from '../../../(docs)/react/utils/draggable/demos/DragPageAutoScroll';
 
 import theme from './theme.module.css';
 import styles from './draggable-tabs.module.css';
@@ -172,10 +172,7 @@ function DraggableTab(props: DraggableTabProps) {
   } = props;
 
   const handleBeforeDragStart = useStableCallback(
-    (
-      _value: Draggable.Root.BeforeMoveStartValue<string>,
-      eventDetails: Draggable.Root.BeforeMoveStartEventDetails,
-    ) => {
+    (eventDetails: Draggable.Root.BeforeMoveStartEventDetails<string>) => {
       if (eventDetails.trigger?.closest('[data-close-tab]')) {
         eventDetails.cancel();
         return;
@@ -224,15 +221,12 @@ function DraggableTab(props: DraggableTabProps) {
           kind={kind}
           payload={item.id}
           disabled={!draggable}
-          // Enter and Space stay with Tabs. Alt+Arrow provides the equivalent
-          // keyboard reorder action without taking over tab selection.
-          activation={{ mouse: { type: 'distance', distance: 5 } }}
           modifiers={Draggable.restrictToHorizontalAxis}
           onBeforeMoveStart={handleBeforeDragStart}
           onMoveStart={onMoveStart}
-          onMoveEnd={({ target }) => {
+          onMoveEnd={(eventDetails) => {
             try {
-              if (target !== null) {
+              if (eventDetails.target !== null) {
                 onDrop();
               }
             } finally {
@@ -387,8 +381,8 @@ function SortableTabs(props: SortableTabsProps) {
               trackDragOver={false}
               render={
                 <Draggable.Viewport
-                  onDragScroll={({ direction }, eventDetails) => {
-                    if (direction !== 'horizontal') {
+                  onDragScroll={(eventDetails) => {
+                    if (eventDetails.direction !== 'horizontal') {
                       eventDetails.cancel();
                     }
                   }}
@@ -399,20 +393,21 @@ function SortableTabs(props: SortableTabsProps) {
         >
           <Draggable.CollisionProvider
             kind={kind}
-            onCollisionChange={({ source, target }, { previousTarget }) => {
+            onCollisionChange={(eventDetails) => {
               if (
-                target &&
-                previousTarget &&
-                target.payload === previousTarget.payload &&
-                getHorizontalCollisionAfter(target) === getHorizontalCollisionAfter(previousTarget)
+                eventDetails.target &&
+                eventDetails.previousTarget &&
+                eventDetails.target.payload === eventDetails.previousTarget.payload &&
+                getHorizontalCollisionAfter(eventDetails.target) ===
+                  getHorizontalCollisionAfter(eventDetails.previousTarget)
               ) {
                 return;
               }
-              if (target) {
+              if (eventDetails.target) {
                 handleDragOverTab(
-                  source.payload,
-                  target.payload,
-                  getHorizontalCollisionAfter(target),
+                  eventDetails.source.payload,
+                  eventDetails.target.payload,
+                  getHorizontalCollisionAfter(eventDetails.target),
                 );
               }
             }}

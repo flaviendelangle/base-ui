@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { expectType } from '#test-utils';
-import {
-  Draggable,
-  type DraggableKind,
-  type DraggableRootMoveStartValue as MoveStartValue,
-  type DraggableRootRecord,
+import { Draggable } from '@base-ui/react/draggable';
+import type {
+  DraggableKind,
+  DraggableRootMoveStartEventDetails as MoveStartEventDetails,
+  DraggableRootRecord,
 } from '@base-ui/react/draggable';
 
 interface CardPayload {
@@ -16,49 +16,61 @@ const globalCard = Draggable.createGlobalKind<CardPayload>('myapp/card');
 const marker = Draggable.createKind('marker');
 const text = Draggable.createKind<string>('text');
 
-// The payload type is declared on the kind, and defaults to `undefined`.
-expectType<DraggableKind<CardPayload>, typeof card>(card);
-expectType<DraggableKind<CardPayload>, typeof globalCard>(globalCard);
-expectType<DraggableKind<undefined>, typeof marker>(marker);
+// The payload type is declared on the kind, and defaults to `undefined`. The drag data
+// defaults to `unknown`.
+expectType<DraggableKind<CardPayload, unknown>, typeof card>(card);
+expectType<DraggableKind<CardPayload, unknown>, typeof globalCard>(globalCard);
+expectType<DraggableKind<undefined, unknown>, typeof marker>(marker);
 
-// A kind with no payload type: the bare form compiles, and the engine delivers `undefined`.
+// Without type arguments, `Draggable.Kind` fits any kind, whatever its payload and drag data.
+const column = Draggable.createKind<{ title: string }, { offset: number }>('column');
+const kinds: Draggable.Kind[] = [card, column, marker];
+void kinds;
+
+function KindList(props: { kind: Draggable.Kind }) {
+  return <Draggable.Root kind={props.kind} />;
+}
+<KindList kind={card} />;
+<KindList kind={column} />;
+<KindList kind={marker} />;
+
+// With a type argument, it only fits kinds of that payload.
+// @ts-expect-error a `column` kind is not a `card` kind.
+const cardOnly: Draggable.Kind<CardPayload> = column;
+
+// `anyKind` only fits `accept`. A draggable declares the one kind it is.
+// @ts-expect-error `anyKind` can't be a draggable's `kind`.
+<Draggable.Root kind={Draggable.anyKind} />;
+// @ts-expect-error `anyKind` isn't a `Draggable.Kind`.
+const anyKinds: Draggable.Kind[] = [Draggable.anyKind];
+
+// A kind with no payload type compiles without a payload, and the engine delivers `undefined`.
 <Draggable.Root kind={marker} />;
 
 <Draggable.Root
   kind={marker}
   onDrop={(event) => expectType<DataTransfer, typeof event.dataTransfer>(event.dataTransfer)}
-  onMoveStart={({ source }) => {
-    expectType<undefined, typeof source.payload>(source.payload);
+  onMoveStart={(eventDetails) => {
+    expectType<undefined, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
 // A payload-less source uses the nearest provider default kind.
 <Draggable.Root
-  onMoveEnd={({ source }) => {
-    expectType<undefined, typeof source.payload>(source.payload);
+  onMoveEnd={(eventDetails) => {
+    expectType<undefined, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
 // @ts-expect-error a payload requires an explicit typed kind.
 <Draggable.Root payload={{ id: 'a' }} />;
-// @ts-expect-error a payload accessor requires an explicit typed kind.
-<Draggable.Root getPayload={() => ({ id: 'a' })} />;
 
 // The kind types every event that carries the payload, with no type argument.
 <Draggable.Root
   kind={card}
   payload={{ id: 'a' }}
-  onMoveStart={({ source }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
-  }}
-/>;
-
-// A payload resolver is checked against the kind rather than inferred from.
-<Draggable.Root
-  kind={card}
-  payload={{ id: 'a' }}
-  onMoveStart={({ source }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
+  onMoveStart={(eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
@@ -66,18 +78,8 @@ expectType<DraggableKind<undefined>, typeof marker>(marker);
 <Draggable.Root
   kind={text}
   payload="card-1"
-  onMoveStart={({ source }) => {
-    expectType<string, typeof source.payload>(source.payload);
-  }}
-/>;
-
-// The callback sees the gesture it is deriving the payload from.
-const grabOffset = Draggable.createKind<{ x: number }>('grab-offset');
-<Draggable.Root
-  kind={grabOffset}
-  payload={{ x: 0 }}
-  onMoveStart={({ source }) => {
-    expectType<{ x: number }, typeof source.payload>(source.payload);
+  onMoveStart={(eventDetails) => {
+    expectType<string, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
@@ -85,27 +87,27 @@ const grabOffset = Draggable.createKind<{ x: number }>('grab-offset');
 <Draggable.Root<CardPayload>
   kind={card}
   payload={{ id: 'a' }}
-  onMoveStart={({ source }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
+  onMoveStart={(eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
 // @ts-expect-error the kind must carry the explicit type argument's payload.
 <Draggable.Root<CardPayload> kind={text} payload={{ id: 'a' }} />;
 
-// Function-valued payloads stay data rather than being invoked as resolvers.
+// A function-valued payload is data like any other.
 const command = Draggable.createKind<() => void>('command');
 const runCommand = () => {};
 <Draggable.Root
   kind={command}
   payload={runCommand}
-  onMoveStart={({ source }) => {
-    expectType<() => void, typeof source.payload>(source.payload);
+  onMoveStart={(eventDetails) => {
+    expectType<() => void, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
 // @ts-expect-error a kind that declares a payload makes `payload` required, so the
-// engine can never emit `undefined` where a `CardPayload` was promised.
+// engine never emits `undefined` in place of a `CardPayload`.
 <Draggable.Root kind={card} />;
 
 declare const maybeCardPayload: CardPayload | undefined;
@@ -113,14 +115,9 @@ declare const maybeCardPayload: CardPayload | undefined;
 <Draggable.Root kind={card} payload={undefined} />;
 // @ts-expect-error a possibly undefined static payload cannot satisfy a required payload.
 <Draggable.Root kind={card} payload={maybeCardPayload} />;
-// @ts-expect-error a required payload getter cannot be explicitly undefined.
-<Draggable.Root kind={card} getPayload={undefined} />;
 
 // @ts-expect-error the payload must match the kind.
 <Draggable.Root kind={card} payload={{ id: 1 }} />;
-
-// @ts-expect-error the callback's return type must match it too.
-<Draggable.Root kind={card} getPayload={() => ({ id: 1 })} />;
 
 // @ts-expect-error excess properties are still caught against the kind's payload.
 <Draggable.Root kind={card} payload={{ id: 'a', extra: 1 }} />;
@@ -134,26 +131,26 @@ const foreignCard = Draggable.createKind<{ index: number }>('card');
 // @ts-expect-error this `card` carries a different payload than the one used here.
 <Draggable.Root kind={foreignCard} payload={{ id: 'a' }} />;
 
-// `kind` is the only thing `TPayload` is inferred from: an extracted handler declaring a
-// different payload type is rejected rather than redefining it.
-const mismatchedHandler = (value: MoveStartValue<{ index: number }>) => value;
+// `TPayload` is inferred from `kind` only. An extracted handler with a different payload
+// type is rejected instead of redefining it.
+const mismatchedHandler = (eventDetails: MoveStartEventDetails<{ index: number }>) => eventDetails;
 // @ts-expect-error the handler must match the kind's payload, not redefine it.
 <Draggable.Root kind={card} payload={{ id: 'a' }} onMoveStart={mismatchedHandler} />;
 
 // A wider handler still accepts the kind's payload.
 const looseCard = Draggable.createKind<{ id: string }>('loose-card');
-const wideHandler = (value: MoveStartValue<Record<string, unknown>>) => value;
+const wideHandler = (eventDetails: MoveStartEventDetails<Record<string, unknown>>) => eventDetails;
 <Draggable.Root
   kind={looseCard}
   payload={{ id: 'a' }}
   onMoveStart={wideHandler}
-  onMove={({ source }) => {
-    expectType<{ id: string }, typeof source.payload>(source.payload);
+  onMove={(eventDetails) => {
+    expectType<{ id: string }, typeof eventDetails.source.payload>(eventDetails.source.payload);
   }}
 />;
 
-// `matches` narrows a source whose payload isn't known, which is what a target or
-// monitor that accepts several kinds hands out.
+// `matches` narrows a source whose payload isn't known, as passed by a target or
+// monitor that accepts several kinds.
 declare const untypedSource: DraggableRootRecord<unknown>;
 if (card.matches(untypedSource)) {
   expectType<CardPayload, typeof untypedSource.payload>(untypedSource.payload);
@@ -167,11 +164,11 @@ if (card.matches(untypedSource)) {
   }}
 />;
 
-// `registerSource({ preview })` is the imperative escape hatch; a component describes its
+// `registerSource({ preview })` is for imperative sources. A component declares its
 // preview with a preview part, and its handle with a handle part.
-// @ts-expect-error `preview` is only a `registerSource()` option: use `Draggable.Preview`.
+// @ts-expect-error `preview` is only a `registerSource()` option. Use `Draggable.Preview`.
 <Draggable.Root kind={marker} preview={{ offset: 'pointer' }} />;
-// @ts-expect-error `handle` is only a `registerSource()` option: use `Draggable.Handle`.
+// @ts-expect-error `handle` is only a `registerSource()` option. Use `Draggable.Handle`.
 <Draggable.Root kind={marker} handle={document.body} />;
 
 // Without a kind, the preview stays payload-agnostic and narrows at the use site.
@@ -184,8 +181,8 @@ if (card.matches(untypedSource)) {
   </Draggable.Preview>
 </Draggable.Root>;
 
-// A kind is the payload-aware escape hatch. It types the callback and is also
-// checked against the active source before the callback runs.
+// Passing a kind types the callback. The kind is also checked against the active
+// source before the callback runs.
 <Draggable.Root kind={card} payload={{ id: 'a' }}>
   <Draggable.Preview kind={card}>
     {({ source }) => {
@@ -220,8 +217,8 @@ const boundaryRef: React.RefObject<HTMLDivElement | null> = { current: null };
   </Draggable.Preview>
 </Draggable.Root>;
 
-// `container` moves the preview's element only; the React tree rendering the
-// content is the provider's, so a part keeps its context wherever it is injected.
+// `container` moves only the preview's element. The provider's React tree renders
+// the content, so a part keeps its context wherever it is placed.
 <Draggable.Root kind={marker}>
   <Draggable.Preview container={boundaryRef} />
 </Draggable.Root>;
@@ -244,7 +241,7 @@ const boundaryRef: React.RefObject<HTMLDivElement | null> = { current: null };
   <Draggable.Root kind={marker} />
 </Draggable.Provider>;
 
-// Omitting children configures the clone; children select a custom preview.
+// Without children, the part configures the clone. With children, it renders a custom preview.
 <Draggable.Root kind={marker}>
   <Draggable.Preview offset={{ x: 0, y: 0 }} />
 </Draggable.Root>;
@@ -260,12 +257,12 @@ const ref: React.Ref<HTMLDivElement> = null;
 // A stable preview key identifies a logical source across a remount.
 <Draggable.Root kind={marker} previewKey="card-1" />;
 
-// Static and resolved payloads use distinct fields.
+// `Props` takes the kind and the payload it declares.
 type CardProps = Draggable.Root.Props<CardPayload>;
 const cardValueProps: CardProps = { kind: card, payload: { id: 'a' } };
 expectType<CardPayload, NonNullable<typeof cardValueProps.payload>>(cardValueProps.payload!);
 
-// @ts-expect-error `Props` mirrors the component: a declared `TPayload` requires a payload.
+// @ts-expect-error like the component, `Props` requires a payload when `TPayload` is declared.
 const cardMissingProps: CardProps = { kind: card };
 
 // @ts-expect-error and it requires the kind that carries it.
@@ -275,7 +272,11 @@ const cardMissingKind: CardProps = { payload: { id: 'a' } };
 function Card(props: CardProps) {
   return <Draggable.Root {...props} />;
 }
-<Card kind={card} payload={{ id: 'a' }} onMoveStart={({ source }) => source.payload.id} />;
+<Card
+  kind={card}
+  payload={{ id: 'a' }}
+  onMoveStart={(eventDetails) => eventDetails.source.payload.id}
+/>;
 
 // A generic wrapper can forward its props as they are, like `Select.Root`'s wrappers.
 function GenericCard<TPayload>(props: Draggable.Root.Props<TPayload>) {
@@ -285,8 +286,8 @@ function GenericCard<TPayload>(props: Draggable.Root.Props<TPayload>) {
 // @ts-expect-error the wrapper still requires the payload the kind declares.
 <GenericCard kind={card} />;
 
-// Destructuring leaves TypeScript unable to tell whether `payload` is required while
-// `TPayload` is open, so a wrapper that does it restates `kind` and `payload`.
+// After destructuring, TypeScript can't tell whether `payload` is required while
+// `TPayload` is open. A wrapper that destructures restates `kind` and `payload`.
 function GenericCardWithHandle<TPayload>({
   children,
   ...props
@@ -324,22 +325,28 @@ void GenericCardWithoutRestatement;
 <Draggable.Root
   kind={card}
   payload={{ id: 'a' }}
-  onMoveStart={({ source }) => expectType<CardPayload, typeof source.payload>(source.payload)}
-  onMove={({ source }) => expectType<CardPayload, typeof source.payload>(source.payload)}
-  onMoveEnd={({ source }) => expectType<CardPayload, typeof source.payload>(source.payload)}
+  onMoveStart={(eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload)
+  }
+  onMove={(eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload)
+  }
+  onMoveEnd={(eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload)
+  }
 />;
 
-// A successful drop is a non-null `target`; `canceled` tells a cancel from an outside release.
+// A successful drop has a non-null `target`. `canceled` tells a cancel from an outside release.
 <Draggable.Root
   kind={card}
   payload={{ id: 'a' }}
-  onMoveEnd={({ target }, eventDetails) => {
-    expectType<Draggable.Target.Record | null, typeof target>(target);
+  onMoveEnd={(eventDetails) => {
+    expectType<Draggable.Target.Record | null, typeof eventDetails.target>(eventDetails.target);
     expectType<Draggable.Root.MoveEndEventReason, typeof eventDetails.reason>(eventDetails.reason);
     expectType<boolean, typeof eventDetails.canceled>(eventDetails.canceled);
     expectType<Draggable.LocationHistory, typeof eventDetails.location>(eventDetails.location);
-    if (target !== null) {
-      expectType<Draggable.Target.Record, typeof target>(target);
+    if (eventDetails.target !== null) {
+      expectType<Draggable.Target.Record, typeof eventDetails.target>(eventDetails.target);
     }
     if (eventDetails.reason === 'drop') {
       expectType<'drop', typeof eventDetails.reason>(eventDetails.reason);
@@ -353,8 +360,8 @@ void GenericCardWithoutRestatement;
 // Drag events carry the native pointer or double-click input.
 <Draggable.Root
   kind={marker}
-  onBeforeMoveStart={({ source }, eventDetails) => {
-    expectType<Draggable.Root.Record<undefined>, typeof source>(source);
+  onBeforeMoveStart={(eventDetails) => {
+    expectType<Draggable.Root.Record<undefined>, typeof eventDetails.source>(eventDetails.source);
     expectType<Draggable.Input, typeof eventDetails.input>(eventDetails.input);
     if (eventDetails.reason === 'double-click') {
       expectType<MouseEvent | PointerEvent, typeof eventDetails.event>(eventDetails.event);
@@ -363,17 +370,17 @@ void GenericCardWithoutRestatement;
       expectType<PointerEvent, typeof eventDetails.event>(eventDetails.event);
     }
   }}
-  onMoveStart={(_, eventDetails) => {
+  onMoveStart={(eventDetails) => {
     expectType<'pointer' | 'double-click', typeof eventDetails.reason>(eventDetails.reason);
   }}
-  onMove={(_, eventDetails) => {
+  onMove={(eventDetails) => {
     if (eventDetails.reason === 'modifier-key') {
       expectType<KeyboardEvent, typeof eventDetails.event>(eventDetails.event);
     } else {
       expectType<PointerEvent, typeof eventDetails.event>(eventDetails.event);
     }
   }}
-  onMoveEnd={(_, eventDetails) => {
+  onMoveEnd={(eventDetails) => {
     if (eventDetails.reason === 'pointer-canceled') {
       expectType<PointerEvent, typeof eventDetails.event>(eventDetails.event);
     } else if (eventDetails.reason === 'tab-key') {
@@ -407,14 +414,16 @@ const cardWithDragData = Draggable.createKind<CardPayload, { offset: number }>('
 <Draggable.Root
   kind={cardWithDragData}
   payload={{ id: 'a' }}
-  onMoveStart={({ source }) => {
-    expectType<{ offset: number } | undefined, typeof source.dragData>(source.dragData);
-    source.updatePayload({ id: 'b' });
-    source.updateDragData({ offset: 1 });
+  onMoveStart={(eventDetails) => {
+    expectType<{ offset: number } | undefined, typeof eventDetails.source.dragData>(
+      eventDetails.source.dragData,
+    );
+    eventDetails.source.updatePayload({ id: 'b' });
+    eventDetails.source.updateDragData({ offset: 1 });
     // @ts-expect-error payload updates preserve the kind's type.
-    source.updatePayload({ id: 1 });
+    eventDetails.source.updatePayload({ id: 1 });
     // @ts-expect-error drag data is a separate type.
-    source.updateDragData({ id: 'b' });
+    eventDetails.source.updateDragData({ id: 'b' });
   }}
 />;
 if (cardWithDragData.matches(untypedSource)) {
@@ -426,3 +435,6 @@ if (cardWithDragData.matches(untypedSource)) {
     return null;
   }}
 </Draggable.Preview>;
+
+// @ts-expect-error `anyKind` can't be a preview's `kind`, which types the source it renders.
+<Draggable.Preview kind={Draggable.anyKind}>{() => null}</Draggable.Preview>;

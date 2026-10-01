@@ -3,16 +3,10 @@ import { Draggable } from '@base-ui/react/draggable';
 
 import * as React from 'react';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
-import { DragPageAutoScroll } from './_components/DragPageAutoScroll';
+import { DragPageAutoScroll } from '../../../(docs)/react/utils/draggable/demos/DragPageAutoScroll';
 
-import {
-  INITIAL_NODES,
-  canDropInto,
-  getChildren,
-  getPath,
-  type FileNode,
-  type FileSystem,
-} from './file-explorer-data';
+import { INITIAL_NODES, canDropInto, getChildren, getPath } from './file-explorer-data';
+import type { FileNode, FileSystem } from './file-explorer-data';
 import styles from './file-explorer.module.css';
 import controlsStyles from './controls.module.css';
 
@@ -81,8 +75,8 @@ function NodePreview({ node }: { node: FileNode }) {
   );
 }
 
-// A folder is both a drag source and a drop target: `render` puts both roles on
-// the same element. A plain click, Space, or Enter opens it.
+// A folder is both a drag source and a drop target. `render` puts both roles on
+// the same element. A click, Space or Enter opens it.
 function FolderTile({
   node,
   nodes,
@@ -105,15 +99,13 @@ function FolderTile({
       className={styles.Item}
       onClick={() => onOpen(node.id)}
       onKeyDownCapture={handleKeyDown}
-      // @highlight-start
       render={
         <Draggable.Target
           accept={nodeKind}
           canDrop={({ source }) => canDropInto(nodes, node.id, source.payload)}
-          onDraggableDrop={({ source }) => onMove(source.payload, node.id)}
+          onDraggableDrop={(eventDetails) => onMove(eventDetails.source.payload, node.id)}
         />
       }
-      // @highlight-end
     >
       <FolderIcon className={styles.Icon} />
       <span className={styles.Label}>{node.name}</span>
@@ -134,8 +126,8 @@ function FileTile({ node }: { node: FileNode }) {
 
 // Breadcrumb segments navigate on click and take drops, so a node can move to
 // an ancestor without leaving the current view. Every segment is a target,
-// including the current folder: the shared rules withdraw the segments a drop
-// could not change.
+// including the current folder. The shared rules disable the segments where a
+// drop would change nothing.
 function Crumb({
   folder,
   nodes,
@@ -153,7 +145,7 @@ function Crumb({
     <Draggable.Target
       accept={nodeKind}
       canDrop={({ source }) => canDropInto(nodes, folder.id, source.payload)}
-      onDraggableDrop={({ source }) => onMove(source.payload, folder.id)}
+      onDraggableDrop={(eventDetails) => onMove(eventDetails.source.payload, folder.id)}
       render={
         <button
           type="button"
@@ -266,7 +258,7 @@ export default function FileExplorer() {
         <Draggable.Target
           accept={nodeKind}
           canDrop={({ source }) => canDropInto(nodes, currentFolderId, source.payload)}
-          onDraggableDrop={({ source }) => moveNode(source.payload, currentFolderId)}
+          onDraggableDrop={(eventDetails) => moveNode(eventDetails.source.payload, currentFolderId)}
           render={<Draggable.Viewport className={styles.Grid} />}
         >
           {children.map((node) =>

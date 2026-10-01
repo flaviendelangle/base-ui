@@ -17,13 +17,16 @@ export const SLOTS: { id: SlotId; label: string }[] = [
   { id: 'right', label: 'Right dashboard slot' },
 ];
 
-export const INITIAL_WIDGETS: WidgetData[] = [
+const INITIAL_WIDGETS: WidgetData[] = [
   { id: 'visitors', title: 'Visitors', value: '2,420', detail: 'Last 7 days', slot: 'left' },
   { id: 'conversion', title: 'Conversion', value: '3.8%', detail: 'Up 0.4%', slot: 'center' },
 ];
 
-/** Move a widget into an empty slot; an occupied slot or unknown widget returns `current`. */
-export function moveWidget(current: WidgetData[], widgetId: string, slot: SlotId): WidgetData[] {
+/**
+ * Move a widget into an empty slot. Returns `current` if the slot is taken or the
+ * widget is unknown.
+ */
+function moveWidget(current: WidgetData[], widgetId: string, slot: SlotId): WidgetData[] {
   const widget = current.find((item) => item.id === widgetId);
   if (!widget || widget.slot === slot || current.some((item) => item.slot === slot)) {
     return current;
@@ -31,8 +34,8 @@ export function moveWidget(current: WidgetData[], widgetId: string, slot: SlotId
   return current.map((item) => (item.id === widgetId ? { ...item, slot } : item));
 }
 
-/** The nearest empty slot in `direction` from the widget's slot, or `undefined`. */
-export function findEmptySlot(
+/** Find the nearest empty slot in `direction` from the widget, or `undefined` if there is none. */
+function findEmptySlot(
   current: WidgetData[],
   widgetId: string,
   direction: -1 | 1,
@@ -54,8 +57,8 @@ export function findEmptySlot(
 }
 
 /** Widget placement shared by the drop handlers and the keyboard shortcut. */
-export function useDashboardWidgets(initialWidgets: WidgetData[] = INITIAL_WIDGETS) {
-  const [widgets, setWidgets] = React.useState(initialWidgets);
+export function useDashboardWidgets() {
+  const [widgets, setWidgets] = React.useState(INITIAL_WIDGETS);
   const [announcement, setAnnouncement] = React.useState('');
   const focusFrame = useAnimationFrame();
   const dashboardRef = React.useRef<HTMLDivElement | null>(null);

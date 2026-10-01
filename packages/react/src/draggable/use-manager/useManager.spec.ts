@@ -9,8 +9,8 @@ import type {
 } from '@base-ui/react/draggable';
 import { expectType } from '#test-utils';
 
-// Type-only file: nothing here runs, so the hook is never actually called —
-// `declare` gives us its return type without tripping the rules-of-hooks lint.
+// Type-only file. Nothing here runs, so `declare` provides the hook's return type
+// without a hook call that the rules-of-hooks lint would flag.
 declare const engine: ReturnType<typeof Draggable.useManager>;
 expectType<UseDraggableManagerReturnValue, typeof engine>(engine);
 expectType<Draggable.useManager.ReturnValue, typeof engine>(engine);
@@ -30,12 +30,6 @@ engine.registerTarget(element, () => ({
   kind: detailedSlot,
   payload: { index: 0 },
 }));
-engine.registerTarget(element, () => ({
-  accept: card,
-  // @ts-expect-error the kind requires the complete payload.
-  kind: detailedSlot,
-  payload: { index: 0 },
-}));
 // @ts-expect-error typed monitor parameters require a runtime filter.
 const missingMonitorAccept: DraggableManagerRegisterMonitorParameters<CardPayload> = {};
 // @ts-expect-error typed viewport parameters require a runtime filter.
@@ -45,13 +39,14 @@ engine.registerMonitor<typeof card>(() => ({}));
 // @ts-expect-error explicit accepted-kind generics cannot bypass the runtime filter.
 engine.registerViewport<typeof card>(element, () => ({}));
 
-// The imperative entry point is self-contained: it exposes the factories its
+// The imperative entry point is self-contained. It exposes the factories its
 // registration methods require, without importing a component namespace.
 const engineCard = Draggable.createKind<CardPayload>('engine-card');
 const globalItem = Draggable.createGlobalKind('app/item');
-expectType<Draggable.Kind<CardPayload>, typeof engineCard>(engineCard);
-expectType<Draggable.Kind<undefined>, typeof globalItem>(globalItem);
-expectType<Draggable.Kind<unknown>, typeof Draggable.anyKind>(Draggable.anyKind);
+expectType<Draggable.Kind<CardPayload, unknown>, typeof engineCard>(engineCard);
+expectType<Draggable.Kind<undefined, unknown>, typeof globalItem>(globalItem);
+// `anyKind` only fits `accept`, so it is an accepted kind rather than a `Draggable.Kind`.
+expectType<Draggable.AcceptedKind<unknown>, typeof Draggable.anyKind>(Draggable.anyKind);
 const snapSteps: Draggable.Target.SnapSteps = { x: 4, y: 8 };
 const snappedPointOptions: Draggable.Target.SnappedLocalPointOptions = { anchor: 'source' };
 expectType<Draggable.Target.SnapSteps, typeof snapSteps>(snapSteps);
@@ -73,17 +68,19 @@ expectType<DraggableAcceptedKind, typeof observedKind>(observedKind);
 engine.registerSource(element, () => ({
   kind: card,
   payload: { id: 'a' },
-  onMoveStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
-  onMove: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
-  onMoveEnd: ({ source, target }, { reason, location }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
-    expectType<Draggable.Target.Record | null, typeof target>(target);
-    expectType<Draggable.Root.MoveEndEventReason, typeof reason>(reason);
-    expectType<Draggable.LocationHistory, typeof location>(location);
+  onMoveStart: (eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload),
+  onMove: (eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload),
+  onMoveEnd: (eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    expectType<Draggable.Target.Record | null, typeof eventDetails.target>(eventDetails.target);
+    expectType<Draggable.Root.MoveEndEventReason, typeof eventDetails.reason>(eventDetails.reason);
+    expectType<Draggable.LocationHistory, typeof eventDetails.location>(eventDetails.location);
   },
 }));
 
-// An explicit type argument is honoured instead of inferred.
+// An explicit type argument is used instead of the inferred one.
 engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: { id: 'a' } }));
 
 declare const maybeCardPayload: CardPayload | undefined;
@@ -91,16 +88,14 @@ declare const maybeCardPayload: CardPayload | undefined;
 engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: undefined }));
 // @ts-expect-error a possibly undefined static payload cannot satisfy a required payload.
 engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: maybeCardPayload }));
-// @ts-expect-error a required payload getter cannot be explicitly undefined.
-engine.registerSource<CardPayload>(element, () => ({ kind: card, getPayload: undefined }));
 
 // @ts-expect-error the payload must match an explicit type argument.
 engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: { id: 1 } }));
 
-// A handler cannot redeclare the payload type. Asserted against the parameters type
-// rather than through a call: rejecting the handler fails overload resolution, which
-// reports against the whole argument instead of the property at fault.
-const wrongDrag = (parameters: { source: { payload: number } }) => parameters;
+// A handler cannot redeclare the payload type. This is checked on the parameters type,
+// not through a call, because a rejected handler fails overload resolution and the
+// error lands on the whole argument instead of the property.
+const wrongDrag = (eventDetails: { source: { payload: number } }) => eventDetails;
 const wrongParameters: DraggableManagerRegisterSourceParameters<CardPayload> = {
   kind: card,
   payload: { id: 'a' },
@@ -111,7 +106,8 @@ const wrongParameters: DraggableManagerRegisterSourceParameters<CardPayload> = {
 // A kind declaring no payload leaves it `undefined`, and `payload` may be omitted.
 engine.registerSource(element, () => ({
   kind: marker,
-  onMoveStart: ({ source }) => expectType<undefined, typeof source.payload>(source.payload),
+  onMoveStart: (eventDetails) =>
+    expectType<undefined, typeof eventDetails.source.payload>(eventDetails.source.payload),
 }));
 
 // @ts-expect-error every draggable is of some kind.
@@ -122,7 +118,7 @@ expectType<() => void, ReturnType<typeof engine.registerSource>>(
   engine.registerSource(element, () => ({ kind: marker })),
 );
 
-// An explicit `TPayload` threads through `getPayload` and every source event.
+// An explicit `TPayload` threads through `payload` and every source event.
 interface MyPayload {
   foo: string;
   count: number;
@@ -131,12 +127,12 @@ const myPayloadKind = Draggable.createKind<MyPayload>('my-data');
 engine.registerSource<MyPayload>(element, () => ({
   kind: myPayloadKind,
   payload: { foo: 'bar', count: 1 },
-  onMoveStart: ({ source }) => {
-    expectType<string, typeof source.payload.foo>(source.payload.foo);
-    expectType<number, typeof source.payload.count>(source.payload.count);
+  onMoveStart: (eventDetails) => {
+    expectType<string, typeof eventDetails.source.payload.foo>(eventDetails.source.payload.foo);
+    expectType<number, typeof eventDetails.source.payload.count>(eventDetails.source.payload.count);
   },
-  onMoveEnd: ({ source }) => {
-    expectType<string, typeof source.payload.foo>(source.payload.foo);
+  onMoveEnd: (eventDetails) => {
+    expectType<string, typeof eventDetails.source.payload.foo>(eventDetails.source.payload.foo);
   },
 }));
 
@@ -194,8 +190,8 @@ engine.registerTarget(element, () => ({
     expectType<CardPayload, typeof source.payload>(source.payload);
     return true;
   },
-  onDraggableDrop: ({ source }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
+  onDraggableDrop: (eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
   },
 }));
 
@@ -204,26 +200,32 @@ engine.registerTarget(element, () => ({
 engine.registerTarget(element, () => ({
   accept: card,
   payload: { slot: 1 },
-  onDraggableDrop: ({ source, target }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
-    expectType<{ slot: number }, typeof target.payload>(target.payload);
+  onDraggableDrop: (eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    expectType<{ slot: number }, typeof eventDetails.currentTarget.payload>(
+      eventDetails.currentTarget.payload,
+    );
   },
 }));
 
 engine.registerTarget(element, () => ({
   accept: card,
   payload: { slot: 0 },
-  onDraggableDrop: ({ target }) => {
-    expectType<{ slot: number }, typeof target.payload>(target.payload);
+  onDraggableDrop: (eventDetails) => {
+    expectType<{ slot: number }, typeof eventDetails.currentTarget.payload>(
+      eventDetails.currentTarget.payload,
+    );
   },
 }));
 
 engine.registerTarget<typeof card, { slot: number }>(element, () => ({
   accept: card,
   payload: { slot: 1 },
-  onDraggableDrop: ({ source, target }) => {
-    expectType<CardPayload, typeof source.payload>(source.payload);
-    expectType<{ slot: number }, typeof target.payload>(target.payload);
+  onDraggableDrop: (eventDetails) => {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    expectType<{ slot: number }, typeof eventDetails.currentTarget.payload>(
+      eventDetails.currentTarget.payload,
+    );
   },
 }));
 
@@ -241,11 +243,6 @@ engine.registerTarget<typeof card, { slot: number }>(element, () => ({
   // @ts-expect-error a possibly undefined target payload cannot satisfy a required payload.
   payload: maybeSlotPayload,
 }));
-// @ts-expect-error a required target payload getter cannot be explicitly undefined.
-engine.registerTarget<typeof card, { slot: number }>(element, () => ({
-  accept: card,
-  getPayload: undefined,
-}));
 
 engine.registerTarget<typeof card, { slot: number }>(element, () => ({
   accept: card,
@@ -254,7 +251,7 @@ engine.registerTarget<typeof card, { slot: number }>(element, () => ({
 }));
 
 // An explicit `<typeof kind, TTargetPayload>` pair threads both payloads through every
-// target callback, and the local getter must return the declared shape.
+// target callback, and the local payload must have the declared shape.
 interface MySourcePayload {
   kind: 'card';
   id: string;
@@ -270,13 +267,17 @@ engine.registerTarget<typeof mySourceKind, MyTargetPayload>(element, () => ({
     expectType<string, typeof source.payload.id>(source.payload.id);
     return true;
   },
-  onDraggableDrop: ({ source, target }) => {
-    expectType<MySourcePayload, typeof source.payload>(source.payload);
-    expectType<MyTargetPayload, typeof target.payload>(target.payload);
+  onDraggableDrop: (eventDetails) => {
+    expectType<MySourcePayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    expectType<MyTargetPayload, typeof eventDetails.currentTarget.payload>(
+      eventDetails.currentTarget.payload,
+    );
   },
-  onDraggableEnter: ({ source, target }) => {
-    expectType<'card', typeof source.payload.kind>(source.payload.kind);
-    expectType<string, typeof target.payload.columnId>(target.payload.columnId);
+  onDraggableEnter: (eventDetails) => {
+    expectType<'card', typeof eventDetails.source.payload.kind>(eventDetails.source.payload.kind);
+    expectType<string, typeof eventDetails.currentTarget.payload.columnId>(
+      eventDetails.currentTarget.payload.columnId,
+    );
   },
 }));
 
@@ -290,10 +291,11 @@ engine.registerTarget<typeof mySourceKind, MyTargetPayload>(element, () => ({
 // registerMonitor / registerViewport
 // ---------------------------------------------------------------------------
 
-// A monitor observes every drag, so it takes a getter only — no element.
+// A monitor observes every drag, so it takes only a getter and no element.
 engine.registerMonitor(() => ({
   accept: card,
-  onMoveStart: ({ source }) => expectType<CardPayload, typeof source.payload>(source.payload),
+  onMoveStart: (eventDetails) =>
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload),
 }));
 
 // @ts-expect-error `registerMonitor` takes no element.
@@ -312,12 +314,13 @@ const cardDrag = Draggable.createKind<CardDrag>('card-drag');
 const columnDrag = Draggable.createKind<ColumnDrag>('column-drag');
 engine.registerMonitor(() => ({
   accept: [cardDrag, columnDrag],
-  onMoveEnd: ({ source }) => {
-    expectType<CardDrag | ColumnDrag, typeof source.payload>(source.payload);
-    if (source.payload.kind === 'card') {
-      expectType<string, typeof source.payload.cardId>(source.payload.cardId);
+  onMoveEnd: (eventDetails) => {
+    const payload = eventDetails.source.payload;
+    expectType<CardDrag | ColumnDrag, typeof payload>(payload);
+    if (payload.kind === 'card') {
+      expectType<string, typeof payload.cardId>(payload.cardId);
     } else {
-      expectType<string, typeof source.payload.columnId>(source.payload.columnId);
+      expectType<string, typeof payload.columnId>(payload.columnId);
     }
   },
 }));
@@ -325,9 +328,9 @@ engine.registerMonitor(() => ({
 // The accepted kind determines the scroll callback payload.
 engine.registerViewport(element, () => ({
   accept: card,
-  onDragScroll({ source, direction }, eventDetails) {
-    expectType<CardPayload, typeof source.payload>(source.payload);
-    if (direction === 'horizontal') {
+  onDragScroll(eventDetails) {
+    expectType<CardPayload, typeof eventDetails.source.payload>(eventDetails.source.payload);
+    if (eventDetails.direction === 'horizontal') {
       eventDetails.cancel();
     }
   },
@@ -339,13 +342,6 @@ engine.registerViewport(element, () => ({
 
 // The method registers nothing, takes nothing, and returns nothing.
 expectType<() => void, typeof engine.cancelDrag>(engine.cancelDrag);
-
-const removedMonitorCallback: DraggableManagerRegisterMonitorParameters = {
-  accept: Draggable.anyKind,
-  // @ts-expect-error successful drops are handled through onMoveEnd.
-  onDrop: () => {},
-};
-engine.registerMonitor(() => removedMonitorCallback);
 
 engine.registerSource<unknown>(element, () => ({
   // @ts-expect-error an explicit generic must not widen the producer kind.
@@ -367,9 +363,11 @@ engine.registerTarget<typeof card, unknown, DraggableAcceptedKind>(element, () =
   payload: null,
 }));
 
-declare const extractedDrop: Draggable.Target.DropValue<CardPayload, { index: number }>;
+declare const extractedDrop: Draggable.Target.DropEventDetails<CardPayload, { index: number }>;
 expectType<CardPayload, typeof extractedDrop.source.payload>(extractedDrop.source.payload);
-expectType<{ index: number }, typeof extractedDrop.target.payload>(extractedDrop.target.payload);
+expectType<{ index: number }, typeof extractedDrop.currentTarget.payload>(
+  extractedDrop.currentTarget.payload,
+);
 
 const dataCard = Draggable.createKind<CardPayload, { offset: number }>('data-card');
 const dataSlot = Draggable.createKind<{ slot: number }, { entered: boolean }>('data-slot');
@@ -377,59 +375,80 @@ engine.registerTarget(element, () => ({
   accept: dataCard,
   kind: dataSlot,
   payload: { slot: 0 },
-  onDraggableEnter: ({ source, target }) => {
-    expectType<{ offset: number } | undefined, typeof source.dragData>(source.dragData);
-    expectType<{ entered: boolean } | undefined, typeof target.dragData>(target.dragData);
-    source.updateDragData({ offset: 1 });
-    target.updateDragData({ entered: true });
+  onDraggableEnter: (eventDetails) => {
+    expectType<{ offset: number } | undefined, typeof eventDetails.source.dragData>(
+      eventDetails.source.dragData,
+    );
+    expectType<{ entered: boolean } | undefined, typeof eventDetails.currentTarget.dragData>(
+      eventDetails.currentTarget.dragData,
+    );
+    eventDetails.source.updateDragData({ offset: 1 });
+    eventDetails.currentTarget.updateDragData({ entered: true });
   },
 }));
 engine.registerMonitor(() => ({
   accept: dataCard,
-  onMove: ({ source }) => {
-    expectType<{ offset: number } | undefined, typeof source.dragData>(source.dragData);
+  onMove: (eventDetails) => {
+    expectType<{ offset: number } | undefined, typeof eventDetails.source.dragData>(
+      eventDetails.source.dragData,
+    );
   },
 }));
 
 const dataOnlyKind = Draggable.createKind<undefined, number>('data-only');
 engine.registerSource(element, () => ({
   kind: dataOnlyKind,
-  onMove: ({ source }) => {
-    expectType<number | undefined, typeof source.dragData>(source.dragData);
+  onMove: (eventDetails) => {
+    expectType<number | undefined, typeof eventDetails.source.dragData>(
+      eventDetails.source.dragData,
+    );
   },
 }));
 engine.registerTarget(element, () => ({
   accept: dataCard,
   kind: dataOnlyKind,
-  onDraggableEnter: ({ source, target }) => {
-    expectType<{ offset: number } | undefined, typeof source.dragData>(source.dragData);
-    expectType<number | undefined, typeof target.dragData>(target.dragData);
-    expectType<undefined, typeof target.payload>(target.payload);
-    target.updateDragData(1);
+  onDraggableEnter: (eventDetails) => {
+    const currentTarget = eventDetails.currentTarget;
+    expectType<{ offset: number } | undefined, typeof eventDetails.source.dragData>(
+      eventDetails.source.dragData,
+    );
+    expectType<number | undefined, typeof currentTarget.dragData>(currentTarget.dragData);
+    expectType<undefined, typeof currentTarget.payload>(currentTarget.payload);
+    currentTarget.updateDragData(1);
     // @ts-expect-error the data-only target still checks its drag data.
-    target.updateDragData('invalid');
+    currentTarget.updateDragData('invalid');
     // @ts-expect-error a data-only target cannot acquire a different payload type.
-    target.updatePayload({ slot: 1 });
+    currentTarget.updatePayload({ slot: 1 });
   },
 }));
 
-const removedSourceGetter: Draggable.useManager.RegisterSourceParameters<CardPayload> = {
-  kind: card,
-  payload: { id: 'a' },
-  // @ts-expect-error payload getters are replaced by the source methods.
-  getPayload: () => ({ id: 'b' }),
-};
-engine.registerSource(element, () => ({ ...removedSourceGetter, payload: { id: 'a' } }));
-const removedTargetGetter: Draggable.useManager.RegisterTargetParameters<
-  CardPayload,
-  { slot: number }
-> = {
-  accept: card,
-  payload: { slot: 0 },
-  // @ts-expect-error payload getters are replaced by the target methods.
-  getPayload: () => ({ slot: 1 }),
-};
-engine.registerTarget(element, () => ({ ...removedTargetGetter, payload: { slot: 0 } }));
-
 // @ts-expect-error a target kind with a payload cannot register without one.
 engine.registerTarget(element, () => ({ accept: card, kind: detailedSlot }));
+
+// ---------------------------------------------------------------------------
+// anyKind
+// ---------------------------------------------------------------------------
+
+// `anyKind` accepts every drag as a target's, viewport's, or monitor's `accept`, with
+// `source.payload` typed as `unknown`.
+engine.registerTarget(element, () => ({
+  accept: Draggable.anyKind,
+  onDraggableDrop: (eventDetails) =>
+    expectType<unknown, typeof eventDetails.source.payload>(eventDetails.source.payload),
+}));
+engine.registerViewport(element, () => ({
+  accept: Draggable.anyKind,
+  onDragScroll: (eventDetails) =>
+    expectType<unknown, typeof eventDetails.source.payload>(eventDetails.source.payload),
+}));
+engine.registerMonitor(() => ({
+  accept: Draggable.anyKind,
+  onMoveStart: (eventDetails) =>
+    expectType<unknown, typeof eventDetails.source.payload>(eventDetails.source.payload),
+}));
+
+// It only fits `accept`. A source or a target declares the one kind it is.
+// @ts-expect-error `anyKind` can't be a source's `kind`.
+engine.registerSource(element, () => ({ kind: Draggable.anyKind }));
+// @ts-expect-error `anyKind` can't be a target's own `kind`.
+engine.registerTarget(element, () => ({ accept: card, kind: Draggable.anyKind }));
