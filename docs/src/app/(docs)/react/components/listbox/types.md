@@ -841,6 +841,37 @@ type ListboxSortingMove<Value = any> = {
 };
 ```
 
+### ListboxItemDataAttributes
+
+Data attributes of [Item](#item).
+
+```typescript
+enum ListboxItemDataAttributes {
+  /** Present when the listbox item is selected. */
+  selected = 'data-selected',
+  /** Present when the listbox item is highlighted. */
+  highlighted = 'data-highlighted',
+  /** Present when the listbox item is disabled. */
+  disabled = 'data-disabled',
+  /**
+   * Present while the item participates in an active pointer sort, including
+   * selected items moving with the picked-up item. Items disabled for sorting are excluded.
+   * Removed when the gesture ends or is canceled; not set by keyboard sorting.
+   * Unlike `data-dragging`, this does not mean the item was physically picked up.
+   */
+  moving = 'data-moving',
+  /** Present only on the item physically picked up. Managed by the drag engine. */
+  dragging = 'data-dragging',
+  /** Present when a dragged item is over the listbox item. */
+  dragOver = 'data-drag-over',
+  /**
+   * Indicates the drop position relative to the item.
+   * The value is `'before'` or `'after'`.
+   */
+  dropPosition = 'data-drop-position',
+}
+```
+
 ### ListboxItemDraggableProps
 
 ```typescript
@@ -935,6 +966,37 @@ type ListboxItemDraggableProps = {
 };
 ```
 
+### ListboxItemExternalDropTargetDataAttributes
+
+Data attributes of [ItemExternalDropTarget](#itemexternaldroptarget).
+
+```typescript
+enum ListboxItemExternalDropTargetDataAttributes {
+  /** Present when the listbox item is selected. */
+  selected = 'data-selected',
+  /** Present when the listbox item is highlighted. */
+  highlighted = 'data-highlighted',
+  /** Present when the listbox item is disabled. */
+  disabled = 'data-disabled',
+  /**
+   * Present while the item participates in an active pointer sort, including
+   * selected items moving with the picked-up item. Items disabled for sorting are excluded.
+   * Removed when the gesture ends or is canceled; not set by keyboard sorting.
+   * Unlike `data-dragging`, this does not mean the item was physically picked up.
+   */
+  moving = 'data-moving',
+  /** Present only on the item physically picked up. Managed by the drag engine. */
+  dragging = 'data-dragging',
+  /** Present when a dragged item is over the listbox item. */
+  dragOver = 'data-drag-over',
+  /**
+   * Indicates the drop position relative to the item.
+   * The value is `'before'` or `'after'`.
+   */
+  dropPosition = 'data-drop-position',
+}
+```
+
 ### ListboxItemExternalDropTargetOptions
 
 ```typescript
@@ -967,6 +1029,19 @@ type ListboxItemExternalDropTargetOptions<
     eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails<TPayload | unknown, TItem>,
   ) => void;
 };
+```
+
+### ListboxListDataAttributes
+
+Data attributes of [List](#list).
+
+```typescript
+enum ListboxListDataAttributes {
+  /** Present when the listbox is disabled. */
+  disabled = 'data-disabled',
+  /** Indicates the orientation of the listbox. */
+  orientation = 'data-orientation',
+}
 ```
 
 ### ListboxSortingDestination
@@ -1108,7 +1183,7 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.SortableProvider`: `Listbox.SortableProvider`, `Listbox.SortableProvider.Props`, `Listbox.SortableProvider.DragPayload`, `Listbox.SortableProvider.DropContext`, `Listbox.SortableProvider.DropPositionChangeEventDetails`, `Listbox.SortableProvider.DropPositionChangeEventReason`, `Listbox.SortableProvider.SortEndEventDetails`, `Listbox.SortableProvider.SortEndEventReason`
 - `Listbox.SortHandle`: `Listbox.SortHandle`, `Listbox.SortHandle.Props`, `Listbox.SortHandle.State`
 - `Listbox.SortPreview`: `Listbox.SortPreview`, `Listbox.SortPreview.Props`, `Listbox.SortPreview.RenderParameters`, `Listbox.SortPreview.State`
-- `Default`: `Listbox.ItemId`, `Listbox.SortingItem`, `Listbox.SortingMove`, `Listbox.SortingAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.SortingDropPosition`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxSortingMove`, `ListboxSortingAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortingSortEndEventDetails`, `ListboxSortingSortEndEventReason`, `ListboxSortingDropPositionChangeEventDetails`, `ListboxSortingDropPositionChangeEventReason`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxSortPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Default`: `Listbox.ItemId`, `Listbox.SortingItem`, `Listbox.SortingMove`, `Listbox.SortingAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.SortingDropPosition`, `SelectionMode`, `ListboxSortingItem`, `ListboxSortingDestination`, `ListboxSortingMove`, `ListboxSortingAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardSortableProviderProps`, `ListboxSortingDragPayload`, `ListboxSortingDropPosition`, `ListboxSortingDropContext`, `ListboxSortingSortEndEventDetails`, `ListboxSortingSortEndEventReason`, `ListboxSortingDropPositionChangeEventDetails`, `ListboxSortingDropPositionChangeEventReason`, `ListboxSortableProviderProps`, `ListboxSortHandleProps`, `ListboxSortPreviewProps`, `ListboxSortPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPosition`
 
 ## Canonical Types
