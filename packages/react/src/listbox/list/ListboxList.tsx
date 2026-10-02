@@ -12,6 +12,7 @@ import { TYPEAHEAD_RESET_MS } from '../../internals/constants';
 import { compareItemEquality } from '../../internals/itemEquality';
 import { useCompositeRoot, CompositeList } from '../../internals/composite';
 import { useListboxRootContext } from '../root/ListboxRootContext';
+import { useWarnMisplacedListboxRootFeatures } from '../root/ListboxRootFeatures';
 import { selectionReducer, isMultipleSelectionMode } from '../utils/selectionReducer';
 import type { SelectionAction } from '../utils/selectionReducer';
 
@@ -28,6 +29,7 @@ export const ListboxList = React.forwardRef(function ListboxList(
   const { className, render, style, ...elementProps } = componentProps;
 
   const store = useListboxRootContext();
+  useWarnMisplacedListboxRootFeatures();
 
   const id = store.useState('id');
   const labelId = store.useState('labelId');

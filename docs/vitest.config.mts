@@ -15,6 +15,7 @@ export default mergeConfig(
       root: resolve(import.meta.dirname, '..'),
       dir: import.meta.dirname,
       environment: 'node',
+      exclude: ['**/*.browser.test.tsx'],
       browser: {
         enabled: false,
         name: 'node',

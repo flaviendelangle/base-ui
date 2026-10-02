@@ -12,16 +12,21 @@ export enum ListboxItemDataAttributes {
    */
   disabled = 'data-disabled',
   /**
-   * Present when the listbox item is being dragged.
+   * Present while the item participates in an active pointer sort, including
+   * selected items moving with the picked-up item. Items disabled for sorting are excluded.
+   * Removed when the gesture ends or is canceled; not set by keyboard sorting.
+   * Unlike `data-dragging`, this does not mean the item was physically picked up.
    */
+  moving = 'data-moving',
+  /** Present only on the item physically picked up. Managed by the drag engine. */
   dragging = 'data-dragging',
   /**
-   * Present when the listbox item is a drop target.
+   * Present when a dragged item is over the listbox item.
    */
-  dropTarget = 'data-drop-target',
+  dragOver = 'data-drag-over',
   /**
-   * Indicates the closest edge when the item is a drop target.
+   * Indicates the drop position relative to the item.
    * The value is `'before'` or `'after'`.
    */
-  dropTargetEdge = 'data-drop-target-edge',
+  dropPosition = 'data-drop-position',
 }
