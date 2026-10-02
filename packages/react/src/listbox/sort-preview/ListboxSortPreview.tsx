@@ -26,7 +26,7 @@ export interface ListboxSortPreviewProps<Value = any> extends Omit<
 > {
   /**
    * Preview content. A callback returning null hides the preview. It runs when the
-   * drag starts, and again on each `source.renderPreview()`.
+   * drag starts, and again on each `Draggable.updatePreview()`.
    */
   children?:
     React.ReactNode | ((parameters: ListboxSortPreviewRenderParameters<Value>) => React.ReactNode);
@@ -39,7 +39,7 @@ export interface ListboxSortPreviewRenderParameters<Value = any> {
   items: Value[];
   /**
    * The drag source. To show drag state in the preview, store it with
-   * `source.updateDragData()` and call `source.renderPreview()` from a drag handler.
+   * `source.updateDragData()` and call `Draggable.updatePreview()` from a drag handler.
    */
   source: Draggable.Root.Record;
   /** The pointer position and drop targets when the preview renders. */

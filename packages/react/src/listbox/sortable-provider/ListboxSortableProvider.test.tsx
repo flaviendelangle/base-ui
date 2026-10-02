@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { expect, vi, describe, it } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
-import type { Draggable } from '@base-ui/react/draggable';
+import { Draggable } from '@base-ui/react/draggable';
 import { Listbox } from '@base-ui/react/listbox';
 import {
   cancel,
@@ -386,7 +386,7 @@ describe('<Listbox.SortableProvider />', () => {
     expect(screen.getByTestId('preview')).toHaveTextContent('2 items');
     cancel();
   });
-  it('shows drag state in a custom preview through source.renderPreview()', async () => {
+  it('shows drag state in a custom preview through Draggable.updatePreview()', async () => {
     await render(
       <Fixture
         draggableProps={{
@@ -394,7 +394,7 @@ describe('<Listbox.SortableProvider />', () => {
             eventDetails.source.updateDragData(
               Math.round(eventDetails.location.current.input.clientY),
             );
-            eventDetails.source.renderPreview();
+            Draggable.updatePreview();
           },
         }}
         preview={{
@@ -407,10 +407,12 @@ describe('<Listbox.SortableProvider />', () => {
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
     await lift(a, { clientY: 25 });
-    // The pickup's own move already rendered it again.
+    await flushRaf();
+    // The pickup's own move already asked for an update.
     expect(screen.getByTestId('preview')).toHaveTextContent('25');
 
     await dragOver(a, { clientY: 60 });
+    await flushRaf();
     expect(screen.getByTestId('preview')).toHaveTextContent('60');
     cancel();
   });

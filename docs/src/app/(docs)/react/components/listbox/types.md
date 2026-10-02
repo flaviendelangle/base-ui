@@ -722,7 +722,7 @@ Customizes or hides the pointer preview. Render inside a sortable item.
 | offset    | `DraggablePreviewOffset`                                                                            | `'source'` | Where the preview sits relative to the pointer.                                                                                                                                                                                                 |
 | container | `DraggablePreviewContainer`                                                                         | -          | Where to insert the preview element in the DOM. Defaults to the end of the&#xA;source's parent, so the same CSS applies to it. Pass a container to keep&#xA;selectors such as `:last-child` on the source's siblings unchanged during the drag. |
 | disabled  | `boolean`                                                                                           | `false`    | Whether to show no preview. The drag still runs.                                                                                                                                                                                                |
-| children  | `React.ReactNode \| ((parameters: Listbox.SortPreview.RenderParameters<Value>) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview. It runs when the&#xA;drag starts, and again on each `source.renderPreview()`.                                                                                                     |
+| children  | `React.ReactNode \| ((parameters: Listbox.SortPreview.RenderParameters<Value>) => React.ReactNode)` | -          | Preview content. A callback returning null hides the preview. It runs when the&#xA;drag starts, and again on each `Draggable.updatePreview()`.                                                                                                  |
 | className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                 | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                        |
 | style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`       | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                     |
 | render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                   |
@@ -747,7 +747,7 @@ type ListboxSortPreviewRenderParameters<Value = any> = {
   items: Value[];
   /**
    * The drag source. To show drag state in the preview, store it with
-   * `source.updateDragData()` and call `source.renderPreview()` from a drag handler.
+   * `source.updateDragData()` and call `Draggable.updatePreview()` from a drag handler.
    */
   source: DraggableRoot.Record;
   /** The pointer position and drop targets when the preview renders. */
