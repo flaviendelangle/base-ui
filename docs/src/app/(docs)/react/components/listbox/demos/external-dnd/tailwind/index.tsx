@@ -75,7 +75,7 @@ export default function ExampleListboxExternalDnd() {
                   <Listbox.ItemExternalDropTarget
                     accept={paletteKind}
                     onDraggableDrop={(eventDetails) =>
-                      addTrack(eventDetails.source.payload, eventDetails.listboxDestination.index)
+                      addTrack(eventDetails.source.payload, eventDetails.destination.index)
                     }
                     key={value}
                     value={value}

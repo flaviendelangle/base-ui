@@ -10,6 +10,8 @@ import type { ListboxSortingParameters } from '../sorting/useListboxSorting';
 /**
  * Enables keyboard sorting with Alt+Arrow keys in the listbox it wraps.
  * Renders a visually hidden announcement region inside the listbox.
+ *
+ * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
 export function ListboxKeyboardSortableProvider<Value = any>(
   props: ListboxKeyboardSortableProvider.Props<Value>,

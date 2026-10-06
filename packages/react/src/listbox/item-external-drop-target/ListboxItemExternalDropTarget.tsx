@@ -70,7 +70,7 @@ export interface ListboxItemExternalDropTargetPositionContext<TPayload = unknown
   /** The item under the pointer. */
   item: TItem;
   itemId: ListboxItemId;
-  itemMetadata: { index: number; groupId: string | null; disabled: boolean };
+  itemMetadata: { index: number; groupId: string | null };
   /** Returns where the pointer is within the item, as a fraction of its width and height. */
   getLocalPoint: () => DraggableTargetLocalPoint;
 }
@@ -84,7 +84,7 @@ export interface ListboxItemExternalDropTargetDropContext<
    * Where to insert the dropped content in the listbox: the index across the entire
    * list, including groups. Not relative to the group.
    */
-  listboxDestination: ListboxSortingDestination;
+  destination: ListboxSortingDestination;
 }
 /**
  * The event details passed to `onDraggableDrop`: the drop target's event details, along
@@ -121,7 +121,7 @@ export interface ListboxItemExternalDropTargetOptions<
   onDropPositionChange?: ((position: ListboxSortingDropPosition | null) => void) | undefined;
   /**
    * Handles an accepted external drop. Does not automatically insert or remove items.
-   * `eventDetails.destination` is where the dragged item goes.
+   * `eventDetails.destination` is where to insert the dropped content.
    */
   onDraggableDrop?:
     | ((

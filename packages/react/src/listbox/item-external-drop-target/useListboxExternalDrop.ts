@@ -43,7 +43,7 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
         source: source as DraggableRootRecord<AcceptedDragPayload<TAccept>>,
         item: item.value as Value,
         itemId: item.id,
-        itemMetadata: { index: item.index, groupId: item.groupId, disabled: item.disabled },
+        itemMetadata: { index: item.index, groupId: item.groupId },
         getLocalPoint,
       };
       const point = getLocalPoint();
@@ -65,7 +65,7 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
       if (!destination) {
         return null;
       }
-      const drop = { ...context, dropPosition: position, listboxDestination: destination };
+      const drop = { ...context, dropPosition: position, destination };
       return (options.canDrop?.(drop) ?? true) ? drop : null;
     },
   });

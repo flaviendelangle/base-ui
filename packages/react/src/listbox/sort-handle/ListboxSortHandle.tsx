@@ -3,7 +3,12 @@ import * as React from 'react';
 import { Draggable } from '../../draggable';
 import { useListboxSortablePart } from '../sorting/ListboxSortingContext';
 
-/** Limits pointer sorting to this handle. Render inside a sortable item. */
+/**
+ * Limits pointer sorting to this handle. Render inside a sortable item.
+ * Renders a `<span>` element.
+ *
+ * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
+ */
 export const ListboxSortHandle = React.forwardRef(function ListboxSortHandle(
   props: ListboxSortHandle.Props,
   ref: React.ForwardedRef<HTMLSpanElement>,

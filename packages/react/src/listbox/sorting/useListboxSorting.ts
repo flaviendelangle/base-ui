@@ -25,7 +25,6 @@ export interface ListboxSortingDestination {
   /**
    * Zero-based insertion index across the entire list, including all groups,
    * before removing the moved items. This is not an index within the destination group.
-   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** Group of the destination item, or null for ungrouped items. */
@@ -56,9 +55,11 @@ export interface ListboxSortingAnnouncementParameters<Value = any> {
 export interface ListboxSortingParameters<Value = any> {
   /** Disables keyboard and pointer sorting. @default false */
   disabled?: boolean | undefined;
-  /** Called with all values in their proposed order. Render the items in this order to accept the move. */
-  onItemsReorder?:
-    ((items: Value[], eventDetails: ListboxItemsReorderEventDetails<Value>) => void) | undefined;
+  /**
+   * Event handler called when sorting proposes a new order, with all values in that order.
+   * Render the items in this order to accept the move.
+   */
+  onItemsReorder: (items: Value[], eventDetails: ListboxItemsReorderEventDetails<Value>) => void;
   /** Applies the same movement rules to keyboard and pointer sorting. */
   canMoveItems?: ((move: ListboxSortingMove<Value>) => boolean) | undefined;
   /** Disables sorting for an item without disabling selection. */
@@ -131,7 +132,6 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       const items = ordered.filter((item) => ids.includes(item.id));
       return (
         !disabled &&
-        !!props.onItemsReorder &&
         items.length > 0 &&
         items.length === ids.length &&
         items.every((item) => !isDisabled(item)) &&
@@ -224,7 +224,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
         event,
       });
       store.context.requestHighlightReconcile();
-      props.onItemsReorder?.(
+      props.onItemsReorder(
         items.map((item) => item.value),
         details,
       );

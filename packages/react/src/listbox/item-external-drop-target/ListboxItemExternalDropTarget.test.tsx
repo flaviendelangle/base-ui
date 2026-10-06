@@ -132,7 +132,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(onDraggableDrop.mock.calls[0][0]).toMatchObject({
         reason: 'drop',
         item: 'b',
-        listboxDestination: { groupId: null, index: 2 },
+        destination: { groupId: null, index: 2 },
       });
       expect(target).not.toHaveAttribute('data-drag-over');
       expect(changes).toHaveBeenLastCalledWith(null);
@@ -212,7 +212,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(target).toHaveAttribute('data-drop-position', 'after');
     drop(target, { clientX: 125, clientY: 125 });
     await flushRaf();
-    expect(onDraggableDrop.mock.calls[0][0].listboxDestination).toEqual({
+    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({
       groupId: null,
       index: 2,
     });
@@ -259,7 +259,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     await dragEnter(target, { clientY: 175 });
     drop(target, { clientY: 175 });
     await flushRaf();
-    expect(onDraggableDrop.mock.calls[0][0].listboxDestination).toEqual({
+    expect(onDraggableDrop.mock.calls[0][0].destination).toEqual({
       groupId: 'two',
       index: 2,
     });
@@ -300,11 +300,11 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                       accept={kind}
                       onDraggableDrop={(eventDetails) => {
                         onDraggableDrop(eventDetails);
-                        const { listboxDestination, source } = eventDetails;
+                        const { destination, source } = eventDetails;
                         setRight((current) => [
-                          ...current.slice(0, listboxDestination.index),
+                          ...current.slice(0, destination.index),
                           ...source.payload.items,
-                          ...current.slice(listboxDestination.index),
+                          ...current.slice(destination.index),
                         ]);
                         setLeft((current) =>
                           current.filter((entry) => !source.payload.items.includes(entry)),
@@ -472,7 +472,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     expect(onDraggableDrop).toHaveBeenCalledTimes(1);
     expect(onDraggableDrop.mock.calls[0][0]).toMatchObject({
       dropPosition: { placement: 'after' },
-      listboxDestination: { groupId: null, index: 2 },
+      destination: { groupId: null, index: 2 },
     });
   });
 });

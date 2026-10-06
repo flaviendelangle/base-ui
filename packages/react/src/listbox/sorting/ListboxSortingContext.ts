@@ -10,7 +10,6 @@ export interface ListboxSortingItem<Value = any> {
   /**
    * Zero-based item index across the entire list, including all groups.
    * This is not an index within the item's group.
-   * Tree uses indices within the current or destination parent.
    */
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
@@ -41,6 +40,7 @@ export interface ListboxSortableContextValue {
   renderItem: (
     element: React.ReactElement,
     id: ListboxItemId,
+    value: unknown,
     disabled: boolean,
     props: ListboxItemDraggableProps | undefined,
     external?: ExternalDropTargetProps,

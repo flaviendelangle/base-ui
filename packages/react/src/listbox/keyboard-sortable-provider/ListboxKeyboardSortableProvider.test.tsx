@@ -18,7 +18,10 @@ async function keyDown(element: HTMLElement, options: { key: string; altKey?: bo
 for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvider]) {
   describe(`<${Provider.name} /> keyboard sorting`, () => {
     const { render } = createRenderer();
-    function Fixture({ onItemsReorder, ...props }: Listbox.KeyboardSortableProvider.Props<string>) {
+    function Fixture({
+      onItemsReorder,
+      ...props
+    }: Partial<Listbox.KeyboardSortableProvider.Props<string>>) {
       const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
       return (
         <Provider

@@ -77,7 +77,7 @@ describe('<Listbox.SortableProvider />', () => {
     preview,
     draggableProps,
     ...props
-  }: Listbox.SortableProvider.Props<string> & {
+  }: Partial<Listbox.SortableProvider.Props<string>> & {
     preview?: Listbox.SortPreview.Props<string>;
     draggableProps?: Listbox.Item.Props['draggableProps'];
   }) {
@@ -301,7 +301,7 @@ describe('<Listbox.SortableProvider />', () => {
     expect(getDropPosition).toHaveBeenCalledWith(
       expect.objectContaining({
         item: 'd',
-        itemMetadata: { index: 3, groupId: null, disabled: false },
+        itemMetadata: { index: 3, groupId: null },
         source: expect.objectContaining({
           element: screen.getByRole('option', { name: 'a' }),
           payload: expect.objectContaining({ collectionId: expect.any(Object), items: ['a', 'b'] }),
@@ -425,6 +425,87 @@ describe('<Listbox.SortableProvider />', () => {
     expect(preview).not.toHaveBeenCalled();
     expect(a).toHaveAttribute('data-dragging');
     cancel();
+  });
+  describe('preview key', () => {
+    const transferKind =
+      Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('transfer');
+    function TransferFixture({
+      previewKey,
+    }: {
+      previewKey?: (list: string, value: string) => string;
+    }) {
+      const [left, setLeft] = React.useState(['a', 'b']);
+      const [right, setRight] = React.useState(['c']);
+      const draggableProps = (list: string, value: string) =>
+        previewKey ? { previewKey: previewKey(list, value) } : undefined;
+      return (
+        <Draggable.Provider>
+          <Listbox.SortableProvider kind={transferKind} onItemsReorder={setLeft}>
+            <Listbox.Root>
+              <Listbox.List>
+                {left.map((value) => (
+                  <Listbox.Item
+                    key={value}
+                    value={value}
+                    draggableProps={draggableProps('left', value)}
+                  >
+                    {value}
+                  </Listbox.Item>
+                ))}
+              </Listbox.List>
+            </Listbox.Root>
+          </Listbox.SortableProvider>
+          <Listbox.SortableProvider kind={transferKind} onItemsReorder={setRight}>
+            <Listbox.Root>
+              <Listbox.List>
+                {right.map((value) => (
+                  <Listbox.ItemExternalDropTarget
+                    key={value}
+                    value={value}
+                    accept={transferKind}
+                    draggableProps={draggableProps('right', value)}
+                    onDraggableDrop={({ source, destination }) => {
+                      const moved = source.payload.items;
+                      setLeft((current) => current.filter((item) => !moved.includes(item)));
+                      setRight((current) => [
+                        ...current.slice(0, destination.index),
+                        ...moved,
+                        ...current.slice(destination.index),
+                      ]);
+                    }}
+                  >
+                    {value}
+                  </Listbox.ItemExternalDropTarget>
+                ))}
+              </Listbox.List>
+            </Listbox.Root>
+          </Listbox.SortableProvider>
+        </Draggable.Provider>
+      );
+    }
+    async function transfer() {
+      setItemRects();
+      const a = screen.getByRole('option', { name: 'a' });
+      const c = screen.getByRole('option', { name: 'c' });
+      await lift(a, { clientY: 25 });
+      await dragEnter(c, { clientY: 275 });
+      drop(c, { clientY: 275 });
+      const remounted = screen.getByRole('option', { name: 'a' });
+      expect(remounted).not.toBe(a);
+      return remounted;
+    }
+
+    it('settles the preview onto the row a cross-list drop remounts', async () => {
+      await render(<TransferFixture />);
+      expect(await transfer()).toHaveAttribute('data-settling');
+      await flushRaf();
+    });
+    it('uses an explicit draggableProps.previewKey instead of the item value', async () => {
+      // The keys differ between the lists, so the preview can't find the moved row.
+      await render(<TransferFixture previewKey={(list, value) => `${list}-${value}`} />);
+      expect(await transfer()).not.toHaveAttribute('data-settling');
+      await flushRaf();
+    });
   });
   it('restricts pointer pickup to SortHandle while keeping row keyboard sorting', async () => {
     const onItemsReorder = vi.fn();

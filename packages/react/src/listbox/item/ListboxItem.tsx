@@ -349,6 +349,7 @@ export function renderListboxItem(
     renderedItem = sortable.renderItem(
       element,
       dropItem.id,
+      dropItem.value,
       dropItem.disabled,
       draggableProps,
       external?.targetProps,
@@ -385,12 +386,12 @@ export interface ListboxItemState {
    */
   moving: boolean;
   /**
-   * Whether a dragged item is over this item.
+   * Whether the item is the current pointer sorting or external drop destination.
+   * True when `dropPosition` is `before` or `after`.
+   * Exposed as `data-drag-over`.
    */
   dragOver: boolean;
-  /**
-   * The drop position relative to this item, or `null` when the item is not being dragged over.
-   */
+  /** The current pointer sorting or external drop destination on this item. */
   dropPosition: 'before' | 'after' | null;
 }
 
@@ -425,4 +426,5 @@ export type ListboxItemDraggableProps = Omit<
 export namespace ListboxItem {
   export type State = ListboxItemState;
   export type Props = ListboxItemProps;
+  export type DraggableProps = ListboxItemDraggableProps;
 }

@@ -21,12 +21,12 @@ export enum ListboxItemDataAttributes {
   /** Present only on the item physically picked up. Managed by the drag engine. */
   dragging = 'data-dragging',
   /**
-   * Present when a dragged item is over the listbox item.
+   * Present on the item picked up after a pointer drop, until its drag preview's ending
+   * animation finishes. Managed by the drag engine.
    */
+  settling = 'data-settling',
+  /** Present when the item is the current pointer sorting or external drop destination. */
   dragOver = 'data-drag-over',
-  /**
-   * Indicates the drop position relative to the item.
-   * The value is `'before'` or `'after'`.
-   */
+  /** The sorting or external drop destination: before or after. */
   dropPosition = 'data-drop-position',
 }

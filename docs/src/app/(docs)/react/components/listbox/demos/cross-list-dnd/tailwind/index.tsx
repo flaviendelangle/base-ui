@@ -67,7 +67,7 @@ export default function ExampleListboxCrossListDnd() {
                         transfer(
                           eventDetails.source.payload.items,
                           queueIndex,
-                          eventDetails.listboxDestination.index,
+                          eventDetails.destination.index,
                         )
                       }
                       key={value}
