@@ -106,8 +106,7 @@
     "./internals/useRenderElement": "./src/internals/useRenderElement.tsx",
     "./internals/useValueChanged": "./src/internals/useValueChanged.ts",
     "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts",
-    "./listbox": "./src/listbox/index.ts",
-    "./internals/sorting": "./src/internals/sorting/index.ts"
+    "./listbox": "./src/listbox/index.ts"
   },
   "imports": {
     "#test-utils": "./test/index.ts",
