@@ -9,10 +9,12 @@ import {
   acceptsExternalDrop,
   getPayloadCollectionId,
   isSameDropPosition,
+  omitDragRecords,
 } from './SortableDropProvider';
-import type { ExternalDropTargetProps } from './SortableDropProvider';
+import type { ExternalDropTargetProps, OmitDragRecords } from './SortableDropProvider';
 
 type DropPosition = { id: string | number; placement: string; index?: number | undefined };
+type DropPositionChangeEventDetails = OmitDragRecords<Draggable.Root.TargetChangeEventDetails>;
 
 /** The collection store state shared by every external drop target of one collection. */
 export interface ExternalDropState<Position extends DropPosition> {
@@ -31,30 +33,47 @@ export function useExternalDrop<
   resolve: (context: Draggable.Target.ResolutionContext) => Context | null;
   onDraggableDrop?:
     ((eventDetails: Draggable.Target.DropEventDetails & Context) => void) | undefined;
-  onDropPositionChange?: ((position: Position | null) => void) | undefined;
+  onDropPositionChange?:
+    ((position: Position | null, eventDetails: DropPositionChangeEventDetails) => void) | undefined;
 }) {
   const { store } = parameters;
   const [owner] = React.useState(() => ({}));
   // The destination this target resolved, which can be another row.
   const position = useStore(store, selectOwnedPosition, owner) as Position | null;
+  // The position last reported to `onDropPositionChange`.
   const lastPosition = React.useRef<Position | null>(null);
-  const update = useStableCallback((next: Position | null) => {
-    if (isSameDropPosition(lastPosition.current, next)) {
-      return;
+  const setShownPosition = useStableCallback((next: Position | null) => {
+    const current = store.state.externalDropPosition;
+    if (next) {
+      if (current?.owner !== owner || !isSameDropPosition(current.position, next)) {
+        store.set('externalDropPosition', { position: next, owner });
+      }
+    } else if (current?.owner === owner) {
+      store.set('externalDropPosition', null);
     }
-    lastPosition.current = next;
-    if (next || store.state.externalDropPosition?.owner === owner) {
-      store.set('externalDropPosition', next ? { position: next, owner } : null);
-    }
-    parameters.onDropPositionChange?.(next);
   });
+  const update = useStableCallback(
+    (next: Position | null, eventDetails: DropPositionChangeEventDetails) => {
+      setShownPosition(next);
+      if (!isSameDropPosition(lastPosition.current, next)) {
+        lastPosition.current = next;
+        parameters.onDropPositionChange?.(next, eventDetails);
+      }
+    },
+  );
   // The engine validates the drop position before the source's terminal
   // callbacks, which can change the layout before the drop reaches this target,
   // so the drop uses that validated context instead of measuring again.
   const validated = React.useRef<{ input: unknown; context: Context | null } | null>(null);
-  const clear = useStableCallback(() => {
+  const clear = useStableCallback((eventDetails: DropPositionChangeEventDetails) => {
     validated.current = null;
-    update(null);
+    update(null, eventDetails);
+  });
+  // Unmounting or disabling a hovered target has no drag event to report. The engine
+  // sends the target a leave afterwards, which reports the cleared position.
+  const reset = useStableCallback(() => {
+    validated.current = null;
+    setShownPosition(null);
   });
   const isOwnCollection = (source: Draggable.Root.Record) =>
     getPayloadCollectionId(source.payload) === parameters.collectionId;
@@ -70,27 +89,22 @@ export function useExternalDrop<
   });
   // Shared by `onDraggableEnter` and `onDraggableMove`, whose details differ only in `reason`.
   const show = useStableCallback(
-    (
-      eventDetails: Pick<
-        Draggable.Target.MoveEventDetails,
-        'source' | 'target' | 'currentTarget' | 'location'
-      >,
-    ) => {
+    (eventDetails: Draggable.Target.EnterEventDetails | Draggable.Target.MoveEventDetails) => {
       const element = eventDetails.currentTarget.element;
       if (eventDetails.target.element !== element) {
-        clear();
+        clear(omitDragRecords(eventDetails));
         return;
       }
       const result = resolve(getResolutionContext(eventDetails));
-      update(result?.dropPosition ?? null);
+      update(result?.dropPosition ?? null, omitDragRecords(eventDetails));
     },
   );
-  useIsoLayoutEffect(() => clear, [clear]);
+  useIsoLayoutEffect(() => reset, [reset]);
   useIsoLayoutEffect(() => {
     if (parameters.disabled) {
-      clear();
+      reset();
     }
-  }, [parameters.disabled, clear]);
+  }, [parameters.disabled, reset]);
   const targetProps: ExternalDropTargetProps = {
     accept: parameters.accept ?? Draggable.anyKind,
     disabled: parameters.disabled,
@@ -105,14 +119,14 @@ export function useExternalDrop<
     },
     onDraggableEnter: show,
     onDraggableMove: show,
-    onDraggableLeave: clear,
+    onDraggableLeave: (eventDetails) => clear(omitDragRecords(eventDetails)),
     onDraggableDrop: (eventDetails) => {
       const { input } = eventDetails.location.current;
       const result =
         validated.current?.input === input
           ? validated.current.context
           : resolve(getResolutionContext(eventDetails));
-      clear();
+      clear(omitDragRecords(eventDetails));
       if (result) {
         parameters.onDraggableDrop?.({ ...eventDetails, ...result });
       }

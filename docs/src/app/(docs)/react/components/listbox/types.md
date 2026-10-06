@@ -435,8 +435,8 @@ Same-listbox drags remain owned by the sorting provider. Renders a `<div>` eleme
 | dropDisabled         | `boolean`                                                                                                                                               | `false` | Disables external drops without disabling selection or internal sorting.                                                                                                                      |
 | getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| Listbox.SortingDropPosition \| null)` | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                |
 | nativeButton         | `boolean`                                                                                                                                               | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
-| onDraggableDrop      | `((eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails<TPayload \| unknown, TItem>) => void)`                                                 | -       | Handles an accepted external drop. Does not automatically insert or remove items.&#xA;`eventDetails.destination` is where to insert the dropped content.                                      |
-| onDropPositionChange | `((position: Listbox.SortingDropPosition \| null) => void)`                                                                                             | -       | Called when external placement changes, including null when it clears.                                                                                                                        |
+| onDraggableDrop      | `((eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails<TPayload \| unknown, TItem>) => void)`                                                 | -       | Event handler called when an accepted external drag is dropped on the item.&#xA;Does not insert or remove items. `eventDetails.destination` is where to insert&#xA;the dropped content.       |
+| onDropPositionChange | `((position: Listbox.SortingDropPosition \| null, eventDetails: Listbox.SortableProvider.DropPositionChangeEventDetails) => void)`                      | -       | Event handler called when the placement of an incoming drag changes.&#xA;Receives null when the placement clears.                                                                             |
 | disabled             | `boolean`                                                                                                                                               | `false` | Whether the component should ignore user interaction.                                                                                                                                         |
 | children             | `React.ReactNode`                                                                                                                                       | -       | -                                                                                                                                                                                             |
 | className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                        | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
@@ -1032,11 +1032,18 @@ type ListboxItemExternalDropTargetOptions<
   getDropPosition?: (
     context: Listbox.ItemExternalDropTarget.PositionContext<TPayload | unknown, TItem>,
   ) => 'before' | 'after' | Listbox.SortingDropPosition | null;
-  /** Called when external placement changes, including null when it clears. */
-  onDropPositionChange?: (position: Listbox.SortingDropPosition | null) => void;
   /**
-   * Handles an accepted external drop. Does not automatically insert or remove items.
-   * `eventDetails.destination` is where to insert the dropped content.
+   * Event handler called when the placement of an incoming drag changes.
+   * Receives null when the placement clears.
+   */
+  onDropPositionChange?: (
+    position: Listbox.SortingDropPosition | null,
+    eventDetails: Listbox.SortableProvider.DropPositionChangeEventDetails,
+  ) => void;
+  /**
+   * Event handler called when an accepted external drag is dropped on the item.
+   * Does not insert or remove items. `eventDetails.destination` is where to insert
+   * the dropped content.
    */
   onDraggableDrop?: (
     eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails<TPayload | unknown, TItem>,

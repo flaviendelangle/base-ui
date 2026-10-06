@@ -179,24 +179,29 @@ describe('<Listbox.SortableProvider />', () => {
       ['a', 'b', 'c'],
     ]);
   });
-  it('reports drop position changes with the drag event details', async () => {
+  it('passes only the declared event details to onDropPositionChange and onSortEnd', async () => {
     const onDropPositionChange = vi.fn();
-    await render(<Fixture onDropPositionChange={onDropPositionChange} />);
+    const onSortEnd = vi.fn();
+    await render(<Fixture onDropPositionChange={onDropPositionChange} onSortEnd={onSortEnd} />);
     setItemRects();
     const d = screen.getByRole('option', { name: 'd' });
     await lift(screen.getByRole('option', { name: 'b' }), { clientY: 150 });
     await dragEnter(d, { clientY: 375 });
     await dragOver(d, { clientY: 375 });
-    expect(onDropPositionChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: expect.anything(), placement: 'after' }),
-      expect.objectContaining({ reason: 'pointer' }),
-    );
     drop(d, { clientY: 375 });
     await flushRaf();
-    expect(onDropPositionChange).toHaveBeenLastCalledWith(
-      null,
-      expect.objectContaining({ reason: 'drop' }),
-    );
+    const details = (reason: string) => ({
+      reason,
+      event: expect.any(Event),
+      location: expect.any(Object),
+    });
+    expect(onDropPositionChange.mock.calls).toEqual([
+      [{ id: expect.anything(), placement: 'after' }, details('pointer')],
+      [null, details('drop')],
+    ]);
+    expect(onSortEnd.mock.calls).toEqual([
+      [{ ...details('drop'), itemIds: expect.any(Array), canceled: false }],
+    ]);
   });
   it('reorders selected items only on drop by default', async () => {
     const onItemsReorder = vi.fn();

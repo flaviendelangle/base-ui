@@ -13,7 +13,10 @@ import { useListboxItemElement, renderListboxItem } from '../item/ListboxItem';
 import type { ListboxItemProps, ListboxItemState } from '../item/ListboxItem';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxSortingDestination } from '../sorting/useListboxSorting';
-import type { ListboxSortingDropPosition } from '../sortable-provider/ListboxSortableProvider';
+import type {
+  ListboxSortingDropPosition,
+  ListboxSortableProviderDropPositionChangeEventDetails,
+} from '../sortable-provider/ListboxSortableProvider';
 
 /**
  * A complete listbox item that also accepts drags from outside this listbox.
@@ -117,11 +120,20 @@ export interface ListboxItemExternalDropTargetOptions<
         context: ListboxItemExternalDropTargetPositionContext<AcceptedDragPayload<TAccept>, TItem>,
       ) => ListboxSortingDropPosition['placement'] | ListboxSortingDropPosition | null)
     | undefined;
-  /** Called when external placement changes, including null when it clears. */
-  onDropPositionChange?: ((position: ListboxSortingDropPosition | null) => void) | undefined;
   /**
-   * Handles an accepted external drop. Does not automatically insert or remove items.
-   * `eventDetails.destination` is where to insert the dropped content.
+   * Event handler called when the placement of an incoming drag changes.
+   * Receives null when the placement clears.
+   */
+  onDropPositionChange?:
+    | ((
+        position: ListboxSortingDropPosition | null,
+        eventDetails: ListboxSortableProviderDropPositionChangeEventDetails,
+      ) => void)
+    | undefined;
+  /**
+   * Event handler called when an accepted external drag is dropped on the item.
+   * Does not insert or remove items. `eventDetails.destination` is where to insert
+   * the dropped content.
    */
   onDraggableDrop?:
     | ((

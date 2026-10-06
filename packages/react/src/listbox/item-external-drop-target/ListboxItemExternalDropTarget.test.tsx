@@ -11,6 +11,12 @@ import { lift, dragEnter, drop, cancel, setupDragEngineTests, flushRaf } from '.
 setupDragEngineTests();
 const kind = Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('files');
 const otherKind = Draggable.createKind<string>('text');
+
+// The exact keys: the drag records of the underlying target events stay internal.
+function positionChangeDetails(reason: string) {
+  return { reason, event: expect.any(Event), location: expect.any(Object) };
+}
+
 function setRects() {
   screen.getAllByRole('option').forEach((row, index) => {
     row.getBoundingClientRect = () => new DOMRect(index * 100, index * 100, 100, 100);
@@ -26,30 +32,34 @@ function Fixture({
   onDropPositionChange,
   sortingDisabled = false,
   horizontal = false,
+  hiddenItems,
 }: Partial<Listbox.ItemExternalDropTarget.Props<typeof kind, string>> & {
   sortable?: boolean;
   sortingDisabled?: boolean;
   horizontal?: boolean;
+  hiddenItems?: string[];
 }) {
   const [items, setItems] = React.useState(['a', 'b', 'c']);
   const content = (
     <Listbox.List>
-      {items.map((item) => (
-        <Listbox.ItemExternalDropTarget
-          key={item}
-          value={item}
-          accept={kind}
-          onDrop={onDrop}
-          onDraggableDrop={onDraggableDrop}
-          canDrop={canDrop}
-          getDropPosition={getDropPosition}
-          dropDisabled={dropDisabled}
-          onDropPositionChange={onDropPositionChange}
-        >
-          <Listbox.ItemText>{item}</Listbox.ItemText>
-          <Listbox.ItemIndicator />
-        </Listbox.ItemExternalDropTarget>
-      ))}
+      {items
+        .filter((item) => !hiddenItems?.includes(item))
+        .map((item) => (
+          <Listbox.ItemExternalDropTarget
+            key={item}
+            value={item}
+            accept={kind}
+            onDrop={onDrop}
+            onDraggableDrop={onDraggableDrop}
+            canDrop={canDrop}
+            getDropPosition={getDropPosition}
+            dropDisabled={dropDisabled}
+            onDropPositionChange={onDropPositionChange}
+          >
+            <Listbox.ItemText>{item}</Listbox.ItemText>
+            <Listbox.ItemIndicator />
+          </Listbox.ItemExternalDropTarget>
+        ))}
     </Listbox.List>
   );
   const listbox = (
@@ -135,7 +145,10 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
         destination: { groupId: null, index: 2 },
       });
       expect(target).not.toHaveAttribute('data-drag-over');
-      expect(changes).toHaveBeenLastCalledWith(null);
+      expect(changes.mock.calls).toEqual([
+        [{ id: expect.anything(), placement: 'after' }, positionChangeDetails('pointer')],
+        [null, positionChangeDetails('drop')],
+      ]);
     },
   );
   it('routes same-list drags only to sorting', async () => {
@@ -426,6 +439,29 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     await flushRaf();
     expect(onDraggableDrop).toHaveBeenCalledTimes(1);
   });
+
+  it.each(['disabled', 'removed'] as const)(
+    'reports the cleared position with drag event details when the hovered option is %s',
+    async (change) => {
+      const changes = vi.fn();
+      const { setProps } = await render(<Fixture onDropPositionChange={changes} />);
+      setRects();
+      const target = screen.getByRole('option', { name: 'a' });
+      await lift(screen.getByTestId('source'));
+      await dragEnter(target, { clientY: 25 });
+      if (change === 'disabled') {
+        await setProps({ dropDisabled: true });
+      } else {
+        await setProps({ hiddenItems: ['a'] });
+      }
+      expect(changes.mock.calls).toEqual([
+        [{ id: expect.anything(), placement: 'before' }, positionChangeDetails('pointer')],
+        [null, positionChangeDetails('pointer')],
+      ]);
+      cancel();
+      await flushRaf();
+    },
+  );
 
   // The engine validates the drop before the source's terminal callbacks run.
   it('drops at the destination validated before the source end updates the app state', async () => {

@@ -10,6 +10,7 @@ import {
   SortableDropTarget,
   getPayloadCollectionId,
   isSameDropPosition,
+  omitDragRecords,
 } from '../../internals/sorting/SortableDropProvider';
 import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDropProvider';
 import { Draggable } from '../../draggable';
@@ -526,7 +527,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
               return;
             }
             lastEvent.current = eventDetails.event;
-            const sortEndDetails = omitDragRecords(eventDetails);
+            const { canceled: dragCanceled, ...sortEndDetails } = omitDragRecords(eventDetails);
             if (externalCompletion.current) {
               setPosition(null, sortEndDetails);
               store.set('dragActiveItemIds', null);
@@ -554,7 +555,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
             let changed = transaction.hasMoved;
             let focusOrder = sorting.getOrderedItems();
             let canceled =
-              eventDetails.canceled ||
+              dragCanceled ||
               !transaction.hasExpectedOrder(matchesOrder) ||
               (!next && !canKeepLiveMove);
             if (!canceled && next) {
@@ -634,20 +635,6 @@ function ListboxSortableRowPayload<Value>(props: {
     [id, collectionId],
   );
   return children(payload);
-}
-
-/**
- * Leaves out the drag records of the internal collision events, which `onDropPositionChange`
- * and `onSortEnd` don't expose: `target` and `previousTarget` are rows, not the dragged items.
- */
-function omitDragRecords<
-  Details extends { source: unknown; target: unknown; previousTarget: unknown },
->(eventDetails: Details) {
-  const { source, target, previousTarget, ...details } = eventDetails;
-  // Distribute over the reasons so each keeps its own event type.
-  return details as Details extends unknown
-    ? Omit<Details, 'source' | 'target' | 'previousTarget'>
-    : never;
 }
 
 function getPreviewKey(value: unknown) {

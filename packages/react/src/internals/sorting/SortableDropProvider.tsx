@@ -149,6 +149,23 @@ export function SortableDropTarget(props: {
   return renderTarget(props.element, props.payload, props.external, props.snap);
 }
 
+type DragRecordKey = 'source' | 'target' | 'previousTarget' | 'currentTarget';
+
+/** Drag event details without their drag records, keeping each reason's own event type. */
+export type OmitDragRecords<Details> = Details extends unknown
+  ? Omit<Details, DragRecordKey>
+  : never;
+
+/**
+ * Leaves out the drag records of the engine's events, which the collection's own events
+ * don't expose: their targets are rows, not the dragged items.
+ */
+export function omitDragRecords<Details extends object>(eventDetails: Details) {
+  const { source, target, previousTarget, currentTarget, ...details } = eventDetails as Details &
+    Partial<Record<DragRecordKey, unknown>>;
+  return details as OmitDragRecords<Details>;
+}
+
 /** Returns the collection that owns a sortable drag or row payload. */
 export function getPayloadCollectionId(payload: unknown): unknown {
   return payload && typeof payload === 'object' && 'collectionId' in payload
