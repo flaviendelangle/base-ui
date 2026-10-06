@@ -75,26 +75,26 @@ Sorting a selected item moves the selected items together in list order. Disable
 
 Use `isItemSortingDisabled` on either provider to exclude an item from sorting while keeping it selectable and available as a destination.
 
-import { DemoListboxSortingKeyboard } from './demos/sorting-keyboard';
+import { DemoListboxKeyboardSorting } from './demos/keyboard-sorting';
 
-<DemoListboxSortingKeyboard />
+<DemoListboxKeyboardSorting />
 
 ### Pointer sorting
 
 Use `Listbox.SortableProvider` to add pointer sorting alongside the same keyboard shortcuts. By default, items move when dropped.
 The whole row can start a drag. Add `Listbox.SortHandle` inside a row to limit pointer pickup to the handle.
 
-import { DemoListboxDragAndDrop } from './demos/drag-and-drop';
+import { DemoListboxSorting } from './demos/sorting';
 import { DemoListboxDragWithinGroups } from './demos/drag-within-groups';
-import { DemoListboxLiveReorderDnd } from './demos/live-reorder-dnd';
+import { DemoListboxLiveSorting } from './demos/live-sorting';
 
-<DemoListboxDragAndDrop />
+<DemoListboxSorting />
 
 ### Live sorting
 
 Set `reorderOn="move"` to update the order while dragging. Render each proposed order from `onItemsReorder`. Canceling the drag or dropping outside the list restores the original order. Items added during the drag stay in their current group and slot within that group. If that slot no longer exists after restoration, the item goes at the end. Item edits are kept, and deleted items are not restored.
 
-<DemoListboxLiveReorderDnd />
+<DemoListboxLiveSorting />
 
 ### Sorting within groups
 
