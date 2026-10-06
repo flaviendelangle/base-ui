@@ -398,21 +398,32 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       }
       return;
     }
-    const previous = event.key === previousKey;
-    const destinationItem =
-      ordered[previous ? moving[0].index - 1 : moving[moving.length - 1].index + 1];
-    if (
-      !destinationItem ||
-      destinationItem.disabled ||
-      !move(
-        ids,
-        { index: destinationItem.index + (previous ? 0 : 1), groupId: destinationItem.groupId },
-        event.nativeEvent,
-        id,
-        REASONS.keyboard,
-        arrow,
-      )
-    ) {
+    // A pointer can drop before or after an enabled item, so the keyboard
+    // reaches the same slots: it jumps over disabled items in one step.
+    let destination: ListboxSortingDestination | null = null;
+    if (event.key === previousKey) {
+      for (let index = moving[0].index - 1; index >= 0 && !destination; index -= 1) {
+        const item = ordered[index];
+        const before = ordered[index - 1];
+        if (!item.disabled) {
+          destination = { index: item.index, groupId: item.groupId };
+        } else if (before && !before.disabled) {
+          destination = { index: before.index + 1, groupId: before.groupId };
+        }
+      }
+    } else {
+      const last = moving[moving.length - 1].index;
+      for (let index = last + 1; index < ordered.length && !destination; index += 1) {
+        const item = ordered[index];
+        const after = ordered[index + 1];
+        if (!item.disabled) {
+          destination = { index: item.index + 1, groupId: item.groupId };
+        } else if (after && !after.disabled) {
+          destination = { index: after.index, groupId: after.groupId };
+        }
+      }
+    }
+    if (!destination || !move(ids, destination, event.nativeEvent, id, REASONS.keyboard, arrow)) {
       announceBlocked(moving);
     }
   });

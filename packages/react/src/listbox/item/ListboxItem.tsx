@@ -256,14 +256,9 @@ export function useListboxItemElement(
     store.set('activeIndex', resolvedIndex);
   }
 
-  const sortKeys =
-    store.state.orientation === 'horizontal'
-      ? 'Alt+ArrowLeft Alt+ArrowRight'
-      : 'Alt+ArrowUp Alt+ArrowDown';
   const defaultProps: HTMLProps = {
     role: 'option',
     'aria-selected': selected,
-    'aria-keyshortcuts': sortingEnabled ? sortKeys : undefined,
     tabIndex: highlighted ? 0 : -1,
     onFocus() {
       store.set('activeIndex', index);

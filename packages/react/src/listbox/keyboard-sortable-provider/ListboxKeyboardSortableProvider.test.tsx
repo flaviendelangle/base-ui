@@ -179,11 +179,11 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         expected: "Can't move d further down.",
       },
       {
-        name: 'a disabled neighbor',
-        value: 'd',
+        name: 'an item with only disabled items above',
+        value: 'b',
         key: 'ArrowUp',
-        disabled: 'c',
-        expected: "Can't move d further up.",
+        disabled: 'a',
+        expected: "Can't move b further up.",
       },
       {
         name: 'an item whose sorting is disabled',
@@ -215,6 +215,33 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         await keyDown(screen.getByRole('option', { name: value }), { key, altKey: true });
         expect(onItemsReorder).not.toHaveBeenCalled();
         expect(screen.getByRole('status').textContent).toBe(expected);
+      },
+    );
+    it.each([
+      { value: 'd', key: 'ArrowUp', disabled: 'c', expected: ['a', 'b', 'd', 'c'] },
+      { value: 'a', key: 'ArrowDown', disabled: 'b', expected: ['b', 'a', 'c', 'd'] },
+    ])(
+      'jumps over a disabled neighbor in one step with $key',
+      async ({ value, key, disabled, expected }) => {
+        const onItemsReorder = vi.fn();
+        await render(
+          <Provider onItemsReorder={onItemsReorder}>
+            <Listbox.Root>
+              <Listbox.List>
+                {['a', 'b', 'c', 'd'].map((item) => (
+                  <Listbox.Item key={item} value={item} disabled={item === disabled}>
+                    {item}
+                  </Listbox.Item>
+                ))}
+              </Listbox.List>
+            </Listbox.Root>
+          </Provider>,
+        );
+        await keyDown(screen.getByRole('option', { name: value }), { key, altKey: true });
+        expect(onItemsReorder).toHaveBeenCalledWith(
+          expected,
+          expect.objectContaining({ reason: 'keyboard' }),
+        );
       },
     );
     it('announces a repeated message again', async () => {
@@ -269,8 +296,6 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
           onItemsReorder={onItemsReorder}
         />,
       );
-      expect(screen.getByRole('option', { name: 'a' })).not.toHaveAttribute('aria-keyshortcuts');
-      expect(screen.getByRole('option', { name: 'b' })).toHaveAttribute('aria-keyshortcuts');
       await keyDown(screen.getByRole('option', { name: 'b' }), {
         key: 'ArrowDown',
         altKey: true,
