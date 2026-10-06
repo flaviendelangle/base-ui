@@ -46,11 +46,26 @@ export type ListboxItemsReorderEventDetails<Value = any> = Omit<
 export interface ListboxSortingAnnouncementParameters<Value = any> {
   /** Moved items with their current values and positions. */
   items: ListboxSortingItem<Value>[];
-  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  /**
+   * Resulting position of the first moved item, or null if none remain or nothing moved.
+   * The index is relative to the whole list after the operation.
+   */
   destination: ListboxSortingDestination | null;
   reason: 'keyboard' | 'drag';
-  outcome: 'moved' | 'unchanged' | 'canceled';
+  /**
+   * - `'moved'`, `'unchanged'`, `'canceled'`: how a completed move or a pointer sort ended.
+   * - `'blocked'`: a keyboard move can't go in `direction`.
+   */
+  outcome: 'moved' | 'unchanged' | 'canceled' | 'blocked';
+  /** The arrow key direction of a keyboard move, or `null` for pointer sorting. */
+  direction: 'up' | 'down' | 'left' | 'right' | null;
 }
+
+type ListboxSortingDirection = NonNullable<ListboxSortingAnnouncementParameters['direction']>;
+
+// Word Joiner is invisible and zero-width, so toggling it changes the region's text
+// without changing what is read.
+const REPEAT_MARKER = '\u2060';
 
 export interface ListboxSortingParameters<Value = any> {
   /** Disables keyboard and pointer sorting. @default false */
@@ -64,9 +79,12 @@ export interface ListboxSortingParameters<Value = any> {
   canMoveItems?: ((move: ListboxSortingMove<Value>) => boolean) | undefined;
   /** Disables sorting for an item without disabling selection. */
   isItemSortingDisabled?: ((item: ListboxSortingItem<Value>) => boolean) | undefined;
-  /** Customizes polite announcements for completed keyboard moves and final pointer outcomes. */
+  /**
+   * Customizes polite announcements for keyboard moves and final pointer outcomes.
+   * Return `undefined` to use the default text.
+   */
   getAnnouncement?:
-    ((parameters: ListboxSortingAnnouncementParameters<Value>) => string) | undefined;
+    ((parameters: ListboxSortingAnnouncementParameters<Value>) => string | undefined) | undefined;
 }
 
 export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>) {
@@ -83,6 +101,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     parameters: ListboxSortingMove<Value> | null;
     outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
     reason: 'keyboard' | 'drag';
+    direction: ListboxSortingDirection | null;
   } | null>(null);
   const records = useRefWithInit(
     () =>
@@ -146,6 +165,25 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     pending.current = null;
     setAnnouncement('');
   });
+  const getLabel = useStableCallback((items: ListboxSortingItemRecord<Value>[]) =>
+    items
+      .map(
+        (item) =>
+          store.state.itemToStringLabel?.(item.value) ??
+          records.get(item.id)?.element.textContent ??
+          String(item.value),
+      )
+      .join(', '),
+  );
+  const announce = useStableCallback(
+    (parameters: ListboxSortingAnnouncementParameters<Value>, fallback: string) => {
+      const text = props.getAnnouncement?.(parameters) ?? fallback;
+      // Toggled so that the live region changes, and announces a repeated message again.
+      setAnnouncement((previous) =>
+        text !== '' && previous === text ? `${text}${REPEAT_MARKER}` : text,
+      );
+    },
+  );
   const reconcile = useStableCallback(() => {
     if (disabled) {
       pending.current = null;
@@ -184,26 +222,20 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       const first = moved[0];
       const destination = first ? { index: first.index, groupId: first.groupId } : null;
       const outcome = proposal.outcome ?? 'moved';
-      const label = moved
-        .map(
-          (item) =>
-            store.state.itemToStringLabel?.(item.value) ??
-            records.get(item.id)?.element.textContent ??
-            String(item.value),
-        )
-        .join(', ');
       const fallback = {
         canceled: 'Sorting canceled.',
         unchanged: 'Order unchanged.',
-        moved: `Moved ${label} to position ${(first?.index ?? index) + 1} of ${items.length}.`,
+        moved: `Moved ${getLabel(moved)} to position ${(first?.index ?? index) + 1} of ${items.length}.`,
       }[outcome];
-      setAnnouncement(
-        props.getAnnouncement?.({
+      announce(
+        {
           items: moved.map(toSortingItem),
           destination,
           reason: proposal.reason,
           outcome,
-        }) ?? fallback,
+          direction: proposal.direction,
+        },
+        fallback,
       );
     }
   });
@@ -238,6 +270,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       event: Event,
       sourceId = ids[0],
       reason: typeof REASONS.drag | typeof REASONS.keyboard = REASONS.drag,
+      direction: ListboxSortingDirection | null = null,
       propose?: (
         current: ListboxSortingItemRecord<Value>[],
         next: ListboxSortingItemRecord<Value>[],
@@ -267,6 +300,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
             sourceValue: current.find((item) => item.id === sourceId)!.value,
             parameters,
             reason: 'keyboard',
+            direction,
           }
         : null;
       const notify = () => notifyOrder(next, parameters, event, reason);
@@ -287,7 +321,14 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       parameters: ListboxSortingMove<Value>,
       outcome: 'moved' | 'unchanged' | 'canceled',
     ) => {
-      pending.current = { order, sourceValue, parameters, outcome, reason: 'drag' };
+      pending.current = {
+        order,
+        sourceValue,
+        parameters,
+        outcome,
+        reason: 'drag',
+        direction: null,
+      };
       frame.request(reconcile);
     },
   );
@@ -338,20 +379,41 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     const ids = getItemIds(id);
     const ordered = getOrderedItems();
     const moving = ordered.filter((item) => ids.includes(item.id));
+    const arrow = event.key.slice('Arrow'.length).toLowerCase() as ListboxSortingDirection;
+    const announceBlocked = (items: ListboxSortingItemRecord<Value>[]) =>
+      announce(
+        {
+          items: items.map(toSortingItem),
+          destination: null,
+          reason: 'keyboard',
+          outcome: 'blocked',
+          direction: arrow,
+        },
+        `Can't move ${getLabel(items)} further ${arrow}.`,
+      );
     if (!moving.length) {
+      const source = ordered.find((item) => item.id === id);
+      if (source) {
+        announceBlocked([source]);
+      }
       return;
     }
     const previous = event.key === previousKey;
     const destinationItem =
       ordered[previous ? moving[0].index - 1 : moving[moving.length - 1].index + 1];
-    if (destinationItem && !destinationItem.disabled) {
-      move(
+    if (
+      !destinationItem ||
+      destinationItem.disabled ||
+      !move(
         ids,
         { index: destinationItem.index + (previous ? 0 : 1), groupId: destinationItem.groupId },
         event.nativeEvent,
         id,
         REASONS.keyboard,
-      );
+        arrow,
+      )
+    ) {
+      announceBlocked(moving);
     }
   });
   return React.useMemo(

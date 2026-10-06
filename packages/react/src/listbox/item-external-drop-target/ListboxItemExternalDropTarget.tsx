@@ -20,7 +20,9 @@ import type {
 
 /**
  * A complete listbox item that also accepts drags from outside this listbox.
- * Same-listbox drags remain owned by the sorting provider. Renders a `<div>` element.
+ * Same-listbox drags remain owned by the sorting provider.
+ * External drops are pointer-only for now; keyboard support is a work in progress.
+ * Renders a `<div>` element.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */

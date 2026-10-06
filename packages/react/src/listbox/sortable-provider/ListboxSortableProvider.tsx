@@ -511,6 +511,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
                   eventDetails.event,
                   undefined,
                   REASONS.drag,
+                  null,
                   (current, order, notify) => transaction.propose(current, order, notify),
                 );
                 if (result?.changed) {

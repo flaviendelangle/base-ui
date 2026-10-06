@@ -69,7 +69,15 @@ import { DemoListboxLazyLoading } from './demos/lazy-loading';
 Wrap `Listbox.Root` in `Listbox.KeyboardSortableProvider` to enable keyboard sorting. Pass `onItemsReorder` and render the values in the proposed order.
 Focus an item and press <kbd>Alt</kbd> + <kbd>ArrowUp</kbd> or <kbd>Alt</kbd> + <kbd>ArrowDown</kbd> to move it. Horizontal lists use <kbd>Alt</kbd> + <kbd>ArrowLeft</kbd> and <kbd>Alt</kbd> + <kbd>ArrowRight</kbd>, respecting the text direction.
 
-Completed keyboard moves and final pointer outcomes are announced politely. Live pointer sorting does not announce intermediate positions. Use `getAnnouncement` on either provider to customize the text. It receives `items` with their current values and positions, `destination`, `reason` (`'keyboard'` or `'drag'`), and `outcome` (`'moved'`, `'unchanged'`, or `'canceled'`). The destination describes the first moved item's resulting group and flat list index after the operation, or is `null` if no moved items remain. Return an empty string to suppress a message.
+Keyboard moves, including the ones that can't happen, and final pointer outcomes are announced politely. Live pointer sorting does not announce intermediate positions. Use `getAnnouncement` on either provider to customize the text. It receives:
+
+- `items`, with their current values and positions.
+- `destination`, the first moved item's resulting group and flat list index after the operation, or `null` if no moved items remain or nothing moved.
+- `reason`: `'keyboard'` or `'drag'`.
+- `outcome`: `'moved'`, `'unchanged'`, or `'canceled'` for a completed operation, or `'blocked'` when a keyboard move can't go in its direction.
+- `direction`, the arrow key direction of a keyboard move: `'up'`, `'down'`, `'left'`, or `'right'`. It is `null` for pointer sorting.
+
+Return `undefined` to use the default text, or an empty string to suppress a message.
 
 Sorting a selected item moves the selected items together in list order. Disabled items stay in place. Selection continues to work with <kbd>Enter</kbd> and <kbd>Space</kbd>.
 
@@ -173,7 +181,7 @@ To accept incoming drags on individual options, use `Listbox.ItemExternalDropTar
 </Listbox.ItemExternalDropTarget>
 ```
 
-Same-list drags remain owned by sorting, even when sorting rejects the move. External drags use the explicit target behavior. Each option has one drop-target registration. Set `dropDisabled` to disable external acceptance without disabling selection or sorting.
+Same-list drags remain owned by sorting, even when sorting rejects the move. External drags use the explicit target behavior. Each option has one drop-target registration. Set `dropDisabled` to disable external acceptance without disabling selection or sorting. External drops are pointer-only for now; keyboard support is a work in progress.
 
 The default placement is before or after the option, respecting horizontal orientation and text direction. `getDropPosition` can override placement; returning `null` rejects the drop. `canDrop` validates the resolved destination; returning `false` rejects the drop, including ancestor targets. Unmatched kinds can fall through to an ancestor target.
 

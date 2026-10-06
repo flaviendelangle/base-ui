@@ -287,6 +287,7 @@ describe('<Listbox.SortableProvider />', () => {
         destination: { groupId: null, index: outcome === 'moved' ? 2 : 0 },
         reason: 'drag',
         outcome,
+        direction: null,
       });
       expect(screen.getByRole('status')).toHaveTextContent(`Result: ${outcome}`);
     },

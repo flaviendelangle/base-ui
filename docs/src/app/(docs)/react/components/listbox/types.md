@@ -421,7 +421,9 @@ type ListboxItemIndicatorState = {
 ### ItemExternalDropTarget
 
 A complete listbox item that also accepts drags from outside this listbox.
-Same-listbox drags remain owned by the sorting provider. Renders a `<div>` element.
+Same-listbox drags remain owned by the sorting provider.
+External drops are pointer-only for now; keyboard support is a work in progress.
+Renders a `<div>` element.
 
 **ItemExternalDropTarget Props:**
 
@@ -591,14 +593,14 @@ Renders a visually hidden announcement region inside the listbox.
 
 **KeyboardSortableProvider Props:**
 
-| Prop                  | Type                                                                                | Default | Description                                                                                                                                   |
-| :-------------------- | :---------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
-| canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                   | -       | Applies the same movement rules to keyboard and pointer sorting.                                                                              |
-| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string)`            | -       | Customizes polite announcements for completed keyboard moves and final pointer outcomes.                                                      |
-| isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                   | -       | Disables sorting for an item without disabling selection.                                                                                     |
-| onItemsReorder\*      | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)` | -       | Event handler called when sorting proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move. |
-| disabled              | `boolean`                                                                           | `false` | Disables keyboard and pointer sorting.                                                                                                        |
-| children              | `React.ReactNode`                                                                   | -       | -                                                                                                                                             |
+| Prop                  | Type                                                                                  | Default | Description                                                                                                                                   |
+| :-------------------- | :------------------------------------------------------------------------------------ | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                     | -       | Applies the same movement rules to keyboard and pointer sorting.                                                                              |
+| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string \| undefined)` | -       | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                |
+| isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                     | -       | Disables sorting for an item without disabling selection.                                                                                     |
+| onItemsReorder\*      | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`   | -       | Event handler called when sorting proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move. |
+| disabled              | `boolean`                                                                             | `false` | Disables keyboard and pointer sorting.                                                                                                        |
+| children              | `React.ReactNode`                                                                     | -       | -                                                                                                                                             |
 
 ### KeyboardSortableProvider.Props
 
@@ -644,7 +646,7 @@ Renders a visually hidden announcement region inside the listbox.
 | Prop                  | Type                                                                                                                               | Default  | Description                                                                                                                                                                                                                                |
 | :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                                                                  | -        | Applies the same movement rules to keyboard and pointer sorting.                                                                                                                                                                           |
-| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string)`                                                           | -        | Customizes polite announcements for completed keyboard moves and final pointer outcomes.                                                                                                                                                   |
+| getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string \| undefined)`                                              | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                                             |
 | getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                                         | -        | Returns application data stored in the drag payload's `data` field.                                                                                                                                                                        |
 | getDropPosition       | `((context: Listbox.SortableProvider.DropContext<Value>) => 'before' \| 'after' \| Listbox.SortingDropPosition \| null)`           | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                                            |
 | isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                                                                  | -        | Disables sorting for an item without disabling selection.                                                                                                                                                                                  |
@@ -898,10 +900,19 @@ type ListboxItemsReorderEventDetails<Value = any> = {
 type ListboxSortingAnnouncementParameters<Value = any> = {
   /** Moved items with their current values and positions. */
   items: Listbox.SortingItem<Value>[];
-  /** Resulting position of the first moved item, or null if none remain. The index is relative to the whole list after the operation. */
+  /**
+   * Resulting position of the first moved item, or null if none remain or nothing moved.
+   * The index is relative to the whole list after the operation.
+   */
   destination: ListboxSortingDestination | null;
   reason: 'keyboard' | 'drag';
-  outcome: 'moved' | 'unchanged' | 'canceled';
+  /**
+   * - `'moved'`, `'unchanged'`, `'canceled'`: how a completed move or a pointer sort ended.
+   * - `'blocked'`: a keyboard move can't go in `direction`.
+   */
+  outcome: 'moved' | 'unchanged' | 'canceled' | 'blocked';
+  /** The arrow key direction of a keyboard move, or `null` for pointer sorting. */
+  direction: 'up' | 'down' | 'left' | 'right' | null;
 };
 ```
 

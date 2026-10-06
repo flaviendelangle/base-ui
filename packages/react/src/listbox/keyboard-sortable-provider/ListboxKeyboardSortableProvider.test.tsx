@@ -135,6 +135,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
           destination: { groupId: null, index: 1 },
           reason: 'keyboard',
           outcome: 'moved',
+          direction: 'down',
         }),
       );
       expect(screen.getByRole('status')).toHaveTextContent('Custom move announcement');
@@ -153,9 +154,9 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         destination: { index: 3, groupId: null },
       });
       expect(onItemsReorder).not.toHaveBeenCalled();
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(screen.getByRole('status').textContent).toBe("Can't move a, b further down.");
     });
-    it('allows the consumer to cancel a proposed move', async () => {
+    it('announces a move the consumer cancels', async () => {
       await render(<Fixture onItemsReorder={(_, details) => details.cancel()} />);
       await keyDown(screen.getByRole('option', { name: 'a' }), {
         key: 'ArrowDown',
@@ -167,7 +168,79 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         'c',
         'd',
       ]);
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(screen.getByRole('status').textContent).toBe("Can't move a, b further down.");
+    });
+    it.each([
+      { name: 'the first item', value: 'a', key: 'ArrowUp', expected: "Can't move a further up." },
+      {
+        name: 'the last item',
+        value: 'd',
+        key: 'ArrowDown',
+        expected: "Can't move d further down.",
+      },
+      {
+        name: 'a disabled neighbor',
+        value: 'd',
+        key: 'ArrowUp',
+        disabled: 'c',
+        expected: "Can't move d further up.",
+      },
+      {
+        name: 'an item whose sorting is disabled',
+        value: 'c',
+        key: 'ArrowUp',
+        sortingDisabled: 'c',
+        expected: "Can't move c further up.",
+      },
+    ])(
+      'announces a blocked move from $name',
+      async ({ value, key, disabled, sortingDisabled, expected }) => {
+        const onItemsReorder = vi.fn();
+        await render(
+          <Provider
+            onItemsReorder={onItemsReorder}
+            isItemSortingDisabled={(item) => item.value === sortingDisabled}
+          >
+            <Listbox.Root>
+              <Listbox.List>
+                {['a', 'b', 'c', 'd'].map((item) => (
+                  <Listbox.Item key={item} value={item} disabled={item === disabled}>
+                    {item}
+                  </Listbox.Item>
+                ))}
+              </Listbox.List>
+            </Listbox.Root>
+          </Provider>,
+        );
+        await keyDown(screen.getByRole('option', { name: value }), { key, altKey: true });
+        expect(onItemsReorder).not.toHaveBeenCalled();
+        expect(screen.getByRole('status').textContent).toBe(expected);
+      },
+    );
+    it('announces a repeated message again', async () => {
+      await render(<Fixture />);
+      const d = screen.getByRole('option', { name: 'd' });
+      await keyDown(d, { key: 'ArrowDown', altKey: true });
+      expect(screen.getByRole('status').textContent).toBe("Can't move d further down.");
+      await keyDown(d, { key: 'ArrowDown', altKey: true });
+      expect(screen.getByRole('status').textContent).toBe("Can't move d further down.\u2060");
+      await keyDown(d, { key: 'ArrowDown', altKey: true });
+      expect(screen.getByRole('status').textContent).toBe("Can't move d further down.");
+    });
+    it('passes blocked keyboard moves to getAnnouncement', async () => {
+      const getAnnouncement = vi.fn<
+        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['getAnnouncement']>
+      >(() => undefined);
+      await render(<Fixture getAnnouncement={getAnnouncement} />);
+      await keyDown(screen.getByRole('option', { name: 'd' }), { key: 'ArrowDown', altKey: true });
+      expect(getAnnouncement).toHaveBeenCalledExactlyOnceWith({
+        items: [expect.objectContaining({ value: 'd', index: 3 })],
+        destination: null,
+        reason: 'keyboard',
+        outcome: 'blocked',
+        direction: 'down',
+      });
+      expect(screen.getByRole('status').textContent).toBe("Can't move d further down.");
     });
     it('does not announce or change focus when controlled order is rejected', async () => {
       const onItemsReorder = vi.fn();
@@ -238,6 +311,11 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
         ['b', 'a'],
         expect.objectContaining({ reason: 'keyboard' }),
       );
+      await keyDown(screen.getByRole('option', { name: 'a' }), {
+        key: 'ArrowRight',
+        altKey: true,
+      });
+      expect(screen.getByRole('status').textContent).toBe("Can't move a further right.");
     });
     it('does not sort an outer list from a nested list', async () => {
       const onItemsReorder = vi.fn();
@@ -290,6 +368,44 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
       await waitFor(() => expect(screen.getByRole('option', { name: 'a' })).toHaveFocus());
       expect(screen.getByRole('option', { name: 'a' })).not.toBe(original);
       expect(screen.getByRole('status')).toHaveTextContent('Moved a to position 2 of 3.');
+    });
+    it('ends a pending move cleanly when the application removes the moved item', async () => {
+      const proposals: string[][] = [];
+      let updateItems: React.Dispatch<React.SetStateAction<string[]>>;
+      function Items() {
+        const [items, setItems] = React.useState(['a', 'b', 'c']);
+        updateItems = setItems;
+        return (
+          <Listbox.List>
+            {items.map((value) => (
+              <Listbox.Item key={value} value={value}>
+                {value}
+              </Listbox.Item>
+            ))}
+          </Listbox.List>
+        );
+      }
+      await render(
+        <Provider onItemsReorder={(items) => proposals.push(items)}>
+          <Listbox.Root>
+            <Items />
+          </Listbox.Root>
+        </Provider>,
+      );
+      await keyDown(screen.getByRole('option', { name: 'a' }), { key: 'ArrowDown', altKey: true });
+      await act(async () => updateItems(['b', 'c']));
+      await flushRaf();
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+
+      // Keyboard sorting keeps working on the remaining items.
+      const c = screen.getByRole('option', { name: 'c' });
+      await keyDown(c, { key: 'ArrowUp', altKey: true });
+      expect(proposals.at(-1)).toEqual(['c', 'b']);
+      await act(async () => updateItems(proposals.at(-1)!));
+      await waitFor(() =>
+        expect(screen.getByRole('status')).toHaveTextContent('Moved c to position 1 of 2.'),
+      );
+      expect(screen.getByRole('option', { name: 'c' })).toHaveFocus();
     });
     it('reconciles a delayed update confined to a child of the provider', async () => {
       let applyOrder: (() => void) | undefined;
