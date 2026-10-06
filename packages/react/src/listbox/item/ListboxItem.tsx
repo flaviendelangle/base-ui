@@ -5,9 +5,7 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useValueAsRef } from '@base-ui/utils/useValueAsRef';
 import { isMouseWithinBounds } from '@base-ui/utils/isMouseWithinBounds';
 import { useTimeout } from '@base-ui/utils/useTimeout';
-import { useExternalDropPosition } from '../../internals/sorting/externalDropPosition';
 import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDropProvider';
-import type { ListboxSortingDropPosition } from '../sortable-provider/ListboxSortableProvider';
 import { useListboxDropItem } from '../sorting/useListboxDropItem';
 import type { Draggable } from '../../draggable';
 import type {
@@ -135,7 +133,7 @@ export function useListboxItemElement(
     groupId,
   });
   const moving = store.useState('isMoving', dragItemId);
-  const sortingPosition = store.useState('dropPositionForItem', dragItemId);
+  const dropPosition = store.useState('dropPositionForItem', dragItemId);
   const dropItem = {
     id: dragItemId,
     value: itemValue,
@@ -144,8 +142,6 @@ export function useListboxItemElement(
     disabled: disabled || rootDisabled,
   };
   useListboxDropItem(store, dropItem);
-  const externalPosition = useExternalDropPosition<ListboxSortingDropPosition>(store, dragItemId);
-  const dropPosition = externalPosition?.placement ?? sortingPosition;
   const dragOver = dropPosition !== null;
   const sortingEnabled =
     sorting != null &&

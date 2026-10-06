@@ -8,6 +8,8 @@ import { getListboxDropDestination } from '../sorting/dropPosition';
 import {
   SortableDropProvider,
   SortableDropTarget,
+  getPayloadCollectionId,
+  isSameDropPosition,
 } from '../../internals/sorting/SortableDropProvider';
 import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDropProvider';
 import { Draggable } from '../../draggable';
@@ -275,12 +277,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
       next: ListboxSortingDropPosition | null,
       eventDetails: ListboxSortingDropPositionChangeEventDetails,
     ) => {
-      const previous = position.current;
-      if (
-        previous?.id === next?.id &&
-        previous?.placement === next?.placement &&
-        previous?.index === next?.index
-      ) {
+      if (isSameDropPosition(position.current, next)) {
         return;
       }
       position.current = next;
@@ -410,20 +407,15 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
                 collision={false}
                 onMoveEnd={(eventDetails) => {
                   const target = eventDetails.target;
-                  if (target && target.element !== eventDetails.source.element) {
-                    const targetPayload = target.payload;
-                    const destinationCollection =
-                      targetPayload &&
-                      typeof targetPayload === 'object' &&
-                      'collectionId' in targetPayload
-                        ? targetPayload.collectionId
-                        : null;
-                    if (destinationCollection !== store) {
-                      externalCompletion.current = true;
-                      lastEvent.current = eventDetails.event;
-                      rollback();
-                      transaction.reset();
-                    }
+                  if (
+                    target &&
+                    target.element !== eventDetails.source.element &&
+                    getPayloadCollectionId(target.payload) !== store
+                  ) {
+                    externalCompletion.current = true;
+                    lastEvent.current = eventDetails.event;
+                    rollback();
+                    transaction.reset();
                   }
                   draggableProps?.onMoveEnd?.(eventDetails);
                 }}
@@ -495,9 +487,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
               reorderOn === 'move' &&
               transaction.hasExpectedOrder(matchesOrder) &&
               next &&
-              (previous?.id !== next.id ||
-                previous?.placement !== next.placement ||
-                previous?.index !== next.index)
+              !isSameDropPosition(previous, next)
             ) {
               const destination = getDestination(next);
               if (destination) {

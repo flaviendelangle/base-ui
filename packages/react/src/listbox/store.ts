@@ -4,6 +4,7 @@ import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
 import type { ListboxItemId } from './utils/ListboxItemId';
 import type { ListboxRoot } from './root/ListboxRoot';
+import type { ListboxSortingDropPosition } from './sortable-provider/ListboxSortableProvider';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];
@@ -29,6 +30,8 @@ export type State = {
   dragActiveItemIds: Set<ListboxItemId> | null;
   dragOverItemId: ListboxItemId | null;
   dropPosition: 'before' | 'after' | null;
+  /** The destination of the active external drop and the item target that resolved it. */
+  externalDropPosition: { position: ListboxSortingDropPosition; owner: object } | null;
 
   // Loading state
   loading: boolean;
@@ -92,9 +95,17 @@ export const selectors = {
       state.dragActiveItemIds != null &&
       state.dragActiveItemIds.has(itemId),
   ),
-  dropPositionForItem: createSelector((state: State, itemId: ListboxItemId | undefined) =>
-    itemId !== undefined && state.dragOverItemId === itemId ? state.dropPosition : null,
-  ),
+  /** The pointer drop placement rendered on an item. External drops take precedence over sorting. */
+  dropPositionForItem: createSelector((state: State, itemId: ListboxItemId | undefined) => {
+    if (itemId === undefined) {
+      return null;
+    }
+    const external = state.externalDropPosition?.position;
+    if (external?.id === itemId) {
+      return external.placement;
+    }
+    return state.dragOverItemId === itemId ? state.dropPosition : null;
+  }),
 
   loading: createSelector((state: State) => state.loading),
   loadingProp: createSelector((state: State) => state.loadingProp),
@@ -133,6 +144,7 @@ function createInitialState(): State {
     dragActiveItemIds: null,
     dragOverItemId: null,
     dropPosition: null,
+    externalDropPosition: null,
     loading: false,
     loadingProp: false,
     hasOnLoadMore: false,

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { screen, fireEvent } from '@mui/internal-test-utils';
 import { createRenderer, firePointer } from '#test-utils';
@@ -424,5 +425,54 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     drop(target, { clientY: 25 });
     await flushRaf();
     expect(onDraggableDrop).toHaveBeenCalledTimes(1);
+  });
+
+  // The engine validates the drop before the source's terminal callbacks run.
+  it('drops at the destination validated before the source end updates the app state', async () => {
+    const onDraggableDrop = vi.fn();
+    function Layout() {
+      const [activeId, setActiveId] = React.useState<string | null>(null);
+      return (
+        <Draggable.Provider>
+          <Draggable.Root
+            kind={kind}
+            payload={{ id: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
+            onMoveStart={() => setActiveId('foreign')}
+            onMoveEnd={() => ReactDOM.flushSync(() => setActiveId(null))}
+            data-testid="source"
+          >
+            foreign
+          </Draggable.Root>
+          <Listbox.Root>
+            <Listbox.List>
+              {['a', 'b', 'c'].map((item) => (
+                <Listbox.ItemExternalDropTarget
+                  key={item}
+                  value={item}
+                  accept={kind}
+                  canDrop={() => activeId !== null}
+                  onDraggableDrop={onDraggableDrop}
+                >
+                  {item}
+                </Listbox.ItemExternalDropTarget>
+              ))}
+            </Listbox.List>
+          </Listbox.Root>
+        </Draggable.Provider>
+      );
+    }
+    await render(<Layout />);
+    setRects();
+    const target = screen.getByRole('option', { name: 'b' });
+    await lift(screen.getByTestId('source'));
+    await dragEnter(target, { clientY: 175 });
+    expect(target).toHaveAttribute('data-drop-position', 'after');
+    drop(target, { clientY: 175 });
+    await flushRaf();
+    expect(onDraggableDrop).toHaveBeenCalledTimes(1);
+    expect(onDraggableDrop.mock.calls[0][0]).toMatchObject({
+      dropPosition: { placement: 'after' },
+      listboxDestination: { groupId: null, index: 2 },
+    });
   });
 });

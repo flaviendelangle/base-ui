@@ -20,22 +20,22 @@ type Item = ListboxSortingItemRecord<unknown>;
 export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>, Value>(
   store: Store,
   item: Omit<Item, 'id'> & { id: ListboxItemId | undefined },
-  options: ListboxItemExternalDropTargetOptions<TAccept, Value> | undefined,
+  options: ListboxItemExternalDropTargetOptions<TAccept, Value>,
 ) {
   const direction = useDirection();
   const records = getListboxDropItems(store);
   return useExternalDrop({
-    accept: options?.accept,
+    accept: options.accept,
+    store,
     collectionId: store,
-    itemId: item.id,
-    disabled: item.disabled || item.index < 0 || !options || !!options.dropDisabled,
-    onDraggableDrop: options?.onDraggableDrop,
-    onDropPositionChange: options?.onDropPositionChange,
+    disabled: item.disabled || item.index < 0 || !!options.dropDisabled,
+    onDraggableDrop: options.onDraggableDrop,
+    onDropPositionChange: options.onDropPositionChange,
     resolve: ({
       source,
       getLocalPoint,
     }): ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, Value> | null => {
-      if (!options || item.id === undefined) {
+      if (item.id === undefined) {
         return null;
       }
       const context = {

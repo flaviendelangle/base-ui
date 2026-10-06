@@ -38,7 +38,8 @@ export function SortableDropProvider<T extends { collectionId: object }>(
     if (!record || record.element === sourceElement || !targetKind.matches(record)) {
       return null;
     }
-    // Capture geometry before callbacks can reorder or unmount the row.
+    // The record measures its geometry and resolves its snap steps on the first
+    // read. Read them now, before a callback can reorder or unmount the row.
     record.getLocalPoint();
     record.getSnappedLocalPoint();
     return record;
@@ -51,36 +52,34 @@ export function SortableDropProvider<T extends { collectionId: object }>(
       return;
     }
     previousRecord.current = eventDetails.target;
-    const target = resolve(eventDetails.target, eventDetails.source.element);
+    const collision = resolve(eventDetails.target, eventDetails.source.element);
     const previousTarget = previous.current;
-    previous.current = target;
-    props.onCollisionChange?.({ ...eventDetails, target, previousTarget });
+    previous.current = collision;
+    props.onCollisionChange?.({ ...eventDetails, target: collision, previousTarget });
   };
   Draggable.useMonitor({
     accept: kind,
     onMoveStart(eventDetails) {
-      const source = eventDetails.source;
-      if (source.payload.collectionId === collectionId) {
+      if (eventDetails.source.payload.collectionId === collectionId) {
         previous.current = null;
         previousRecord.current = null;
         props.onMoveStart?.({
           ...eventDetails,
-          target: resolve(eventDetails.target, source.element),
+          target: resolve(eventDetails.target, eventDetails.source.element),
         });
       }
     },
     onMove: update,
     onTargetChange: update,
     onMoveEnd(eventDetails) {
-      const source = eventDetails.source;
-      if (source.payload.collectionId !== collectionId) {
+      if (eventDetails.source.payload.collectionId !== collectionId) {
         return;
       }
+      const collision = resolve(eventDetails.target, eventDetails.source.element);
       const previousTarget = previous.current;
-      const target = resolve(eventDetails.target, source.element);
       previous.current = null;
       previousRecord.current = null;
-      props.onMoveEnd?.({ ...eventDetails, target, previousTarget });
+      props.onMoveEnd?.({ ...eventDetails, target: collision, previousTarget });
     },
   });
   const renderTarget = React.useCallback<RenderTarget>(
@@ -90,7 +89,7 @@ export function SortableDropProvider<T extends { collectionId: object }>(
       const owns = (source: Draggable.Root.Record) =>
         kind.matches(source) && source.payload.collectionId === collectionId;
       return (
-        <Draggable.Target<unknown, T>
+        <Draggable.Target
           render={element}
           trackDragOver={false}
           disabled={false}
@@ -99,7 +98,7 @@ export function SortableDropProvider<T extends { collectionId: object }>(
           accept={Draggable.anyKind}
           payload={item}
           canDrop={(context) => {
-            if (kind.matches(context.source) && owns(context.source)) {
+            if (owns(context.source)) {
               // Local sorting rejection must not fall through to ancestor targets.
               return disabled || isTargetDisabled(item) ? 'reject' : true;
             }
@@ -150,6 +149,20 @@ export function SortableDropTarget(props: {
   return renderTarget(props.element, props.payload, props.external, props.snap);
 }
 
+/** Returns the collection that owns a sortable drag or row payload. */
+export function getPayloadCollectionId(payload: unknown): unknown {
+  return payload && typeof payload === 'object' && 'collectionId' in payload
+    ? payload.collectionId
+    : undefined;
+}
+
+export function isSameDropPosition(
+  a: { id: unknown; placement: string; index?: number | undefined } | null,
+  b: { id: unknown; placement: string; index?: number | undefined } | null,
+): boolean {
+  return a?.id === b?.id && a?.placement === b?.placement && a?.index === b?.index;
+}
+
 export function acceptsExternalDrop(
   accept: Draggable.Accept<unknown> | undefined,
   source: Draggable.Root.Record,
@@ -158,5 +171,5 @@ export function acceptsExternalDrop(
     return false;
   }
   const kinds = Array.isArray(accept) ? accept : [accept];
-  return kinds.some((kind) => kind.id === Draggable.anyKind.id || kind.matches(source));
+  return kinds.some((kind) => kind.matches(source));
 }
