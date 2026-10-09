@@ -219,6 +219,10 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
   const focusFrame = useAnimationFrame();
   const reconcileFrame = useAnimationFrame();
 
+  // When the dragged row remounts, for example in another group, the engine moves the drag
+  // onto the new row, whose declared payload only identifies it. Keep the pickup payload.
+  const getActivePayload = (dragSource: DraggableRootRecord<ListboxSortingDragPayload<Value>>) =>
+    activePayload.current ?? dragSource.payload;
   const getSourceItems = useStableCallback((source: ListboxSortingDragPayload<Value>) =>
     sorting
       .getOrderedItems()
@@ -245,7 +249,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
       target: DraggableTargetRecord<ListboxSortingDragPayload<Value>> | null,
       dragSource: DraggableRootRecord<ListboxSortingDragPayload<Value>>,
     ) => {
-      const source = dragSource.payload;
+      const source = getActivePayload(dragSource);
       if (!target || source.collectionId !== store || sorting.disabled) {
         return null;
       }
@@ -506,7 +510,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
               const destination = getDestination(next);
               if (destination) {
                 const result = sorting.move(
-                  getSourceItems(source.payload).map((item) => item.id),
+                  getSourceItems(getActivePayload(source)).map((item) => item.id),
                   destination,
                   eventDetails.event,
                   undefined,
@@ -523,7 +527,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
           onMoveEnd={(eventDetails) => {
             const dragSource = eventDetails.source;
             const target = eventDetails.target;
-            const source = dragSource.payload;
+            const source = getActivePayload(dragSource);
             if (source.collectionId !== store) {
               return;
             }
