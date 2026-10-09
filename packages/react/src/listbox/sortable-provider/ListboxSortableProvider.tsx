@@ -45,8 +45,6 @@ export interface ListboxSortingDragPayload<Value = any> {
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: object;
-  /** Application data supplied by getDragPayload. */
-  data?: unknown;
 }
 export interface ListboxSortingDropPosition {
   id: ListboxItemId;
@@ -121,9 +119,6 @@ export interface ListboxSortableProviderProps<Value = any> extends ListboxSortin
   reorderOn?: 'drop' | 'move' | undefined;
   /** An explicit kind for integrating sorting with external drag sources and targets. */
   kind?: DraggableKind<ListboxSortableProvider.DragPayload<Value>> | undefined;
-  /** Returns application data stored in the drag payload's `data` field. */
-  getDragPayload?:
-    ((parameters: { itemIds: ListboxItemId[]; items: Value[] }) => unknown) | undefined;
   /**
    * Event handler called once when pointer sorting ends, after the final move or rollback
    * is proposed. `eventDetails.itemIds` lists the dragged items, and
@@ -150,7 +145,6 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
     onDropPositionChange,
     reorderOn,
     kind,
-    getDragPayload,
     onSortEnd,
   } = props;
   const feature = React.useMemo(
@@ -167,7 +161,6 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
           onDropPositionChange={onDropPositionChange}
           reorderOn={reorderOn}
           kind={kind}
-          getDragPayload={getDragPayload}
           onSortEnd={onSortEnd}
         >
           {rootChildren}
@@ -184,7 +177,6 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       onDropPositionChange,
       reorderOn,
       kind,
-      getDragPayload,
       onSortEnd,
     ],
   );
@@ -193,14 +185,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
 
 /** The sorting of `Listbox.SortableProvider`, rendered inside the root it wraps. */
 function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value>) {
-  const {
-    children,
-    reorderOn = 'drop',
-    getDropPosition,
-    getDragPayload,
-    onDropPositionChange,
-    onSortEnd,
-  } = props;
+  const { children, reorderOn = 'drop', getDropPosition, onDropPositionChange, onSortEnd } = props;
   const sorting = useListboxSorting(props);
   const { store, disabled: sortingDisabled, getItemIds, getOrderedItems } = sorting;
   const direction = useDirection();
@@ -419,7 +404,6 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
                     itemIds,
                     items,
                     collectionId: store,
-                    data: getDragPayload?.({ itemIds, items }),
                   });
                 }}
                 collision={false}
@@ -443,16 +427,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
         )}
       </ListboxSortableRowPayload>
     ),
-    [
-      kind,
-      sortingDisabled,
-      getItemIds,
-      getOrderedItems,
-      store,
-      getDragPayload,
-      rollback,
-      transaction,
-    ],
+    [kind, sortingDisabled, getItemIds, getOrderedItems, store, rollback, transaction],
   );
   const reconcile = useStableCallback(() => {
     sorting.reconcile();

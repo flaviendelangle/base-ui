@@ -162,7 +162,7 @@ When a drop remounts the dragged item, for example in another list, the preview 
 ### Drag and drop outside the list
 
 For interactions with elements outside the Listbox, use the [Draggable utility](/react/utils/draggable).
-Pass a shared `kind` to `Listbox.SortableProvider` and the external target. `getDragPayload` supplies application data in the payload's `data` field. The payload also contains `id`, `itemIds`, pickup snapshots in `items`, and an opaque `collectionId` identifying the source collection.
+Pass a shared `kind` to `Listbox.SortableProvider` and the external target. The payload contains `id`, `itemIds`, pickup snapshots in `items`, and an opaque `collectionId` identifying the source collection.
 The external target handles the transfer and updates the affected collections. Listbox sorting only reorders items within its own list.
 
 To accept incoming drags on individual options, use `Listbox.ItemExternalDropTarget` in place of `Listbox.Item`. It retains selection, focus, and keyboard behavior and works with or without `Listbox.SortableProvider`.

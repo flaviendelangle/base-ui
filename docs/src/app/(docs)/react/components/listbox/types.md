@@ -644,7 +644,6 @@ Renders a visually hidden announcement region inside the listbox.
 | :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | canMoveItems          | `((move: Listbox.SortingMove<Value>) => boolean)`                                                                                  | -        | Applies the same movement rules to keyboard and pointer sorting.                                                                                                                                                                           |
 | getAnnouncement       | `((parameters: Listbox.SortingAnnouncementParameters<Value>) => string \| undefined)`                                              | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                                             |
-| getDragPayload        | `((parameters: { itemIds: Listbox.ItemId[]; items: Value[] }) => unknown)`                                                         | -        | Returns application data stored in the drag payload's `data` field.                                                                                                                                                                        |
 | getDropPosition       | `((context: Listbox.SortableProvider.DropContext<Value>) => 'before' \| 'after' \| Listbox.SortingDropPosition \| null)`           | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                                            |
 | isItemSortingDisabled | `((item: Listbox.SortingItem<Value>) => boolean)`                                                                                  | -        | Disables sorting for an item without disabling selection.                                                                                                                                                                                  |
 | kind                  | `DraggableKind<Listbox.SortableProvider.DragPayload<Value>, any>`                                                                  | -        | An explicit kind for integrating sorting with external drag sources and targets.                                                                                                                                                           |
@@ -668,8 +667,6 @@ type ListboxSortableProviderDragPayload<Value = any> = {
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: {};
-  /** Application data supplied by getDragPayload. */
-  data?: unknown;
 };
 ```
 
@@ -1095,8 +1092,6 @@ type ListboxSortingDragPayload<Value = any> = {
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: {};
-  /** Application data supplied by getDragPayload. */
-  data?: unknown;
 };
 ```
 
