@@ -12,15 +12,15 @@ import type {
 import { useListboxItemElement, renderListboxItem } from '../item/ListboxItem';
 import type { ListboxItemProps, ListboxItemState } from '../item/ListboxItem';
 import type { ListboxItemId } from '../utils/ListboxItemId';
-import type { ListboxSortingDestination } from '../sorting/useListboxSorting';
+import type { ListboxReorderDestination } from '../sorting/useListboxSorting';
 import type {
-  ListboxSortingDropPosition,
-  ListboxSortableProviderDropPositionChangeEventDetails,
-} from '../sortable-provider/ListboxSortableProvider';
+  ListboxReorderDropPosition,
+  ListboxReorderProviderDropPositionChangeEventDetails,
+} from '../reorder-provider/ListboxReorderProvider';
 
 /**
  * A complete listbox item that also accepts drags from outside this listbox.
- * Same-listbox drags remain owned by the sorting provider.
+ * Same-listbox drags remain owned by the reordering provider.
  * External drops are pointer-only for now; keyboard support is a work in progress.
  * Renders a `<div>` element.
  *
@@ -84,12 +84,12 @@ export interface ListboxItemExternalDropTargetDropContext<
   TItem = unknown,
 > extends ListboxItemExternalDropTargetPositionContext<TPayload, TItem> {
   /** Where the drop lands relative to the item under the pointer. */
-  dropPosition: ListboxSortingDropPosition;
+  dropPosition: ListboxReorderDropPosition;
   /**
    * Where to insert the dropped content in the listbox: the index across the entire
    * list, including groups. Not relative to the group.
    */
-  destination: ListboxSortingDestination;
+  destination: ListboxReorderDestination;
 }
 /**
  * The event details passed to `onDraggableDrop`: the drop target's event details, along
@@ -108,7 +108,7 @@ export interface ListboxItemExternalDropTargetOptions<
 > {
   /** One or more kinds of external drag sources accepted by this item. */
   accept: TAccept;
-  /** Disables external drops without disabling selection or internal sorting. @default false */
+  /** Disables external drops without disabling selection or internal reordering. @default false */
   dropDisabled?: boolean | undefined;
   /** Validates the resolved destination. Returning false rejects the drop, including ancestor targets. */
   canDrop?:
@@ -120,7 +120,7 @@ export interface ListboxItemExternalDropTargetOptions<
   getDropPosition?:
     | ((
         context: ListboxItemExternalDropTargetPositionContext<AcceptedDragPayload<TAccept>, TItem>,
-      ) => ListboxSortingDropPosition['placement'] | ListboxSortingDropPosition | null)
+      ) => ListboxReorderDropPosition['placement'] | ListboxReorderDropPosition | null)
     | undefined;
   /**
    * Event handler called when the placement of an incoming drag changes.
@@ -128,8 +128,8 @@ export interface ListboxItemExternalDropTargetOptions<
    */
   onDropPositionChange?:
     | ((
-        position: ListboxSortingDropPosition | null,
-        eventDetails: ListboxSortableProviderDropPositionChangeEventDetails,
+        position: ListboxReorderDropPosition | null,
+        eventDetails: ListboxReorderProviderDropPositionChangeEventDetails,
       ) => void)
     | undefined;
   /**
@@ -175,5 +175,5 @@ export namespace ListboxItemExternalDropTarget {
     TItem = unknown,
   > = ListboxItemExternalDropTargetDropEventDetails<TPayload, TItem>;
   export type DropEventReason = ListboxItemExternalDropTargetDropEventReason;
-  export type DropPosition = ListboxSortingDropPosition;
+  export type DropPosition = ListboxReorderDropPosition;
 }

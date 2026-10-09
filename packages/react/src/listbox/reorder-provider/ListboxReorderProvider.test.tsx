@@ -39,7 +39,7 @@ function GroupedFixture({
     { value: 'c', groupId: 'two' },
   ]);
   return (
-    <Listbox.SortableProvider
+    <Listbox.ReorderProvider
       reorderOn={reorderOn}
       onItemsReorder={(_, details) => {
         const apply = () =>
@@ -66,24 +66,24 @@ function GroupedFixture({
           ))}
         </Listbox.List>
       </Listbox.Root>
-    </Listbox.SortableProvider>
+    </Listbox.ReorderProvider>
   );
 }
 
-describe('<Listbox.SortableProvider />', () => {
+describe('<Listbox.ReorderProvider />', () => {
   const { render } = createRenderer();
   function Fixture({
     onItemsReorder,
     preview,
     draggableProps,
     ...props
-  }: Partial<Listbox.SortableProvider.Props<string>> & {
-    preview?: Listbox.SortPreview.Props<string>;
+  }: Partial<Listbox.ReorderProvider.Props<string>> & {
+    preview?: Listbox.ReorderPreview.Props<string>;
     draggableProps?: Listbox.Item.Props['draggableProps'];
   }) {
     const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
     return (
-      <Listbox.SortableProvider
+      <Listbox.ReorderProvider
         {...props}
         onItemsReorder={(next, details) => {
           onItemsReorder?.(next, details);
@@ -97,12 +97,12 @@ describe('<Listbox.SortableProvider />', () => {
             {items.map((value) => (
               <Listbox.Item key={value} value={value} draggableProps={draggableProps}>
                 {value}
-                {preview && <Listbox.SortPreview {...preview} />}
+                {preview && <Listbox.ReorderPreview {...preview} />}
               </Listbox.Item>
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>
+      </Listbox.ReorderProvider>
     );
   }
   it('restores a live proposal when its callback synchronously unmounts sorting', async () => {
@@ -111,7 +111,7 @@ describe('<Listbox.SortableProvider />', () => {
     function Example() {
       const [visible, setVisible] = React.useState(true);
       return visible ? (
-        <Listbox.SortableProvider
+        <Listbox.ReorderProvider
           reorderOn="move"
           onItemsReorder={(next) => {
             current = next;
@@ -130,7 +130,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       ) : null;
     }
     await render(<Example />);
@@ -145,7 +145,7 @@ describe('<Listbox.SortableProvider />', () => {
       const [visible, setVisible] = React.useState(true);
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return visible ? (
-        <Listbox.SortableProvider
+        <Listbox.ReorderProvider
           reorderOn="move"
           onItemsReorder={(next) => {
             proposals.push(next);
@@ -165,7 +165,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       ) : null;
     }
     await render(<Example />);
@@ -179,10 +179,12 @@ describe('<Listbox.SortableProvider />', () => {
       ['a', 'b', 'c'],
     ]);
   });
-  it('passes only the declared event details to onDropPositionChange and onSortEnd', async () => {
+  it('passes only the declared event details to onDropPositionChange and onReorderEnd', async () => {
     const onDropPositionChange = vi.fn();
-    const onSortEnd = vi.fn();
-    await render(<Fixture onDropPositionChange={onDropPositionChange} onSortEnd={onSortEnd} />);
+    const onReorderEnd = vi.fn();
+    await render(
+      <Fixture onDropPositionChange={onDropPositionChange} onReorderEnd={onReorderEnd} />,
+    );
     setItemRects();
     const d = screen.getByRole('option', { name: 'd' });
     await lift(screen.getByRole('option', { name: 'b' }), { clientY: 150 });
@@ -199,7 +201,7 @@ describe('<Listbox.SortableProvider />', () => {
       [{ id: expect.anything(), placement: 'after' }, details('pointer')],
       [null, details('drop')],
     ]);
-    expect(onSortEnd.mock.calls).toEqual([
+    expect(onReorderEnd.mock.calls).toEqual([
       [{ ...details('drop'), itemIds: expect.any(Array), canceled: false }],
     ]);
   });
@@ -296,7 +298,7 @@ describe('<Listbox.SortableProvider />', () => {
   it('uses custom drop zones and shares movement validation with the keyboard', async () => {
     const canMoveItems = vi.fn(() => true);
     const getDropPosition = vi.fn(
-      (_context: Listbox.SortableProvider.DropContext<string>) => 'before' as const,
+      (_context: Listbox.ReorderProvider.DropContext<string>) => 'before' as const,
     );
     await render(<Fixture getDropPosition={getDropPosition} canMoveItems={canMoveItems} />);
     setItemRects();
@@ -336,8 +338,8 @@ describe('<Listbox.SortableProvider />', () => {
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
   });
   it('reorders live and restores the order on cancellation', async () => {
-    const onSortEnd = vi.fn();
-    await render(<Fixture reorderOn="move" onSortEnd={onSortEnd} />);
+    const onReorderEnd = vi.fn();
+    await render(<Fixture reorderOn="move" onReorderEnd={onReorderEnd} />);
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     await dragEnter(screen.getByRole('option', { name: 'd' }), { clientY: 375 });
@@ -345,15 +347,15 @@ describe('<Listbox.SortableProvider />', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
     cancel();
     await flushRaf();
-    expect(screen.getByRole('status')).toHaveTextContent('Sorting canceled.');
+    expect(screen.getByRole('status')).toHaveTextContent('Reordering canceled.');
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith(
+    expect(onReorderEnd).toHaveBeenCalledWith(
       expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
   it('keeps a live move when dropping over its source', async () => {
-    const onSortEnd = vi.fn();
-    await render(<Fixture reorderOn="move" onSortEnd={onSortEnd} />);
+    const onReorderEnd = vi.fn();
+    await render(<Fixture reorderOn="move" onReorderEnd={onReorderEnd} />);
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
     await lift(a, { clientY: 25 });
@@ -364,7 +366,7 @@ describe('<Listbox.SortableProvider />', () => {
     drop(a, { clientY: 250 });
     await flushRaf();
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
-    expect(onSortEnd).toHaveBeenCalledWith(
+    expect(onReorderEnd).toHaveBeenCalledWith(
       expect.objectContaining({ itemIds: expect.any(Array), canceled: false }),
     );
   });
@@ -434,7 +436,7 @@ describe('<Listbox.SortableProvider />', () => {
   });
   describe('preview key', () => {
     const transferKind =
-      Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('transfer');
+      Draggable.createKind<Listbox.ReorderProvider.DragPayload<string>>('transfer');
     function TransferFixture({
       previewKey,
     }: {
@@ -446,7 +448,7 @@ describe('<Listbox.SortableProvider />', () => {
         previewKey ? { previewKey: previewKey(list, value) } : undefined;
       return (
         <Draggable.Provider>
-          <Listbox.SortableProvider kind={transferKind} onItemsReorder={setLeft}>
+          <Listbox.ReorderProvider kind={transferKind} onItemsReorder={setLeft}>
             <Listbox.Root>
               <Listbox.List>
                 {left.map((value) => (
@@ -460,8 +462,8 @@ describe('<Listbox.SortableProvider />', () => {
                 ))}
               </Listbox.List>
             </Listbox.Root>
-          </Listbox.SortableProvider>
-          <Listbox.SortableProvider kind={transferKind} onItemsReorder={setRight}>
+          </Listbox.ReorderProvider>
+          <Listbox.ReorderProvider kind={transferKind} onItemsReorder={setRight}>
             <Listbox.Root>
               <Listbox.List>
                 {right.map((value) => (
@@ -485,7 +487,7 @@ describe('<Listbox.SortableProvider />', () => {
                 ))}
               </Listbox.List>
             </Listbox.Root>
-          </Listbox.SortableProvider>
+          </Listbox.ReorderProvider>
         </Draggable.Provider>
       );
     }
@@ -513,19 +515,19 @@ describe('<Listbox.SortableProvider />', () => {
       await flushRaf();
     });
   });
-  it('restricts pointer pickup to SortHandle while keeping row keyboard sorting', async () => {
+  it('restricts pointer pickup to ReorderHandle while keeping row keyboard sorting', async () => {
     const onItemsReorder = vi.fn();
     await render(
-      <Listbox.SortableProvider onItemsReorder={onItemsReorder}>
+      <Listbox.ReorderProvider onItemsReorder={onItemsReorder}>
         <Listbox.Root>
           <Listbox.List>
             <Listbox.Item value="a">
-              a<Listbox.SortHandle data-testid="handle" />
+              a<Listbox.ReorderHandle data-testid="handle" />
             </Listbox.Item>
             <Listbox.Item value="b">b</Listbox.Item>
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>,
+      </Listbox.ReorderProvider>,
     );
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
@@ -542,9 +544,9 @@ describe('<Listbox.SortableProvider />', () => {
     cancel();
   });
   it('reports a canceled drop proposal as canceled', async () => {
-    const onSortEnd = vi.fn();
+    const onReorderEnd = vi.fn();
     await render(
-      <Fixture onSortEnd={onSortEnd} onItemsReorder={(_, details) => details.cancel()} />,
+      <Fixture onReorderEnd={onReorderEnd} onItemsReorder={(_, details) => details.cancel()} />,
     );
     setItemRects();
     const d = screen.getByRole('option', { name: 'd' });
@@ -553,14 +555,16 @@ describe('<Listbox.SortableProvider />', () => {
     drop(d, { clientY: 375 });
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith(
+    expect(onReorderEnd).toHaveBeenCalledWith(
       expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
   it('revalidates movement rules before keeping a live move over its source', async () => {
-    const onSortEnd = vi.fn();
+    const onReorderEnd = vi.fn();
     let allowed = true;
-    await render(<Fixture reorderOn="move" onSortEnd={onSortEnd} canMoveItems={() => allowed} />);
+    await render(
+      <Fixture reorderOn="move" onReorderEnd={onReorderEnd} canMoveItems={() => allowed} />,
+    );
     setItemRects();
     const a = screen.getByRole('option', { name: 'a' });
     await lift(a, { clientY: 25 });
@@ -572,7 +576,7 @@ describe('<Listbox.SortableProvider />', () => {
     drop(a, { clientY: 250 });
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
-    expect(onSortEnd).toHaveBeenCalledWith(
+    expect(onReorderEnd).toHaveBeenCalledWith(
       expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
     );
   });
@@ -580,7 +584,7 @@ describe('<Listbox.SortableProvider />', () => {
     function Groups() {
       const [moved, setMoved] = React.useState(false);
       return (
-        <Listbox.SortableProvider onItemsReorder={() => setMoved(true)}>
+        <Listbox.ReorderProvider onItemsReorder={() => setMoved(true)}>
           <Listbox.Root>
             <Listbox.List>
               <Listbox.Group>{!moved && <Listbox.Item value="a">a</Listbox.Item>}</Listbox.Group>
@@ -593,7 +597,7 @@ describe('<Listbox.SortableProvider />', () => {
               </Listbox.Group>
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<Groups />);
@@ -614,7 +618,7 @@ describe('<Listbox.SortableProvider />', () => {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       updateItems = setItems;
       return (
-        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.ReorderProvider reorderOn="move" onItemsReorder={setItems}>
           <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
@@ -624,7 +628,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<UpdatingList />);
@@ -648,7 +652,7 @@ describe('<Listbox.SortableProvider />', () => {
       ]);
       updateItems = setItems;
       return (
-        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.ReorderProvider reorderOn="move" onItemsReorder={setItems}>
           <Listbox.Root isItemEqualToValue={(a: Item, b: Item) => a.id === b.id}>
             <Listbox.List>
               {items.map((item) => (
@@ -658,7 +662,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<UpdatingList />);
@@ -684,7 +688,7 @@ describe('<Listbox.SortableProvider />', () => {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       updateItems = setItems;
       return (
-        <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+        <Listbox.ReorderProvider reorderOn="move" onItemsReorder={setItems}>
           <Listbox.Root>
             <Listbox.List>
               {items.map((value) => (
@@ -694,7 +698,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<UpdatingList />);
@@ -722,12 +726,12 @@ describe('<Listbox.SortableProvider />', () => {
   it('does not report the drag preview as the highlighted option', async () => {
     const onHighlightChange = vi.fn();
     await render(
-      <Listbox.SortableProvider onItemsReorder={() => {}}>
+      <Listbox.ReorderProvider onItemsReorder={() => {}}>
         <Listbox.Root onHighlightChange={onHighlightChange}>
           <Listbox.List>
             <Listbox.Group id="one">
               <Listbox.Item value="a">
-                a<Listbox.SortHandle data-testid="handle" />
+                a<Listbox.ReorderHandle data-testid="handle" />
               </Listbox.Item>
             </Listbox.Group>
             <Listbox.Group id="two">
@@ -735,7 +739,7 @@ describe('<Listbox.SortableProvider />', () => {
             </Listbox.Group>
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>,
+      </Listbox.ReorderProvider>,
     );
     setItemRects();
     await act(async () => screen.getByRole('option', { name: 'a' }).focus());
@@ -801,7 +805,7 @@ describe('<Listbox.SortableProvider />', () => {
     function DeferredList() {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return (
-        <Listbox.SortableProvider
+        <Listbox.ReorderProvider
           reorderOn="move"
           onItemsReorder={(next) => updates.push(() => setItems(next))}
         >
@@ -814,7 +818,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<DeferredList />);
@@ -854,13 +858,13 @@ describe('<Listbox.SortableProvider />', () => {
       );
     }
     await render(
-      <Listbox.SortableProvider onItemsReorder={() => {}}>
+      <Listbox.ReorderProvider onItemsReorder={() => {}}>
         <Listbox.Root>
           <Listbox.List>
             <Items />
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>,
+      </Listbox.ReorderProvider>,
     );
     setItemRects();
     await lift(screen.getByRole('option', { name: '0' }), { clientY: 25 });
@@ -913,7 +917,7 @@ describe('<Listbox.SortableProvider />', () => {
     function DeferredList() {
       const [items, setItems] = React.useState(['a', 'b', 'c']);
       return (
-        <Listbox.SortableProvider
+        <Listbox.ReorderProvider
           getAnnouncement={getAnnouncement}
           onItemsReorder={(next) => {
             apply = () => setItems(next);
@@ -928,7 +932,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<DeferredList />);
@@ -959,7 +963,7 @@ describe('<Listbox.SortableProvider />', () => {
       ]);
       insert = () => setItems((current) => [{ value: 'new', groupId: 'two' }, ...current]);
       return (
-        <Listbox.SortableProvider
+        <Listbox.ReorderProvider
           reorderOn="move"
           onItemsReorder={(_, details) =>
             setItems(details.order.map(({ value, groupId }) => ({ value, groupId: groupId! })))
@@ -980,7 +984,7 @@ describe('<Listbox.SortableProvider />', () => {
               ))}
             </Listbox.List>
           </Listbox.Root>
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       );
     }
     await render(<UpdatingGroups />);

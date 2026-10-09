@@ -5,16 +5,16 @@ import { ListboxRootFeatureProvider } from '../root/ListboxRootFeatures';
 import type { ListboxRootFeature } from '../root/ListboxRootFeatures';
 import { ListboxSortingContext } from '../sorting/ListboxSortingContext';
 import { useListboxSorting } from '../sorting/useListboxSorting';
-import type { ListboxSortingParameters } from '../sorting/useListboxSorting';
+import type { ListboxReorderParameters } from '../sorting/useListboxSorting';
 
 /**
- * Enables keyboard sorting with Alt+Arrow keys in the listbox it wraps.
+ * Enables keyboard reordering with Alt+Arrow keys in the listbox it wraps.
  * Renders a visually hidden announcement region inside the listbox.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
-export function ListboxKeyboardSortableProvider<Value = any>(
-  props: ListboxKeyboardSortableProvider.Props<Value>,
+export function ListboxKeyboardReorderProvider<Value = any>(
+  props: ListboxKeyboardReorderProvider.Props<Value>,
 ) {
   const {
     children,
@@ -26,7 +26,7 @@ export function ListboxKeyboardSortableProvider<Value = any>(
   } = props;
   const feature = React.useMemo(
     (): ListboxRootFeature => ({
-      name: 'KeyboardSortableProvider',
+      name: 'KeyboardReorderProvider',
       render: (rootChildren) => (
         <ListboxKeyboardSorting
           disabled={disabled}
@@ -44,8 +44,8 @@ export function ListboxKeyboardSortableProvider<Value = any>(
   return <ListboxRootFeatureProvider feature={feature}>{children}</ListboxRootFeatureProvider>;
 }
 
-/** The keyboard sorting of `Listbox.KeyboardSortableProvider`, rendered inside the root it wraps. */
-function ListboxKeyboardSorting<Value>(props: ListboxKeyboardSortableProvider.Props<Value>) {
+/** The keyboard reordering of `Listbox.KeyboardReorderProvider`, rendered inside the root it wraps. */
+function ListboxKeyboardSorting<Value>(props: ListboxKeyboardReorderProvider.Props<Value>) {
   const sorting = useListboxSorting(props);
   return (
     <ListboxSortingContext.Provider value={sorting}>
@@ -57,11 +57,11 @@ function ListboxKeyboardSorting<Value>(props: ListboxKeyboardSortableProvider.Pr
   );
 }
 
-export interface ListboxKeyboardSortableProviderProps<
+export interface ListboxKeyboardReorderProviderProps<
   Value = any,
-> extends ListboxSortingParameters<Value> {
+> extends ListboxReorderParameters<Value> {
   children?: React.ReactNode;
 }
-export namespace ListboxKeyboardSortableProvider {
-  export type Props<Value = any> = ListboxKeyboardSortableProviderProps<Value>;
+export namespace ListboxKeyboardReorderProvider {
+  export type Props<Value = any> = ListboxKeyboardReorderProviderProps<Value>;
 }

@@ -5,12 +5,12 @@ import { warn } from '@base-ui/utils/warn';
 import { ListboxRootContext } from './ListboxRootContext';
 
 /**
- * What a provider wrapping `Listbox.Root` adds to the listbox, such as sorting.
+ * What a provider wrapping `Listbox.Root` adds to the listbox, such as reordering.
  * Only the provider imports the feature's implementation, so listboxes that don't
  * render the provider don't bundle it.
  */
 export interface ListboxRootFeature {
-  /** The provider's part name, such as `SortableProvider`, for warnings. */
+  /** The provider's part name, such as `ReorderProvider`, for warnings. */
   name: string;
   /**
    * Wraps the root's children with the feature's React logic, which reads the store

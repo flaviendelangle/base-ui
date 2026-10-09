@@ -29,12 +29,12 @@ describe('Listbox root features', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await render(
       <Listbox.Root>
-        <Listbox.KeyboardSortableProvider onItemsReorder={() => {}}>
+        <Listbox.KeyboardReorderProvider onItemsReorder={() => {}}>
           <List />
-        </Listbox.KeyboardSortableProvider>
+        </Listbox.KeyboardReorderProvider>
       </Listbox.Root>,
     );
-    expect(warn).toHaveBeenCalledWith(misplaced('KeyboardSortableProvider'));
+    expect(warn).toHaveBeenCalledWith(misplaced('KeyboardReorderProvider'));
     expect(screen.queryByRole('status')).toBeNull();
   });
 
@@ -42,22 +42,22 @@ describe('Listbox root features', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await render(
       <Listbox.Root>
-        <Listbox.SortableProvider onItemsReorder={() => {}} />
+        <Listbox.ReorderProvider onItemsReorder={() => {}} />
         <List />
       </Listbox.Root>,
     );
-    expect(warn).toHaveBeenCalledWith(misplaced('SortableProvider'));
+    expect(warn).toHaveBeenCalledWith(misplaced('ReorderProvider'));
   });
 
   it('applies a provider to a root nested in another root', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await render(
       <Listbox.Root>
-        <Listbox.KeyboardSortableProvider onItemsReorder={() => {}}>
+        <Listbox.KeyboardReorderProvider onItemsReorder={() => {}}>
           <Listbox.Root>
             <List />
           </Listbox.Root>
-        </Listbox.KeyboardSortableProvider>
+        </Listbox.KeyboardReorderProvider>
       </Listbox.Root>,
     );
     expect(warn).not.toHaveBeenCalled();
@@ -69,13 +69,13 @@ describe('Listbox root features', () => {
     function App({ open }: { open: boolean }) {
       return (
         <Listbox.Root>
-          <Listbox.KeyboardSortableProvider onItemsReorder={() => {}}>
+          <Listbox.KeyboardReorderProvider onItemsReorder={() => {}}>
             {open && (
               <Listbox.Root>
                 <List />
               </Listbox.Root>
             )}
-          </Listbox.KeyboardSortableProvider>
+          </Listbox.KeyboardReorderProvider>
         </Listbox.Root>
       );
     }
@@ -85,15 +85,15 @@ describe('Listbox root features', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it.each(['SortHandle', 'SortPreview'] as const)(
-    'throws when Listbox.%s is outside a Listbox.SortableProvider',
+  it.each(['ReorderHandle', 'ReorderPreview'] as const)(
+    'throws when Listbox.%s is outside a Listbox.ReorderProvider',
     async (part) => {
       const Part = Listbox[part];
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       try {
         await expect(
           render(
-            <Listbox.KeyboardSortableProvider onItemsReorder={() => {}}>
+            <Listbox.KeyboardReorderProvider onItemsReorder={() => {}}>
               <Listbox.Root>
                 <Listbox.List>
                   <Listbox.Item value="a">
@@ -101,11 +101,11 @@ describe('Listbox root features', () => {
                   </Listbox.Item>
                 </Listbox.List>
               </Listbox.Root>
-            </Listbox.KeyboardSortableProvider>,
+            </Listbox.KeyboardReorderProvider>,
           ),
         ).rejects.toThrow(
           new RegExp(
-            `<Listbox\\.${part}> must be placed in a listbox wrapped in <Listbox\\.SortableProvider>`,
+            `<Listbox\\.${part}> must be placed in a listbox wrapped in <Listbox\\.ReorderProvider>`,
           ),
         );
       } finally {

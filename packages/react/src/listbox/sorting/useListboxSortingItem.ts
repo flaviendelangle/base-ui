@@ -16,21 +16,21 @@ export interface UseListboxSortingItemParameters {
   itemValue: any;
   /** Ref to the item's DOM element. */
   itemRef: React.RefObject<HTMLElement | null>;
-  /** Whether sorting registration is enabled for the item. */
+  /** Whether reordering registration is enabled for the item. */
   enabled: boolean;
   /** Whether the item is disabled. */
   disabled: boolean;
   /**
-   * Group ID metadata exposed to provider sorting predicates.
+   * Group ID metadata exposed to provider reordering predicates.
    */
   groupId: string | null;
 }
 
 /**
- * Wires a listbox item into `Listbox.KeyboardSortableProvider or Listbox.SortableProvider`.
+ * Wires a listbox item into `Listbox.KeyboardReorderProvider or Listbox.ReorderProvider`.
  *
  * @param params Configuration for the current draggable item.
- * @returns The stable identifier used by the sorting provider.
+ * @returns The stable identifier used by the reordering provider.
  */
 export function useListboxSortingItem(
   params: UseListboxSortingItemParameters,

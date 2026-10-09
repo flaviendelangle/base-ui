@@ -4,7 +4,7 @@ import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDr
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 
-export interface ListboxSortingItem<Value = any> {
+export interface ListboxReorderItem<Value = any> {
   id: ListboxItemId;
   value: Value;
   /**
@@ -16,7 +16,7 @@ export interface ListboxSortingItem<Value = any> {
   groupId: string | null;
 }
 
-export interface ListboxSortingItemRecord<Value = any> extends ListboxSortingItem<Value> {
+export interface ListboxSortingItemRecord<Value = any> extends ListboxReorderItem<Value> {
   disabled: boolean;
 }
 
@@ -52,21 +52,21 @@ export const ListboxSortableContext = React.createContext<ListboxSortableContext
   undefined,
 );
 
-/** Reads the pointer sorting of the listbox a sorting part belongs to. */
+/** Reads the pointer reordering of the listbox a reordering part belongs to. */
 export function useListboxSortablePart(part: string): ListboxSortableContextValue {
   const context = React.useContext(ListboxSortableContext);
   if (context === undefined) {
     throw new Error(
-      `Base UI: <Listbox.${part}> must be placed in a listbox wrapped in <Listbox.SortableProvider>. ` +
-        'It customizes pointer sorting, which a listbox without the provider does not have. ' +
-        'Wrap the <Listbox.Root> it belongs to in <Listbox.SortableProvider>. ' +
-        'See https://base-ui.com/react/components/listbox#pointer-sorting.',
+      `Base UI: <Listbox.${part}> must be placed in a listbox wrapped in <Listbox.ReorderProvider>. ` +
+        'It customizes pointer reordering, which a listbox without the provider does not have. ' +
+        'Wrap the <Listbox.Root> it belongs to in <Listbox.ReorderProvider>. ' +
+        'See https://base-ui.com/react/components/listbox#pointer-reordering.',
     );
   }
   return context;
 }
 
 /** Public movement metadata excludes internal interaction state. */
-export function toSortingItem<Value>(item: ListboxSortingItem<Value>): ListboxSortingItem<Value> {
+export function toSortingItem<Value>(item: ListboxReorderItem<Value>): ListboxReorderItem<Value> {
   return { id: item.id, value: item.value, index: item.index, groupId: item.groupId };
 }

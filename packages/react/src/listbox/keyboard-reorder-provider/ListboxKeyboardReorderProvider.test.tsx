@@ -15,13 +15,13 @@ async function keyDown(element: HTMLElement, options: { key: string; altKey?: bo
   });
 }
 
-for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvider]) {
+for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider]) {
   describe(`<${Provider.name} /> keyboard sorting`, () => {
     const { render } = createRenderer();
     function Fixture({
       onItemsReorder,
       ...props
-    }: Partial<Listbox.KeyboardSortableProvider.Props<string>>) {
+    }: Partial<Listbox.KeyboardReorderProvider.Props<string>>) {
       const [items, setItems] = React.useState(['a', 'b', 'c', 'd']);
       return (
         <Provider
@@ -47,13 +47,13 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     }
     it('exposes movement metadata without disabled state', async () => {
       const canMoveItems = vi.fn<
-        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['canMoveItems']>
+        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['canMoveItems']>
       >(() => true);
       const isItemSortingDisabled = vi.fn<
-        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['isItemSortingDisabled']>
+        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['isItemSortingDisabled']>
       >(() => false);
       const getAnnouncement = vi.fn<
-        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['getAnnouncement']>
+        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['getAnnouncement']>
       >(() => 'Moved');
       const onItemsReorder = vi.fn();
       await render(
@@ -256,7 +256,7 @@ for (const Provider of [Listbox.KeyboardSortableProvider, Listbox.SortableProvid
     });
     it('passes blocked keyboard moves to getAnnouncement', async () => {
       const getAnnouncement = vi.fn<
-        NonNullable<Listbox.KeyboardSortableProvider.Props<string>['getAnnouncement']>
+        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['getAnnouncement']>
       >(() => undefined);
       await render(<Fixture getAnnouncement={getAnnouncement} />);
       await keyDown(screen.getByRole('option', { name: 'd' }), { key: 'ArrowDown', altKey: true });

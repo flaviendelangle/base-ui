@@ -16,12 +16,12 @@ import type { ListboxItemId } from '../utils/ListboxItemId';
 import { useListboxRootContext } from '../root/ListboxRootContext';
 import { toSortingItem } from './ListboxSortingContext';
 import type {
-  ListboxSortingItem,
+  ListboxReorderItem,
   ListboxSortingItemRecord,
   ListboxSortingContextValue,
 } from './ListboxSortingContext';
 
-export interface ListboxSortingDestination {
+export interface ListboxReorderDestination {
   /**
    * Zero-based insertion index across the entire list, including all groups,
    * before removing the moved items. This is not an index within the destination group.
@@ -30,64 +30,64 @@ export interface ListboxSortingDestination {
   /** Group of the destination item, or null for ungrouped items. */
   groupId: string | null;
 }
-export interface ListboxSortingMove<Value = any> {
-  items: ListboxSortingItem<Value>[];
-  destination: ListboxSortingDestination;
+export interface ListboxReorderMove<Value = any> {
+  items: ListboxReorderItem<Value>[];
+  destination: ListboxReorderDestination;
 }
 export type ListboxItemsReorderEventDetails<Value = any> = Omit<
   BaseUIChangeEventDetails<typeof REASONS.none>,
   'reason'
 > &
-  ListboxSortingMove<Value> & {
+  ListboxReorderMove<Value> & {
     reason: typeof REASONS.keyboard | typeof REASONS.drag;
     /** Complete proposed order, including group membership. Use this when moving items between groups. */
-    order: ListboxSortingItem<Value>[];
+    order: ListboxReorderItem<Value>[];
   };
-export interface ListboxSortingAnnouncementParameters<Value = any> {
+export interface ListboxReorderAnnouncementParameters<Value = any> {
   /** Moved items with their current values and positions. */
-  items: ListboxSortingItem<Value>[];
+  items: ListboxReorderItem<Value>[];
   /**
    * Resulting position of the first moved item, or null if none remain or nothing moved.
    * The index is relative to the whole list after the operation.
    */
-  destination: ListboxSortingDestination | null;
+  destination: ListboxReorderDestination | null;
   reason: 'keyboard' | 'drag';
   /**
-   * - `'moved'`, `'unchanged'`, `'canceled'`: how a completed move or a pointer sort ended.
+   * - `'moved'`, `'unchanged'`, `'canceled'`: how a completed move or a pointer reorder ended.
    * - `'blocked'`: a keyboard move can't go in `direction`.
    */
   outcome: 'moved' | 'unchanged' | 'canceled' | 'blocked';
-  /** The arrow key direction of a keyboard move, or `null` for pointer sorting. */
+  /** The arrow key direction of a keyboard move, or `null` for pointer reordering. */
   direction: 'up' | 'down' | 'left' | 'right' | null;
 }
 
-type ListboxSortingDirection = NonNullable<ListboxSortingAnnouncementParameters['direction']>;
+type ListboxSortingDirection = NonNullable<ListboxReorderAnnouncementParameters['direction']>;
 
 // Word Joiner is invisible and zero-width, so toggling it changes the region's text
 // without changing what is read.
 const REPEAT_MARKER = '\u2060';
 
-export interface ListboxSortingParameters<Value = any> {
-  /** Disables keyboard and pointer sorting. @default false */
+export interface ListboxReorderParameters<Value = any> {
+  /** Disables keyboard and pointer reordering. @default false */
   disabled?: boolean | undefined;
   /**
-   * Event handler called when sorting proposes a new order, with all values in that order.
+   * Event handler called when reordering proposes a new order, with all values in that order.
    * Render the items in this order to accept the move.
    */
   onItemsReorder: (items: Value[], eventDetails: ListboxItemsReorderEventDetails<Value>) => void;
-  /** Applies the same movement rules to keyboard and pointer sorting. */
-  canMoveItems?: ((move: ListboxSortingMove<Value>) => boolean) | undefined;
-  /** Disables sorting for an item without disabling selection. */
-  isItemSortingDisabled?: ((item: ListboxSortingItem<Value>) => boolean) | undefined;
+  /** Applies the same movement rules to keyboard and pointer reordering. */
+  canMoveItems?: ((move: ListboxReorderMove<Value>) => boolean) | undefined;
+  /** Disables reordering for an item without disabling selection. */
+  isItemSortingDisabled?: ((item: ListboxReorderItem<Value>) => boolean) | undefined;
   /**
    * Customizes polite announcements for keyboard moves and final pointer outcomes.
    * Return `undefined` to use the default text.
    */
   getAnnouncement?:
-    ((parameters: ListboxSortingAnnouncementParameters<Value>) => string | undefined) | undefined;
+    ((parameters: ListboxReorderAnnouncementParameters<Value>) => string | undefined) | undefined;
 }
 
-export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>) {
+export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>) {
   const store = useListboxRootContext();
   const rootDisabled = store.useState('disabled');
   const disabled = rootDisabled || !!props.disabled;
@@ -98,7 +98,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const pending = React.useRef<{
     order: ListboxSortingItemRecord<Value>[];
     sourceValue: Value;
-    parameters: ListboxSortingMove<Value> | null;
+    parameters: ListboxReorderMove<Value> | null;
     outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
     reason: 'keyboard' | 'drag';
     direction: ListboxSortingDirection | null;
@@ -146,7 +146,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     ).map((item) => item.id);
   });
   const canMove = useStableCallback(
-    (ids: ListboxItemId[], destination: ListboxSortingDestination) => {
+    (ids: ListboxItemId[], destination: ListboxReorderDestination) => {
       const ordered = getOrderedItems();
       const items = ordered.filter((item) => ids.includes(item.id));
       return (
@@ -176,7 +176,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       .join(', '),
   );
   const announce = useStableCallback(
-    (parameters: ListboxSortingAnnouncementParameters<Value>, fallback: string) => {
+    (parameters: ListboxReorderAnnouncementParameters<Value>, fallback: string) => {
       const text = props.getAnnouncement?.(parameters) ?? fallback;
       // Toggled so that the live region changes, and announces a repeated message again.
       setAnnouncement((previous) =>
@@ -223,7 +223,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
       const destination = first ? { index: first.index, groupId: first.groupId } : null;
       const outcome = proposal.outcome ?? 'moved';
       const fallback = {
-        canceled: 'Sorting canceled.',
+        canceled: 'Reordering canceled.',
         unchanged: 'Order unchanged.',
         moved: `Moved ${getLabel(moved)} to position ${(first?.index ?? index) + 1} of ${items.length}.`,
       }[outcome];
@@ -245,7 +245,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const notifyOrder = useStableCallback(
     (
       items: ListboxSortingItemRecord<Value>[],
-      parameters: ListboxSortingMove<Value>,
+      parameters: ListboxReorderMove<Value>,
       event: Event,
       reason: typeof REASONS.drag | typeof REASONS.keyboard,
     ) => {
@@ -266,7 +266,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
   const move = useStableCallback(
     (
       ids: ListboxItemId[],
-      destination: ListboxSortingDestination,
+      destination: ListboxReorderDestination,
       event: Event,
       sourceId = ids[0],
       reason: typeof REASONS.drag | typeof REASONS.keyboard = REASONS.drag,
@@ -318,7 +318,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     (
       order: ListboxSortingItemRecord<Value>[],
       sourceValue: Value,
-      parameters: ListboxSortingMove<Value>,
+      parameters: ListboxReorderMove<Value>,
       outcome: 'moved' | 'unchanged' | 'canceled',
     ) => {
       pending.current = {
@@ -400,7 +400,7 @@ export function useListboxSorting<Value>(props: ListboxSortingParameters<Value>)
     }
     // A pointer can drop before or after an enabled item, so the keyboard
     // reaches the same slots: it jumps over disabled items in one step.
-    let destination: ListboxSortingDestination | null = null;
+    let destination: ListboxReorderDestination | null = null;
     if (event.key === previousKey) {
       for (let index = moving[0].index - 1; index >= 0 && !destination; index -= 1) {
         const item = ordered[index];

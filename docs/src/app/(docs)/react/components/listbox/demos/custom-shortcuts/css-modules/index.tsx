@@ -58,7 +58,7 @@ export default function ExampleListboxCustomShortcuts() {
 
   return (
     <div className={styles.Field}>
-      <Listbox.KeyboardSortableProvider
+      <Listbox.KeyboardReorderProvider
         onItemsReorder={(order) =>
           setItems((prev) => {
             const itemsByValue = new Map(prev.map((item) => [item.value, item]));
@@ -83,7 +83,7 @@ export default function ExampleListboxCustomShortcuts() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.KeyboardSortableProvider>
+      </Listbox.KeyboardReorderProvider>
     </div>
   );
 }

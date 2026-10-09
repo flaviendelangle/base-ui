@@ -7,17 +7,17 @@ export { ListboxItemText as ItemText } from './item-text/ListboxItemText';
 export { ListboxGroup as Group } from './group/ListboxGroup';
 export { ListboxGroupLabel as GroupLabel } from './group-label/ListboxGroupLabel';
 export { ListboxLoadingTrigger as LoadingTrigger } from './loading-trigger/ListboxLoadingTrigger';
-export { ListboxKeyboardSortableProvider as KeyboardSortableProvider } from './keyboard-sortable-provider/ListboxKeyboardSortableProvider';
-export { ListboxSortableProvider as SortableProvider } from './sortable-provider/ListboxSortableProvider';
-export { ListboxSortHandle as SortHandle } from './sort-handle/ListboxSortHandle';
-export { ListboxSortPreview as SortPreview } from './sort-preview/ListboxSortPreview';
+export { ListboxKeyboardReorderProvider as KeyboardReorderProvider } from './keyboard-reorder-provider/ListboxKeyboardReorderProvider';
+export { ListboxReorderProvider as ReorderProvider } from './reorder-provider/ListboxReorderProvider';
+export { ListboxReorderHandle as ReorderHandle } from './reorder-handle/ListboxReorderHandle';
+export { ListboxReorderPreview as ReorderPreview } from './reorder-preview/ListboxReorderPreview';
 export type { ListboxItemId as ItemId } from './utils/ListboxItemId';
-export type { ListboxSortingItem as SortingItem } from './sorting/ListboxSortingContext';
+export type { ListboxReorderItem as ReorderItem } from './sorting/ListboxSortingContext';
 export type {
-  ListboxSortingMove as SortingMove,
-  ListboxSortingAnnouncementParameters as SortingAnnouncementParameters,
+  ListboxReorderMove as ReorderMove,
+  ListboxReorderAnnouncementParameters as ReorderAnnouncementParameters,
   ListboxItemsReorderEventDetails as ItemsReorderEventDetails,
 } from './sorting/useListboxSorting';
-export type { ListboxSortingDropPosition as SortingDropPosition } from './sortable-provider/ListboxSortableProvider';
+export type { ListboxReorderDropPosition as ReorderDropPosition } from './reorder-provider/ListboxReorderProvider';
 
 export { ListboxItemExternalDropTarget as ItemExternalDropTarget } from './item-external-drop-target/ListboxItemExternalDropTarget';

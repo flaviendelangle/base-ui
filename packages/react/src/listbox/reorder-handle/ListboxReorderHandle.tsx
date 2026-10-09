@@ -4,20 +4,20 @@ import { Draggable } from '../../draggable';
 import { useListboxSortablePart } from '../sorting/ListboxSortingContext';
 
 /**
- * Limits pointer sorting to this handle. Render inside a sortable item.
+ * Limits pointer reordering to this handle. Render inside a reorderable item.
  * Renders a `<span>` element.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
-export const ListboxSortHandle = React.forwardRef(function ListboxSortHandle(
-  props: ListboxSortHandle.Props,
+export const ListboxReorderHandle = React.forwardRef(function ListboxReorderHandle(
+  props: ListboxReorderHandle.Props,
   ref: React.ForwardedRef<HTMLSpanElement>,
 ) {
-  useListboxSortablePart('SortHandle');
+  useListboxSortablePart('ReorderHandle');
   return <Draggable.Handle {...props} ref={ref} />;
 });
-export interface ListboxSortHandleProps extends Draggable.Handle.Props {}
-export namespace ListboxSortHandle {
-  export type Props = ListboxSortHandleProps;
+export interface ListboxReorderHandleProps extends Draggable.Handle.Props {}
+export namespace ListboxReorderHandle {
+  export type Props = ListboxReorderHandleProps;
   export type State = Draggable.Handle.State;
 }

@@ -371,22 +371,22 @@ export interface ListboxItemState {
    */
   highlighted: boolean;
   /**
-   * Whether the item participates in the active pointer sorting operation.
+   * Whether the item participates in the active pointer reordering operation.
    * Includes the item physically picked up and any other selected items included
-   * in the move. Selected items disabled for sorting are excluded.
+   * in the move. Selected items disabled for reordering are excluded.
    * Remains true throughout the gesture, including live reordering, and resets
-   * when the gesture ends or is canceled. Not set by keyboard sorting.
+   * when the gesture ends or is canceled. Not set by keyboard reordering.
    * Exposed as `data-moving`. The drag engine separately sets `data-dragging`
    * only on the item physically picked up.
    */
   moving: boolean;
   /**
-   * Whether the item is the current pointer sorting or external drop destination.
+   * Whether the item is the current pointer reordering or external drop destination.
    * True when `dropPosition` is `before` or `after`.
    * Exposed as `data-drag-over`.
    */
   dragOver: boolean;
-  /** The current pointer sorting or external drop destination on this item. */
+  /** The current pointer reordering or external drop destination on this item. */
   dropPosition: 'before' | 'after' | null;
 }
 
@@ -395,7 +395,7 @@ export interface ListboxItemProps
     NonNativeButtonProps,
     Omit<BaseUIComponentProps<'div', ListboxItemState>, 'id' | 'draggable'> {
   children?: React.ReactNode;
-  /** Configures the underlying Draggable.Root without replacing managed sorting. */
+  /** Configures the underlying Draggable.Root without replacing managed reordering. */
   draggableProps?: ListboxItemDraggableProps | undefined;
   /**
    * A unique value that identifies this listbox item.

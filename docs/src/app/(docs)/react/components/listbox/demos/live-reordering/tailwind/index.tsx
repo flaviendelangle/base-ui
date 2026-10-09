@@ -24,12 +24,12 @@ const ITEM_CLASS =
   'motion-safe: ' +
   'pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]';
 
-export default function ExampleListboxLiveSorting() {
+export default function ExampleListboxLiveReordering() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+      <Listbox.ReorderProvider reorderOn="move" onItemsReorder={setItems}>
         <Listbox.Root defaultValue={[initialItems[0]]}>
           <Listbox.Label className="cursor-default text-sm leading-5 font-medium text-neutral-900 dark:text-neutral-100">
             Queue
@@ -56,7 +56,7 @@ export default function ExampleListboxLiveSorting() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>
+      </Listbox.ReorderProvider>
     </div>
   );
 }

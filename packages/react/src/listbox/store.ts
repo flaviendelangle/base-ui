@@ -4,7 +4,7 @@ import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
 import type { ListboxItemId } from './utils/ListboxItemId';
 import type { ListboxRoot } from './root/ListboxRoot';
-import type { ListboxSortingDropPosition } from './sortable-provider/ListboxSortableProvider';
+import type { ListboxReorderDropPosition } from './reorder-provider/ListboxReorderProvider';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];
@@ -31,7 +31,7 @@ export type State = {
   dragOverItemId: ListboxItemId | null;
   dropPosition: 'before' | 'after' | null;
   /** The destination of the active external drop and the item target that resolved it. */
-  externalDropPosition: { position: ListboxSortingDropPosition; owner: object } | null;
+  externalDropPosition: { position: ListboxReorderDropPosition; owner: object } | null;
 
   // Loading state
   loading: boolean;
@@ -95,7 +95,7 @@ export const selectors = {
       state.dragActiveItemIds != null &&
       state.dragActiveItemIds.has(itemId),
   ),
-  /** The pointer drop placement rendered on an item. External drops take precedence over sorting. */
+  /** The pointer drop placement rendered on an item. External drops take precedence over reordering. */
   dropPositionForItem: createSelector((state: State, itemId: ListboxItemId | undefined) => {
     if (itemId === undefined) {
       return null;

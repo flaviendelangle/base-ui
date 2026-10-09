@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Listbox } from '@base-ui/react/listbox';
 import { expectType } from '#test-utils';
 
-<Listbox.SortableProvider<string>
+<Listbox.ReorderProvider<string>
   onItemsReorder={() => {}}
   getDropPosition={({ source, target }) => {
     expectType<string[], typeof source.payload.items>(source.payload.items);
@@ -11,13 +11,13 @@ import { expectType } from '#test-utils';
     expectType<Listbox.ItemId, typeof target.payload.id>(target.payload.id);
     return 'before';
   }}
-  onSortEnd={(eventDetails) => {
+  onReorderEnd={(eventDetails) => {
     expectType<Listbox.ItemId[], typeof eventDetails.itemIds>(eventDetails.itemIds);
     expectType<boolean, typeof eventDetails.canceled>(eventDetails.canceled);
   }}
 />;
 
-<Listbox.KeyboardSortableProvider<string>
+<Listbox.KeyboardReorderProvider<string>
   onItemsReorder={() => {}}
   canMoveItems={({ items }) => {
     // @ts-expect-error Disabled state is internal, not public movement metadata.
@@ -27,7 +27,7 @@ import { expectType } from '#test-utils';
 />;
 
 // @ts-expect-error `onItemsReorder` is required.
-<Listbox.SortableProvider />;
+<Listbox.ReorderProvider />;
 
 // @ts-expect-error `onItemsReorder` is required.
-<Listbox.KeyboardSortableProvider />;
+<Listbox.KeyboardReorderProvider />;

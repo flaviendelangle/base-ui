@@ -10,15 +10,15 @@ export type * from './group/ListboxGroup';
 export type * from './group-label/ListboxGroupLabel';
 export type * from './loading-trigger/ListboxLoadingTrigger';
 export type { SelectionMode } from './utils/selectionReducer';
-export type * from './keyboard-sortable-provider/ListboxKeyboardSortableProvider';
-export type * from './sortable-provider/ListboxSortableProvider';
-export type * from './sort-handle/ListboxSortHandle';
-export type * from './sort-preview/ListboxSortPreview';
-export type { ListboxSortingItem } from './sorting/ListboxSortingContext';
+export type * from './keyboard-reorder-provider/ListboxKeyboardReorderProvider';
+export type * from './reorder-provider/ListboxReorderProvider';
+export type * from './reorder-handle/ListboxReorderHandle';
+export type * from './reorder-preview/ListboxReorderPreview';
+export type { ListboxReorderItem } from './sorting/ListboxSortingContext';
 export type {
-  ListboxSortingDestination,
-  ListboxSortingMove,
-  ListboxSortingAnnouncementParameters,
+  ListboxReorderDestination,
+  ListboxReorderMove,
+  ListboxReorderAnnouncementParameters,
   ListboxItemsReorderEventDetails,
 } from './sorting/useListboxSorting';
 export type { ListboxItemId } from './utils/ListboxItemId';

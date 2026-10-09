@@ -57,7 +57,7 @@ export default function ExampleListboxCustomShortcuts() {
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.KeyboardSortableProvider
+      <Listbox.KeyboardReorderProvider
         onItemsReorder={(order) =>
           setItems((prev) => {
             const itemsByValue = new Map(prev.map((item) => [item.value, item]));
@@ -91,7 +91,7 @@ export default function ExampleListboxCustomShortcuts() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.KeyboardSortableProvider>
+      </Listbox.KeyboardReorderProvider>
     </div>
   );
 }

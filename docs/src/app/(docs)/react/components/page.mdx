@@ -936,10 +936,10 @@ An always-visible list for selecting one or more options.
   - Examples
     - Selection modes
     - Lazy loading
-    - Sorting
-    - Pointer sorting
-    - Live sorting
-    - Sorting within groups
+    - Reordering
+    - Pointer reordering
+    - Live reordering
+    - Reordering within groups
     - Moving between groups
     - Drop positions
     - Preview and drag options
@@ -948,17 +948,17 @@ An always-visible list for selecting one or more options.
       - Drag to and from other elements
     - Custom keyboard shortcuts
   - API reference
+    - KeyboardReorderProvider
+    - ReorderProvider
     - Root
     - Label
     - List
-    - KeyboardSortableProvider
-    - SortableProvider
-    - SortPreview
+    - ReorderPreview
     - Item
     - Item external drop target
     - ItemText
     - ItemIndicator
-    - SortHandle
+    - ReorderHandle
     - Group
     - GroupLabel
     - LoadingTrigger
@@ -984,17 +984,17 @@ An always-visible list for selecting one or more options.
   - Listbox - ItemExternalDropTarget
     - Props: accept, canDrop, children, className, disabled, draggableProps, dropDisabled, getDropPosition, label, nativeButton, onDraggableDrop, onDropPositionChange, render, style, value
     - Data Attributes: data-disabled, data-drag-over, data-dragging, data-drop-position, data-highlighted, data-moving, data-selected, data-settling
-  - Listbox - KeyboardSortableProvider
+  - Listbox - KeyboardReorderProvider
     - Props: canMoveItems, children, disabled, getAnnouncement, isItemSortingDisabled, onItemsReorder
   - Listbox - LoadingTrigger
     - Props: className, keepMounted, render, style
-  - Listbox - SortableProvider
-    - Props: canMoveItems, children, disabled, getAnnouncement, getDropPosition, isItemSortingDisabled, kind, onDropPositionChange, onItemsReorder, onSortEnd, reorderOn
-  - Listbox - SortHandle
+  - Listbox - ReorderHandle
     - Props: className, render, style
-  - Listbox - SortPreview
+  - Listbox - ReorderPreview
     - Props: children, className, container, disabled, modifiers, offset, render, style
-- Types: Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.DraggableProps, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemExternalDropTarget.DropContext, Listbox.ItemExternalDropTarget.DropEventDetails, Listbox.ItemExternalDropTarget.DropEventReason, Listbox.ItemExternalDropTarget.DropPosition, Listbox.ItemExternalDropTarget.PositionContext, Listbox.ItemExternalDropTarget.Props, Listbox.ItemExternalDropTarget.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.KeyboardSortableProvider.Props, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State, Listbox.SortHandle.Props, Listbox.SortHandle.State, Listbox.SortPreview.Props, Listbox.SortPreview.RenderParameters, Listbox.SortPreview.State, Listbox.SortableProvider.DragPayload, Listbox.SortableProvider.DropContext, Listbox.SortableProvider.DropPositionChangeEventDetails, Listbox.SortableProvider.DropPositionChangeEventReason, Listbox.SortableProvider.Props, Listbox.SortableProvider.SortEndEventDetails, Listbox.SortableProvider.SortEndEventReason
+  - Listbox - ReorderProvider
+    - Props: canMoveItems, children, disabled, getAnnouncement, getDropPosition, isItemSortingDisabled, kind, onDropPositionChange, onItemsReorder, onReorderEnd, reorderOn
+- Types: Listbox.Group.Props, Listbox.Group.State, Listbox.GroupLabel.Props, Listbox.GroupLabel.State, Listbox.Item.DraggableProps, Listbox.Item.Props, Listbox.Item.State, Listbox.ItemExternalDropTarget.DropContext, Listbox.ItemExternalDropTarget.DropEventDetails, Listbox.ItemExternalDropTarget.DropEventReason, Listbox.ItemExternalDropTarget.DropPosition, Listbox.ItemExternalDropTarget.PositionContext, Listbox.ItemExternalDropTarget.Props, Listbox.ItemExternalDropTarget.State, Listbox.ItemIndicator.Props, Listbox.ItemIndicator.State, Listbox.ItemText.Props, Listbox.ItemText.State, Listbox.KeyboardReorderProvider.Props, Listbox.Label.Props, Listbox.Label.State, Listbox.List.Props, Listbox.List.State, Listbox.LoadingTrigger.Props, Listbox.LoadingTrigger.State, Listbox.ReorderHandle.Props, Listbox.ReorderHandle.State, Listbox.ReorderPreview.Props, Listbox.ReorderPreview.RenderParameters, Listbox.ReorderPreview.State, Listbox.ReorderProvider.DragPayload, Listbox.ReorderProvider.DropContext, Listbox.ReorderProvider.DropPositionChangeEventDetails, Listbox.ReorderProvider.DropPositionChangeEventReason, Listbox.ReorderProvider.Props, Listbox.ReorderProvider.ReorderEndEventDetails, Listbox.ReorderProvider.ReorderEndEventReason, Listbox.Root.Actions, Listbox.Root.ChangeEventDetails, Listbox.Root.ChangeEventReason, Listbox.Root.Props, Listbox.Root.State
 
 </details>
 

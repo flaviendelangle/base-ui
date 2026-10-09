@@ -13,7 +13,7 @@ const tracks = [
 ];
 
 const queueKind =
-  Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('demo/queue-track');
+  Draggable.createKind<Listbox.ReorderProvider.DragPayload<string>>('demo/queue-track');
 
 export default function ExampleListboxCrossListDnd() {
   const [queues, setQueues] = React.useState([tracks.slice(0, 3), tracks.slice(3)]);
@@ -32,7 +32,7 @@ export default function ExampleListboxCrossListDnd() {
       <div className={styles.Layout}>
         {queues.map((items, queueIndex) => (
           <div key={queueIndex} className={styles.Field}>
-            <Listbox.SortableProvider
+            <Listbox.ReorderProvider
               kind={queueKind}
               onItemsReorder={(order: string[]) => {
                 setQueues((current) =>
@@ -75,9 +75,9 @@ export default function ExampleListboxCrossListDnd() {
                       value={value}
                       className={styles.Item}
                     >
-                      <Listbox.SortHandle aria-label="Drag track" className={styles.DragHandle}>
+                      <Listbox.ReorderHandle aria-label="Drag track" className={styles.DragHandle}>
                         <GripIcon />
-                      </Listbox.SortHandle>
+                      </Listbox.ReorderHandle>
                       <Listbox.ItemIndicator className={styles.ItemIndicator}>
                         <CheckIcon className={styles.ItemIndicatorIcon} />
                       </Listbox.ItemIndicator>
@@ -89,7 +89,7 @@ export default function ExampleListboxCrossListDnd() {
                   ))}
                 </Listbox.List>
               </Listbox.Root>
-            </Listbox.SortableProvider>
+            </Listbox.ReorderProvider>
           </div>
         ))}
       </div>

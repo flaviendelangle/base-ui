@@ -9,7 +9,7 @@ import { DirectionProvider } from '@base-ui/react/direction-provider';
 import { lift, dragEnter, drop, cancel, setupDragEngineTests, flushRaf } from '../../../test/dnd';
 
 setupDragEngineTests();
-const kind = Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('files');
+const kind = Draggable.createKind<Listbox.ReorderProvider.DragPayload<string>>('files');
 const otherKind = Draggable.createKind<string>('text');
 
 // The exact keys: the drag records of the underlying target events stay internal.
@@ -78,9 +78,9 @@ function Fixture({
         text
       </Draggable.Root>
       {sortable ? (
-        <Listbox.SortableProvider kind={kind} disabled={sortingDisabled} onItemsReorder={setItems}>
+        <Listbox.ReorderProvider kind={kind} disabled={sortingDisabled} onItemsReorder={setItems}>
           {listbox}
-        </Listbox.SortableProvider>
+        </Listbox.ReorderProvider>
       ) : (
         listbox
       )}
@@ -280,18 +280,18 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
   it.each(['drop', 'move'] as const)(
     'finishes a cross-list transfer after reorderOn=%s without rolling back the transfer',
     async (reorderOn) => {
-      const onSortEnd = vi.fn();
+      const onReorderEnd = vi.fn();
       const onDraggableDrop = vi.fn();
       function Example() {
         const [left, setLeft] = React.useState(['a', 'b', 'c']);
         const [right, setRight] = React.useState(['dest']);
         return (
           <Draggable.Provider>
-            <Listbox.SortableProvider
+            <Listbox.ReorderProvider
               kind={kind}
               reorderOn={reorderOn}
               onItemsReorder={setLeft}
-              onSortEnd={onSortEnd}
+              onReorderEnd={onReorderEnd}
             >
               <Listbox.Root>
                 <Listbox.List data-testid="left">
@@ -302,8 +302,8 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                   ))}
                 </Listbox.List>
               </Listbox.Root>
-            </Listbox.SortableProvider>
-            <Listbox.SortableProvider kind={kind} onItemsReorder={setRight}>
+            </Listbox.ReorderProvider>
+            <Listbox.ReorderProvider kind={kind} onItemsReorder={setRight}>
               <Listbox.Root>
                 <Listbox.List data-testid="right">
                   {right.map((value) => (
@@ -329,7 +329,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
                   ))}
                 </Listbox.List>
               </Listbox.Root>
-            </Listbox.SortableProvider>
+            </Listbox.ReorderProvider>
           </Draggable.Provider>
         );
       }
@@ -344,7 +344,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('left').textContent).toBe('bc');
       expect(screen.getByTestId('right').textContent).toBe('desta');
-      expect(onSortEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
+      expect(onReorderEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
     },
   );
   it.each([true, false])(
@@ -368,9 +368,9 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
             data-testid="source"
           />
           {sortable ? (
-            <Listbox.SortableProvider kind={kind} onItemsReorder={() => {}}>
+            <Listbox.ReorderProvider kind={kind} onItemsReorder={() => {}}>
               {listbox}
-            </Listbox.SortableProvider>
+            </Listbox.ReorderProvider>
           ) : (
             listbox
           )}

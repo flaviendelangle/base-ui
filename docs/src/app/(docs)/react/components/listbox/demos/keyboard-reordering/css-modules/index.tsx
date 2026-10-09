@@ -11,12 +11,12 @@ const initialItems = [
   { title: 'Dancing Queen', artist: 'ABBA', value: 'dancing-queen' },
 ];
 
-export default function ExampleListboxSorting() {
+export default function ExampleListboxKeyboardReordering() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className={styles.Field}>
-      <Listbox.SortableProvider
+      <Listbox.KeyboardReorderProvider
         onItemsReorder={(order) => {
           setItems((prev) => {
             const itemsByValue = new Map(prev.map((item) => [item.value, item]));
@@ -29,9 +29,6 @@ export default function ExampleListboxSorting() {
           <Listbox.List className={styles.List}>
             {items.map(({ title, artist, value }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
-                <Listbox.SortHandle className={styles.DragHandle}>
-                  <GripIcon />
-                </Listbox.SortHandle>
                 <Listbox.ItemIndicator className={styles.ItemIndicator}>
                   <CheckIcon className={styles.ItemIndicatorIcon} />
                 </Listbox.ItemIndicator>
@@ -43,21 +40,8 @@ export default function ExampleListboxSorting() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>
+      </Listbox.KeyboardReorderProvider>
     </div>
-  );
-}
-
-function GripIcon(props: React.ComponentProps<'svg'>) {
-  return (
-    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentcolor" {...props}>
-      <circle cx="2" cy="2" r="1.25" />
-      <circle cx="6" cy="2" r="1.25" />
-      <circle cx="2" cy="7" r="1.25" />
-      <circle cx="6" cy="7" r="1.25" />
-      <circle cx="2" cy="12" r="1.25" />
-      <circle cx="6" cy="12" r="1.25" />
-    </svg>
   );
 }
 

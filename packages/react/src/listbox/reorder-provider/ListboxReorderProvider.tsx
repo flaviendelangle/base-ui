@@ -37,16 +37,16 @@ import type { ListboxRootFeature } from '../root/ListboxRootFeatures';
 import { ListboxSortingContext, ListboxSortableContext } from '../sorting/ListboxSortingContext';
 import type { ListboxSortingItemRecord } from '../sorting/ListboxSortingContext';
 import { useListboxSorting } from '../sorting/useListboxSorting';
-import type { ListboxSortingParameters } from '../sorting/useListboxSorting';
+import type { ListboxReorderParameters } from '../sorting/useListboxSorting';
 
-export interface ListboxSortingDragPayload<Value = any> {
+export interface ListboxReorderDragPayload<Value = any> {
   id: ListboxItemId;
   itemIds: ListboxItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: object;
 }
-export interface ListboxSortingDropPosition {
+export interface ListboxReorderDropPosition {
   id: ListboxItemId;
   placement: 'before' | 'after';
   /**
@@ -55,7 +55,7 @@ export interface ListboxSortingDropPosition {
    */
   index?: number | undefined;
 }
-export interface ListboxSortingDropContext<Value = any> {
+export interface ListboxReorderDropContext<Value = any> {
   /** The application value of the row under the pointer. */
   item: Value;
   itemMetadata: { index: number; groupId: string | null };
@@ -66,40 +66,40 @@ export interface ListboxSortingDropContext<Value = any> {
    */
   getLocalPoint: () => DraggableTargetLocalPoint;
   /** The row under the pointer. Its payload identifies the row, not the dragged items. */
-  target: DraggableTargetRecord<ListboxSortingDragPayload<Value>>;
+  target: DraggableTargetRecord<ListboxReorderDragPayload<Value>>;
   /** The item being dragged. */
-  source: DraggableRootRecord<ListboxSortingDragPayload<Value>>;
+  source: DraggableRootRecord<ListboxReorderDragPayload<Value>>;
 }
-/** The event details passed to `onSortEnd`. `reason` is the reason the drag ended. */
-export type ListboxSortableProviderSortEndEventDetails = BaseUIGenericEventDetails<
+/** The event details passed to `onReorderEnd`. `reason` is the reason the drag ended. */
+export type ListboxReorderProviderReorderEndEventDetails = BaseUIGenericEventDetails<
   DraggableRootMoveEndEventReason,
   DragEventDetailsProperties & {
     /** The IDs of the items that were dragged. */
     itemIds: ListboxItemId[];
     /**
-     * Whether the sort was canceled or rolled back: the drag was canceled, it was released
+     * Whether the reorder was canceled or rolled back: the drag was canceled, it was released
      * where the items can't move, or `onItemsReorder` canceled the move.
      * Unlike the drag's own `canceled` flag, it can be `true` when `reason` is `'drop'`.
      */
     canceled: boolean;
   }
 >;
-export type ListboxSortableProviderSortEndEventReason =
-  ListboxSortableProviderSortEndEventDetails['reason'];
+export type ListboxReorderProviderReorderEndEventReason =
+  ListboxReorderProviderReorderEndEventDetails['reason'];
 /** The event details passed to `onDropPositionChange`: why the drop targets under the pointer changed. */
-export type ListboxSortableProviderDropPositionChangeEventDetails = BaseUIGenericEventDetails<
+export type ListboxReorderProviderDropPositionChangeEventDetails = BaseUIGenericEventDetails<
   DraggableRootTargetChangeEventReason,
   DragEventDetailsProperties
 >;
-export type ListboxSortableProviderDropPositionChangeEventReason =
-  ListboxSortableProviderDropPositionChangeEventDetails['reason'];
-export interface ListboxSortableProviderProps<Value = any> extends ListboxSortingParameters<Value> {
+export type ListboxReorderProviderDropPositionChangeEventReason =
+  ListboxReorderProviderDropPositionChangeEventDetails['reason'];
+export interface ListboxReorderProviderProps<Value = any> extends ListboxReorderParameters<Value> {
   children?: React.ReactNode;
   /** Resolves pointer placement. Returning null disallows dropping at this position. */
   getDropPosition?:
     | ((
-        context: ListboxSortableProvider.DropContext<Value>,
-      ) => ListboxSortingDropPosition['placement'] | ListboxSortingDropPosition | null)
+        context: ListboxReorderProvider.DropContext<Value>,
+      ) => ListboxReorderDropPosition['placement'] | ListboxReorderDropPosition | null)
     | undefined;
   /**
    * Event handler called when pointer placement changes.
@@ -107,33 +107,34 @@ export interface ListboxSortableProviderProps<Value = any> extends ListboxSortin
    */
   onDropPositionChange?:
     | ((
-        position: ListboxSortingDropPosition | null,
-        eventDetails: ListboxSortableProvider.DropPositionChangeEventDetails,
+        position: ListboxReorderDropPosition | null,
+        eventDetails: ListboxReorderProvider.DropPositionChangeEventDetails,
       ) => void)
     | undefined;
   /**
-   * When pointer sorting updates the items. Live moves are restored on cancellation
+   * When pointer reordering updates the items. Live moves are restored on cancellation
    * unless an external reorder conflicts with the drag.
    * @default 'drop'
    */
   reorderOn?: 'drop' | 'move' | undefined;
-  /** An explicit kind for integrating sorting with external drag sources and targets. */
-  kind?: DraggableKind<ListboxSortableProvider.DragPayload<Value>> | undefined;
+  /** An explicit kind for integrating reordering with external drag sources and targets. */
+  kind?: DraggableKind<ListboxReorderProvider.DragPayload<Value>> | undefined;
   /**
-   * Event handler called once when pointer sorting ends, after the final move or rollback
+   * Event handler called once when pointer reordering ends, after the final move or rollback
    * is proposed. `eventDetails.itemIds` lists the dragged items, and
-   * `eventDetails.canceled` tells whether the sort was canceled or rolled back.
+   * `eventDetails.canceled` tells whether the reorder was canceled or rolled back.
    */
-  onSortEnd?: ((eventDetails: ListboxSortableProvider.SortEndEventDetails) => void) | undefined;
+  onReorderEnd?:
+    ((eventDetails: ListboxReorderProvider.ReorderEndEventDetails) => void) | undefined;
 }
 
 /**
- * Enables keyboard and pointer sorting in the listbox it wraps, with automatic item registration.
+ * Enables keyboard and pointer reordering in the listbox it wraps, with automatic item registration.
  * Renders a visually hidden announcement region inside the listbox.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
-export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvider.Props<Value>) {
+export function ListboxReorderProvider<Value = any>(props: ListboxReorderProvider.Props<Value>) {
   const {
     children,
     disabled,
@@ -145,11 +146,11 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
     onDropPositionChange,
     reorderOn,
     kind,
-    onSortEnd,
+    onReorderEnd,
   } = props;
   const feature = React.useMemo(
     (): ListboxRootFeature => ({
-      name: 'SortableProvider',
+      name: 'ReorderProvider',
       render: (rootChildren) => (
         <ListboxPointerSorting
           disabled={disabled}
@@ -161,7 +162,7 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
           onDropPositionChange={onDropPositionChange}
           reorderOn={reorderOn}
           kind={kind}
-          onSortEnd={onSortEnd}
+          onReorderEnd={onReorderEnd}
         >
           {rootChildren}
         </ListboxPointerSorting>
@@ -177,38 +178,44 @@ export function ListboxSortableProvider<Value = any>(props: ListboxSortableProvi
       onDropPositionChange,
       reorderOn,
       kind,
-      onSortEnd,
+      onReorderEnd,
     ],
   );
   return <ListboxRootFeatureProvider feature={feature}>{children}</ListboxRootFeatureProvider>;
 }
 
-/** The sorting of `Listbox.SortableProvider`, rendered inside the root it wraps. */
-function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value>) {
-  const { children, reorderOn = 'drop', getDropPosition, onDropPositionChange, onSortEnd } = props;
+/** The reordering of `Listbox.ReorderProvider`, rendered inside the root it wraps. */
+function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>) {
+  const {
+    children,
+    reorderOn = 'drop',
+    getDropPosition,
+    onDropPositionChange,
+    onReorderEnd,
+  } = props;
   const sorting = useListboxSorting(props);
   const { store, disabled: sortingDisabled, getItemIds, getOrderedItems } = sorting;
   const direction = useDirection();
   const [localKind] = React.useState(() =>
-    Draggable.createKind<ListboxSortingDragPayload<Value>>('listbox-sort'),
+    Draggable.createKind<ListboxReorderDragPayload<Value>>('listbox-sort'),
   );
   const kind = props.kind ?? localKind;
   const externalCompletion = React.useRef(false);
-  const position = React.useRef<ListboxSortingDropPosition | null>(null);
+  const position = React.useRef<ListboxReorderDropPosition | null>(null);
   const [transaction] = React.useState(
     () => new SortingTransaction<ListboxSortingItemRecord<Value>[]>(),
   );
-  const lastMovePosition = React.useRef<ListboxSortingDropPosition | null>(null);
+  const lastMovePosition = React.useRef<ListboxReorderDropPosition | null>(null);
   const lastEvent = React.useRef<Event | null>(null);
-  const activePayload = React.useRef<ListboxSortingDragPayload<Value> | null>(null);
+  const activePayload = React.useRef<ListboxReorderDragPayload<Value> | null>(null);
   const focusFrame = useAnimationFrame();
   const reconcileFrame = useAnimationFrame();
 
   // When the dragged row remounts, for example in another group, the engine moves the drag
   // onto the new row, whose declared payload only identifies it. Keep the pickup payload.
-  const getActivePayload = (dragSource: DraggableRootRecord<ListboxSortingDragPayload<Value>>) =>
+  const getActivePayload = (dragSource: DraggableRootRecord<ListboxReorderDragPayload<Value>>) =>
     activePayload.current ?? dragSource.payload;
-  const getSourceItems = useStableCallback((source: ListboxSortingDragPayload<Value>) =>
+  const getSourceItems = useStableCallback((source: ListboxReorderDragPayload<Value>) =>
     sorting
       .getOrderedItems()
       .filter((item) =>
@@ -226,13 +233,13 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
       sameItem,
     ),
   );
-  const getDestination = useStableCallback((next: ListboxSortingDropPosition) =>
+  const getDestination = useStableCallback((next: ListboxReorderDropPosition) =>
     getListboxDropDestination(sorting.getOrderedItems(), next),
   );
   const resolve = useStableCallback(
     (
-      target: DraggableTargetRecord<ListboxSortingDragPayload<Value>> | null,
-      dragSource: DraggableRootRecord<ListboxSortingDragPayload<Value>>,
+      target: DraggableTargetRecord<ListboxReorderDragPayload<Value>> | null,
+      dragSource: DraggableRootRecord<ListboxReorderDragPayload<Value>>,
     ) => {
       const source = getActivePayload(dragSource);
       if (!target || source.collectionId !== store || sorting.disabled) {
@@ -273,8 +280,8 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
   );
   const setPosition = useStableCallback(
     (
-      next: ListboxSortingDropPosition | null,
-      eventDetails: ListboxSortableProviderDropPositionChangeEventDetails,
+      next: ListboxReorderDropPosition | null,
+      eventDetails: ListboxReorderProviderDropPositionChangeEventDetails,
     ) => {
       if (isSameDropPosition(position.current, next)) {
         return;
@@ -515,7 +522,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
               lastMovePosition.current = null;
               store.context.pointerMoveSuppressedRef.current = false;
               externalCompletion.current = false;
-              onSortEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled: false });
+              onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled: false });
               return;
             }
             const next = resolve(target, dragSource);
@@ -575,7 +582,7 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
             focusFrame.request(() => {
               store.context.pointerMoveSuppressedRef.current = false;
             });
-            onSortEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled });
+            onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled });
           }}
         >
           <ListboxSortableContext.Provider value={sortable}>
@@ -589,15 +596,14 @@ function ListboxPointerSorting<Value>(props: ListboxSortableProvider.Props<Value
     </ListboxSortingContext.Provider>
   );
 }
-export namespace ListboxSortableProvider {
-  export type Props<Value = any> = ListboxSortableProviderProps<Value>;
-  export type DragPayload<Value = any> = ListboxSortingDragPayload<Value>;
-  export type DropContext<Value = any> = ListboxSortingDropContext<Value>;
-  export type DropPositionChangeEventDetails =
-    ListboxSortableProviderDropPositionChangeEventDetails;
-  export type DropPositionChangeEventReason = ListboxSortableProviderDropPositionChangeEventReason;
-  export type SortEndEventDetails = ListboxSortableProviderSortEndEventDetails;
-  export type SortEndEventReason = ListboxSortableProviderSortEndEventReason;
+export namespace ListboxReorderProvider {
+  export type Props<Value = any> = ListboxReorderProviderProps<Value>;
+  export type DragPayload<Value = any> = ListboxReorderDragPayload<Value>;
+  export type DropContext<Value = any> = ListboxReorderDropContext<Value>;
+  export type DropPositionChangeEventDetails = ListboxReorderProviderDropPositionChangeEventDetails;
+  export type DropPositionChangeEventReason = ListboxReorderProviderDropPositionChangeEventReason;
+  export type ReorderEndEventDetails = ListboxReorderProviderReorderEndEventDetails;
+  export type ReorderEndEventReason = ListboxReorderProviderReorderEndEventReason;
 }
 
 /**
@@ -607,10 +613,10 @@ export namespace ListboxSortableProvider {
 function ListboxSortableRowPayload<Value>(props: {
   id: ListboxItemId;
   collectionId: object;
-  children: (payload: ListboxSortingDragPayload<Value>) => React.ReactElement;
+  children: (payload: ListboxReorderDragPayload<Value>) => React.ReactElement;
 }) {
   const { id, collectionId, children } = props;
-  const payload = React.useMemo<ListboxSortingDragPayload<Value>>(
+  const payload = React.useMemo<ListboxReorderDragPayload<Value>>(
     () => ({ id, itemIds: [id], items: [], collectionId }),
     [id, collectionId],
   );

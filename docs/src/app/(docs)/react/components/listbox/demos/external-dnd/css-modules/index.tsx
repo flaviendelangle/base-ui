@@ -13,7 +13,7 @@ const tracks = [
 ];
 
 const queueKind =
-  Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('demo/queue-track');
+  Draggable.createKind<Listbox.ReorderProvider.DragPayload<string>>('demo/queue-track');
 const paletteKind = Draggable.createKind<string>('demo/library-track');
 
 export default function ExampleListboxExternalDnd() {
@@ -47,7 +47,7 @@ export default function ExampleListboxExternalDnd() {
           ))}
         </div>
         <div className={styles.Field}>
-          <Listbox.SortableProvider
+          <Listbox.ReorderProvider
             kind={queueKind}
             onItemsReorder={(order: string[]) => {
               setItems((current) =>
@@ -78,9 +78,9 @@ export default function ExampleListboxExternalDnd() {
                     value={value}
                     className={styles.Item}
                   >
-                    <Listbox.SortHandle aria-label="Drag track" className={styles.DragHandle}>
+                    <Listbox.ReorderHandle aria-label="Drag track" className={styles.DragHandle}>
                       <GripIcon />
-                    </Listbox.SortHandle>
+                    </Listbox.ReorderHandle>
                     <Listbox.ItemIndicator className={styles.ItemIndicator}>
                       <CheckIcon className={styles.ItemIndicatorIcon} />
                     </Listbox.ItemIndicator>
@@ -92,7 +92,7 @@ export default function ExampleListboxExternalDnd() {
                 ))}
               </Listbox.List>
             </Listbox.Root>
-          </Listbox.SortableProvider>
+          </Listbox.ReorderProvider>
         </div>
         <div className={styles.Field}>
           <span className={styles.Label}>Archive</span>

@@ -17,12 +17,12 @@ const initialItems: Song[] = [
   { title: 'Dancing Queen', artist: 'ABBA', value: 'dancing-queen' },
 ];
 
-export default function ExampleListboxLiveSorting() {
+export default function ExampleListboxLiveReordering() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className={styles.Field}>
-      <Listbox.SortableProvider reorderOn="move" onItemsReorder={setItems}>
+      <Listbox.ReorderProvider reorderOn="move" onItemsReorder={setItems}>
         <Listbox.Root defaultValue={[initialItems[0]]}>
           <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
           <Listbox.List className={styles.List}>
@@ -42,7 +42,7 @@ export default function ExampleListboxLiveSorting() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.SortableProvider>
+      </Listbox.ReorderProvider>
     </div>
   );
 }

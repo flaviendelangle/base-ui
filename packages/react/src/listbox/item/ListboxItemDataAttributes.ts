@@ -11,9 +11,9 @@ export const highlighted = 'data-highlighted';
  */
 export const disabled = 'data-disabled';
 /**
- * Present while the item participates in an active pointer sort, including
- * selected items moving with the picked-up item. Items disabled for sorting are excluded.
- * Removed when the gesture ends or is canceled; not set by keyboard sorting.
+ * Present while the item participates in an active pointer reorder, including
+ * selected items moving with the picked-up item. Items disabled for reordering are excluded.
+ * Removed when the gesture ends or is canceled; not set by keyboard reordering.
  * Unlike `data-dragging`, this does not mean the item was physically picked up.
  */
 export const moving = 'data-moving';
@@ -24,7 +24,7 @@ export const dragging = 'data-dragging';
  * animation finishes. Managed by the drag engine.
  */
 export const settling = 'data-settling';
-/** Present when the item is the current pointer sorting or external drop destination. */
+/** Present when the item is the current pointer reordering or external drop destination. */
 export const dragOver = 'data-drag-over';
-/** The sorting or external drop destination: before or after. */
+/** The reordering or external drop destination: before or after. */
 export const dropPosition = 'data-drop-position';

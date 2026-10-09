@@ -2,30 +2,30 @@
 import * as React from 'react';
 import { Draggable } from '../../draggable';
 import type { ListboxItemId } from '../utils/ListboxItemId';
-import type { ListboxSortingDragPayload } from '../sortable-provider/ListboxSortableProvider';
+import type { ListboxReorderDragPayload } from '../reorder-provider/ListboxReorderProvider';
 import { useListboxSortablePart } from '../sorting/ListboxSortingContext';
 
 /**
- * Customizes or hides the pointer preview. Render inside a sortable item.
+ * Customizes or hides the pointer preview. Render inside a reorderable item.
  * Renders a `<div>` element, which is copied beside the dragged item while dragging.
  *
  * Documentation: [Base UI Listbox](https://base-ui.com/react/components/listbox)
  */
-export function ListboxSortPreview<Value = any>(props: ListboxSortPreview.Props<Value>) {
+export function ListboxReorderPreview<Value = any>(props: ListboxReorderPreview.Props<Value>) {
   const { children, ...other } = props;
-  useListboxSortablePart('SortPreview');
+  useListboxSortablePart('ReorderPreview');
   return (
     <Draggable.Preview {...other}>
       {typeof children === 'function'
         ? ({ source, location }) => {
-            const payload = source.payload as ListboxSortingDragPayload<Value>;
+            const payload = source.payload as ListboxReorderDragPayload<Value>;
             return children({ itemIds: payload.itemIds, items: payload.items, source, location });
           }
         : children}
     </Draggable.Preview>
   );
 }
-export interface ListboxSortPreviewProps<Value = any> extends Omit<
+export interface ListboxReorderPreviewProps<Value = any> extends Omit<
   Draggable.Preview.Props,
   'children' | 'kind'
 > {
@@ -39,10 +39,11 @@ export interface ListboxSortPreviewProps<Value = any> extends Omit<
    * drag starts, and again on each `Draggable.updatePreview()`.
    */
   children?:
-    React.ReactNode | ((parameters: ListboxSortPreviewRenderParameters<Value>) => React.ReactNode);
+    | React.ReactNode
+    | ((parameters: ListboxReorderPreviewRenderParameters<Value>) => React.ReactNode);
 }
 
-export interface ListboxSortPreviewRenderParameters<Value = any> {
+export interface ListboxReorderPreviewRenderParameters<Value = any> {
   /** The ids of the dragged items. */
   itemIds: ListboxItemId[];
   /** The dragged items. */
@@ -55,8 +56,8 @@ export interface ListboxSortPreviewRenderParameters<Value = any> {
   /** The pointer position and drop targets when the preview renders. */
   location: Draggable.LocationHistory;
 }
-export namespace ListboxSortPreview {
-  export type Props<Value = any> = ListboxSortPreviewProps<Value>;
-  export type RenderParameters<Value = any> = ListboxSortPreviewRenderParameters<Value>;
+export namespace ListboxReorderPreview {
+  export type Props<Value = any> = ListboxReorderPreviewProps<Value>;
+  export type RenderParameters<Value = any> = ListboxReorderPreviewRenderParameters<Value>;
   export type State = Draggable.Preview.State;
 }

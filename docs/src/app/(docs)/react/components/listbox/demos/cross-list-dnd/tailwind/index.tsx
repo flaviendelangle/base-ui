@@ -12,7 +12,7 @@ const tracks = [
 ];
 
 const queueKind =
-  Draggable.createKind<Listbox.SortableProvider.DragPayload<string>>('demo/queue-track');
+  Draggable.createKind<Listbox.ReorderProvider.DragPayload<string>>('demo/queue-track');
 
 export default function ExampleListboxCrossListDnd() {
   const [queues, setQueues] = React.useState([tracks.slice(0, 3), tracks.slice(3)]);
@@ -31,7 +31,7 @@ export default function ExampleListboxCrossListDnd() {
       <div className="flex flex-wrap items-start gap-6">
         {queues.map((items, queueIndex) => (
           <div key={queueIndex} className="flex flex-col gap-1">
-            <Listbox.SortableProvider
+            <Listbox.ReorderProvider
               kind={queueKind}
               onItemsReorder={(order: string[]) => {
                 setQueues((current) =>
@@ -74,12 +74,12 @@ export default function ExampleListboxCrossListDnd() {
                       value={value}
                       className="relative grid cursor-default grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-neutral-900 dark:text-neutral-100 outline-hidden select-none data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-neutral-100 dark:data-[highlighted]:before:bg-neutral-800 data-[disabled]:text-neutral-400 dark:data-[disabled]:text-neutral-500 data-[disabled]:data-[highlighted]:before:bg-neutral-200 dark:data-[disabled]:data-[highlighted]:before:bg-neutral-900 data-[moving]:opacity-50 data-[drop-position=before]:after:absolute data-[drop-position=before]:after:top-[-1px] data-[drop-position=before]:after:left-1 data-[drop-position=before]:after:right-1 data-[drop-position=before]:after:h-0.5 data-[drop-position=before]:after:bg-blue-500 data-[drop-position=before]:after:content-[''] data-[drop-position=after]:after:absolute data-[drop-position=after]:after:bottom-[-1px] data-[drop-position=after]:after:left-1 data-[drop-position=after]:after:right-1 data-[drop-position=after]:after:h-0.5 data-[drop-position=after]:after:bg-blue-500 data-[drop-position=after]:after:content-[''] pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]"
                     >
-                      <Listbox.SortHandle
+                      <Listbox.ReorderHandle
                         aria-label="Drag track"
                         className="col-start-1 flex w-6 shrink-0 items-center justify-center cursor-grab text-neutral-400 active:cursor-grabbing"
                       >
                         <GripIcon />
-                      </Listbox.SortHandle>
+                      </Listbox.ReorderHandle>
                       <Listbox.ItemIndicator className="col-start-2">
                         <CheckIcon className="size-3" />
                       </Listbox.ItemIndicator>
@@ -93,7 +93,7 @@ export default function ExampleListboxCrossListDnd() {
                   ))}
                 </Listbox.List>
               </Listbox.Root>
-            </Listbox.SortableProvider>
+            </Listbox.ReorderProvider>
           </div>
         ))}
       </div>

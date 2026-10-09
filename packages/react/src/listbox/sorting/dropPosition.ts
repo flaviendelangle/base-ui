@@ -1,11 +1,11 @@
 import type { ListboxSortingItemRecord } from './ListboxSortingContext';
-import type { ListboxSortingDropPosition } from '../sortable-provider/ListboxSortableProvider';
-import type { ListboxSortingDestination } from './useListboxSorting';
+import type { ListboxReorderDropPosition } from '../reorder-provider/ListboxReorderProvider';
+import type { ListboxReorderDestination } from './useListboxSorting';
 
 export function getListboxDropDestination(
   ordered: ListboxSortingItemRecord<unknown>[],
-  position: ListboxSortingDropPosition,
-): ListboxSortingDestination | null {
+  position: ListboxReorderDropPosition,
+): ListboxReorderDestination | null {
   const target = ordered.find((item) => item.id === position.id);
   if (!target || target.disabled) {
     return null;

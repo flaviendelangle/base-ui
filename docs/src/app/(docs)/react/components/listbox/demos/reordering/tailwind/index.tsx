@@ -10,12 +10,12 @@ const initialItems = [
   { title: 'Dancing Queen', artist: 'ABBA', value: 'dancing-queen' },
 ];
 
-export default function ExampleListboxKeyboardSorting() {
+export default function ExampleListboxReordering() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className="flex flex-col gap-1">
-      <Listbox.KeyboardSortableProvider
+      <Listbox.ReorderProvider
         onItemsReorder={(order) => {
           setItems((prev) => {
             const itemsByValue = new Map(prev.map((item) => [item.value, item]));
@@ -34,6 +34,9 @@ export default function ExampleListboxKeyboardSorting() {
                 value={value}
                 className="relative grid cursor-default grid-cols-[1.5rem_0.75rem_1fr] items-center gap-1.5 py-2 pr-4 pl-1 text-sm leading-4 text-neutral-900 dark:text-neutral-100 outline-hidden select-none data-[highlighted]:z-0 data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-xs data-[highlighted]:before:bg-neutral-100 dark:data-[highlighted]:before:bg-neutral-800 data-[disabled]:text-neutral-400 dark:data-[disabled]:text-neutral-500 data-[disabled]:data-[highlighted]:before:bg-neutral-200 dark:data-[disabled]:data-[highlighted]:before:bg-neutral-900 data-[moving]:opacity-50 data-[drop-position=before]:after:absolute data-[drop-position=before]:after:top-[-1px] data-[drop-position=before]:after:left-1 data-[drop-position=before]:after:right-1 data-[drop-position=before]:after:h-0.5 data-[drop-position=before]:after:bg-blue-500 data-[drop-position=before]:after:content-[''] data-[drop-position=after]:after:absolute data-[drop-position=after]:after:bottom-[-1px] data-[drop-position=after]:after:left-1 data-[drop-position=after]:after:right-1 data-[drop-position=after]:after:h-0.5 data-[drop-position=after]:after:bg-blue-500 data-[drop-position=after]:after:content-[''] pointer-coarse:py-2.5 pointer-coarse:text-[0.925rem]"
               >
+                <Listbox.ReorderHandle className="col-start-1 flex w-6 shrink-0 items-center justify-center cursor-grab text-neutral-400 active:cursor-grabbing">
+                  <GripIcon />
+                </Listbox.ReorderHandle>
                 <Listbox.ItemIndicator className="col-start-2">
                   <CheckIcon className="size-3" />
                 </Listbox.ItemIndicator>
@@ -45,8 +48,21 @@ export default function ExampleListboxKeyboardSorting() {
             ))}
           </Listbox.List>
         </Listbox.Root>
-      </Listbox.KeyboardSortableProvider>
+      </Listbox.ReorderProvider>
     </div>
+  );
+}
+
+function GripIcon(props: React.ComponentProps<'svg'>) {
+  return (
+    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentcolor" {...props}>
+      <circle cx="2" cy="2" r="1.25" />
+      <circle cx="6" cy="2" r="1.25" />
+      <circle cx="2" cy="7" r="1.25" />
+      <circle cx="6" cy="7" r="1.25" />
+      <circle cx="2" cy="12" r="1.25" />
+      <circle cx="6" cy="12" r="1.25" />
+    </svg>
   );
 }
 
