@@ -16,8 +16,7 @@ import styles from '../sortable.module.css';
 
 const taskKind = Draggable.createKind<string>('sortable-drop-task');
 
-// Memoized with stable handlers, so a reorder only moves DOM nodes instead of
-// re-rendering every item on each collision change.
+// Memoized with stable handlers, so a collision change doesn't re-render every item.
 const Task = React.memo(function Task({
   task,
   onSwap,
@@ -27,16 +26,13 @@ const Task = React.memo(function Task({
   placement?: TaskDestination['placement'];
   onSwap: (task: string, direction: 'up' | 'down') => void;
 }) {
-  const rowRef = React.useRef<HTMLDivElement | null>(null);
   const [selfDrop, setSelfDrop] = React.useState(false);
-  const trackSelfDrop = useStableCallback(
-    (eventDetails: Draggable.Root.TargetChangeEventDetails<string>) => {
-      setSelfDrop(eventDetails.target?.element === rowRef.current);
-    },
-  );
+  function trackSelfDrop(eventDetails: Draggable.Root.TargetChangeEventDetails<string>) {
+    setSelfDrop(eventDetails.target?.payload === task);
+  }
 
   return (
-    <div data-sortable-row ref={rowRef} className={styles.Row}>
+    <div data-sortable-row className={styles.Row}>
       <Draggable.Root
         kind={taskKind}
         payload={task}
@@ -67,21 +63,6 @@ export default function SortableOnDrop() {
   const [tasks, setTasks] = React.useState(INITIAL_TASKS);
   const [announcement, setAnnouncement] = React.useState('');
   const [destination, setDestination] = React.useState<TaskDestination | null>(null);
-  const trackCollision = useStableCallback(
-    (eventDetails: Draggable.CollisionProvider.CollisionChangeEventDetails<string>) => {
-      const next = getTaskDestination(eventDetails.target);
-      if (sameTaskDestination(next, getTaskDestination(eventDetails.previousTarget))) {
-        return;
-      }
-      setDestination(next);
-    },
-  );
-  const reorder = useStableCallback(
-    (eventDetails: Draggable.CollisionProvider.MoveEndEventDetails<string>) => {
-      setDestination(null);
-      setTasks((current) => moveTask(current, eventDetails));
-    },
-  );
   const swap = useStableCallback((task: string, direction: 'up' | 'down') => {
     const next = swapTask(tasks, task, direction);
     if (next === tasks) {
@@ -95,8 +76,17 @@ export default function SortableOnDrop() {
       {/* @highlight-start @focus @padding 1 */}
       <Draggable.CollisionProvider
         kind={taskKind}
-        onCollisionChange={trackCollision}
-        onMoveEnd={reorder}
+        onCollisionChange={(eventDetails) => {
+          const next = getTaskDestination(eventDetails.target);
+          if (sameTaskDestination(next, getTaskDestination(eventDetails.previousTarget))) {
+            return;
+          }
+          setDestination(next);
+        }}
+        onMoveEnd={(eventDetails) => {
+          setDestination(null);
+          setTasks((current) => moveTask(current, eventDetails));
+        }}
       >
         {/* @highlight-end */}
         <div className={styles.Root} role="group" aria-label="Tasks reordered on drop">

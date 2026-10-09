@@ -1,6 +1,5 @@
 'use client';
 import * as React from 'react';
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import type { BaseUIComponentProps } from '../../internals/types';
 import { useRenderElement } from '../../internals/useRenderElement';
 import { useRegistrationRef } from '../../utils/drag-and-drop/useRegistrationRef';
@@ -20,13 +19,9 @@ export const DraggableHandle = React.forwardRef(function DraggableHandle(
   const { className, render, style, ...elementProps } = componentProps;
   const context = useDraggableRootContext();
 
-  const token = useRefWithInit(() => ({})).current;
-  // Attaching or detaching a handle re-registers its root. `useRegistrationRef`
-  // ignores the detach and re-attach an inline `ref` causes on every render.
-  const handleRef = useRegistrationRef<HTMLElement>((node) => {
-    context.setHandleElement(node, token);
-    return () => context.setHandleElement(null, token);
-  });
+  // Attaching or detaching a handle refreshes its root's gesture setup.
+  // `useRegistrationRef` ignores the detach and re-attach an inline `ref` causes on every render.
+  const handleRef = useRegistrationRef<HTMLElement>(context.registerHandle);
 
   return useRenderElement('span', componentProps, {
     state: { disabled: context.disabled },
@@ -46,11 +41,8 @@ export interface DraggableHandleProps extends BaseUIComponentProps<'span', Dragg
 
 /**
  * The element that must be pressed to start a drag, for the `handle` option of
- * `registerSource`. `<Draggable.Root>` uses `<Draggable.Handle>` instead.
- *
- * - `Element`: This element.
- * - `RefObject`: The element the ref points to.
- * - `function`: Returns the handle, or `null` to make the whole draggable its own handle.
+ * `registerSource`: an element, a ref to one, or a function that returns one.
+ * A `null` handle makes the whole draggable its own handle.
  */
 export type DraggableHandleReference =
   Element | { current: Element | null } | (() => Element | null | undefined);

@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, screen } from '@mui/internal-test-utils';
-import { createDndRenderer, firePointer, testDragKind } from '#test-utils';
+import { firePointer } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { Slider } from '@base-ui/react/slider';
+import { createDndRenderer, testDragKind } from '../../../../test/dndEngine';
 import { flushRaf, setupDragEngineTests } from '../../../../test/dnd';
 import { penDown, penMove, touchDown, touchMove, touchUp } from '../../../../test/syntheticPointer';
-import { cancelDrag } from '../cancelDrag';
+import { cancelDrag } from './pickupRecognizer';
 
 setupDragEngineTests();
 
@@ -14,9 +15,8 @@ type CaptureMethod = 'setPointerCapture' | 'hasPointerCapture' | 'releasePointer
 
 /**
  * Synthetic pointer events have no active pointer to capture, and jsdom has no
- * pointer capture at all. A minimal model stands in for the browser's, one
- * capturing element per pointer, so the slider's `setPointerCapture` and the
- * sensor's check see the same state in both environments.
+ * pointer capture at all. This model (one capturing element per pointer) gives the
+ * slider's `setPointerCapture` and the sensor's check the same state everywhere.
  */
 const captures = new Map<number, Element>();
 const fakeCapture: Record<CaptureMethod, (this: Element, pointerId: number) => unknown> = {

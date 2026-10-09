@@ -1,10 +1,11 @@
 import { Store } from '@base-ui/utils/store';
 import type { ReadonlyStore } from '@base-ui/utils/store';
-import type { DraggableLocationHistory } from '../../draggable/DraggableProvider';
+import type {
+  DraggableLocation,
+  DraggableLocationHistory,
+} from '../../draggable/DraggableProvider';
 import type { DraggableRootRecord } from '../../draggable/root/DraggableRoot';
-import type { DraggableTargetRecord } from '../../draggable/target/DraggableTarget';
 import { getSharedSlot } from './sharedState';
-import { getActivePreviewHandle } from './activePreview';
 
 /**
  * Snapshot of the active drag, mirrored from the lifecycle for reactive
@@ -13,12 +14,9 @@ import { getActivePreviewHandle } from './activePreview';
 export interface DragSessionState {
   source: DraggableRootRecord;
   location: DraggableLocationHistory;
-  /** The elements of every drop target in the active stack, as a set for constant-time lookups. */
-  dropTargetElements: ReadonlySet<Element>;
   /**
-   * The target whose `canDrop` returned `'reject'` at the current position, or
-   * `null`. A rejection refuses the drop and empties the stack, so this is the
-   * only record of it. Drives `data-rejected`.
+   * The target whose `canDrop` returned `'reject'` at the current position, or `null`.
+   * A rejection empties the stack, so this is its only record. Drives `data-rejected`.
    */
   rejectedTarget: Element | null;
 }
@@ -31,8 +29,6 @@ interface DragSessionSlot {
   sourceVersion: number;
   targetListeners: Map<Element, Set<() => void>>;
   allTargetListeners: Set<() => void>;
-  /** The live record each published target snapshot was copied from. */
-  targetSnapshotOrigins: WeakMap<DraggableTargetRecord, DraggableTargetRecord>;
 }
 
 const slot = getSharedSlot<DragSessionSlot>('dragSessionStore', () => ({
@@ -42,53 +38,28 @@ const slot = getSharedSlot<DragSessionSlot>('dragSessionStore', () => ({
   sourceVersion: 0,
   targetListeners: new Map<Element, Set<() => void>>(),
   allTargetListeners: new Set<() => void>(),
-  targetSnapshotOrigins: new WeakMap<DraggableTargetRecord, DraggableTargetRecord>(),
 }));
 
-/**
- * Read-only handle to the singleton drag-session store. Subscribe with
- * `useStore(dragSessionStore, selector)` or `dragSessionStore.subscribe(fn)`.
- */
 export const dragSessionStore: ReadonlyStore<DragSessionState | null> = slot.store;
 
+/**
+ * Publishes a copy of the session's source, since `useStore` re-runs a selector only
+ * for a new reference and the session's `source` is mutated in place (see
+ * `retargetDragSource`). Don't compare it to an event's `source` by identity.
+ */
 export const dragSourceStore: ReadonlyStore<DraggableRootRecord | null> = slot.sourceStore;
 
-/** Publish an imperative data update to subscribers of the active source. */
+/**
+ * Publish an imperative data update of the active source to `dragSourceStore`.
+ * Records read their payload and drag data live, so the session isn't republished.
+ */
 export function notifyDragSourceUpdated(source: DraggableRootRecord): void {
-  const session = slot.store.state;
-  if (session?.source !== source) {
-    return;
-  }
-  slot.store.setState({ ...session });
-  // A session subscriber can synchronously cancel or start another drag, so
-  // check the source again before publishing it.
   if (slot.store.state?.source === source) {
     slot.sourceStore.setState({ ...source });
   }
 }
 
-/** Publish changed target data without resolving the hover stack again. */
-export function notifyDragTargetUpdated(source: DraggableRootRecord, element: Element): void {
-  const session = slot.store.state;
-  if (session?.source !== source) {
-    return;
-  }
-  const location = cloneLocationHistory(session.location);
-  for (const entry of [location.initial, location.current, location.previous]) {
-    entry.targets = entry.targets.map((target) => {
-      if (target.element !== element) {
-        return target;
-      }
-      const original = slot.targetSnapshotOrigins.get(target) ?? target;
-      const snapshot = { ...original };
-      slot.targetSnapshotOrigins.set(snapshot, original);
-      return snapshot;
-    });
-  }
-  setDragSession({ ...session, location });
-}
-
-/** Writes the session. Only the lifecycle calls it, and `index.ts` doesn't export it. */
+/** Only the lifecycle calls this. */
 export function setDragSession(state: DragSessionState | null): void {
   const previous = slot.store.state;
   const sourceChanged = previous?.source !== state?.source;
@@ -96,11 +67,8 @@ export function setDragSession(state: DragSessionState | null): void {
     slot.sourceVersion += 1;
   }
   slot.store.setState(state);
-  // Publish a copy of the source to its own store. `useStore` re-runs a selector
-  // only for a new snapshot reference, and the same `source` object is mutated
-  // in place during the drag (see `retargetDragSource`). Read the source back
-  // from the store, not from `state`, because a session subscriber can write
-  // again synchronously, and the last call to run must publish the final source.
+  // Read the source back from the store, not from `state`: a session subscriber can
+  // write again synchronously, and the last call to run must publish the final source.
   const source = slot.store.state?.source ?? null;
   if (source !== slot.mirroredSource) {
     slot.mirroredSource = source;
@@ -116,16 +84,15 @@ export function setDragSession(state: DragSessionState | null): void {
       listeners.add(listener);
     }
   };
-  // Only a source change, at drag start or end, can change `accepting` for every
-  // target. Movement notifies only the elements whose over or rejected state may
-  // have changed.
+  // Only a source change (drag start or end) can change `accepting` for every target.
+  // Movement notifies only elements whose over or rejected state may have changed.
   if (sourceChanged) {
     for (const listener of slot.allTargetListeners) {
       listeners.add(listener);
     }
   } else {
-    previous?.dropTargetElements.forEach(addElementListeners);
-    state?.dropTargetElements.forEach(addElementListeners);
+    previous?.location.current.targets.forEach((target) => addElementListeners(target.element));
+    state?.location.current.targets.forEach((target) => addElementListeners(target.element));
     addElementListeners(previous?.rejectedTarget);
     addElementListeners(state?.rejectedTarget);
   }
@@ -138,10 +105,10 @@ export const DragTargetState = {
   over: 1,
   innermost: 2,
   rejected: 4,
-  accepting: 8,
 } as const;
 
-export const dragTargetStateStride = DragTargetState.accepting;
+/** The first bit above the engine's flags. The snapshot encodes the source version from it. */
+export const dragTargetStateStride = 8;
 
 export interface DragTargetStateStore extends ReadonlyStore<number> {
   setElement(element: Element | null): void;
@@ -163,16 +130,15 @@ export function createDragTargetStateStore(): DragTargetStateStore {
     let value = 0;
     if (session?.rejectedTarget === element) {
       value += DragTargetState.rejected;
-    } else if (session?.dropTargetElements.has(element)) {
+    } else if (session?.location.current.targets.some((target) => target.element === element)) {
       value += DragTargetState.over;
       if (session.location.current.targets[0]?.element === element) {
         value += DragTargetState.innermost;
       }
     }
-    // React 18's `useSyncExternalStoreWithSelector` re-runs the selector only when
-    // this raw snapshot changes. Adding the source version lets `accepting` be
-    // recomputed at drag start and end. The selector masks the version out, so a
-    // target whose selected state stays false doesn't re-render.
+    // React 18's `useSyncExternalStoreWithSelector` re-runs the selector only when this
+    // raw snapshot changes, so the source version is added to recompute `accepting` at
+    // drag start and end. The selector masks it out, so an unchanged target doesn't re-render.
     return value + slot.sourceVersion * dragTargetStateStride;
   };
 
@@ -232,47 +198,19 @@ export function createDragTargetStateStore(): DragTargetStateStore {
 }
 
 /**
- * Moves the active drag source to a new node, for example when a virtualizer
- * remounts the dragged row. Points the session at the new node and moves the
- * preview's source marking (`data-dragging`) to it. Does nothing unless
- * `oldElement` is the active source, so an unrelated draggable's swap can't take
- * over the session.
- *
- * The session's `source` is mutated, not replaced, so `dragSessionStore.state.source`
- * stays `===` to the `source` of every event in the drag. `dragSourceStore`
- * publishes a new copy instead, because its React subscribers need a new
- * reference to re-render. Don't compare a `DraggableRootRecord` read from there
- * to an event's `source` by identity.
- */
-export function retargetDragSource(oldElement: Element, newElement: HTMLElement): void {
-  const source = slot.store.state?.source;
-  if (source?.element !== oldElement) {
-    return;
-  }
-  // Mutated in place because this is the lifecycle's own `source`, which every
-  // event of the drag reports. It must point at the live node.
-  source.element = newElement;
-  // Publishes a copy to `dragSourceStore`. Republishing the mutated object keeps
-  // the same reference, so `useActiveDrag()` and `Draggable.Root`'s `dragging`
-  // would keep reading the detached node.
-  notifyDragSourceUpdated(source);
-  getActivePreviewHandle()?.retargetSource(newElement);
-}
-
-/**
- * Clone a `DraggableLocationHistory`, giving each entry its own copy of the stack.
- * The lifecycle mutates its `location` during the drag, so everything it hands out,
- * including session snapshots and event details, goes through this one function.
- * A second clone path could miss a shape change and leak live engine references.
+ * The lifecycle mutates its `location` during the drag, so everything it hands out
+ * (session snapshots, event details) is cloned here. A second clone path could miss
+ * a shape change and leak live engine references.
  */
 export function cloneLocationHistory(location: DraggableLocationHistory): DraggableLocationHistory {
   return {
     grabOffset: { ...location.grabOffset },
-    initial: { input: location.initial.input, targets: location.initial.targets.slice() },
-    current: { input: location.current.input, targets: location.current.targets.slice() },
-    previous: {
-      input: location.previous.input,
-      targets: location.previous.targets.slice(),
-    },
+    initial: cloneLocation(location.initial),
+    current: cloneLocation(location.current),
+    previous: cloneLocation(location.previous),
   };
+}
+
+function cloneLocation(location: DraggableLocation): DraggableLocation {
+  return { input: location.input, targets: location.targets.slice() };
 }

@@ -12,6 +12,8 @@ import {
   snapToGrid,
 } from './dragModifiers';
 import { NO_MODIFIER_KEYS } from './utils';
+import { registerTarget } from './dropTarget';
+import { anyDragKind } from './dragKind';
 import type { DraggablePosition } from '../../draggable/DraggableProvider';
 import type {
   DraggableRootModifier,
@@ -316,26 +318,33 @@ describe('restrictToParentElement', () => {
     expect(result).toEqual({ x: 300, y: 150 });
   });
 
-  it('clamps to the box that lays out a source slotted into a shadow root', () => {
-    // The composed parent is the `<slot>`, which is `display: contents` and
-    // measures 0×0. The wrapper around it is what the source visually sits in.
-    const host = document.createElement('div');
-    document.body.appendChild(host);
-    const wrapper = document.createElement('div');
-    wrapper.getBoundingClientRect = () => makeRect(0, 0, 200, 200);
-    wrapper.appendChild(document.createElement('slot'));
-    host.attachShadow({ mode: 'open' }).appendChild(wrapper);
-    const child = document.createElement('div');
-    host.appendChild(child);
-    try {
-      const result = restrictToParentElement(
-        makeContext({ sourceElement: child, point: { x: 600, y: 150 } }),
-      );
-      expect(result).toEqual({ x: 200, y: 150 });
-    } finally {
-      host.remove();
-    }
-  });
+  // A closed root hides `assignedSlot`. It is found through a target registered in it.
+  it.each([{ mode: 'open' as const }, { mode: 'closed' as const }])(
+    'clamps to the box that lays out a source slotted into a $mode shadow root',
+    ({ mode }) => {
+      // The composed parent is the `<slot>`, which is `display: contents` and
+      // measures 0×0. The wrapper around it is what the source visually sits in.
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      host.getBoundingClientRect = () => makeRect(0, 0, 800, 800);
+      const wrapper = document.createElement('div');
+      wrapper.getBoundingClientRect = () => makeRect(0, 0, 200, 200);
+      wrapper.appendChild(document.createElement('slot'));
+      host.attachShadow({ mode }).appendChild(wrapper);
+      const unregister = registerTarget(wrapper, () => ({ accept: anyDragKind }));
+      const child = document.createElement('div');
+      host.appendChild(child);
+      try {
+        const result = restrictToParentElement(
+          makeContext({ sourceElement: child, point: { x: 600, y: 150 } }),
+        );
+        expect(result).toEqual({ x: 200, y: 150 });
+      } finally {
+        unregister();
+        host.remove();
+      }
+    },
+  );
 
   it('passes the point through when the source has no parent', () => {
     const result = restrictToParentElement(
@@ -475,15 +484,19 @@ describe('applyDragModifiers', () => {
 });
 
 describe('createDragModifiersState', () => {
-  it('returns null and skips the source measure when nothing is declared', () => {
-    const measure = vi.fn(() => makeRect(0, 0, 10, 10));
+  it('returns null when nothing is declared', () => {
     const source = document.createElement('div');
-    source.getBoundingClientRect = measure;
     const start = { x: 0, y: 0 };
-    expect(createDragModifiersState(undefined, source, start, NO_MODIFIER_KEYS)).toBeNull();
-    expect(createDragModifiersState([], source, start, NO_MODIFIER_KEYS)).toBeNull();
-    expect(createDragModifiersState([false, null], source, start, NO_MODIFIER_KEYS)).toBeNull();
-    expect(measure).not.toHaveBeenCalled();
+    const rect = makeRect(0, 0, 10, 10);
+    expect(
+      createDragModifiersState(undefined, { element: source }, start, NO_MODIFIER_KEYS, rect),
+    ).toBeNull();
+    expect(
+      createDragModifiersState([], { element: source }, start, NO_MODIFIER_KEYS, rect),
+    ).toBeNull();
+    expect(
+      createDragModifiersState([false, null], { element: source }, start, NO_MODIFIER_KEYS, rect),
+    ).toBeNull();
   });
 
   it('constrains the start point so the drag begins where its first frame resolves', () => {
@@ -494,12 +507,13 @@ describe('createDragModifiersState', () => {
     source.getBoundingClientRect = measure;
     const state = createDragModifiersState(
       restrictToElement(boundary),
-      source,
+      { element: source },
       { x: 50, y: 350 },
       NO_MODIFIER_KEYS,
+      source.getBoundingClientRect(),
     )!;
     expect(state.initialPoint).toEqual({ x: 100, y: 300 });
-    expect(state.sourceElement).toBe(source);
+    expect(state.source.element).toBe(source);
     expect(measure).toHaveBeenCalledTimes(1);
     expect(state.sourceRect).toBe(measure.mock.results[0].value);
   });
@@ -518,9 +532,10 @@ describe('modifyDragPoint', () => {
     source.getBoundingClientRect = () => makeRect(0, 0, 20, 20);
     const state = createDragModifiersState(
       [probe, restrictToElement(boundary)],
-      source,
+      { element: source },
       { x: 50, y: 50 },
       NO_MODIFIER_KEYS,
+      source.getBoundingClientRect(),
     )!;
     // State creation applies the modifiers with no preview yet.
     expect(offsets).toEqual([{ x: 0, y: 0 }]);
@@ -544,9 +559,10 @@ describe('modifyDragPoint', () => {
     source.getBoundingClientRect = () => makeRect(0, 0, 20, 20);
     const state = createDragModifiersState(
       restrictToVerticalAxis,
-      source,
+      { element: source },
       { x: 10, y: 10 },
       NO_MODIFIER_KEYS,
+      source.getBoundingClientRect(),
     )!;
     const previewElement = document.createElement('div');
     const getRect = vi.fn(() => makeRect(0, 0, 50, 30));

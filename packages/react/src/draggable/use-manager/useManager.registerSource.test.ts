@@ -1,24 +1,37 @@
 import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { createDndRenderer, firePointer } from '#test-utils';
-import { createElement, flushRaf, setupDragEngineTests, fireDrag } from '../../../test/dnd';
+import { act } from '@mui/internal-test-utils';
+import { firePointer, isJSDOM } from '#test-utils';
+import { createDndRenderer } from '../../../test/dndEngine';
+import {
+  createElement,
+  flushRaf,
+  setupDragEngineTests,
+  fireDrag,
+  dragOver,
+} from '../../../test/dnd';
 import { dragSessionStore } from '../../utils/drag-and-drop/dragSessionStore';
+import { dragPreviewStore } from '../../utils/drag-and-drop/overlay/dragPreviewStore';
 import { getRegistration } from '../../utils/drag-and-drop/draggableRegistry';
 import { useManager } from './useManager';
 import type { DraggableManager } from '../../utils/drag-and-drop/registrationTypes';
 
 setupDragEngineTests();
 
+const ROW = { id: 'a' };
+
 describe('engine.registerSource', () => {
   const { renderDnd } = createDndRenderer();
 
-  it('applies gesture styles to the element', async () => {
+  it('applies gesture styles to the element and restores them on cleanup', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const cleanup = engine.registerSource(el, {});
     expect(el.style.touchAction).toBe('manipulation');
     expect(el.style.userSelect).toBe('none');
     cleanup();
+    expect(el.style.touchAction).toBe('');
+    expect(el.style.userSelect).toBe('');
   });
 
   it('refreshes an imperative disabled getter on the next pointerdown', async () => {
@@ -46,6 +59,23 @@ describe('engine.registerSource', () => {
     firePointer.up(el, { pointerType: 'mouse', button: 0, buttons: 0, timeStamp: 200 });
   });
 
+  it('applies a disabled change to the gesture styles on refresh, without a press', async () => {
+    const { engine } = await renderDnd();
+    const el = createElement();
+    let disabled = false;
+    engine.registerSource(el, () => ({ disabled }));
+    expect(el.style.touchAction).toBe('manipulation');
+
+    disabled = true;
+    engine.refresh(el);
+    expect(el.style.touchAction).toBe('');
+    expect(el.style.userSelect).toBe('');
+
+    disabled = false;
+    engine.refresh(el);
+    expect(el.style.touchAction).toBe('manipulation');
+  });
+
   it('moves gesture styles to a new imperative handle on pointerdown', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
@@ -63,13 +93,15 @@ describe('engine.registerSource', () => {
     firePointer.up(second, { pointerType: 'mouse', button: 0, buttons: 0, timeStamp: 200 });
   });
 
-  it('restores styles on cleanup', async () => {
+  it.skipIf(isJSDOM)('restores inline gesture style priorities on cleanup', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
+    el.style.setProperty('user-select', 'text', 'important');
     const cleanup = engine.registerSource(el, {});
+    expect(el.style.userSelect).toBe('none');
     cleanup();
-    expect(el.style.touchAction).toBe('');
-    expect(el.style.userSelect).toBe('');
+    expect(el.style.userSelect).toBe('text');
+    expect(el.style.getPropertyPriority('user-select')).toBe('important');
   });
 
   it('preserves ordinary interaction styles while disabled', async () => {
@@ -148,9 +180,39 @@ describe('engine.registerSource', () => {
     expect(el.style.touchAction).toBe('');
   });
 
+  // A closed root hides `assignedSlot`, so pickup must find the slot another way.
+  it.each([
+    { name: 'an open shadow root', mode: 'open' as const, withHandle: false },
+    { name: 'a closed shadow root', mode: 'closed' as const, withHandle: false },
+    { name: 'the handle of a closed shadow root', mode: 'closed' as const, withHandle: true },
+  ])(
+    'starts a drag from content slotted into a draggable inside $name',
+    async ({ mode, withHandle }) => {
+      const { engine } = await renderDnd();
+      const host = createElement();
+      const shadowRoot = host.attachShadow({ mode });
+      const draggable = document.createElement('div');
+      const handle = document.createElement('div');
+      handle.append(document.createElement('slot'));
+      draggable.append(handle);
+      shadowRoot.append(draggable);
+      const slotted = document.createElement('span');
+      host.append(slotted);
+      const onMoveStart = vi.fn();
+      engine.registerSource(draggable, {
+        activation: { type: 'immediate' },
+        handle: withHandle ? handle : undefined,
+        onMoveStart,
+      });
+
+      firePointer.down(slotted, { pointerType: 'mouse', button: 0, buttons: 1, timeStamp: 100 });
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
+      firePointer.up(slotted, { pointerType: 'mouse', button: 0, buttons: 0, timeStamp: 200 });
+    },
+  );
+
   it('a nested draggable wins pickup over its draggable ancestor', async () => {
     const { engine } = await renderDnd();
-    // Register an outer draggable and an inner draggable nested inside it.
     const outer = createElement();
     const inner = document.createElement('div');
     outer.appendChild(inner);
@@ -159,8 +221,7 @@ describe('engine.registerSource', () => {
     engine.registerSource(outer, { onMoveStart: onOuterStart });
     engine.registerSource(inner, { onMoveStart: onInnerStart });
 
-    // The gesture begins on the inner element. Pickup resolves the innermost
-    // registered ancestor, so the inner draggable claims the drag.
+    // Pickup resolves the innermost registered ancestor.
     fireDrag.dragStart(inner);
     await flushRaf();
 
@@ -189,6 +250,98 @@ describe('engine.registerSource', () => {
     expect(onOuterStart.mock.calls[0][0].source.element).toBe(outer);
   });
 
+  it('keeps the source marked as dragging through the drop handlers when the preview has no element', async () => {
+    // A preview with an element settles onto the source and keeps `[data-dragging]`
+    // until it has. One without an element must keep it through the drop handlers,
+    // so a rule that resizes or hides the source applies while they measure.
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const target = createElement();
+    let draggingDuringDrop: boolean | undefined;
+    engine.registerSource(source, { preview: { disabled: true } });
+    engine.registerTarget(target, {
+      onDraggableDrop() {
+        draggingDuringDrop = source.hasAttribute('data-dragging');
+      },
+    });
+
+    fireDrag.dragStart(source);
+    await flushRaf();
+    await dragOver(target);
+    fireDrag.drop(target);
+
+    expect(draggingDuringDrop).toBe(true);
+    expect(source).not.toHaveAttribute('data-dragging');
+  });
+
+  it('releases the published preview content when the drag ends', async () => {
+    // The overlay renders whatever the store holds. Content left there after the
+    // drag would keep its detached host in memory until the next pickup.
+    const { engine } = await renderDnd();
+    const source = createElement();
+    engine.registerSource(source, { preview: { render: () => 'chip' } });
+
+    fireDrag.dragStart(source);
+    await flushRaf();
+    expect(dragPreviewStore.getSnapshot()).not.toBe(null);
+
+    act(() => {
+      engine.cancelDrag();
+    });
+    expect(dragPreviewStore.getSnapshot()).toBe(null);
+  });
+
+  // A virtualizer or a cross-list move can remount the dragged row as a new node.
+  it.each([
+    { name: 'the same payload', payload: () => ROW, previewKey: undefined },
+    {
+      name: 'the same previewKey and a new payload',
+      payload: () => ({ id: 'a' }),
+      previewKey: 'a',
+    },
+  ])(
+    'moves the drag to a node registered with $name after the original left the document',
+    async ({ payload, previewKey }) => {
+      const { engine } = await renderDnd();
+      const original = createElement();
+      const unregister = engine.registerSource(original, { payload: payload(), previewKey });
+      fireDrag.dragStart(original);
+      await flushRaf();
+      expect(original).toHaveAttribute('data-dragging');
+
+      unregister();
+      original.remove();
+      const remounted = createElement();
+      engine.registerSource(remounted, { payload: payload(), previewKey });
+
+      expect(dragSessionStore.getSnapshot()?.source.element).toBe(remounted);
+      expect(remounted).toHaveAttribute('data-dragging');
+    },
+  );
+
+  it.each([
+    { name: 'while the original is still in the document', detach: false, payload: ROW },
+    { name: 'for another item', detach: true, payload: { id: 'b' } },
+  ])(
+    'keeps the drag on the original node when a node registers $name',
+    async ({ detach, payload }) => {
+      const { engine } = await renderDnd();
+      const original = createElement();
+      engine.registerSource(original, { payload: ROW });
+      fireDrag.dragStart(original);
+      await flushRaf();
+
+      if (detach) {
+        original.remove();
+      }
+      const other = createElement();
+      engine.registerSource(other, { payload });
+
+      expect(dragSessionStore.getSnapshot()?.source.element).toBe(original);
+      expect(other).not.toHaveAttribute('data-dragging');
+    },
+  );
+
   it('keeps an imperatively updated payload throughout the drag', async () => {
     const { engine } = await renderDnd();
     const el = createElement();
@@ -202,10 +355,8 @@ describe('engine.registerSource', () => {
 
     fireDrag.dragStart(el);
     await flushRaf();
-    fireDrag.dragOver(el, { clientX: 40, clientY: 40 });
-    await flushRaf();
-    fireDrag.dragOver(el, { clientX: 80, clientY: 80 });
-    await flushRaf();
+    await dragOver(el, { clientX: 40, clientY: 40 });
+    await dragOver(el, { clientX: 80, clientY: 80 });
 
     expect(onMove.mock.lastCall?.[0].source.payload).toBe(payload);
   });
@@ -256,9 +407,8 @@ describe('engine.registerSource', () => {
   });
 
   it('releasing a non-last merged-ref hold keeps the surviving hook active', async () => {
-    // Two registrations on one node, as with merged refs, registered A then B.
-    // B unmounts, for example inside a conditional wrapper, while A stays. The
-    // next drag must read A's parameters, not B's stale ones.
+    // Two holds on one node, as with merged refs. After B unmounts, the next drag
+    // must read A's parameters, not B's stale ones.
     const { engine } = await renderDnd();
     const el = createElement();
     const onDragStartA = vi.fn();
@@ -293,7 +443,6 @@ describe('engine.registerSource', () => {
       'Base UI: registerSource() was called without a `kind`',
     );
 
-    // Nothing was registered and no gesture styles were applied.
     expect(getRegistration(el)).toBeUndefined();
     expect(el.style.touchAction || '').toBe('');
     expect(el.style.userSelect || '').toBe('');

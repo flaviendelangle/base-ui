@@ -59,6 +59,8 @@ describe('Draggable docs testing recipes', () => {
     const onDraggableDrop = vi.fn();
     render(<Board onMoveEnd={onMoveEnd} onDraggableDrop={onDraggableDrop} />);
 
+    // Like an app's test suite: Testing Library's `render` and its own user-event instance.
+    // eslint-disable-next-line base-ui-test/no-standalone-user-event-setup
     const user = userEvent.setup();
     const card = screen.getByRole('button', { name: 'Write the spec' });
 

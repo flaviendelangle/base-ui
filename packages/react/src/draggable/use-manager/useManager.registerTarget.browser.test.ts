@@ -1,28 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act } from '@mui/internal-test-utils';
-import { createDndRenderer, isJSDOM } from '#test-utils';
+import { isJSDOM } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
+import { createDndRenderer } from '../../../test/dndEngine';
 import { flushRaf, registerCleanup, setupDragEngineTests } from '../../../test/dnd';
-import { isActive } from '../../utils/drag-and-drop/core/lifecycleManager';
+import { getActiveSession } from '../../utils/drag-and-drop/core/dragSession';
 
 setupDragEngineTests();
 
 const cardKind = Draggable.createKind<string>('card');
 
 /**
- * End-to-end drop-target resolution against real layout and a real
- * `document.elementFromPoint`.
- *
- * Every other engine test drives drags through `fireDrag`, which stubs
- * `elementFromPoint` to return the element the test named. The test hands the
- * engine the answer, so the point→element path never runs. These tests dispatch
- * raw pointer events instead and leave `elementFromPoint` unpatched, so the engine
- * hit-tests the pointer for real.
+ * Other engine tests drive drags through `fireDrag`, which stubs `elementFromPoint`.
+ * These dispatch raw pointer events so the engine hit-tests real layout.
  */
 describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
   const { renderDnd } = createDndRenderer();
 
-  /** A laid-out box at fixed viewport coordinates. Removed after the test. */
+  /** A laid-out box at fixed viewport coordinates. */
   function createBox(left: number, top: number): HTMLElement {
     const el = document.createElement('div');
     el.style.cssText = `position: fixed; left: ${left}px; top: ${top}px; width: 100px; height: 50px; background: rgb(200 200 200);`;
@@ -69,11 +64,9 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
 
-    // Onto the target's center, with any preview between the
-    // cursor and the target.
+    // Onto the target's center, with any preview between the cursor and the target.
     pointer('pointermove', source, 50, 225);
-    await flushRaf();
-    await flushRaf();
+    await flushRaf(2);
 
     expect(onDraggableEnter).toHaveBeenCalled();
 
@@ -109,8 +102,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
     pointer('pointermove', source, 50, 225);
-    await flushRaf();
-    await flushRaf();
+    await flushRaf(2);
 
     expect(onDraggableEnter).toHaveBeenCalledTimes(1);
 
@@ -148,8 +140,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
       pointer('pointermove', source, 50, 225);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
       pointer('pointerup', source, 50, 225);
       await flushRaf();
 
@@ -179,18 +170,17 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
     pointer('pointermove', source, 50, 225);
-    await flushRaf();
-    await flushRaf();
+    await flushRaf(2);
     pointer('pointerup', source, 50, 225);
     await flushRaf();
 
     expect(onMoveEnd).toHaveBeenCalledTimes(1);
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(isActive()).toBe(false);
+    expect(getActiveSession()).toBe(null);
 
     pointer('pointerdown', source, 50, 25);
     await flushRaf();
-    expect(isActive()).toBe(true);
+    expect(getActiveSession()).not.toBe(null);
     pointer('pointerup', source, 50, 25);
     await flushRaf();
   });
@@ -220,12 +210,10 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
     // (40, 225) sits inside `inner`, which sits inside `outer`.
     pointer('pointermove', source, 40, 225);
-    await flushRaf();
-    await flushRaf();
+    await flushRaf(2);
     pointer('pointerup', source, 40, 225);
     await flushRaf();
 
-    // Only the innermost target receives `onDrop`.
     expect(onInnerDrop).toHaveBeenCalledTimes(1);
     expect(onOuterDrop).not.toHaveBeenCalled();
   });
@@ -249,8 +237,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
     await flushRaf();
     // Well clear of both boxes.
     pointer('pointermove', source, 400, 400);
-    await flushRaf();
-    await flushRaf();
+    await flushRaf(2);
     pointer('pointerup', source, 400, 400);
     await flushRaf();
 
@@ -261,9 +248,8 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
   });
 
   /**
-   * `getLocalPoint` against real geometry. The fraction only means something if the
-   * browser laid out the rect it divides by. Boxes here are 100×50 at fixed viewport
-   * positions, so every expected fraction is arithmetic rather than a snapshot.
+   * Boxes are 100×50 at fixed viewport positions, so every expected fraction is
+   * arithmetic rather than a snapshot.
    */
   describe('getLocalPoint', () => {
     it('reports where in the target the pointer was, as a fraction of its box', async () => {
@@ -283,8 +269,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
       // A quarter across and three-fifths down the 100×50 box at (0, 200).
       pointer('pointermove', source, 25, 230);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
       pointer('pointerup', source, 25, 230);
       await flushRaf();
 
@@ -314,8 +299,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerdown', source, 10, 20);
       await flushRaf();
       pointer('pointermove', source, 35, 233);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
       pointer('pointerup', source, 35, 233);
       await flushRaf();
 
@@ -332,8 +316,8 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       const source = createBox(0, 0);
       const outer = createBox(0, 200);
       const inner = document.createElement('div');
-      // Inset 10px into a 100×50 outer, and 60×30 itself, so one pointer lands at a
-      // different fraction of each. That is why this lives on the record, not the location.
+      // Inset 10px into the 100×50 outer and 60×30 itself, so one pointer lands at a
+      // different fraction of each.
       inner.style.cssText =
         'position: absolute; left: 10px; top: 10px; width: 60px; height: 30px; background: rgb(120 120 120);';
       outer.appendChild(inner);
@@ -352,8 +336,7 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       await flushRaf();
       // (40, 225): 40% across the outer box, half across the inner one.
       pointer('pointermove', source, 40, 225);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
 
       const { targets } = onMove.mock.calls.at(-1)![0].location.current;
       expect(targets).toHaveLength(2);
@@ -379,16 +362,14 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
 
-      // Armed after the pickup so the preview's own measurements are not counted. The test
-      // checks what resolving a target over several moves costs a caller that never reads it.
+      // Armed after the pickup so the preview's own measurements don't count.
       const measure = vi.spyOn(target, 'getBoundingClientRect');
       pointer('pointermove', source, 20, 210);
       await flushRaf();
       pointer('pointermove', source, 50, 225);
       await flushRaf();
       pointer('pointermove', source, 80, 240);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
 
       expect(measure).not.toHaveBeenCalled();
       measure.mockRestore();
@@ -410,13 +391,12 @@ describe.skipIf(isJSDOM)('drop target resolution (real hit testing)', () => {
       pointer('pointerdown', source, 50, 25);
       await flushRaf();
       pointer('pointermove', source, 50, 225);
-      await flushRaf();
-      await flushRaf();
+      await flushRaf(2);
       pointer('pointerup', source, 50, 225);
       await flushRaf();
 
-      // Detached after the record was made and before it is read, so it measures as all
-      // zeros. Without the guard, this would divide by zero.
+      // Detached before the record is read, so it measures as all zeros. Without
+      // the guard, this would divide by zero.
       const { currentTarget: targetRecord } = onDrop.mock.calls[0][0];
       target.remove();
 

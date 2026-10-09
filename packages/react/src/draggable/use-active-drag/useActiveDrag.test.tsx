@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-import { createDndRenderer } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
+import { createDndRenderer } from '../../../test/dndEngine';
 import { cancel, flushRaf, setupDragEngineTests, fireDrag } from '../../../test/dnd';
 
 setupDragEngineTests();
@@ -43,8 +43,7 @@ describe('Draggable.useActiveDrag', () => {
   });
 
   it('observes the drag from outside the draggable, and resets on cancel', async () => {
-    // Any component can watch the active drag. The hook isn't tied to the element
-    // that started it.
+    // The hook isn't tied to the element that started the drag.
     function SiblingObserver() {
       const source = Draggable.useActiveDrag(probeKind);
       return <div data-testid="watcher" data-active={source ? 'yes' : 'no'} />;
@@ -92,9 +91,8 @@ describe('Draggable.useActiveDrag', () => {
     cancel();
     await flushRaf();
 
-    // The store published at drag start and end, but this observer's selected
-    // value stayed `null`. With many such observers in a list, an unrelated drag
-    // re-renders none of them.
+    // The store published at start and end, but this observer's selected value
+    // stayed `null`, so an unrelated drag re-renders none of a list's observers.
     expect(commits).toBe(commitsBeforeDrag);
   });
 

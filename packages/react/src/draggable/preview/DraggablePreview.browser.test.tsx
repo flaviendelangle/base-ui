@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { screen, render as rtlRender } from '@testing-library/react';
-import { isJSDOM, testDragKind } from '#test-utils';
+import { isJSDOM } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
 import { act } from '@mui/internal-test-utils';
-import { setupDragEngineTests, fireDrag, flushRaf } from '../../../test/dnd';
+import { testDragKind } from '../../../test/dndEngine';
+import { setupDragEngineTests, fireDrag, flushRaf, dragOver } from '../../../test/dnd';
 import { DraggableProvider } from '../DraggableProvider';
 
 setupDragEngineTests();
@@ -17,10 +18,7 @@ function ThemedBadge() {
 }
 
 /**
- * The preview's React tree is separate from its DOM placement, so a preview can
- * read the app's context and still sit where the app's contextual CSS matches it.
- *
- * jsdom resolves no cascade, so only a real browser can test the CSS half.
+ * jsdom resolves no cascade or layout, so these tests need a real browser.
  */
 describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
   let style: HTMLStyleElement;
@@ -55,11 +53,10 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
     const source = screen.getByTestId('drag');
     fireDrag.dragStart(source);
 
-    // React half. The content renders in the provider's tree, so the theme reaches it.
+    // The content renders in the provider's tree, so the theme reaches it.
     expect(screen.getByTestId('preview')).toHaveTextContent('dark');
 
-    // CSS half. The copy of the part's element is the preview itself, in the
-    // source's parent, so it still sits under `.dark` and `.dark .Badge` applies.
+    // The preview sits in the source's parent, under `.dark`, so `.dark .Badge` applies.
     const badge = screen.getByTestId('preview').closest('.Badge') as HTMLElement;
     expect(badge).toHaveAttribute('data-drag-preview');
     expect(badge.parentElement).toBe(source.parentElement);
@@ -67,10 +64,9 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
   });
 
   it('leaves the transforms and motion of a custom preview element alone', () => {
-    // The engine neutralizes the source's motion on a clone. The consumer's own
-    // preview element inherits nothing from the source, so its styles must survive.
-    // At (0,1,0), `.Badge` ties with the engine's sheet and would lose to it if the
-    // sheet reached this element.
+    // The engine neutralizes motion on a clone, but a custom preview isn't the source,
+    // so its styles must survive. `.Badge` ties the engine's sheet at (0,1,0) and would
+    // lose if the sheet reached this element.
     style.textContent = `
       div { transition: translate 1s; }
       .Badge {
@@ -116,12 +112,11 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
   ])(
     'holds off only the transition that would ease its position, and %s',
     async (_name, endingRule, endingDurations, endingDelays) => {
-      // The engine writes `translate` on the preview element every frame. A
-      // transition covering it would make the preview trail the pointer. Other
-      // transitions run. The drop animates only with a transition that applies once
-      // `[data-ending-style]` is set, as a clone's does, so one meant for the drag
-      // (such as hover effects) doesn't fly the preview back. The drag transition is
-      // in the stylesheet, since an inline one would win over the ending rule.
+      // The engine writes `translate` every frame, so a transition on it would make
+      // the preview trail the pointer; other transitions still run. Only a transition
+      // under `[data-ending-style]` animates the drop, as with a clone, so a drag-time
+      // one doesn't fly the preview back. The drag transition is in the stylesheet
+      // because an inline one would beat the ending rule.
       style.textContent = `.Badge { transform: scale(2); transition: translate 200ms 100ms, box-shadow 300ms; } ${endingRule}`;
       rtlRender(
         <DraggableProvider>
@@ -151,11 +146,7 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
         ] as unknown as Animation[];
       try {
         fireDrag.drop(screen.getByTestId('drag'));
-        await act(async () => {
-          await new Promise((resolve) => {
-            requestAnimationFrame(resolve);
-          });
-        });
+        await flushRaf();
         expect(getComputedStyle(preview).transitionDuration).toBe(endingDurations);
         expect(getComputedStyle(preview).transitionDelay).toBe(endingDelays);
       } finally {
@@ -198,14 +189,17 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
     expect([red, green, blue]).toEqual([0, 128, 0]);
   });
 
-  it('offsets the preview by its own margin and translate', async () => {
+  it.each([
+    ['a class', '.Badge { margin: 10px 0 0 20px; translate: 5px 50%; }', undefined],
+    ['the style prop', '', { margin: '10px 0 0 20px', translate: '5px 50%' }],
+  ])('offsets the preview by its own margin and translate from %s', async (_, css, ownStyle) => {
     // The engine positions the preview through `margin` and `translate`, so the
     // root's own values shift it from its offset, as they would shift it in place.
-    style.textContent = '.Badge { margin: 10px 0 0 20px; translate: 5px 50%; height: 40px; }';
+    style.textContent = `.Badge { height: 40px; } ${css}`;
     rtlRender(
       <DraggableProvider>
         <Draggable.Root kind={testDragKind} data-testid="drag">
-          <Draggable.Preview className="Badge" offset="pointer">
+          <Draggable.Preview className="Badge" style={ownStyle} offset="pointer">
             Preview
           </Draggable.Preview>
         </Draggable.Root>
@@ -246,6 +240,36 @@ describe.skipIf(isJSDOM)('Draggable.Preview (cascade)', () => {
     expect(getComputedStyle(screen.getByTestId('preview').parentElement!).transitionDuration).toBe(
       '0s',
     );
+  });
+
+  it('offsets the preview by the translate its root gets on Draggable.updatePreview()', async () => {
+    style.textContent = '.Badge { height: 40px; }';
+    function Fixture(props: { shift: number }) {
+      return (
+        <DraggableProvider>
+          <Draggable.Root kind={testDragKind} data-testid="drag">
+            <Draggable.Preview
+              className="Badge"
+              style={{ translate: `${props.shift}px 0px` }}
+              offset="pointer"
+            >
+              Preview
+            </Draggable.Preview>
+          </Draggable.Root>
+        </DraggableProvider>
+      );
+    }
+    const { rerender } = rtlRender(<Fixture shift={0} />);
+    const source = screen.getByTestId('drag');
+    fireDrag.dragStart(source, { clientX: 100, clientY: 100 });
+    await dragOver(source, { clientX: 100, clientY: 100 });
+    expect(screen.getByText('Preview').getBoundingClientRect().left).toBeCloseTo(100);
+
+    rerender(<Fixture shift={20} />);
+    Draggable.updatePreview();
+    await flushRaf();
+
+    expect(screen.getByText('Preview').getBoundingClientRect().left).toBeCloseTo(120);
   });
 
   it('measures the popover corrections again when the content restyles its root', async () => {

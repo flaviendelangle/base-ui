@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { isJSDOM } from '#test-utils';
 import { getSharedSlot } from './sharedState';
 import { createKind } from './dragKind';
-import { DragEngineBase } from './useInnerDragEngine';
-import { registerTarget } from './registrations';
+import { createRegisterSource } from './useRegisterSource';
+import { registerTarget } from './dropTarget';
 import {
   createElement,
   dragEnter,
@@ -41,29 +41,29 @@ describe('separate copies of the engine', () => {
   });
 
   // An app can bundle the engine twice, for example through a plugin that ships
-  // its own copy. Each fresh import below evaluates a whole new module graph,
-  // like a second bundle, and only the shared slots connect the copies. jsdom
-  // only, because browser mode serves every import from one module graph.
+  // its own copy. Each fresh import below acts as a second bundle, connected to
+  // the others only through the shared slots. jsdom only, because browser mode
+  // serves every import from one module graph.
   it.skipIf(!isJSDOM)(
     'drops a source registered through one copy onto a target registered through another',
     async () => {
       vi.resetModules();
-      const copyA = await import('./useInnerDragEngine');
+      const copyA = await import('./useRegisterSource');
       vi.resetModules();
-      const copyB = await import('./registrations');
+      const copyB = await import('./dropTarget');
       // Neither copy is the one this file imported.
-      expect(copyA.DragEngineBase).not.toBe(DragEngineBase);
+      expect(copyA.createRegisterSource).not.toBe(createRegisterSource);
       expect(copyB.registerTarget).not.toBe(registerTarget);
 
       const kind = createKind('shared-card');
       const source = createElement();
       const target = createElement();
       const onDraggableDrop = vi.fn();
-      const engine = new copyA.DragEngineBase(
+      const registerSource = copyA.createRegisterSource(
         () => ({}) as never,
         () => ({}) as never,
       );
-      registerCleanup(engine.registerSource(source, () => ({ kind })));
+      registerCleanup(registerSource(source, () => ({ kind })));
       registerCleanup(copyB.registerTarget(target, () => ({ accept: kind, onDraggableDrop })));
 
       await lift(source);

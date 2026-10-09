@@ -1,7 +1,15 @@
 'use client';
-import { useInnerDragEngine } from '../../utils/drag-and-drop/useInnerDragEngine';
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
+import { useRegisterSource } from '../../utils/drag-and-drop/useRegisterSource';
+import { registerMonitor } from '../../utils/drag-and-drop/monitor';
+import { registerTarget } from '../../utils/drag-and-drop/dropTarget';
+import { registerViewport, wakeAutoScroll } from '../../utils/drag-and-drop/autoScroller';
+import { getActiveSession } from '../../utils/drag-and-drop/core/dragSession';
+import { refreshDragSource } from '../../utils/drag-and-drop/dragSource';
+import { cancelDrag } from '../../utils/drag-and-drop/synthetic/pickupRecognizer';
 import type {
   DraggableManager,
+  InternalDragEngine,
   RegisterMonitorParameters,
   RegisterSourceParameters,
   RegisterTargetParameters,
@@ -9,19 +17,41 @@ import type {
 } from '../../utils/drag-and-drop/registrationTypes';
 
 /**
+ * Applies the latest options of every registration on `element`, as the parts do when
+ * their props change. The target and viewport steps are harmless for other elements:
+ * the target refresh only runs when the element is under the pointer, and a woken
+ * scroll loop parks again.
+ */
+function refresh(element: HTMLElement): void {
+  refreshDragSource(element);
+  getActiveSession()?.scheduleTargetRefresh(element);
+  wakeAutoScroll();
+}
+
+/**
  * Returns the page-wide drag manager. Use it to register drag sources, drop targets,
- * viewports, and monitors without rendering the Draggable parts, and to
- * cancel the drag in progress.
- *
- * The manager is stable for each hook instance. All instances share the page's drag
- * session. Requires a `<Draggable.Provider>` above the component calling this hook.
+ * viewports, and monitors without rendering the Draggable parts, and to cancel the drag
+ * in progress. The manager is stable for each hook instance, and all instances share the
+ * page's drag session. Requires a `<Draggable.Provider>` above the calling component.
  *
  * Documentation: [Base UI useManager](https://base-ui.com/react/utils/draggable#usemanager)
  */
 export function useManager(): UseDraggableManagerReturnValue {
+  // Preview content renders through the `Draggable.Provider` nearest this hook call.
+  // Registrations and sensors are global, so the stateless registrations are
+  // re-exposed as methods (see `dropTarget.ts`, `monitor.ts` and `autoScroller.ts`).
+  const registerSource = useRegisterSource();
+  const engine = useRefWithInit((): InternalDragEngine => ({
+    registerSource,
+    registerTarget,
+    registerViewport,
+    registerMonitor,
+    cancelDrag,
+    refresh,
+  })).current;
   // The public signatures require a payload when the caller's kind declares one.
   // Internal registrations keep it optional so components can forward theirs.
-  return useInnerDragEngine() as DraggableManager;
+  return engine as DraggableManager;
 }
 
 export namespace useManager {

@@ -1,7 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createDndRenderer } from '#test-utils';
-import { cancel, createElement, flushRaf, setupDragEngineTests, fireDrag } from '../../../test/dnd';
-import { dragSessionStore, dragSourceStore, retargetDragSource } from './dragSessionStore';
+import { createDndRenderer } from '../../../test/dndEngine';
+import {
+  cancel,
+  createElement,
+  flushRaf,
+  setupDragEngineTests,
+  fireDrag,
+  dragOver,
+} from '../../../test/dnd';
+import { dragSessionStore, dragSourceStore } from './dragSessionStore';
+import { retargetDragSource } from './dragSource';
 
 setupDragEngineTests();
 
@@ -27,8 +35,7 @@ describe('dragSessionStore', () => {
     await flushRaf();
 
     fireDrag.dragEnter(target);
-    fireDrag.dragOver(target);
-    await flushRaf();
+    await dragOver(target);
 
     fireDrag.drop(target);
     expect(dragSessionStore.state).toBeNull();
@@ -49,8 +56,7 @@ describe('dragSessionStore', () => {
     expect(beforeEnter!.location.current.targets.length).toBe(0);
 
     fireDrag.dragEnter(target);
-    fireDrag.dragOver(target);
-    await flushRaf();
+    await dragOver(target);
 
     const afterEnter = dragSessionStore.state;
     expect(afterEnter).not.toBe(beforeEnter);
@@ -71,8 +77,7 @@ describe('dragSessionStore', () => {
     fireDrag.dragStart(source);
     await flushRaf();
     fireDrag.dragEnter(target);
-    fireDrag.dragOver(target);
-    await flushRaf();
+    await dragOver(target);
 
     expect(dragSessionStore.state!.location.current.targets.length).toBe(1);
 
@@ -98,15 +103,13 @@ describe('dragSessionStore', () => {
     fireDrag.dragStart(source);
     await flushRaf();
     fireDrag.dragEnter(target);
-    fireDrag.dragOver(target);
-    await flushRaf();
+    await dragOver(target);
 
     const snapshot = dragSessionStore.state!;
     const record = snapshot.location.current.targets[0];
     expect(record.element).toBe(target);
-    // Mutating a snapshot's `initial` must not affect the engine's bookkeeping
-    // or later snapshots. The array is typed `readonly`, so this covers consumers
-    // that bypass the types, where only the runtime clone protects the engine.
+    // Covers consumers that bypass the `readonly` type: only the runtime clone
+    // keeps the engine's bookkeeping and later snapshots safe from this mutation.
     // @ts-expect-error -- deliberate mutation of a readonly-typed array
     snapshot.location.initial.targets.push(record);
 
@@ -166,8 +169,7 @@ describe('dragSessionStore', () => {
     expect(listener).toHaveBeenCalledTimes(1);
 
     fireDrag.dragEnter(target);
-    fireDrag.dragOver(target);
-    await flushRaf();
+    await dragOver(target);
     expect(listener).toHaveBeenCalledTimes(1);
 
     fireDrag.drop(target);

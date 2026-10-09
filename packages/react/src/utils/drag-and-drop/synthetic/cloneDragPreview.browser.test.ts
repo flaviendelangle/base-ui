@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from '@mui/internal-test-utils';
-import { createDndRenderer, isJSDOM } from '#test-utils';
+import { isJSDOM } from '#test-utils';
+import { createDndRenderer } from '../../../../test/dndEngine';
 import { flushRaf, setupDragEngineTests } from '../../../../test/dnd';
 import * as DraggablePreviewDataAttributes from '../../../draggable/preview/DraggablePreviewDataAttributes';
-import {
-  createDragPreviewElement,
-  measurePreviewAnchor,
-  PREVIEW_ELEMENT_ATTRIBUTE,
-} from './cloneDragPreview';
+import { createDragPreviewElement, measurePreviewAnchor } from './cloneDragPreview';
+import { PREVIEW_ELEMENT_ATTRIBUTE } from '../utils';
+import type { DraggableRootModifier } from '../../../draggable/root/DraggableRoot';
 
 /** Measure and clone `source`, the way a pickup does. */
 function clonePreview(source: HTMLElement, container: HTMLElement | null) {
@@ -588,6 +587,7 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
         const cloneCells = Array.from(handle.element.children, (cell) =>
           cell.getBoundingClientRect(),
         );
+        expect(cloneCells).toHaveLength(3);
         cloneCells.forEach((cell, index) => {
           expect(cell.left).toBeCloseTo(sourceCells[index].left, 0);
           expect(cell.width).toBeCloseTo(sourceCells[index].width, 0);
@@ -606,8 +606,8 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
     const handle = clonePreview(source, null)!;
     try {
       // `offsetWidth`/`offsetHeight` would round these to 121 and 30.
-      expect(handle.sourceRect.width).toBeCloseTo(120.5, 2);
-      expect(handle.sourceRect.height).toBeCloseTo(30.25, 2);
+      expect(handle.anchor.sourceRect.width).toBeCloseTo(120.5, 2);
+      expect(handle.anchor.sourceRect.height).toBeCloseTo(30.25, 2);
     } finally {
       handle.destroy();
     }
@@ -766,9 +766,8 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
     // Outside the 200x100 clipping ancestor, but still inside the viewport.
     handle.element.style.translate = '260px 200px';
 
-    // A clipped element still reports a box, so hit-test instead. Only a painted
-    // element answers `elementFromPoint`. The preview is normally inert and
-    // `pointer-events: none` so it cannot be hit. Lift both to probe it here.
+    // A clipped element still reports a box, so hit-test instead. The preview is
+    // normally inert and `pointer-events: none`, so lift both to probe it.
     handle.element.style.pointerEvents = 'auto';
     handle.element.removeAttribute('inert');
 
@@ -858,10 +857,10 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
 
     const handle = clonePreview(source, null)!;
 
-    expect(handle.sourceRect.left).toBeCloseTo(baseline.left);
-    expect(handle.sourceRect.top).toBeCloseTo(baseline.top);
-    expect(handle.sourceRect.width).toBe(120);
-    expect(handle.sourceRect.height).toBe(30);
+    expect(handle.anchor.sourceRect.left).toBeCloseTo(baseline.left);
+    expect(handle.anchor.sourceRect.top).toBeCloseTo(baseline.top);
+    expect(handle.anchor.sourceRect.width).toBe(120);
+    expect(handle.anchor.sourceRect.height).toBe(30);
 
     handle.destroy();
   });
@@ -873,10 +872,10 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
 
     const handle = clonePreview(source, null)!;
 
-    expect(handle.sourceRect.left).toBeCloseTo(baseline.left);
-    expect(handle.sourceRect.top).toBeCloseTo(baseline.top);
-    expect(handle.sourceRect.width).toBe(120);
-    expect(handle.sourceRect.height).toBe(30);
+    expect(handle.anchor.sourceRect.left).toBeCloseTo(baseline.left);
+    expect(handle.anchor.sourceRect.top).toBeCloseTo(baseline.top);
+    expect(handle.anchor.sourceRect.width).toBe(120);
+    expect(handle.anchor.sourceRect.height).toBe(30);
 
     handle.destroy();
   });
@@ -889,10 +888,9 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
 
     const handle = clonePreview(source, null)!;
 
-    // `scale` is not neutralized. Unlike `transform`, it composes around the box's
-    // center without moving the anchor, so the clone re-applies it and looks like
-    // the grabbed element. That only works because it applies to the untransformed
-    // box. Sizing from the transformed bounding box would compound it to 2.25x.
+    // `scale` isn't neutralized: it composes around the box's center without moving
+    // the anchor, so the clone re-applies it to the untransformed box. Sizing from
+    // the transformed bounding box would compound it to 2.25x.
     expect(handle.element.style.width).toBe('120px');
     expect(handle.element.style.height).toBe('30px');
     expect(getComputedStyle(handle.element).scale).toBe('1.5');
@@ -971,10 +969,8 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
   });
 
   it('lets a consumer rule keyed on the preview attribute override the neutralizer', () => {
-    // The documented styling hook: `.Card[data-drag-preview] { rotate: 3deg }`.
     // The engine neutralizes `transition` from its adopted sheet, not inline, so
-    // this rule wins without `!important`. An inline declaration would beat any
-    // author rule at any specificity. `rotate` is never touched.
+    // this documented styling hook wins without `!important`.
     const sheet = document.createElement('style');
     sheet.textContent = '.Card[data-drag-preview]{rotate:3deg;transition:box-shadow 300ms ease;}';
     document.head.appendChild(sheet);
@@ -1014,10 +1010,9 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
   });
 
   it('lets cascade-layered consumer styles (Tailwind-style) style the preview', () => {
-    // Tailwind v4 puts every utility in `@layer utilities`, and unlayered author
-    // styles beat layered ones at any specificity. The engine must not ship an
-    // unlayered rule that competes with the preview's visual styling, so it writes
-    // back inline only the values the UA popover chrome changed.
+    // Tailwind v4 puts every utility in `@layer utilities`, which loses to any
+    // unlayered rule. So the engine ships no unlayered visual rule and writes back
+    // inline only the values the UA popover chrome changed.
     const sheet = document.createElement('style');
     sheet.textContent =
       '@layer utilities { .Card { border: 2px solid rgb(1, 2, 3); } ' +
@@ -1155,9 +1150,14 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
       `;
       document.head.appendChild(sheet);
       source.className = 'Card';
+      const measuredWidths: number[] = [];
+      const probe: DraggableRootModifier = (context) => {
+        measuredWidths.push(context.sourceRect.width);
+        return context.point;
+      };
       try {
         const { engine } = await renderDnd();
-        engine.registerSource(source, {});
+        engine.registerSource(source, { modifiers: probe });
         const sourceRect = source.getBoundingClientRect();
         const pressX = sourceRect.left + 8;
         const pressY = sourceRect.top + 6;
@@ -1179,8 +1179,9 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
         const preview = previews[0];
         expect(preview).not.toHaveAttribute('data-settling');
         expect(getComputedStyle(preview).color).toBe('rgb(0, 0, 0)');
-        // Measured without the `[data-settling]` width.
+        // Measured without the `[data-settling]` width, by the preview and the modifiers.
         expect(preview.getBoundingClientRect().width).toBeCloseTo(sourceRect.width);
+        expect(measuredWidths.at(-1)).toBeCloseTo(sourceRect.width);
         dispatchMouse('pointerup', source, pressX + 20, pressY);
       } finally {
         animationsFlag.BASE_UI_ANIMATIONS_DISABLED = previousFlag;
@@ -1267,6 +1268,65 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
     }
   });
 
+  it('keeps the preview in place when ending styles move its transform origin', () => {
+    // A fade-only ending leaves the preview where it was released, so the position
+    // must follow the new origin without a new `setPosition`.
+    const sheet = document.createElement('style');
+    sheet.textContent = '.Card[data-ending-style] { transform-origin: 0 0; }';
+    document.head.appendChild(sheet);
+    const scaled = document.createElement('div');
+    scaled.style.cssText =
+      'position: absolute; inset: 0 auto auto 0; transform: scale(2); transform-origin: 0 0;';
+    const card = document.createElement('div');
+    card.className = 'Card';
+    card.style.cssText = 'width: 50px; height: 20px;';
+    scaled.appendChild(card);
+    document.body.appendChild(scaled);
+    const handle = clonePreview(card, null)!;
+    try {
+      handle.setPosition(100, 60);
+      expect(handle.element.getBoundingClientRect().left).toBeCloseTo(100);
+
+      handle.element.setAttribute('data-ending-style', '');
+      handle.prepareForDrop();
+
+      const rect = handle.element.getBoundingClientRect();
+      expect(rect.left).toBeCloseTo(100);
+      expect(rect.top).toBeCloseTo(60);
+    } finally {
+      handle.destroy();
+      scaled.remove();
+      sheet.remove();
+    }
+  });
+
+  it('keeps a correction that depends on another one through the drop', () => {
+    // `line-height: 1.5` resolves against `font-size`, so the popover's own line height
+    // must be read before the `font-size` correction is written.
+    const sheet = document.createElement('style');
+    sheet.textContent =
+      '.Dependent { font-size: 16px; line-height: 1.5; } ' +
+      '[popover].Dependent { font-size: 40px; line-height: 2; }';
+    document.head.appendChild(sheet);
+    const card = document.createElement('div');
+    card.className = 'Dependent';
+    card.textContent = 'Card';
+    list.appendChild(card);
+    const handle = clonePreview(card, null)!;
+    try {
+      expect(getComputedStyle(handle.element).lineHeight).toBe('24px');
+
+      handle.element.setAttribute('data-ending-style', '');
+      handle.prepareForDrop();
+
+      expect(getComputedStyle(handle.element).lineHeight).toBe('24px');
+    } finally {
+      handle.destroy();
+      card.remove();
+      sheet.remove();
+    }
+  });
+
   it('lets ending styles set what the popover corrections pinned', () => {
     // An unstyled source gets the UA `Canvas` background corrected away inline. A
     // drop animation that sets a background must still win.
@@ -1321,6 +1381,22 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
     }
   });
 
+  it('shows the clone of a source that is an open popover', () => {
+    const panel = document.createElement('div');
+    panel.setAttribute('popover', 'manual');
+    panel.textContent = 'Panel';
+    list.appendChild(panel);
+    panel.showPopover();
+    const handle = clonePreview(panel, null)!;
+    try {
+      expect(handle.element.matches(':popover-open')).toBe(true);
+      expect(getComputedStyle(handle.element).display).toBe('block');
+    } finally {
+      handle.destroy();
+      panel.remove();
+    }
+  });
+
   it('keeps the popover UA chrome off the preview', () => {
     // A source that sets none of the properties the `[popover]` UA rule sets: no
     // border, padding, background, overflow or color of its own.
@@ -1331,10 +1407,8 @@ describe.skipIf(isJSDOM)('createDragPreviewElement (top layer)', () => {
     const handle = clonePreview(source, null)!;
     const plainHandle = clonePreview(plain, null)!;
     try {
-      // The `[popover]` UA rule gives the open popover `margin: auto` (hundreds of
-      // pixels here), a solid border, padding, `overflow: auto`, `CanvasText` and an
-      // opaque `Canvas` background. The preview keeps looking like the element it
-      // was lifted from.
+      // None of the `[popover]` UA chrome may reach the preview: `margin: auto`,
+      // border, padding, `overflow: auto`, `CanvasText`, and a `Canvas` background.
       const styles = getComputedStyle(handle.element);
       expect(styles.marginTop).toBe('0px');
       expect(styles.borderTopWidth).toBe('0px');
