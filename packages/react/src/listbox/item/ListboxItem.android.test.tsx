@@ -1,4 +1,4 @@
-import { expect, vi, describe, beforeEach, it } from 'vitest';
+import { expect, vi, describe, it, beforeEach } from 'vitest';
 import { Listbox } from '@base-ui/react/listbox';
 import { fireEvent, flushMicrotasks, screen } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';

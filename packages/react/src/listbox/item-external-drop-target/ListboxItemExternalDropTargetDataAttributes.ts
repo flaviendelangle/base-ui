@@ -1,1 +1,1 @@
-export { ListboxItemDataAttributes as ListboxItemExternalDropTargetDataAttributes } from '../item/ListboxItemDataAttributes';
+export * from '../item/ListboxItemDataAttributes';

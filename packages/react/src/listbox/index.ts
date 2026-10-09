@@ -25,6 +25,6 @@ export type { ListboxItemId } from './utils/ListboxItemId';
 
 export type * from './item-external-drop-target/ListboxItemExternalDropTarget';
 
-export { ListboxListDataAttributes } from './list/ListboxListDataAttributes';
-export { ListboxItemDataAttributes } from './item/ListboxItemDataAttributes';
-export { ListboxItemExternalDropTargetDataAttributes } from './item-external-drop-target/ListboxItemExternalDropTargetDataAttributes';
+export * as ListboxListDataAttributes from './list/ListboxListDataAttributes';
+export * as ListboxItemDataAttributes from './item/ListboxItemDataAttributes';
+export * as ListboxItemExternalDropTargetDataAttributes from './item/ListboxItemDataAttributes';

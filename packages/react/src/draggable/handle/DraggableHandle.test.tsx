@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
-import { createDndRenderer, describeConformance, testDragKind } from '#test-utils';
+import { describeConformance, dragRegistrationConformanceTests } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
+import { createDndRenderer, testDragKind } from '../../../test/dndEngine';
 import { cancel, dragOver, flushRaf, lift, setupDragEngineTests } from '../../../test/dnd';
 import { dragSessionStore } from '../../utils/drag-and-drop/dragSessionStore';
 
@@ -18,6 +19,14 @@ describe('<Draggable.Handle />', () => {
     },
   }));
 
+  dragRegistrationConformanceTests({
+    render: renderDnd,
+    wrapper: ({ children }) => <Draggable.Root kind={testDragKind}>{children}</Draggable.Root>,
+    createComponent: ({ key, ...props }) => <Draggable.Handle key={key} {...props} />,
+    // The root moves its gesture styles to its registered handle.
+    isRegistered: (element) => element.style.touchAction === 'manipulation',
+  });
+
   it('warns for a second mounted handle, and falls back to the survivor on unmount', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -32,13 +41,11 @@ describe('<Draggable.Handle />', () => {
       }
 
       const { rerender } = await renderDnd(<Card withFirst />);
-      // `warn()` logs each message once, and the log resets before each test, so
-      // re-mounts can't raise the count.
+      // `warn()` logs each message once per test, so re-mounts can't raise the count.
       expect(warnSpy).toHaveBeenCalledTimes(1);
       expect(warnSpy.mock.calls[0][0]).toMatch(/more than one mounted Draggable\.Handle/);
 
-      // After handle A unmounts, pickup is restricted to handle B instead of the
-      // whole card.
+      // Pickup falls back to handle B, not the whole card.
       await rerender(<Card withFirst={false} />);
       const card = screen.getByTestId('card');
       card.getBoundingClientRect = () => new DOMRect(0, 0, 200, 100);
@@ -56,7 +63,7 @@ describe('<Draggable.Handle />', () => {
     }
   });
 
-  it('keeps the gesture styles through a handle swap mid-drag and re-registers on the new handle', async () => {
+  it('keeps the drag through a handle swap mid-drag and moves the gesture styles to the new handle', async () => {
     function Card({ handleId }: { handleId: string }) {
       return (
         <Draggable.Root kind={testDragKind} data-testid="card">
@@ -81,22 +88,18 @@ describe('<Draggable.Handle />', () => {
     await lift(handleA);
     expect(dragSessionStore.getSnapshot()?.source.element).toBe(card);
 
-    // Swapping the handle while the root is the active source must not tear down
-    // the registration during the gesture. The old handle keeps its styles and
-    // the drag continues.
     await rerender(<Card handleId="handle-b" />);
     const handleB = screen.getByTestId('handle-b');
 
     expect(dragSessionStore.getSnapshot()?.source.element).toBe(card);
     expect(card).toHaveAttribute('data-dragging');
-    expect(handleA.style.userSelect).toBe('none');
-    expect(handleA.style.touchAction).toBe('manipulation');
+    expect(handleB.style.userSelect).toBe('none');
+    expect(handleB.style.touchAction).toBe('manipulation');
 
     cancel();
     await flushRaf();
 
-    // The deferred reconcile runs once the drag ends. The new handle gets the
-    // static setup and is the only pickup point.
+    // The new handle is the only pickup point.
     expect(dragSessionStore.getSnapshot()).toBeNull();
     expect(handleB.style.userSelect).toBe('none');
     expect(handleB.style.touchAction).toBe('manipulation');
@@ -112,10 +115,9 @@ describe('<Draggable.Handle />', () => {
   });
 
   it('does not re-register a hovered root when an inline ref changes identity', async () => {
-    // A new ref callback on every render makes React detach and re-attach the
-    // same handle node. Re-registering the root each time would make it leave and
-    // re-enter as a collision item, and a handler that sets state would re-render
-    // with another new ref, forever.
+    // A new ref callback every render makes React re-attach the handle node.
+    // Re-registering the root would make it leave and re-enter as a collision item,
+    // and handlers that set state would loop forever.
     const kind = Draggable.createKind<string>('handle-collision');
     const changed = vi.fn();
     function List() {

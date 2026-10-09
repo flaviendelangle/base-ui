@@ -3,16 +3,15 @@ import { Draggable } from '@base-ui/react/draggable';
 
 import * as React from 'react';
 import { useStableCallback } from '@base-ui/utils/useStableCallback';
+import { fastObjectShallowCompare } from '@base-ui/utils/fastObjectShallowCompare';
 import { findClosestSlot } from './kanban-placeholder-card-slots';
 
 import styles from './kanban-placeholder-card.module.css';
 import controlsStyles from './controls.module.css';
 
-// A "snap to the closest position" Kanban board built with `useMonitor`. On every
-// drag event, the monitor reads the pointer and finds the closest column
-// horizontally, then the closest insertion slot in it vertically. An empty
-// placeholder card renders in that slot, so the other cards move to make room.
-// The drop lands there, even when the pointer is between columns.
+// A "snap to the closest position" Kanban board built with `useMonitor`: the closest
+// column horizontally, then the closest slot in it vertically. An empty placeholder card
+// fills that slot so the other cards make room, and the drop lands there.
 
 type ColumnId = string;
 type CardId = string;
@@ -166,29 +165,25 @@ function KanbanBoardContent() {
     },
   );
 
+  // Runs every frame, so keep the previous placeholder when the slot didn't change.
+  // A new object would re-render the whole board.
+  function trackPlaceholder(eventDetails: {
+    location: Draggable.LocationHistory;
+    source: { element: HTMLElement };
+  }) {
+    const { clientX, clientY } = eventDetails.location.current.input;
+    const slot = computeSlot(clientX, clientY, columnElementsRef.current);
+    const next = slot
+      ? { ...slot, height: eventDetails.source.element.getBoundingClientRect().height }
+      : null;
+    setPlaceholder((prev) => (fastObjectShallowCompare(prev, next) ? prev : next));
+  }
+
   Draggable.useMonitor({
     accept: cardKind,
-    onMoveStart: (eventDetails) => {
-      const { clientX, clientY } = eventDetails.location.current.input;
-      const slot = computeSlot(clientX, clientY, columnElementsRef.current);
-      setPlaceholder(
-        slot
-          ? { ...slot, height: eventDetails.source.element.getBoundingClientRect().height }
-          : null,
-      );
-    },
-    onMove: (eventDetails) => {
-      const { clientX, clientY } = eventDetails.location.current.input;
-      const slot = computeSlot(clientX, clientY, columnElementsRef.current);
-      setPlaceholder(
-        slot
-          ? { ...slot, height: eventDetails.source.element.getBoundingClientRect().height }
-          : null,
-      );
-    },
-    // The placeholder always shows the nearest slot, even when the pointer is
-    // between columns or just outside the board. Commit that same slot on a real
-    // release. Canceling with Escape or blur only clears the placeholder.
+    onMoveStart: trackPlaceholder,
+    onMove: trackPlaceholder,
+    // Commit the slot the placeholder shows. A cancel (Escape or blur) only clears it.
     onMoveEnd: (eventDetails) => {
       if (!eventDetails.canceled) {
         const { clientX, clientY } = eventDetails.location.current.input;
@@ -207,8 +202,7 @@ function KanbanBoardContent() {
   });
 
   return (
-    // Catch-all drop target on the demo root, so a release anywhere inside the
-    // demo lands on a registered target rather than falling outside every one.
+    // Catch-all drop target, so a release anywhere in the demo lands on a target.
     <Draggable.Target className={styles.Root} accept={cardKind} trackDragOver={false}>
       <form
         className={controlsStyles.Controls}

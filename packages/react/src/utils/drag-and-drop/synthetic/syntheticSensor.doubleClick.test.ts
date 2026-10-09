@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent } from '@mui/internal-test-utils';
-import { createDndRenderer, firePointer } from '#test-utils';
+import { firePointer } from '#test-utils';
+import { createDndRenderer } from '../../../../test/dndEngine';
 import {
   createElement,
   flushRaf,
+  mockElementFromPoint,
   registerCleanup,
   setupDragEngineTests,
 } from '../../../../test/dnd';
@@ -33,11 +35,7 @@ describe('syntheticDrag double-click activation', () => {
     engine.registerTarget(target, { onDraggableDrop: onDrop });
     target.addEventListener('click', onClick);
     registerCleanup(() => target.removeEventListener('click', onClick));
-    const original = document.elementFromPoint;
-    document.elementFromPoint = () => target;
-    registerCleanup(() => {
-      document.elementFromPoint = original;
-    });
+    mockElementFromPoint(() => target);
 
     fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
     expect(onMoveStart).toHaveBeenCalledTimes(1);
@@ -72,11 +70,7 @@ describe('syntheticDrag double-click activation', () => {
     const onDrop = vi.fn();
     engine.registerSource(source, { activation: { type: 'double-click' }, onMove });
     engine.registerTarget(target, { onDraggableDrop: onDrop });
-    const original = document.elementFromPoint;
-    document.elementFromPoint = () => target;
-    registerCleanup(() => {
-      document.elementFromPoint = original;
-    });
+    mockElementFromPoint(() => target);
 
     fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
     // An empty `pointerType` counts as mouse, as it does at pickup. The session
@@ -137,7 +131,6 @@ describe('syntheticDrag double-click activation', () => {
     expect(onMoveStart).toHaveBeenCalledTimes(1);
     expect(onDoubleClick).not.toHaveBeenCalled();
 
-    // A new double-click picks it up again.
     fireEvent.click(source, { detail: 1, button: 0 });
     fireEvent.click(source, { detail: 2, button: 0 });
     fireEvent.doubleClick(source, { detail: 2, button: 0 });
@@ -172,6 +165,26 @@ describe('syntheticDrag double-click activation', () => {
     expect(onMove).toHaveBeenCalledTimes(1);
     expect(onMove.mock.calls[0][0].reason).toBe('pointer');
     expect(onMove.mock.calls[0][0].event.type).toBe('pointermove');
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+  });
+
+  it('reports the press of the second click for a scroll before the first move', async () => {
+    const { engine } = await renderDnd();
+    const source = createElement();
+    const onMove = vi.fn();
+    engine.registerSource(source, { activation: { type: 'double-click' }, onMove });
+
+    const pointer = { pointerType: 'mouse', pointerId: 1, clientX: 20, clientY: 20 } as const;
+    firePointer.down(source, { ...pointer, button: 0, buttons: 1, timeStamp: 10 });
+    firePointer.up(source, { ...pointer, button: 0, buttons: 0, timeStamp: 20 });
+    fireEvent.doubleClick(source, { detail: 2, button: 0, clientX: 20, clientY: 20 });
+    await flushRaf();
+    fireEvent.scroll(document.body);
+    await flushRaf();
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].reason).toBe('pointer');
+    expect(onMove.mock.calls[0][0].event.type).toBe('pointerdown');
     fireEvent.keyDown(document.body, { key: 'Escape' });
   });
 
@@ -362,11 +375,7 @@ describe('syntheticDrag double-click activation', () => {
         onMoveEnd,
       });
       engine.registerTarget(target, { onDraggableDrop: onDrop });
-      const original = document.elementFromPoint;
-      document.elementFromPoint = () => target;
-      registerCleanup(() => {
-        document.elementFromPoint = original;
-      });
+      mockElementFromPoint(() => target);
 
       firePointer.down(source, { ...tap, pointerType: 'touch', pointerId: 1, timeStamp: 10 });
       firePointer.up(source, { ...tap, pointerType: 'touch', pointerId: 1, timeStamp: 60 });

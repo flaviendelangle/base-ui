@@ -2,10 +2,12 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
-import { createDndRenderer, firePointer } from '#test-utils';
+import { firePointer } from '#test-utils';
 import { Draggable } from '@base-ui/react/draggable';
+import { createDndRenderer } from '../../../test/dndEngine';
 import { lift, dragOver, drop, cancel, flushRaf, setupDragEngineTests } from '../../../test/dnd';
-import { cancelDrag } from '../../utils/drag-and-drop/cancelDrag';
+import { cancelDrag } from '../../utils/drag-and-drop/synthetic/pickupRecognizer';
+import { getActiveSession } from '../../utils/drag-and-drop/core/dragSession';
 
 setupDragEngineTests();
 const kind = Draggable.createKind<string>('collision-test');
@@ -135,9 +137,9 @@ describe('Draggable.CollisionProvider', () => {
   });
 
   it('keeps a hovered item registered when an inline ref changes identity', async () => {
-    // A new ref callback on every render makes React detach and re-attach the
-    // same node. Re-registering it would make the item leave and re-enter, and a
-    // handler that sets state would re-render with another new ref, forever.
+    // A new ref callback each render detaches and re-attaches the node.
+    // Re-registering would make the item leave and re-enter, and a state-setting
+    // handler would then loop forever.
     const changed = vi.fn();
     function List() {
       const [over, setOver] = React.useState<string | null>(null);
@@ -641,9 +643,8 @@ describe('Draggable.CollisionProvider', () => {
     b.getBoundingClientRect = () => new DOMRect(0, 100, 100, 100);
     await lift(screen.getByTestId('a'));
     await dragOver(b, { clientY: 180 });
-    // The change re-rendered the list with new resolver identities. A
-    // re-registration of the hovered row would have reported a leave (`null`)
-    // and then the same collision again.
+    // The change re-rendered with new resolver identities. Re-registering the
+    // hovered row would report a leave (`null`), then the same collision again.
     await dragOver(b, { clientY: 181 });
     expect(changed).toHaveBeenCalledTimes(2);
     expect(changed.mock.calls.every(([eventDetails]) => eventDetails.target !== null)).toBe(true);
@@ -784,6 +785,29 @@ describe('Draggable.CollisionProvider', () => {
     cancel();
   });
 
+  it("reports an item's updated payload to the group after its drag", async () => {
+    const changed = vi.fn();
+    const canCollide = vi.fn(() => true);
+    await renderDnd(
+      <Draggable.CollisionProvider kind={kind} onCollisionChange={changed} canCollide={canCollide}>
+        <Items />
+      </Draggable.CollisionProvider>,
+    );
+    const {
+      items: [a, b],
+    } = measure();
+    // The override outlives the drag while the `payload` prop stays the same.
+    await lift(a);
+    getActiveSession()!.source.updatePayload('a2');
+    cancel();
+
+    await lift(b);
+    await dragOver(a, { clientY: 20 });
+    expect(changed.mock.lastCall?.[0].target.payload).toBe('a2');
+    expect(canCollide).toHaveBeenLastCalledWith(expect.objectContaining({ payload: 'a2' }));
+    cancel();
+  });
+
   it("vetoes the whole target stack when canCollide returns 'reject'", async () => {
     const changed = vi.fn();
     const containerDrop = vi.fn();
@@ -911,34 +935,6 @@ describe('Draggable.CollisionProvider', () => {
       </Draggable.CollisionProvider>,
     );
     expect(changed.mock.lastCall?.[0].target).toBeNull();
-  });
-
-  it('does not call a pickup handler to read destination identity', async () => {
-    const pickup = vi.fn(() => 'b');
-    const ended = vi.fn();
-    await renderDnd(
-      <Draggable.CollisionProvider kind={kind} onMoveEnd={ended}>
-        <Draggable.Root kind={kind} payload="a" data-testid="a">
-          <Draggable.Preview disabled />
-        </Draggable.Root>
-        <Draggable.Root
-          kind={kind}
-          payload="b"
-          onMoveStart={pickup}
-          collisionPayload="b"
-          data-testid="b"
-        >
-          <Draggable.Preview disabled />
-        </Draggable.Root>
-      </Draggable.CollisionProvider>,
-    );
-    const b = screen.getByTestId('b');
-    b.getBoundingClientRect = () => new DOMRect(0, 100, 100, 100);
-    await lift(screen.getByTestId('a'));
-    await dragOver(b, { clientY: 180 });
-    drop(b, { clientY: 180 });
-    expect(ended.mock.lastCall?.[0].target.payload).toBe('b');
-    expect(pickup).not.toHaveBeenCalled();
   });
 
   it('finds a matching group through nested providers of another kind', async () => {

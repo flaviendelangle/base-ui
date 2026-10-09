@@ -15,8 +15,7 @@ interface Stop {
 
 const stopKind = Draggable.createKind<string>('stop');
 
-// Enough stops for the lane to overflow on mount, so dragging toward an edge
-// has somewhere to scroll.
+// Enough stops to overflow the lane, so dragging toward an edge has somewhere to scroll.
 const INITIAL_STOPS: Stop[] = [
   { id: 'wake', label: 'Wake up' },
   { id: 'coffee', label: 'Coffee' },
@@ -34,9 +33,8 @@ const INITIAL_STOPS: Stop[] = [
 
 // Find the insertion slot closest to the pointer along the lane. Slots sit
 // before the first stop, in the middle of each gap, and after the last stop.
-function resolveDropIndex(track: HTMLElement, clientX: number): number {
-  // The drag preview is a clone of the stop, so it has `data-stop` too. Skip it,
-  // since it follows the pointer and isn't a real slot.
+function resolveDropIndex(track: Element, clientX: number): number {
+  // Skip the drag preview: it's a clone of a stop, so it has `data-stop` too.
   const stops = Array.from(
     track.querySelectorAll<HTMLElement>('[data-stop]:not([data-drag-preview])'),
   );
@@ -44,13 +42,12 @@ function resolveDropIndex(track: HTMLElement, clientX: number): number {
     return 0;
   }
 
-  const slotXs = [stops[0].getBoundingClientRect().left];
-  for (let i = 1; i < stops.length; i += 1) {
-    const previous = stops[i - 1].getBoundingClientRect();
-    const current = stops[i].getBoundingClientRect();
-    slotXs.push((previous.right + current.left) / 2);
+  const rects = stops.map((stop) => stop.getBoundingClientRect());
+  const slotXs = [rects[0].left];
+  for (let i = 1; i < rects.length; i += 1) {
+    slotXs.push((rects[i - 1].right + rects[i].left) / 2);
   }
-  slotXs.push(stops[stops.length - 1].getBoundingClientRect().right);
+  slotXs.push(rects[rects.length - 1].right);
 
   let index = 0;
   let bestDx = Infinity;
@@ -67,7 +64,6 @@ function resolveDropIndex(track: HTMLElement, clientX: number): number {
 export default function AxisLane() {
   const [stops, setStops] = React.useState(INITIAL_STOPS);
   const [announcement, setAnnouncement] = React.useState('');
-  const trackRef = React.useRef<HTMLDivElement | null>(null);
 
   function moveStop(id: string, insertIndex: number) {
     const sourceIndex = stops.findIndex((stop) => stop.id === id);
@@ -104,17 +100,16 @@ export default function AxisLane() {
         >
           {/* @highlight-end */}
           <Draggable.Target
-            ref={trackRef}
             className={styles.Track}
             accept={stopKind}
             onDraggableDrop={(eventDetails) => {
-              const track = trackRef.current;
-              if (track) {
-                moveStop(
-                  eventDetails.source.payload,
-                  resolveDropIndex(track, eventDetails.location.current.input.clientX),
-                );
-              }
+              moveStop(
+                eventDetails.source.payload,
+                resolveDropIndex(
+                  eventDetails.currentTarget.element,
+                  eventDetails.location.current.input.clientX,
+                ),
+              );
             }}
           >
             {stops.map((stop, index) => (

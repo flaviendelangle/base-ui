@@ -1,8 +1,10 @@
 import { addEventListener } from '@base-ui/utils/addEventListener';
+import { mergeCleanups } from '@base-ui/utils/mergeCleanups';
 import { ownerWindow } from '@base-ui/utils/owner';
 import { isShadowRoot } from '@floating-ui/utils/dom';
 import { getSharedSlot } from './sharedState';
 import type { DragCleanupFn } from './types';
+import { getOrCreate, onceCleanup } from './utils';
 
 export type DragEventRoot = Document | ShadowRoot;
 
@@ -12,13 +14,11 @@ interface DocumentBindingEntry {
 }
 
 interface DocumentBinding {
-  bind(root: DragEventRoot): void;
-  unbind(root: DragEventRoot): void;
+  bind(root: DragEventRoot): DragCleanupFn;
 }
 
 interface CreateEventRootBindingOptions {
   slot: string;
-  /** The listener for each event type, keyed by type. */
   listeners: Record<string, (event: Event) => void>;
 }
 
@@ -33,9 +33,8 @@ export function createEventRootBinding(options: CreateEventRootBindingOptions): 
     () => new Map<EventTarget, ShadowRoot>(),
   );
   /**
-   * Events already delivered. An event from inside a bound shadow root reaches
-   * that root's capture wrapper and then the bubble fallback of every bound root
-   * above it, so it must be delivered only once.
+   * An event from inside a bound shadow root reaches that root's capture wrapper and
+   * then the bubble fallback of every bound root above it, so deliver it only once.
    */
   const delivered = getSharedSlot<WeakSet<Event>>(`${slot}.delivered`, () => new WeakSet<Event>());
 
@@ -47,9 +46,8 @@ export function createEventRootBinding(options: CreateEventRootBindingOptions): 
   };
 
   const crossesBoundShadowRoot = (event: Event, currentRoot: DragEventRoot): boolean => {
-    // The window wrappers below call this for every event of a bound type on the
-    // page while any binding exists. `composedPath()` builds the whole ancestor
-    // chain, so skip it when no shadow root is bound.
+    // The window wrappers call this for every bound-type event on the page, and
+    // `composedPath()` builds the whole ancestor chain, so skip it when possible.
     if (boundShadowRoots.size === 0) {
       return false;
     }
@@ -85,35 +83,25 @@ export function createEventRootBinding(options: CreateEventRootBindingOptions): 
       addEventListener(target, type, onCapture, { capture: true }),
       addEventListener(target, type, onBubble),
     ]);
-    return () => {
-      for (const off of offs) {
-        off();
-      }
-      if (shadowRoot) {
-        boundShadowRoots.delete(root.host);
-      }
-    };
+    return mergeCleanups(...offs, shadowRoot && (() => boundShadowRoots.delete(root.host)));
   };
 
+  function unbind(root: DragEventRoot): void {
+    const entry = bindings.get(root);
+    if (!entry) {
+      return;
+    }
+    entry.count -= 1;
+    if (entry.count === 0) {
+      bindings.delete(root);
+      entry.cleanup();
+    }
+  }
+
   return {
-    bind(root: DragEventRoot): void {
-      const existing = bindings.get(root);
-      if (existing) {
-        existing.count += 1;
-        return;
-      }
-      bindings.set(root, { count: 1, cleanup: install(root) });
-    },
-    unbind(root: DragEventRoot): void {
-      const entry = bindings.get(root);
-      if (!entry) {
-        return;
-      }
-      entry.count -= 1;
-      if (entry.count === 0) {
-        bindings.delete(root);
-        entry.cleanup();
-      }
+    bind(root: DragEventRoot): DragCleanupFn {
+      getOrCreate(bindings, root, () => ({ count: 0, cleanup: install(root) })).count += 1;
+      return onceCleanup(() => unbind(root));
     },
   };
 }

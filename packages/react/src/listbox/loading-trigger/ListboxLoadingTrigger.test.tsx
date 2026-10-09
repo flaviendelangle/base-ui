@@ -68,8 +68,6 @@ describe('<Listbox.LoadingTrigger />', () => {
         </Listbox.Root>,
       );
 
-      await flushMicrotasks();
-
       expect(screen.getByText('Idle')).toBeVisible();
 
       act(() => {

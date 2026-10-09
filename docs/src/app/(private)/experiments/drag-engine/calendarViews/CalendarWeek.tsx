@@ -26,10 +26,9 @@ import {
   resolveDropPreview,
   snapToMinutes,
   useCalendarView,
+  makeEventId,
 } from '../calendarLogic';
 import styles from '../calendar.module.css';
-
-// -----------------------------------------------------------------------------
 
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -42,8 +41,7 @@ export function CalendarWeekView(props: { weekStartMs: number }) {
 
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Scroll to about 7 AM when a week first mounts, so the user starts at a useful
-  // hour instead of midnight.
+  // Start each week scrolled to 7 AM instead of midnight.
   useIsoLayoutEffect(() => {
     const el = scrollRef.current;
     if (el) {
@@ -80,9 +78,7 @@ export function CalendarWeekView(props: { weekStartMs: number }) {
   );
 }
 
-// -----------------------------------------------------------------------------
-// Header with the day labels
-// -----------------------------------------------------------------------------
+// --- Header with the day labels ---
 
 function WeekHeader(props: { days: number[]; todayMs: number }) {
   const { days, todayMs } = props;
@@ -107,9 +103,7 @@ function WeekHeader(props: { days: number[]; todayMs: number }) {
   );
 }
 
-// -----------------------------------------------------------------------------
-// All-day row
-// -----------------------------------------------------------------------------
+// --- All-day row ---
 
 function WeekAllDayRow(props: { days: number[]; events: CalendarEvent[]; weekStartMs: number }) {
   const { days, events, weekStartMs } = props;
@@ -220,14 +214,15 @@ function WeekAllDayCell(props: { dayMs: number }) {
       }
       onMoveEnd={(eventDetails) => {
         if (eventDetails.target !== null) {
-          const preview = consumeDropPreview();
+          consumeDropPreview();
+          const preview = resolveDropPreview(eventDetails.source, eventDetails.target);
           if (preview?.intent !== 'create') {
             return;
           }
           dispatch({
             type: 'CREATE_EVENT',
             event: {
-              id: `evt-create-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              id: makeEventId(),
               title: 'New event',
               start: preview.start,
               end: preview.end,
@@ -238,8 +233,7 @@ function WeekAllDayCell(props: { dayMs: number }) {
       }}
       className={styles.weekAllDayCell}
     >
-      {/* The drag source is the all-day cell, so a clone would be a full-width
-          preview. The drop preview in the grid shows the range being created. */}
+      {/* No clone of the cell: the drop preview in the grid shows the range being created. */}
       <Draggable.Preview disabled />
     </Draggable.Root>
   );
@@ -267,7 +261,8 @@ function WeekAllDayBar(props: { event: CalendarEvent; segment: WeekEventSegment 
       payload={movePayload}
       onMoveEnd={(eventDetails) => {
         if (eventDetails.target !== null) {
-          const preview = consumeDropPreview();
+          consumeDropPreview();
+          const preview = resolveDropPreview(eventDetails.source, eventDetails.target);
           if (preview?.intent !== 'move') {
             return;
           }
@@ -303,9 +298,7 @@ function WeekAllDayBar(props: { event: CalendarEvent; segment: WeekEventSegment 
   );
 }
 
-// -----------------------------------------------------------------------------
-// Hour labels
-// -----------------------------------------------------------------------------
+// --- Hour labels ---
 
 function WeekHourLabels() {
   const labels: React.ReactNode[] = [];
@@ -319,9 +312,7 @@ function WeekHourLabels() {
   return <div className={styles.weekHourLabels}>{labels}</div>;
 }
 
-// -----------------------------------------------------------------------------
-// Day column: drop target, create draggable and timed events
-// -----------------------------------------------------------------------------
+// --- Day column: drop target, create draggable and timed events ---
 
 interface TimedSegment {
   event: CalendarEvent;
@@ -435,14 +426,15 @@ function WeekDayColumn(props: { dayMs: number; events: CalendarEvent[] }) {
       }}
       onMoveEnd={(eventDetails) => {
         if (eventDetails.target !== null) {
-          const preview = consumeDropPreview();
+          consumeDropPreview();
+          const preview = resolveDropPreview(eventDetails.source, eventDetails.target);
           if (preview?.intent !== 'create') {
             return;
           }
           dispatch({
             type: 'CREATE_EVENT',
             event: {
-              id: `evt-create-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              id: makeEventId(),
               title: 'New event',
               start: preview.start,
               end: preview.end,
@@ -477,9 +469,7 @@ function WeekDayColumn(props: { dayMs: number; events: CalendarEvent[] }) {
   );
 }
 
-// -----------------------------------------------------------------------------
-// Timed event chip
-// -----------------------------------------------------------------------------
+// --- Timed event chip ---
 
 function WeekTimedEvent(props: { dayMs: number; segment: TimedSegment }) {
   const { dayMs, segment } = props;
@@ -495,9 +485,6 @@ function WeekTimedEvent(props: { dayMs: number; segment: TimedSegment }) {
       anchorStart: event.start,
       anchorEnd: event.end,
       allDay: event.allDay,
-      // The engine handles the grab offset inside the chip through
-      // `anchor: 'source'`. Only the segment correction travels with the drag. It's
-      // non-zero for a chip that shows the part of an event after midnight.
       segmentOffsetMs: segment.visibleStart - event.start,
     }),
     [event.id, event.start, event.end, event.allDay, segment.visibleStart],
@@ -508,7 +495,8 @@ function WeekTimedEvent(props: { dayMs: number; segment: TimedSegment }) {
       payload={movePayload}
       onMoveEnd={(eventDetails) => {
         if (eventDetails.target !== null) {
-          const preview = consumeDropPreview();
+          consumeDropPreview();
+          const preview = resolveDropPreview(eventDetails.source, eventDetails.target);
           if (preview?.intent !== 'move') {
             return;
           }
@@ -566,7 +554,8 @@ function WeekResizeHandle(props: { event: CalendarEvent; edge: 'start' | 'end' }
       payload={resizePayload}
       onMoveEnd={(eventDetails) => {
         if (eventDetails.target !== null) {
-          const preview = consumeDropPreview();
+          consumeDropPreview();
+          const preview = resolveDropPreview(eventDetails.source, eventDetails.target);
           if (preview?.intent !== 'resize') {
             return;
           }

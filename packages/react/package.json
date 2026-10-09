@@ -46,6 +46,7 @@
     "./fieldset": "./src/fieldset/index.ts",
     "./form": "./src/form/index.ts",
     "./input": "./src/input/index.ts",
+    "./listbox": "./src/listbox/index.ts",
     "./menu": "./src/menu/index.ts",
     "./menubar": "./src/menubar/index.ts",
     "./merge-props": "./src/merge-props/index.ts",
@@ -105,8 +106,7 @@
     "./internals/usePressAndHold": "./src/internals/usePressAndHold.ts",
     "./internals/useRenderElement": "./src/internals/useRenderElement.tsx",
     "./internals/useValueChanged": "./src/internals/useValueChanged.ts",
-    "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts",
-    "./listbox": "./src/listbox/index.ts"
+    "./internals/useTransitionStatus": "./src/internals/useTransitionStatus.ts"
   },
   "imports": {
     "#test-utils": "./test/index.ts",
@@ -140,7 +140,7 @@
     "@date-fns/tz": "1.5.0",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
-    "@types/luxon": "3.7.5",
+    "@types/luxon": "3.7.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/use-sync-external-store": "1.7.0",

@@ -210,10 +210,9 @@ type ListboxItemDraggableProps = {
    */
   style?: React.CSSProperties | ((state: DraggableRootState) => React.CSSProperties | undefined);
   /**
-   * A stable key that lets the settling preview find this item again after it remounts,
-   * for example when a drop moves it to another list or a virtualized list recreates it.
-   * Needed only when the remounted item gets a new `payload` object.
-   * Use the same key for the same item.
+   * A stable key that lets the drag and its settling preview find this item again after
+   * it remounts, for example when a virtualized list recreates it or a drop moves it to
+   * another list. Needed only when the remounted item gets a new `payload` object.
    */
   previewKey?: string | number;
   /**
@@ -261,10 +260,8 @@ type ListboxItemDraggableProps = {
   /**
    * Event handler called once when the drag ends, after a drop, a release outside any
    * target, or a cancellation. `eventDetails.target` is the target that received the drop,
-   * or `null`. `eventDetails.canceled` tells a cancel from a release, and
-   * `eventDetails.reason` says exactly why the drag ended.
-   *
-   * A drag canceled during pickup fires this handler without a preceding `onMoveStart`.
+   * or `null`. `eventDetails.canceled` tells a cancel from a release. A drag canceled
+   * during pickup fires this handler without a preceding `onMoveStart`.
    */
   onMoveEnd?: (eventDetails: DraggableRootMoveEndEventDetails) => void;
   /**
@@ -960,31 +957,31 @@ type ListboxSortingMove<Value = any> = {
 Data attributes of [Item](#item).
 
 ```typescript
-enum ListboxItemDataAttributes {
+declare namespace ListboxItemDataAttributes {
   /** Present when the listbox item is selected. */
-  selected = 'data-selected',
+  const selected: 'data-selected';
   /** Present when the listbox item is highlighted. */
-  highlighted = 'data-highlighted',
+  const highlighted: 'data-highlighted';
   /** Present when the listbox item is disabled. */
-  disabled = 'data-disabled',
+  const disabled: 'data-disabled';
   /**
    * Present while the item participates in an active pointer sort, including
    * selected items moving with the picked-up item. Items disabled for sorting are excluded.
    * Removed when the gesture ends or is canceled; not set by keyboard sorting.
    * Unlike `data-dragging`, this does not mean the item was physically picked up.
    */
-  moving = 'data-moving',
+  const moving: 'data-moving';
   /** Present only on the item physically picked up. Managed by the drag engine. */
-  dragging = 'data-dragging',
+  const dragging: 'data-dragging';
   /**
    * Present on the item picked up after a pointer drop, until its drag preview's ending
    * animation finishes. Managed by the drag engine.
    */
-  settling = 'data-settling',
+  const settling: 'data-settling';
   /** Present when the item is the current pointer sorting or external drop destination. */
-  dragOver = 'data-drag-over',
+  const dragOver: 'data-drag-over';
   /** The sorting or external drop destination: before or after. */
-  dropPosition = 'data-drop-position',
+  const dropPosition: 'data-drop-position';
 }
 ```
 
@@ -993,31 +990,31 @@ enum ListboxItemDataAttributes {
 Data attributes of [ItemExternalDropTarget](#itemexternaldroptarget).
 
 ```typescript
-enum ListboxItemExternalDropTargetDataAttributes {
+declare namespace ListboxItemExternalDropTargetDataAttributes {
   /** Present when the listbox item is selected. */
-  selected = 'data-selected',
+  const selected: 'data-selected';
   /** Present when the listbox item is highlighted. */
-  highlighted = 'data-highlighted',
+  const highlighted: 'data-highlighted';
   /** Present when the listbox item is disabled. */
-  disabled = 'data-disabled',
+  const disabled: 'data-disabled';
   /**
    * Present while the item participates in an active pointer sort, including
    * selected items moving with the picked-up item. Items disabled for sorting are excluded.
    * Removed when the gesture ends or is canceled; not set by keyboard sorting.
    * Unlike `data-dragging`, this does not mean the item was physically picked up.
    */
-  moving = 'data-moving',
+  const moving: 'data-moving';
   /** Present only on the item physically picked up. Managed by the drag engine. */
-  dragging = 'data-dragging',
+  const dragging: 'data-dragging';
   /**
    * Present on the item picked up after a pointer drop, until its drag preview's ending
    * animation finishes. Managed by the drag engine.
    */
-  settling = 'data-settling',
+  const settling: 'data-settling';
   /** Present when the item is the current pointer sorting or external drop destination. */
-  dragOver = 'data-drag-over',
+  const dragOver: 'data-drag-over';
   /** The sorting or external drop destination: before or after. */
-  dropPosition = 'data-drop-position',
+  const dropPosition: 'data-drop-position';
 }
 ```
 
@@ -1067,11 +1064,11 @@ type ListboxItemExternalDropTargetOptions<
 Data attributes of [List](#list).
 
 ```typescript
-enum ListboxListDataAttributes {
+declare namespace ListboxListDataAttributes {
   /** Present when the listbox is disabled. */
-  disabled = 'data-disabled',
+  const disabled: 'data-disabled';
   /** Indicates the orientation of the listbox. */
-  orientation = 'data-orientation',
+  const orientation: 'data-orientation';
 }
 ```
 

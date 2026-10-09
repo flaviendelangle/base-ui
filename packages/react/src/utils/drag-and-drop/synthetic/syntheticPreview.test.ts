@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { isJSDOM } from '#test-utils';
-import { createSyntheticPreview, retargetEndingPreviewSource } from './syntheticPreview';
+import { createSyntheticPreview, retargetPreviewSource } from './syntheticPreview';
 import { restrictToVerticalAxis } from '../dragModifiers';
 import type { DraggablePosition } from '../../../draggable/DraggableProvider';
 import type { DragPreviewElementHandle } from './cloneDragPreview';
@@ -12,16 +12,13 @@ import type { DragPreviewElementHandle } from './cloneDragPreview';
 function createPreviewElement(
   width = 0,
   height = 0,
-  isClone = false,
 ): DragPreviewElementHandle & { destroyed: boolean } {
   const element = document.createElement('div');
   element.getBoundingClientRect = () => new DOMRect(0, 0, width, height);
   const sourceRect = new DOMRect(0, 0, width, height);
   return {
     element,
-    isClone,
     anchor: { sourceRect, sourceScale: { x: 1, y: 1 }, hosts: [], inContainer: false, slot: null },
-    sourceRect,
     destroyed: false,
     setPosition(x, y) {
       element.style.translate = `${x}px ${y}px`;
@@ -36,10 +33,9 @@ function createPreviewElement(
   };
 }
 
-// Teardown runs in `afterEach`, not at the end of each test, so a failed assertion
-// cannot skip cleanup and break later tests (a leaked `data-dragging` on
-// `document.body`, a handle left alive).
-const activeHandles: Array<{ destroy(): void }> = [];
+// Teardown runs in `afterEach` so a failed assertion can't skip it and leak state,
+// such as `data-dragging` on `document.body`, into later tests.
+const activeHandles: Array<{ end(drop: boolean): void }> = [];
 const attachedSources: HTMLElement[] = [];
 
 /** An identity no remounted source matches, so settling previews never retarget. */
@@ -67,11 +63,21 @@ function createSource(): HTMLElement {
   return source;
 }
 
+/** Queue `requestAnimationFrame` callbacks so a test steps each frame by hand. */
+function queueAnimationFrames(): FrameRequestCallback[] {
+  const frames: FrameRequestCallback[] = [];
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    frames.push(callback);
+    return frames.length;
+  });
+  return frames;
+}
+
 afterEach(() => {
-  // `destroy()` is idempotent (asserted below), so re-destroying a handle a
-  // test already tore down is safe.
+  // `end` is a no-op on a destroyed handle, so ending one a test already tore
+  // down is safe.
   while (activeHandles.length > 0) {
-    activeHandles.pop()!.destroy();
+    activeHandles.pop()!.end(false);
   }
   while (attachedSources.length > 0) {
     attachedSources.pop()!.remove();
@@ -87,7 +93,7 @@ describe('syntheticPreview', () => {
   it('stops positioning when a modifier destroys the preview', () => {
     const handle = createHandle(createSource(), [
       ({ point }) => {
-        handle.destroy();
+        handle.end(false);
         return point;
       },
     ]);
@@ -108,7 +114,7 @@ describe('syntheticPreview', () => {
     handle.markSourceDragging();
     expect(source).toHaveAttribute('data-dragging');
 
-    handle.destroy();
+    handle.end(false);
     expect(source).not.toHaveAttribute('data-dragging');
   });
 
@@ -121,21 +127,21 @@ describe('syntheticPreview', () => {
     handle.retargetSource(newNode);
 
     // A CSS-only `[data-dragging]` dim would otherwise stop applying the moment the
-    // row was recycled, while `isDragging` kept tracking it.
+    // row was recycled, while `Draggable.Root`'s `dragging` kept tracking it.
     expect(oldNode).not.toHaveAttribute('data-dragging');
     expect(newNode).toHaveAttribute('data-dragging');
 
-    handle.destroy();
+    handle.end(false);
     expect(newNode).not.toHaveAttribute('data-dragging');
   });
 
   describe('setPreviewElement', () => {
-    it('exposes the adopted preview element and destroys it on release', () => {
+    it('exposes the adopted preview element and destroys it when the preview is torn down', () => {
       const handle = createHandle(document.body);
       const preview = createPreviewElement();
       handle.setPreviewElement(preview);
       expect(handle.getPreviewElement()).toBe(preview);
-      handle.removePreviewElement();
+      handle.end(false);
       expect(handle.getPreviewElement()).toBeNull();
       expect(preview.destroyed).toBe(true);
     });
@@ -154,25 +160,13 @@ describe('syntheticPreview', () => {
       expect(preview.element.style.translate).toBe('90px 180px');
     });
 
-    it('destroys the preview element when the whole preview is torn down', () => {
-      const handle = createHandle(document.body);
-      const preview = createPreviewElement();
-      handle.setPreviewElement(preview);
-      handle.destroy();
-      expect(preview.destroyed).toBe(true);
-    });
-
     it('keeps a cloned preview mounted through its authored drop transition', async () => {
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const source = createSource();
       source.getBoundingClientRect = () => new DOMRect(40, 50, 120, 30);
       const handle = createHandle(source);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       // The authored ending transition that animates the move to the source.
       preview.element.style.transitionProperty = 'translate';
       preview.element.style.transitionDuration = '200ms';
@@ -191,8 +185,7 @@ describe('syntheticPreview', () => {
 
       handle.setPreviewElement(preview);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
 
       expect(source).toHaveAttribute('data-dragging');
       expect(source).toHaveAttribute('data-settling');
@@ -215,15 +208,11 @@ describe('syntheticPreview', () => {
       // A fade-only ending would otherwise jump to the source on its first frame
       // and fade there.
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const source = createSource();
       source.getBoundingClientRect = () => new DOMRect(40, 50, 120, 30);
       const handle = createHandle(source);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       preview.element.style.transitionProperty = 'opacity, translate';
       preview.element.style.transitionDuration = '200ms, 0s';
       document.body.appendChild(preview.element);
@@ -237,8 +226,7 @@ describe('syntheticPreview', () => {
       handle.setPreviewElement(preview);
       handle.update(300, 400);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       frames.shift()!(0);
 
       expect(preview.element.style.translate).toBe('300px 400px');
@@ -253,14 +241,10 @@ describe('syntheticPreview', () => {
       // A drop that remounts the item without a matching identity leaves nothing to
       // move onto, but an ending fade still runs.
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const source = createSource();
       const handle = createHandle(source);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       preview.element.style.transitionProperty = 'translate';
       preview.element.style.transitionDuration = '200ms';
       document.body.appendChild(preview.element);
@@ -271,8 +255,7 @@ describe('syntheticPreview', () => {
       handle.setPreviewElement(preview);
       handle.update(300, 400);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       source.remove();
       frames.shift()!(0);
 
@@ -281,27 +264,21 @@ describe('syntheticPreview', () => {
     });
 
     it('marks the ending preview when the release dropped on a target', () => {
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const outside = createHandle(createSource());
-      const returning = createPreviewElement(120, 30, true);
+      const returning = createPreviewElement(120, 30);
       document.body.appendChild(returning.element);
       outside.setPreviewElement(returning);
-      outside.prepareForDrop();
-      outside.destroy();
+      outside.end(true);
       frames.shift()!(0);
       expect(returning.element).toHaveAttribute('data-ending-style');
       expect(returning.element).not.toHaveAttribute('data-dropped');
 
       const onTarget = createHandle(createSource());
-      const dropped = createPreviewElement(120, 30, true);
+      const dropped = createPreviewElement(120, 30);
       document.body.appendChild(dropped.element);
       onTarget.setPreviewElement(dropped);
-      onTarget.prepareForDrop();
-      onTarget.destroy();
+      onTarget.end(true);
       // The lifecycle resolves the drop after the sensor released the preview, but
       // before the ending's first frame, which applies both attributes together.
       onTarget.markDropped();
@@ -313,14 +290,10 @@ describe('syntheticPreview', () => {
 
     it.each(['duration', 'iterations'])('ignores animations with infinite %s', (property) => {
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const source = createSource();
       const handle = createHandle(source);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       document.body.appendChild(preview.element);
       preview.element.getAnimations = () =>
         [
@@ -331,8 +304,7 @@ describe('syntheticPreview', () => {
         ] as unknown as Animation[];
       handle.setPreviewElement(preview);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       frames.shift()!(0);
       expect(preview.destroyed).toBe(true);
       expect(source).not.toHaveAttribute('data-dragging');
@@ -341,15 +313,11 @@ describe('syntheticPreview', () => {
     it('cleans up a settling preview whose animation stays paused', () => {
       vi.useFakeTimers();
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const source = createSource();
       source.getBoundingClientRect = () => new DOMRect(40, 50, 120, 30);
       const handle = createHandle(source);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       document.body.appendChild(preview.element);
       preview.element.getAnimations = () =>
         [
@@ -365,8 +333,7 @@ describe('syntheticPreview', () => {
 
       handle.setPreviewElement(preview);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       frames.shift()!(0);
 
       expect(preview.destroyed).toBe(false);
@@ -380,11 +347,7 @@ describe('syntheticPreview', () => {
 
     it('settles on a matching source that remounts in another container', async () => {
       vi.stubGlobal('BASE_UI_ANIMATIONS_DISABLED', false);
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const identity = {
         kind: Symbol.for('card'),
         previewKey: 'card-a',
@@ -393,7 +356,7 @@ describe('syntheticPreview', () => {
       const source = createSource();
       const handle = createSyntheticPreview(source, identity, null);
       activeHandles.push(handle);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       preview.element.style.transitionProperty = 'translate';
       preview.element.style.transitionDuration = '200ms';
       document.body.appendChild(preview.element);
@@ -411,15 +374,14 @@ describe('syntheticPreview', () => {
 
       handle.setPreviewElement(preview);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       source.remove();
 
       const destination = createSource();
       destination.getBoundingClientRect = () => new DOMRect(240, 160, 120, 30);
       // Kanban payload objects are recreated as the card mounts in its new column,
       // so the explicit preview key supplies the stable identity in that case.
-      retargetEndingPreviewSource(destination, {
+      retargetPreviewSource(destination, {
         kind: identity.kind,
         previewKey: identity.previewKey,
         payload: { id: 'a' },
@@ -441,11 +403,7 @@ describe('syntheticPreview', () => {
     });
 
     it('does not retarget a settling source without an unambiguous identity', () => {
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+      const frames = queueAnimationFrames();
       const kind = Symbol.for('untitled-card');
       const source = createSource();
       const handle = createSyntheticPreview(
@@ -454,18 +412,17 @@ describe('syntheticPreview', () => {
         null,
       );
       activeHandles.push(handle);
-      const preview = createPreviewElement(120, 30, true);
+      const preview = createPreviewElement(120, 30);
       document.body.appendChild(preview.element);
       preview.element.getAnimations = () => [];
 
       handle.setPreviewElement(preview);
       handle.markSourceDragging();
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
       source.remove();
 
       const destination = createSource();
-      retargetEndingPreviewSource(destination, {
+      retargetPreviewSource(destination, {
         kind,
         previewKey: undefined,
         payload: undefined,
@@ -477,19 +434,14 @@ describe('syntheticPreview', () => {
       expect(preview.destroyed).toBe(true);
     });
 
-    it('settles a copy of custom content like a clone', () => {
-      const frames: FrameRequestCallback[] = [];
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-        frames.push(callback);
-        return frames.length;
-      });
+    it('finishes settling on the first frame when animations are disabled', () => {
+      const frames = queueAnimationFrames();
       const source = createSource();
       const handle = createHandle(source);
-      const preview = createPreviewElement(100, 25, false);
+      const preview = createPreviewElement(100, 25);
       document.body.appendChild(preview.element);
       handle.setPreviewElement(preview);
-      handle.prepareForDrop();
-      handle.destroy();
+      handle.end(true);
 
       expect(preview.destroyed).toBe(false);
       expect(source).toHaveAttribute('data-settling');
@@ -521,14 +473,12 @@ describe('preview modifiers', () => {
     handle.update(100, 100);
     expect(preview.element.style.translate).toBe('100px 100px');
 
-    // x is pinned to the anchor; y still follows the pointer.
     handle.update(400, 250);
     expect(preview.element.style.translate).toBe('100px 250px');
   });
 
-  // Connected does not mean rendered. Under `display: none`, a browser resolves no
-  // computed transforms (`transform` reads back as `none`), so a measurement there
-  // would cache 1 for the rest of the drag. Only a browser can test this, since
+  // Under `display: none`, a browser resolves no computed transforms, so measuring
+  // there would cache a scale of 1 for the rest of the drag. Browser only, since
   // jsdom renders nothing.
   it.skipIf(isJSDOM)('does not latch the scale while the preview host is hidden', () => {
     const preview = createPreviewElement(50, 30);
@@ -556,8 +506,7 @@ describe('preview modifiers', () => {
   });
 
   // A preview modifier has the same signature as a root modifier, so it must see the
-  // same key state. Otherwise one modifier would behave differently depending on
-  // where it is attached.
+  // same key state, or one modifier would behave differently depending on where it's attached.
   it('passes the modifier keys of the update through to the modifiers', () => {
     const preview = createPreviewElement(50, 30);
     const seen: boolean[] = [];
@@ -614,7 +563,7 @@ describe('preview modifiers', () => {
     expect(context.previewOffset).toEqual({ x: 0, y: 0 });
     expect(context.initialPoint).toEqual({ x: 90, y: 180 });
     expect(context.sourceElement).toBe(source);
-    expect(context.sourceRect).toBe(preview.sourceRect);
+    expect(context.sourceRect).toBe(preview.anchor.sourceRect);
     expect(context.previewRect?.width).toBe(50);
     expect(context.previewRect?.height).toBe(30);
   });

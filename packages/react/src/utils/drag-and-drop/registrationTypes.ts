@@ -1,26 +1,14 @@
 import type { DraggableConfig } from './draggable';
-import type { RegisterTargetParameters as InternalRegisterTargetParameters } from './dropTarget';
-import type { RegisterViewportParameters as InternalRegisterViewportParameters } from './autoScroller';
-import type { RegisterMonitorParameters as InternalRegisterMonitorParameters } from './monitor';
+import type { DropTargetParameters } from './dropTarget';
+import type { ViewportParameters } from './autoScroller';
+import type { MonitorParameters } from './monitor';
 import type { DraggableKind, DraggableAccept } from '../../draggable/DraggableProvider';
 import type { AcceptedDragPayload, AcceptedDragData, DraggablePayload } from './types';
 
-/**
- * The public parameters plus `getDragPreviewDeclaration`, through which a
- * `Draggable.Preview` reaches the engine. Consumers never set that field, so
- * `RegisterSourceParameters` omits it.
- */
-// `onGenerateDragPreview` is omitted because the engine overwrites it to publish the
-// preview it built.
-export type InternalDraggableParameters<TPayload = undefined, TDragData = unknown> = Omit<
-  DraggableConfig<TPayload, TDragData>,
-  'element' | 'onGenerateDragPreview' | 'styleNonce' | 'disableStyleElements'
->;
-
-/** Parameters accepted by `Draggable.Root` and `registerSource`, except the element. */
+/** Parameters accepted by `Draggable.Root` and `registerSource`. */
 export type RegisterSourceParameters<TPayload = undefined, TDragData = unknown> = Omit<
-  InternalDraggableParameters<TPayload, TDragData>,
-  'getDragPreviewDeclaration'
+  DraggableConfig<TPayload, TDragData>,
+  'onGenerateDragPreview' | 'styleNonce' | 'disableStyleElements'
 >;
 
 /** Public drop-target parameters, whose `accept` declaration is required. */
@@ -30,7 +18,7 @@ export type RegisterTargetParameters<
   TDragData = unknown,
   TTargetDragData = unknown,
 > = Omit<
-  InternalRegisterTargetParameters<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>,
+  DropTargetParameters<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>,
   'accept'
 > & {
   /**
@@ -40,35 +28,31 @@ export type RegisterTargetParameters<
    * Drags of other kinds ignore this target, but an ancestor target can still accept them.
    */
   accept: NonNullable<
-    InternalRegisterTargetParameters<
-      TSourcePayload,
-      TTargetPayload,
-      TDragData,
-      TTargetDragData
-    >['accept']
+    DropTargetParameters<TSourcePayload, TTargetPayload, TDragData, TTargetDragData>['accept']
   >;
 };
 
 /**
- * Adds `accept`, typed as the inferred kinds so the callbacks get their payload
- * types. It is optional when the accepted payload is `unknown`, and required otherwise.
+ * Adds `accept`, typed as the inferred kinds so the callbacks get their payload types.
+ * Optional when the accepted payload and drag data are `unknown`, required otherwise.
  */
 export type DragParametersWithInferredAccept<
   TParameters,
   TAccept extends DraggableAccept<unknown>,
 > = TParameters &
-  (unknown extends AcceptedDragPayload<TAccept>
+  ([unknown, unknown] extends [AcceptedDragPayload<TAccept>, AcceptedDragData<TAccept>]
     ? { accept?: TAccept | undefined }
     : { accept: TAccept });
 
-/** A typed observer must declare which source kinds provide its payload. */
-export type DragObserverAccept<TSourcePayload, TDragData = unknown> = unknown extends TSourcePayload
+/** A typed observer must declare which source kinds provide its payload and drag data. */
+export type DragObserverAccept<TSourcePayload, TDragData = unknown> = [unknown, unknown] extends [
+  TSourcePayload,
+  TDragData,
+]
   ? { accept?: DraggableAccept<TSourcePayload, TDragData> | undefined }
   : { accept: DraggableAccept<TSourcePayload, TDragData> };
 
-/**
- * Adds a required `accept`, typed as the inferred kinds.
- */
+/** Adds a required `accept`, typed as the inferred kinds. */
 export type DragParametersWithRequiredAccept<
   TParameters,
   TAccept extends DraggableAccept<unknown>,
@@ -78,9 +62,8 @@ export type DragParametersWithRequiredAccept<
 };
 
 /**
- * {@link DraggableManager} with a single `registerSource` signature where `payload`
- * is optional. `Draggable.Root` enforces the payload requirement in its own props and
- * forwards one parameters shape, so it doesn't need the overloads.
+ * {@link DraggableManager} with a single `registerSource` signature where `payload` is
+ * optional. `Draggable.Root` enforces the payload requirement in its own props.
  */
 export interface InternalDragEngine extends Omit<
   DraggableManager,
@@ -98,7 +81,7 @@ export interface InternalDragEngine extends Omit<
     TTargetDragData = unknown,
   >(
     element: HTMLElement,
-    getParameters: () => InternalRegisterTargetParameters<
+    getParameters: () => DropTargetParameters<
       TSourcePayload,
       TTargetPayload,
       TDragData,
@@ -107,34 +90,28 @@ export interface InternalDragEngine extends Omit<
   ) => () => void;
 }
 
-/**
- * The options of `Draggable.Viewport` and `registerViewport`.
- */
+/** The options of `Draggable.Viewport` and `registerViewport`. */
 export type RegisterViewportParameters<
   TSourcePayload = unknown,
   TDragData = unknown,
-> = InternalRegisterViewportParameters<TSourcePayload, TDragData> &
-  DragObserverAccept<TSourcePayload, TDragData>;
+> = ViewportParameters<TSourcePayload, TDragData> & DragObserverAccept<TSourcePayload, TDragData>;
 
 export type RegisterMonitorParameters<
   TSourcePayload = unknown,
   TDragData = unknown,
-> = InternalRegisterMonitorParameters<TSourcePayload, TDragData> &
-  DragObserverAccept<TSourcePayload, TDragData>;
+> = MonitorParameters<TSourcePayload, TDragData> & DragObserverAccept<TSourcePayload, TDragData>;
 
 /**
- * The page-wide drag manager returned by `useManager`.
- *
- * Each `register*` method takes a function returning the options, and returns a
- * cleanup function that unregisters.
+ * The page-wide drag manager returned by `useManager`. Each `register*` method takes
+ * a function returning the options.
  */
 export interface DraggableManager {
   /**
    * Registers an element as a drag source, with the options of `Draggable.Root`.
    * Returns a cleanup function that unregisters it.
    */
-  // Overloaded so `payload` both drives inference and stays required once the
-  // caller declares a `TPayload` of their own, mirroring `Draggable.Root.Props`.
+  // Overloaded so `payload` drives inference and stays required once the caller
+  // declares a `TPayload`, like `Draggable.Root.Props`.
   registerSource: {
     <TPayload, TDragData = unknown>(
       element: HTMLElement,
@@ -205,4 +182,25 @@ export interface DraggableManager {
    * and the `'imperative-action'` reason.
    */
   cancelDrag: () => void;
+  /**
+   * Applies a change to an element's options right away. Most changes don't need it,
+   * because Base UI calls the options function each time it needs a value. Call `refresh`
+   * when one of these changes:
+   *
+   * - A source's `disabled` or `handle`. Otherwise its idle styles, which prevent
+   *   text selection and the long-press menu on the source or its handle, are
+   *   updated only on the next press.
+   * - A source's `payload` during its drag, so `useActiveDrag()` returns the new value.
+   * - A target's `disabled`, `accept`, or `canDrop` during a drag. Otherwise a
+   *   target under a pointer that doesn't move keeps its hover state, and
+   *   `onDraggableEnter` and `onDraggableLeave` wait for the pointer to move.
+   * - A viewport's options during a drag. Otherwise auto-scrolling starts or stops
+   *   only when the pointer moves.
+   *
+   * It updates every source, target, and viewport registered on the element, and
+   * does nothing for an element that isn't registered. `Draggable.Root`,
+   * `Draggable.Target`, and `Draggable.Viewport` do this themselves when their
+   * props change.
+   */
+  refresh: (element: HTMLElement) => void;
 }

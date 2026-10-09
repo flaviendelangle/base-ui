@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act } from '@mui/internal-test-utils';
-import { createDndRenderer } from '#test-utils';
+import { createDndRenderer } from '../../../test/dndEngine';
 import { flushRaf, registerCleanup, setupDragEngineTests } from '../../../test/dnd';
 import { dragSessionStore } from './dragSessionStore';
 import { createEventRootBinding } from './documentBinding';
@@ -8,9 +8,8 @@ import { createEventRootBinding } from './documentBinding';
 setupDragEngineTests();
 
 /**
- * Mount an iframe and return its document and window. The pointer sensor binds
- * its listeners per owner document, so registering a draggable inside the iframe
- * must add and later remove listeners there, not on the top window.
+ * Mount an iframe realm. The pointer sensor binds listeners per owner document,
+ * so a draggable inside the iframe must bind and unbind there, not on the top window.
  */
 function createIframeRealm(): { doc: Document; win: Window } {
   const iframe = document.createElement('iframe');
@@ -18,9 +17,8 @@ function createIframeRealm(): { doc: Document; win: Window } {
   registerCleanup(() => iframe.remove());
   const doc = iframe.contentDocument!;
   const win = iframe.contentWindow!;
-  // jsdom documents don't implement `elementFromPoint`, and the sensor calls it on
-  // the owner document during pickup. This mirrors the polyfill's stub on the top
-  // document.
+  // jsdom lacks `elementFromPoint`, which the sensor calls on the owner document
+  // during pickup. Mirrors the polyfill's stub on the top document.
   doc.elementFromPoint = () => null;
   return { doc, win };
 }
@@ -125,11 +123,11 @@ describe('documentBinding', () => {
         },
       },
     });
-    binding.bind(outer);
-    binding.bind(inner);
+    const unbindOuter = binding.bind(outer);
+    const unbindInner = binding.bind(inner);
     registerCleanup(() => {
-      binding.unbind(inner);
-      binding.unbind(outer);
+      unbindInner();
+      unbindOuter();
     });
 
     target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
@@ -202,8 +200,7 @@ describe('documentBinding', () => {
       slot: 'documentBinding.test.composedPath',
       listeners: { pointerdown: () => {} },
     });
-    binding.bind(doc);
-    registerCleanup(() => binding.unbind(doc));
+    registerCleanup(binding.bind(doc));
     const pointerListeners = addSpy.mock.calls
       .filter(([type]) => type === 'pointerdown')
       .map(([, listener]) => listener as EventListener);
@@ -218,8 +215,7 @@ describe('documentBinding', () => {
 
     const host = createIframeElement(doc);
     const shadow = host.attachShadow({ mode: 'closed' });
-    binding.bind(shadow);
-    registerCleanup(() => binding.unbind(shadow));
+    registerCleanup(binding.bind(shadow));
 
     composedPath.mockReturnValue([host]);
     pointerListeners.forEach((listener) => listener(event));

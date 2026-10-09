@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isJSDOM } from '#test-utils';
 import * as dragCursor from './dragCursor';
-import {
-  addDropTargetRegistration,
-  removeDropTargetRegistration,
-  resetForTests as resetDropTargets,
-} from '../dropTarget';
+import { registerTarget, resetForTests as resetDropTargets } from '../dropTarget';
+import { anyDragKind as anyKind } from '../dragKind';
 
 const DRAGGING_CLASS = 'baseui-dragging';
 const STYLE_CLASS = 'baseui-dragging-styles';
@@ -68,9 +65,8 @@ describe('dragCursor', () => {
 
   it('injects a single scoped cursor rule at module use', () => {
     dragCursor.lock(document.body, 'grabbing');
-    // The text is serialized from the CSSOM, so the source's `!important` isn't
-    // asserted. jsdom drops the priority when it re-serializes a `var()`
-    // declaration.
+    // `!important` isn't asserted: jsdom drops the priority when it re-serializes
+    // a `var()` declaration from the CSSOM.
     expect(scopedCursorRule()).toContain(`html.${DRAGGING_CLASS}.${STYLE_CLASS} *`);
     expect(scopedCursorRule()).toContain(`cursor: var(${CURSOR_VAR}, grabbing)`);
     dragCursor.unlock();
@@ -247,8 +243,7 @@ describe('dragCursor', () => {
       const target = document.createElement('div');
       target.style.cursor = 'pointer';
       shadow.appendChild(target);
-      const getParameters = () => ({});
-      addDropTargetRegistration(target, getParameters);
+      const unregister = registerTarget(target, () => ({ accept: anyKind }));
 
       try {
         dragCursor.lock(document.body, 'grabbing');
@@ -258,7 +253,7 @@ describe('dragCursor', () => {
         expect(getComputedStyle(target).cursor).toBe('pointer');
         expect(shadow.adoptedStyleSheets).toHaveLength(0);
       } finally {
-        removeDropTargetRegistration(target, getParameters);
+        unregister();
         host.remove();
       }
     });
@@ -270,17 +265,15 @@ describe('dragCursor', () => {
       const target = document.createElement('div');
       target.style.cursor = 'pointer';
       shadow.appendChild(target);
-      const getParameters = () => ({});
-
       try {
         dragCursor.lock(document.body, 'grabbing');
         expect(getComputedStyle(target).cursor).toBe('pointer');
 
-        addDropTargetRegistration(target, getParameters);
+        const unregister = registerTarget(target, () => ({ accept: anyKind }));
         expect(getComputedStyle(target).cursor).toBe('grabbing');
 
         // Unregistering leaves the root as it was found.
-        removeDropTargetRegistration(target, getParameters);
+        unregister();
         expect(getComputedStyle(target).cursor).toBe('pointer');
 
         dragCursor.unlock();
@@ -295,24 +288,22 @@ describe('dragCursor', () => {
       const shadow = host.attachShadow({ mode: 'open' });
       const target = document.createElement('div');
       shadow.appendChild(target);
-      const getParameters = () => ({});
-      addDropTargetRegistration(target, getParameters);
+      const unregister = registerTarget(target, () => ({ accept: anyKind }));
 
       try {
         dragCursor.lock(document.body, 'grabbing', { disableStyleElements: true });
         expect(shadow.adoptedStyleSheets).toHaveLength(0);
         dragCursor.unlock();
       } finally {
-        removeDropTargetRegistration(target, getParameters);
+        unregister();
         host.remove();
       }
     });
   });
 
   it("locks the source's own document when it lives in an iframe", () => {
-    // The class, the variable and the scoped rule must all land on the iframe's
-    // own root. The outer document's stylesheet can't style a frame's content, so
-    // locking the outer root would leave the frame's cursor unchanged.
+    // The outer document's styles can't reach a frame's content, so the class, the
+    // variable, and the scoped rule must all land on the iframe's own root.
     const frame = document.createElement('iframe');
     document.body.appendChild(frame);
     try {

@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent } from '@mui/internal-test-utils';
-import { createDndRenderer, firePointer } from '#test-utils';
+import { firePointer } from '#test-utils';
+import { createDndRenderer } from '../../../../test/dndEngine';
 import {
   createElement,
   flushRaf,
+  mockElementFromPoint,
   registerCleanup,
   setupDragEngineTests,
 } from '../../../../test/dnd';
@@ -36,12 +38,15 @@ describe('syntheticDrag activation', () => {
         onBeforeMoveStart,
       });
       const input = { pointerType, pointerId: 1, buttons: 1 };
-      firePointer.down(source, { ...input, timeStamp: 10 });
-      await act(async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 300);
+      vi.useFakeTimers();
+      try {
+        firePointer.down(source, { ...input, timeStamp: 10 });
+        await act(async () => {
+          vi.advanceTimersByTime(300);
         });
-      });
+      } finally {
+        vi.useRealTimers();
+      }
       expect(fireEvent.contextMenu(source)).toBe(true);
       firePointer.move(source, { ...input, clientX: 30, timeStamp: 320 });
       firePointer.up(source, { ...input, buttons: 0, clientX: 30, timeStamp: 330 });
@@ -100,23 +105,22 @@ describe('syntheticDrag activation', () => {
     engine.registerSource(el, { onMoveStart, onMoveEnd });
     engine.registerTarget(tgt, { onDraggableDrop: onDrop });
 
-    const originalEFP = document.elementFromPoint;
     const hit = { current: null as Element | null };
-    document.elementFromPoint = (() => hit.current) as typeof document.elementFromPoint;
-    registerCleanup(() => {
-      document.elementFromPoint = originalEFP;
-    });
+    mockElementFromPoint(() => hit.current);
 
-    touchDown(el, 50, 50);
-    // A drift under the 5px default tolerance keeps the hold alive.
-    touchMove(53, 52);
-    // The press-hold timer activates the drag and publishes the session during
-    // this wait, so wrap it in `act` to flush the overlay re-render.
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 300);
+    vi.useFakeTimers();
+    try {
+      touchDown(el, 50, 50);
+      // A drift under the 5px default tolerance keeps the hold alive.
+      touchMove(53, 52);
+      // The press-hold timer activates the drag and publishes the session during
+      // this wait, so wrap it in `act` to flush the overlay re-render.
+      await act(async () => {
+        vi.advanceTimersByTime(300);
       });
-    });
+    } finally {
+      vi.useRealTimers();
+    }
     await flushRaf();
 
     expect(onMoveStart).toHaveBeenCalledTimes(1);
@@ -126,7 +130,6 @@ describe('syntheticDrag activation', () => {
     expect(startInput.clientX).toBe(53);
     expect(startInput.clientY).toBe(52);
 
-    // The activated drag moves and drops on a registered target.
     hit.current = tgt;
     touchMove(120, 80);
     await flushRaf();
@@ -141,7 +144,41 @@ describe('syntheticDrag activation', () => {
     expect(endDetails.location.current.input.clientY).toBe(80);
   });
 
-  it('cancels when pointerup fires before activation', async () => {
+  it.each([
+    {
+      name: 'pointerup fires',
+      interrupt: () => {
+        vi.advanceTimersByTime(20);
+        touchUp(50, 50);
+      },
+    },
+    {
+      // App switch, soft keyboard, or overlay. The candidate must be abandoned.
+      name: 'the window blurs',
+      interrupt: () => {
+        window.dispatchEvent(new Event('blur'));
+      },
+    },
+    {
+      name: 'the tab is hidden',
+      interrupt: () => {
+        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+        try {
+          document.dispatchEvent(new Event('visibilitychange'));
+        } finally {
+          // Deleting the own property exposes the real getter again.
+          Reflect.deleteProperty(document, 'visibilityState');
+        }
+      },
+    },
+    {
+      name: 'the pointer moves past tolerance',
+      // 30px, well past the 5px tolerance.
+      interrupt: () => {
+        touchMove(80, 50);
+      },
+    },
+  ])('cancels a pending press-hold when $name before activation', async ({ interrupt }) => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
@@ -150,79 +187,14 @@ describe('syntheticDrag activation', () => {
       onMoveStart,
     });
 
-    touchDown(el, 50, 50);
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 20);
-    });
-    touchUp(50, 50);
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 120);
-    });
-    await flushRaf();
-
-    expect(onMoveStart).not.toHaveBeenCalled();
-  });
-
-  it('cancels a pending press-hold when the window blurs before activation', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, {
-      activation: { type: 'press-hold', delay: 100, tolerance: 5 },
-      onMoveStart,
-    });
-
-    touchDown(el, 50, 50);
-    // The window blurs (app switch, soft keyboard, overlay) before the
-    // press-hold timer fires, so the candidate must be abandoned.
-    window.dispatchEvent(new Event('blur'));
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 120);
-    });
-    await flushRaf();
-
-    expect(onMoveStart).not.toHaveBeenCalled();
-  });
-
-  it('cancels a pending press-hold when the tab is hidden before activation', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, {
-      activation: { type: 'press-hold', delay: 100, tolerance: 5 },
-      onMoveStart,
-    });
-
-    touchDown(el, 50, 50);
-    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    vi.useFakeTimers();
     try {
-      document.dispatchEvent(new Event('visibilitychange'));
+      touchDown(el, 50, 50);
+      interrupt();
+      vi.advanceTimersByTime(120);
     } finally {
-      // Deleting the own property exposes the real getter again.
-      Reflect.deleteProperty(document, 'visibilityState');
+      vi.useRealTimers();
     }
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 120);
-    });
-    await flushRaf();
-
-    expect(onMoveStart).not.toHaveBeenCalled();
-  });
-
-  it('cancels when pointer moves past tolerance before activation', async () => {
-    const { engine } = await renderDnd();
-    const el = createElement();
-    const onMoveStart = vi.fn();
-    engine.registerSource(el, {
-      activation: { type: 'press-hold', delay: 100, tolerance: 5 },
-      onMoveStart,
-    });
-
-    touchDown(el, 50, 50);
-    touchMove(80, 50); // 30px, well past the 5px tolerance
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 120);
-    });
     await flushRaf();
 
     expect(onMoveStart).not.toHaveBeenCalled();
@@ -252,10 +224,9 @@ describe('syntheticDrag activation', () => {
     const { engine } = await renderDnd();
     const el = createElement();
     const onMoveStart = vi.fn();
-    // No `activation` override, so mouse uses the default 5px distance. A
-    // stationary click must not start a drag. Otherwise a press on a clickable
-    // child of the draggable, such as a Tree item's expand chevron, would start a
-    // drag instead of toggling.
+    // Mouse uses the default 5px distance, so a stationary click must not start a
+    // drag. Otherwise a press on a clickable child, such as a Tree item's expand
+    // chevron, would drag instead of toggling.
     engine.registerSource(el, { onMoveStart });
 
     const dispatchMouse = (type: string, x: number, y: number, buttons: number) =>
@@ -291,10 +262,9 @@ describe('syntheticDrag activation', () => {
 
   describe('scrollbar presses', () => {
     /**
-     * A scrollable list nested inside a draggable card, as in a kanban board
-     * where the column is the draggable and its list of cards scrolls. A classic
-     * scrollbar is part of the list's box and hit-tests to the list, so the press
-     * walks up to the card unless the gutter is rejected.
+     * A scrollable list inside a draggable card, like a kanban column whose cards
+     * scroll. A classic scrollbar hit-tests to the list, so a press on it walks up
+     * to the card unless the gutter is rejected.
      */
     function renderScrollableChild({
       rtl = false,
@@ -509,26 +479,29 @@ describe('syntheticDrag activation', () => {
       ],
       onMoveStart,
     });
-    firePointer.down(source, { pointerType: 'mouse', pointerId: 1, buttons: 1, timeStamp: 10 });
-    firePointer.move(source, {
-      pointerType: 'mouse',
-      pointerId: 1,
-      buttons: 1,
-      clientX: 8,
-      timeStamp: 20,
-    });
-    firePointer.move(source, {
-      pointerType: 'mouse',
-      pointerId: 1,
-      buttons: 1,
-      clientX: 0,
-      timeStamp: 30,
-    });
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 80);
+    vi.useFakeTimers();
+    try {
+      firePointer.down(source, { pointerType: 'mouse', pointerId: 1, buttons: 1, timeStamp: 10 });
+      firePointer.move(source, {
+        pointerType: 'mouse',
+        pointerId: 1,
+        buttons: 1,
+        clientX: 8,
+        timeStamp: 20,
       });
-    });
+      firePointer.move(source, {
+        pointerType: 'mouse',
+        pointerId: 1,
+        buttons: 1,
+        clientX: 0,
+        timeStamp: 30,
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(80);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
     expect(onMoveStart).not.toHaveBeenCalled();
     firePointer.move(source, {
       pointerType: 'mouse',
@@ -551,25 +524,26 @@ describe('syntheticDrag activation', () => {
       ],
       onMoveStart,
     });
-    firePointer.down(source, { pointerType: 'mouse', pointerId: 1, buttons: 1, timeStamp: 10 });
-    firePointer.move(source, {
-      pointerType: 'mouse',
-      pointerId: 1,
-      buttons: 1,
-      clientX: 5,
-      timeStamp: 20,
-    });
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 50);
+    vi.useFakeTimers();
+    try {
+      firePointer.down(source, { pointerType: 'mouse', pointerId: 1, buttons: 1, timeStamp: 10 });
+      firePointer.move(source, {
+        pointerType: 'mouse',
+        pointerId: 1,
+        buttons: 1,
+        clientX: 5,
+        timeStamp: 20,
       });
-    });
-    expect(onMoveStart).not.toHaveBeenCalled();
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 100);
+      await act(async () => {
+        vi.advanceTimersByTime(50);
       });
-    });
-    expect(onMoveStart).toHaveBeenCalledTimes(1);
+      expect(onMoveStart).not.toHaveBeenCalled();
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(onMoveStart).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

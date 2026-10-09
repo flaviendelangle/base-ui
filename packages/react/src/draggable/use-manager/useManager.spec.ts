@@ -38,9 +38,15 @@ const missingViewportAccept: DraggableManagerRegisterViewportParameters<CardPayl
 engine.registerMonitor<typeof card>(() => ({}));
 // @ts-expect-error explicit accepted-kind generics cannot bypass the runtime filter.
 engine.registerViewport<typeof card>(element, () => ({}));
+// @ts-expect-error typed drag data requires a runtime filter too.
+engine.registerMonitor<Draggable.Kind<unknown, number>>(() => ({}));
+// @ts-expect-error typed drag data requires a runtime filter too.
+engine.registerViewport<Draggable.Kind<unknown, number>>(element, () => ({}));
+// @ts-expect-error typed drag data requires a runtime filter too.
+const missingDragDataAccept: DraggableManagerRegisterMonitorParameters<unknown, number> = {};
 
-// The imperative entry point is self-contained. It exposes the factories its
-// registration methods require, without importing a component namespace.
+// The imperative entry point exposes the factories its registration methods
+// need, without importing a component namespace.
 const engineCard = Draggable.createKind<CardPayload>('engine-card');
 const globalItem = Draggable.createGlobalKind('app/item');
 expectType<Draggable.Kind<CardPayload, unknown>, typeof engineCard>(engineCard);
@@ -92,9 +98,8 @@ engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: maybeC
 // @ts-expect-error the payload must match an explicit type argument.
 engine.registerSource<CardPayload>(element, () => ({ kind: card, payload: { id: 1 } }));
 
-// A handler cannot redeclare the payload type. This is checked on the parameters type,
-// not through a call, because a rejected handler fails overload resolution and the
-// error lands on the whole argument instead of the property.
+// A handler cannot redeclare the payload type. Checked on the parameters type
+// because, in a call, the error would land on the whole argument.
 const wrongDrag = (eventDetails: { source: { payload: number } }) => eventDetails;
 const wrongParameters: DraggableManagerRegisterSourceParameters<CardPayload> = {
   kind: card,
@@ -342,6 +347,10 @@ engine.registerViewport(element, () => ({
 
 // The method registers nothing, takes nothing, and returns nothing.
 expectType<() => void, typeof engine.cancelDrag>(engine.cancelDrag);
+
+// ---------------------------------------------------------------------------
+// Explicit type arguments, kinds and drag data
+// ---------------------------------------------------------------------------
 
 engine.registerSource<unknown>(element, () => ({
   // @ts-expect-error an explicit generic must not widen the producer kind.

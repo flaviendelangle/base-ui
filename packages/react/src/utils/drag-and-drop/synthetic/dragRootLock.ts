@@ -1,4 +1,5 @@
 import { ownerDocument } from '@base-ui/utils/owner';
+import { mergeCleanups } from '@base-ui/utils/mergeCleanups';
 import { getSharedSlot } from '../sharedState';
 import type { DragCleanupFn } from '../types';
 
@@ -12,14 +13,10 @@ export interface InlineStyleOverride {
 }
 
 /**
- * Override inline styles on `element` and return a cleanup that restores them.
- *
- * Every previous value is read before any is written, because `userSelect` and
- * `webkitUserSelect` alias each other in some engines, and saving and setting in
- * one pass would capture the overridden value. A key the engine doesn't
- * implement (`webkitTouchCallout` outside WebKit, several in jsdom) reads as
- * `undefined` and restores to an empty string. The restore skips a property
- * whose value changed since, so a consumer's later inline style wins.
+ * Override inline styles on `element` and return a cleanup that restores them. All values
+ * are read before any is written, since `userSelect` and `webkitUserSelect` alias in some
+ * engines. The restore skips a property changed since, so a consumer's later inline
+ * style wins.
  */
 export function overrideInlineStyles(
   element: HTMLElement,
@@ -50,18 +47,23 @@ export function overrideInlineStyles(
   };
 }
 
-/** The inline styles the lock sets to `none` on every root it holds. */
-const LOCKED_STYLES: readonly InlineStyleOverride[] = [
-  { property: 'touchAction', cssName: 'touch-action', value: 'none' },
+/** The inline styles that stop text selection and the touch callout menu. */
+export const SELECTION_LOCK_STYLES: readonly InlineStyleOverride[] = [
   { property: 'userSelect', cssName: 'user-select', value: 'none' },
   { property: 'webkitUserSelect', cssName: '-webkit-user-select', value: 'none' },
   { property: 'webkitTouchCallout', cssName: '-webkit-touch-callout', value: 'none' },
+];
+
+/** The inline styles the lock sets to `none` on every root it holds. */
+const LOCKED_STYLES: readonly InlineStyleOverride[] = [
+  { property: 'touchAction', cssName: 'touch-action', value: 'none' },
+  ...SELECTION_LOCK_STYLES,
   { property: 'overscrollBehavior', cssName: 'overscroll-behavior', value: 'none' },
 ];
 
 interface DragRootLockState {
   /** Restores the inline styles the lock overwrote, or `null` when unlocked. */
-  restore: DragCleanupFn[] | null;
+  restore: DragCleanupFn | null;
 }
 
 const state = getSharedSlot<DragRootLockState>('dragRootLock', () => ({
@@ -69,11 +71,9 @@ const state = getSharedSlot<DragRootLockState>('dragRootLock', () => ({
 }));
 
 /**
- * Collect the `<html>` and `<body>` of `doc` and of every ancestor document up
- * the iframe chain. During a touch drag inside an iframe, the outer document can
- * still scroll or select text unless its roots are locked too. Same-origin
- * ancestors are reachable through `frameElement`. A cross-origin one throws on
- * access, so the climb stops there.
+ * Collect the `<html>` and `<body>` of `doc` and every ancestor document up the
+ * iframe chain, since the outer page can still scroll or select text during a touch
+ * drag in an iframe. The climb stops at a cross-origin ancestor, which throws.
  */
 function collectLockElements(doc: Document): HTMLElement[] {
   const elements: HTMLElement[] = [];
@@ -98,28 +98,23 @@ function collectLockElements(doc: Document): HTMLElement[] {
 export function unlock(): void {
   const restore = state.restore;
   state.restore = null;
-  if (restore) {
-    for (const restoreRoot of restore) {
-      restoreRoot();
-    }
-  }
+  restore?.();
 }
 
 /**
- * Freeze scrolling, selection and the callout menu on the dragged element's
- * document and every reachable ancestor document while a pointer drag runs.
- * Only one pointer session runs at a time, so a saved lock means the lock is
- * held. A repeated call returns early and keeps the original restoration data.
+ * Freeze scrolling, selection and the callout menu on the element's document and
+ * every reachable ancestor document during a pointer drag. Only one pointer session
+ * runs at a time, so a repeated call while held keeps the original restore data.
  */
 export function lock(element: Element): void {
   if (state.restore !== null) {
     return;
   }
-  // Lock both `<html>` and `<body>`. iOS Safari and some Android browsers apply
-  // `touch-action` and `overscroll-behavior` on `body` independently of `html`,
-  // so locking only one lets scroll leak through. Locking only the inner document
-  // would let an iframe's host page scroll.
-  state.restore = collectLockElements(ownerDocument(element)).map((root) =>
-    overrideInlineStyles(root, LOCKED_STYLES),
+  // iOS Safari and some Android browsers apply `touch-action` and
+  // `overscroll-behavior` on `<body>` independently of `<html>`, so both are locked.
+  state.restore = mergeCleanups(
+    ...collectLockElements(ownerDocument(element)).map((root) =>
+      overrideInlineStyles(root, LOCKED_STYLES),
+    ),
   );
 }

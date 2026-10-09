@@ -61,11 +61,9 @@ const ZONE_LABELS: Record<Zone, string> = { plain: 'Default', slow: 'maxSpeed={1
 
 const UPCOMING = ['Renew passport', 'Cancel the trial', 'Refill the coffee', 'Label the boxes'];
 
-// Find the insertion slot closest to the pointer, including slots scrolled out
-// of view.
+// Find the insertion slot closest to the pointer, including slots scrolled out of view.
 function resolveDrop(container: HTMLElement, clientY: number): { index: number; slotY: number } {
-  // The drag preview is a clone of the card, so it has `data-card` too. Skip it,
-  // since it follows the pointer and isn't a real slot.
+  // Skip the drag preview: it's a clone of a card, so it has `data-card` too.
   const cards = Array.from(
     container.querySelectorAll<HTMLElement>('[data-card]:not([data-drag-preview])'),
   );
@@ -73,13 +71,12 @@ function resolveDrop(container: HTMLElement, clientY: number): { index: number; 
     return { index: 0, slotY: container.getBoundingClientRect().top };
   }
 
-  const slotYs = [cards[0].getBoundingClientRect().top];
-  for (let i = 1; i < cards.length; i += 1) {
-    const prev = cards[i - 1].getBoundingClientRect();
-    const curr = cards[i].getBoundingClientRect();
-    slotYs.push((prev.bottom + curr.top) / 2);
+  const rects = cards.map((card) => card.getBoundingClientRect());
+  const slotYs = [rects[0].top];
+  for (let i = 1; i < rects.length; i += 1) {
+    slotYs.push((rects[i - 1].bottom + rects[i].top) / 2);
   }
-  slotYs.push(cards[cards.length - 1].getBoundingClientRect().bottom);
+  slotYs.push(rects[rects.length - 1].bottom);
 
   let index = 0;
   let bestDy = Infinity;
@@ -93,7 +90,8 @@ function resolveDrop(container: HTMLElement, clientY: number): { index: number; 
   return { index, slotY: slotYs[index] };
 }
 
-function Card({
+// Memoized, so moving the drop line during a drag doesn't re-render every card.
+const Card = React.memo(function Card({
   task,
   draggable,
   onKeyDown,
@@ -119,7 +117,7 @@ function Card({
       {task.label}
     </Draggable.Root>
   );
-}
+});
 
 function DropZone({
   label,
@@ -248,7 +246,6 @@ export default function AutoScrollBoard() {
   }
 
   // The list reflows around the drop, which can push the new card out of view.
-  // Scroll it back into view.
   useIsoLayoutEffect(() => {
     const id = droppedIdRef.current;
     if (id == null) {
