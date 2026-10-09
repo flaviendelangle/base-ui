@@ -11,31 +11,24 @@ const initialItems = [
   { title: 'Dancing Queen', artist: 'ABBA', value: 'dancing-queen' },
 ];
 
-export default function ExampleListboxDragAndDrop() {
+export default function ExampleListboxKeyboardReordering() {
   const [items, setItems] = React.useState(initialItems);
 
   return (
     <div className={styles.Field}>
-      <Listbox.Root defaultValue={['bohemian-rhapsody']}>
-        <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
-        <Listbox.DragAndDropProvider
-          onItemsReorder={(event) => {
-            setItems((prev) => {
-              const movedValues = new Set(event.items);
-              const movedItems = prev.filter((item) => movedValues.has(item.value));
-              const rest = prev.filter((item) => !movedValues.has(item.value));
-              const refIndex = rest.findIndex((item) => item.value === event.referenceItem);
-              rest.splice(event.edge === 'after' ? refIndex + 1 : refIndex, 0, ...movedItems);
-              return rest;
-            });
-          }}
-        >
+      <Listbox.KeyboardReorderProvider
+        onItemsReorder={(order) => {
+          setItems((prev) => {
+            const itemsByValue = new Map(prev.map((item) => [item.value, item]));
+            return order.map((value) => itemsByValue.get(value)!);
+          });
+        }}
+      >
+        <Listbox.Root defaultValue={['bohemian-rhapsody']}>
+          <Listbox.Label className={styles.Label}>Queue</Listbox.Label>
           <Listbox.List className={styles.List}>
             {items.map(({ title, artist, value }) => (
               <Listbox.Item key={value} value={value} className={styles.Item}>
-                <Listbox.ItemDragHandle className={styles.DragHandle}>
-                  <GripIcon />
-                </Listbox.ItemDragHandle>
                 <Listbox.ItemIndicator className={styles.ItemIndicator}>
                   <CheckIcon className={styles.ItemIndicatorIcon} />
                 </Listbox.ItemIndicator>
@@ -46,22 +39,9 @@ export default function ExampleListboxDragAndDrop() {
               </Listbox.Item>
             ))}
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
-      </Listbox.Root>
+        </Listbox.Root>
+      </Listbox.KeyboardReorderProvider>
     </div>
-  );
-}
-
-function GripIcon(props: React.ComponentProps<'svg'>) {
-  return (
-    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentcolor" {...props}>
-      <circle cx="2" cy="2" r="1.25" />
-      <circle cx="6" cy="2" r="1.25" />
-      <circle cx="2" cy="7" r="1.25" />
-      <circle cx="6" cy="7" r="1.25" />
-      <circle cx="2" cy="12" r="1.25" />
-      <circle cx="6" cy="12" r="1.25" />
-    </svg>
   );
 }
 

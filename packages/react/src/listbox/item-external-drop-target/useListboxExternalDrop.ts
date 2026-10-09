@@ -1,0 +1,72 @@
+'use client';
+import { getListboxDropDestination } from '../sorting/dropPosition';
+import type { AcceptedDragPayload } from '../../utils/drag-and-drop/types';
+import type { DraggableAccept } from '../../draggable/DraggableProvider';
+import type { DraggableRootRecord } from '../../draggable/root/DraggableRoot';
+import { useDirection } from '../../internals/direction-context';
+import { useExternalDrop } from '../../internals/sorting/useExternalDrop';
+import type { useListboxRootContext } from '../root/ListboxRootContext';
+import type { ListboxSortingItemRecord } from '../sorting/ListboxSortingContext';
+import type { ListboxItemId } from '../utils/ListboxItemId';
+import type {
+  ListboxItemExternalDropTargetOptions,
+  ListboxItemExternalDropTargetDropContext,
+} from './ListboxItemExternalDropTarget';
+import { getListboxDropItems } from '../sorting/useListboxDropItem';
+
+type Store = ReturnType<typeof useListboxRootContext>;
+type Item = ListboxSortingItemRecord<unknown>;
+
+export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>, Value>(
+  store: Store,
+  item: Omit<Item, 'id'> & { id: ListboxItemId | undefined },
+  options: ListboxItemExternalDropTargetOptions<TAccept, Value>,
+) {
+  const direction = useDirection();
+  const records = getListboxDropItems(store);
+  return useExternalDrop({
+    accept: options.accept,
+    store,
+    collectionId: store,
+    disabled: item.disabled || item.index < 0 || !!options.dropDisabled,
+    onDraggableDrop: options.onDraggableDrop,
+    onDropPositionChange: options.onDropPositionChange,
+    resolve: ({
+      source,
+      getLocalPoint,
+    }): ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, Value> | null => {
+      if (item.id === undefined) {
+        return null;
+      }
+      const context = {
+        // useExternalDrop checked the accepted kinds before calling this resolver.
+        source: source as DraggableRootRecord<AcceptedDragPayload<TAccept>>,
+        item: item.value as Value,
+        itemId: item.id,
+        itemMetadata: { index: item.index, groupId: item.groupId },
+        getLocalPoint,
+      };
+      const point = getLocalPoint();
+      const horizontalCoordinate = direction === 'rtl' ? 1 - point.x : point.x;
+      const coordinate = store.state.orientation === 'horizontal' ? horizontalCoordinate : point.y;
+      const defaultPlacement = coordinate < 0.5 ? 'before' : 'after';
+      const resolved = options.getDropPosition
+        ? options.getDropPosition(context)
+        : defaultPlacement;
+      if (!resolved) {
+        return null;
+      }
+      const position =
+        typeof resolved === 'string' ? { id: item.id, placement: resolved } : resolved;
+      const ordered = Array.from(records.values(), (read) => read()).sort(
+        (a, b) => a.index - b.index,
+      );
+      const destination = getListboxDropDestination(ordered, position);
+      if (!destination) {
+        return null;
+      }
+      const drop = { ...context, dropPosition: position, destination };
+      return (options.canDrop?.(drop) ?? true) ? drop : null;
+    },
+  });
+}

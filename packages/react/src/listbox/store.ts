@@ -2,7 +2,9 @@ import type * as React from 'react';
 import { ReactStore, createSelector } from '@base-ui/utils/store';
 import { compareItemEquality } from '../internals/itemEquality';
 import type { FieldRootContextType } from '../internals/field-root-context';
+import type { ListboxItemId } from './utils/ListboxItemId';
 import type { ListboxRoot } from './root/ListboxRoot';
+import type { ListboxReorderDropPosition } from './reorder-provider/ListboxReorderProvider';
 import type { SelectionMode } from './utils/selectionReducer';
 
 type UseFieldValidationReturnValue = FieldRootContextType['validation'];
@@ -24,9 +26,12 @@ export type State = {
   listElement: HTMLElement | null;
 
   // DnD state
-  /** Indices of all items currently being dragged (multi-select drags all selected items). */
-  dragActiveIndices: number[] | null;
-  dropTargetIndex: number | null;
+  /** Internal IDs of all items currently being dragged (multi-select drags all selected items). */
+  dragActiveItemIds: Set<ListboxItemId> | null;
+  dragOverItemId: ListboxItemId | null;
+  dropPosition: 'before' | 'after' | null;
+  /** The destination of the active external drop and the item target that resolved it. */
+  externalDropPosition: { position: ListboxReorderDropPosition; owner: object } | null;
 
   // Loading state
   loading: boolean;
@@ -46,7 +51,6 @@ export type Context = {
   valuesRef: React.RefObject<Array<any>>;
   labelsRef: React.RefObject<Array<string | null>>;
   disabledItemsRef: React.RefObject<Array<boolean | undefined>>;
-  groupIdsRef: React.RefObject<Array<string | undefined>>;
   typingRef: React.RefObject<boolean>;
   lastSelectedIndexRef: React.RefObject<number | null>;
   pointerMoveSuppressedRef: React.RefObject<boolean>;
@@ -83,13 +87,25 @@ export const selectors = {
 
   listElement: createSelector((state: State) => state.listElement),
 
-  dragActiveIndices: createSelector((state: State) => state.dragActiveIndices),
-  dropTargetIndex: createSelector((state: State) => state.dropTargetIndex),
-  isDragging: createSelector(
-    (state: State, index: number) =>
-      state.dragActiveIndices != null && state.dragActiveIndices.includes(index),
+  dragActiveItemIds: createSelector((state: State) => state.dragActiveItemIds),
+  dragOverItemId: createSelector((state: State) => state.dragOverItemId),
+  isMoving: createSelector(
+    (state: State, itemId: ListboxItemId | undefined) =>
+      itemId !== undefined &&
+      state.dragActiveItemIds != null &&
+      state.dragActiveItemIds.has(itemId),
   ),
-  isDropTarget: createSelector((state: State, index: number) => state.dropTargetIndex === index),
+  /** The pointer drop placement rendered on an item. External drops take precedence over reordering. */
+  dropPositionForItem: createSelector((state: State, itemId: ListboxItemId | undefined) => {
+    if (itemId === undefined) {
+      return null;
+    }
+    const external = state.externalDropPosition?.position;
+    if (external?.id === itemId) {
+      return external.placement;
+    }
+    return state.dragOverItemId === itemId ? state.dropPosition : null;
+  }),
 
   loading: createSelector((state: State) => state.loading),
   loadingProp: createSelector((state: State) => state.loadingProp),
@@ -125,8 +141,10 @@ function createInitialState(): State {
     value: [],
     activeIndex: null,
     listElement: null,
-    dragActiveIndices: null,
-    dropTargetIndex: null,
+    dragActiveItemIds: null,
+    dragOverItemId: null,
+    dropPosition: null,
+    externalDropPosition: null,
     loading: false,
     loadingProp: false,
     hasOnLoadMore: false,
@@ -144,7 +162,6 @@ function createInitialContext(): Context {
     valuesRef: { current: [] },
     labelsRef: { current: [] },
     disabledItemsRef: { current: [] },
-    groupIdsRef: { current: [] },
     typingRef: { current: false },
     lastSelectedIndexRef: { current: null },
     pointerMoveSuppressedRef: { current: false },

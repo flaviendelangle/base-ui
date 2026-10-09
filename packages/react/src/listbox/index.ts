@@ -6,12 +6,25 @@ export type * from './list/ListboxList';
 export type * from './item/ListboxItem';
 export type * from './item-indicator/ListboxItemIndicator';
 export type * from './item-text/ListboxItemText';
-export type * from './item-drag-handle/ListboxItemDragHandle';
-export type * from './drag-and-drop-provider/ListboxDragAndDropProvider';
 export type * from './group/ListboxGroup';
 export type * from './group-label/ListboxGroupLabel';
 export type * from './loading-trigger/ListboxLoadingTrigger';
 export type { SelectionMode } from './utils/selectionReducer';
+export type * from './keyboard-reorder-provider/ListboxKeyboardReorderProvider';
+export type * from './reorder-provider/ListboxReorderProvider';
+export type * from './reorder-handle/ListboxReorderHandle';
+export type * from './reorder-preview/ListboxReorderPreview';
+export type { ListboxReorderItem } from './sorting/ListboxSortingContext';
+export type {
+  ListboxReorderDestination,
+  ListboxReorderMove,
+  ListboxReorderAnnouncementParameters,
+  ListboxItemsReorderEventDetails,
+} from './sorting/useListboxSorting';
+export type { ListboxItemId } from './utils/ListboxItemId';
+
+export type * from './item-external-drop-target/ListboxItemExternalDropTarget';
 
 export * as ListboxListDataAttributes from './list/ListboxListDataAttributes';
 export * as ListboxItemDataAttributes from './item/ListboxItemDataAttributes';
+export * as ListboxItemExternalDropTargetDataAttributes from './item/ListboxItemDataAttributes';

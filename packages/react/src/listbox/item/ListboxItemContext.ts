@@ -1,11 +1,12 @@
 'use client';
 import * as React from 'react';
+import type { ListboxItemId } from '../utils/ListboxItemId';
 
 export interface ListboxItemContext {
   selected: boolean;
   indexRef: React.RefObject<number>;
   textRef: React.RefObject<HTMLElement | null>;
-  dragHandleRef: React.RefObject<HTMLElement | null>;
+  dragItemId: ListboxItemId | undefined;
   hasRegistered: boolean;
 }
 

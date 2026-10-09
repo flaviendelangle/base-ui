@@ -18,7 +18,7 @@ export const ListboxGroup = React.forwardRef(function ListboxGroup(
   const { className, render, style, ...elementProps } = componentProps;
 
   const [labelId, setLabelId] = React.useState<string | undefined>();
-  const groupId = useBaseUiId() ?? '';
+  const groupId = useBaseUiId(elementProps.id) ?? '';
 
   const contextValue: ListboxGroupContext = React.useMemo(
     () => ({
@@ -34,6 +34,7 @@ export const ListboxGroup = React.forwardRef(function ListboxGroup(
     props: [
       {
         role: 'group',
+        id: groupId,
         'aria-labelledby': labelId,
       },
       elementProps,

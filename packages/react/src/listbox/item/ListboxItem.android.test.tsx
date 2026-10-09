@@ -18,16 +18,16 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
 
   it('prevents the native context menu for draggable items', async () => {
     await render(
-      <Listbox.Root>
-        <Listbox.DragAndDropProvider onItemsReorder={vi.fn()}>
+      <Listbox.ReorderProvider onItemsReorder={vi.fn()}>
+        <Listbox.Root>
           <Listbox.List>
             <Listbox.Item value="a">
-              <Listbox.ItemDragHandle data-testid="handle">drag</Listbox.ItemDragHandle>
+              <Listbox.ReorderHandle data-testid="handle">drag</Listbox.ReorderHandle>
               <Listbox.ItemText>a</Listbox.ItemText>
             </Listbox.Item>
           </Listbox.List>
-        </Listbox.DragAndDropProvider>
-      </Listbox.Root>,
+        </Listbox.Root>
+      </Listbox.ReorderProvider>,
     );
 
     const handle = screen.getByTestId('handle');
@@ -52,4 +52,26 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
 
     expect(eventWasCancelled).toBe(false);
   });
+
+  it.each(['provider', 'item', 'draggable'] as const)(
+    'keeps the native context menu when sorting is disabled by %s',
+    async (mode) => {
+      await render(
+        <Listbox.ReorderProvider
+          onItemsReorder={vi.fn()}
+          disabled={mode === 'provider'}
+          isItemReorderable={() => mode !== 'item'}
+        >
+          <Listbox.Root>
+            <Listbox.List>
+              <Listbox.Item value="a" draggableProps={{ disabled: mode === 'draggable' }}>
+                a
+              </Listbox.Item>
+            </Listbox.List>
+          </Listbox.Root>
+        </Listbox.ReorderProvider>,
+      );
+      expect(fireEvent.contextMenu(screen.getByRole('option', { name: 'a' }))).toBe(true);
+    },
+  );
 });
