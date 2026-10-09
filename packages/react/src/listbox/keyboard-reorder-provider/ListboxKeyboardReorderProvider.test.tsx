@@ -49,21 +49,21 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
       const canMoveItems = vi.fn<
         NonNullable<Listbox.KeyboardReorderProvider.Props<string>['canMoveItems']>
       >(() => true);
-      const isItemSortingDisabled = vi.fn<
-        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['isItemSortingDisabled']>
-      >(() => false);
+      const isItemReorderable = vi.fn<
+        NonNullable<Listbox.KeyboardReorderProvider.Props<string>['isItemReorderable']>
+      >(() => true);
       const getAnnouncement = vi.fn<
         NonNullable<Listbox.KeyboardReorderProvider.Props<string>['getAnnouncement']>
       >(() => 'Moved');
       const onItemsReorder = vi.fn();
       await render(
-        <Fixture {...{ canMoveItems, isItemSortingDisabled, getAnnouncement, onItemsReorder }} />,
+        <Fixture {...{ canMoveItems, isItemReorderable, getAnnouncement, onItemsReorder }} />,
       );
       await keyDown(screen.getByRole('option', { name: 'b' }), { key: 'ArrowDown', altKey: true });
       await waitFor(() => expect(getAnnouncement).toHaveBeenCalled());
       const metadata = [
         ...canMoveItems.mock.calls.flatMap(([parameters]) => parameters.items),
-        ...isItemSortingDisabled.mock.calls.map(([item]) => item),
+        ...isItemReorderable.mock.calls.map(([item]) => item),
         ...getAnnouncement.mock.calls.flatMap(([parameters]) => parameters.items),
         ...onItemsReorder.mock.calls.flatMap(([, details]) => [...details.items, ...details.order]),
       ];
@@ -199,7 +199,7 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
         await render(
           <Provider
             onItemsReorder={onItemsReorder}
-            isItemSortingDisabled={(item) => item.value === sortingDisabled}
+            isItemReorderable={(item) => item.value !== sortingDisabled}
           >
             <Listbox.Root>
               <Listbox.List>
@@ -292,7 +292,7 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
       const onItemsReorder = vi.fn();
       await render(
         <Fixture
-          isItemSortingDisabled={(item) => item.value === 'a'}
+          isItemReorderable={(item) => item.value !== 'a'}
           onItemsReorder={onItemsReorder}
         />,
       );

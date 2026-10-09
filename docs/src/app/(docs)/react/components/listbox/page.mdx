@@ -81,7 +81,7 @@ Return `undefined` to use the default text, or an empty string to suppress a mes
 
 Reordering a selected item moves the selected items together in list order. Disabled items stay in place. Selection continues to work with <kbd>Enter</kbd> and <kbd>Space</kbd>.
 
-Use `isItemSortingDisabled` on either provider to exclude an item from reordering while keeping it selectable and available as a destination.
+Return `false` from `isItemReorderable` on either provider to exclude an item from reordering while keeping it selectable and available as a destination.
 
 import { DemoListboxKeyboardReordering } from './demos/keyboard-reordering';
 

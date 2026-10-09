@@ -77,8 +77,11 @@ export interface ListboxReorderParameters<Value = any> {
   onItemsReorder: (items: Value[], eventDetails: ListboxItemsReorderEventDetails<Value>) => void;
   /** Applies the same movement rules to keyboard and pointer reordering. */
   canMoveItems?: ((move: ListboxReorderMove<Value>) => boolean) | undefined;
-  /** Disables reordering for an item without disabling selection. */
-  isItemSortingDisabled?: ((item: ListboxReorderItem<Value>) => boolean) | undefined;
+  /**
+   * Whether an item can be moved. Return `false` to keep it in place while it stays
+   * selectable and available as a destination.
+   */
+  isItemReorderable?: ((item: ListboxReorderItem<Value>) => boolean) | undefined;
   /**
    * Customizes polite announcements for keyboard moves and final pointer outcomes.
    * Return `undefined` to use the default text.
@@ -91,7 +94,7 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
   const store = useListboxRootContext();
   const rootDisabled = store.useState('disabled');
   const disabled = rootDisabled || !!props.disabled;
-  const isItemSortingDisabled = props.isItemSortingDisabled;
+  const isItemReorderable = props.isItemReorderable;
   const direction = useDirection();
   const frame = useAnimationFrame();
   const [announcement, setAnnouncement] = React.useState('');
@@ -130,8 +133,10 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
   });
   const isDisabled = React.useCallback(
     (item: ListboxSortingItemRecord<Value>) =>
-      disabled || item.disabled || !!isItemSortingDisabled?.(toSortingItem(item)),
-    [disabled, isItemSortingDisabled],
+      disabled ||
+      item.disabled ||
+      (isItemReorderable != null && !isItemReorderable(toSortingItem(item))),
+    [disabled, isItemReorderable],
   );
   const getItemIds = useStableCallback((id: ListboxItemId) => {
     const items = getOrderedItems();

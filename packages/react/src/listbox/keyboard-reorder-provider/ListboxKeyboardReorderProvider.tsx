@@ -16,14 +16,8 @@ import type { ListboxReorderParameters } from '../sorting/useListboxSorting';
 export function ListboxKeyboardReorderProvider<Value = any>(
   props: ListboxKeyboardReorderProvider.Props<Value>,
 ) {
-  const {
-    children,
-    disabled,
-    onItemsReorder,
-    canMoveItems,
-    isItemSortingDisabled,
-    getAnnouncement,
-  } = props;
+  const { children, disabled, onItemsReorder, canMoveItems, isItemReorderable, getAnnouncement } =
+    props;
   const feature = React.useMemo(
     (): ListboxRootFeature => ({
       name: 'KeyboardReorderProvider',
@@ -32,14 +26,14 @@ export function ListboxKeyboardReorderProvider<Value = any>(
           disabled={disabled}
           onItemsReorder={onItemsReorder}
           canMoveItems={canMoveItems}
-          isItemSortingDisabled={isItemSortingDisabled}
+          isItemReorderable={isItemReorderable}
           getAnnouncement={getAnnouncement}
         >
           {rootChildren}
         </ListboxKeyboardSorting>
       ),
     }),
-    [disabled, onItemsReorder, canMoveItems, isItemSortingDisabled, getAnnouncement],
+    [disabled, onItemsReorder, canMoveItems, isItemReorderable, getAnnouncement],
   );
   return <ListboxRootFeatureProvider feature={feature}>{children}</ListboxRootFeatureProvider>;
 }

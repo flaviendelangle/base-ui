@@ -60,7 +60,7 @@ describe('<Listbox.Item /> Android drag-and-drop', () => {
         <Listbox.ReorderProvider
           onItemsReorder={vi.fn()}
           disabled={mode === 'provider'}
-          isItemSortingDisabled={() => mode === 'item'}
+          isItemReorderable={() => mode !== 'item'}
         >
           <Listbox.Root>
             <Listbox.List>

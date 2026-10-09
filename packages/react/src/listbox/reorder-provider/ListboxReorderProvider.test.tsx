@@ -250,7 +250,7 @@ describe('<Listbox.ReorderProvider />', () => {
   );
 
   it('does not mark selected items excluded from sorting as moving', async () => {
-    await render(<Fixture isItemSortingDisabled={({ value }) => value === 'b'} />);
+    await render(<Fixture isItemReorderable={({ value }) => value !== 'b'} />);
     setItemRects();
     await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
     expect(screen.getByRole('option', { name: 'a' })).toHaveAttribute('data-moving');

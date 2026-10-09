@@ -140,7 +140,7 @@ export function ListboxReorderProvider<Value = any>(props: ListboxReorderProvide
     disabled,
     onItemsReorder,
     canMoveItems,
-    isItemSortingDisabled,
+    isItemReorderable,
     getAnnouncement,
     getDropPosition,
     onDropPositionChange,
@@ -156,7 +156,7 @@ export function ListboxReorderProvider<Value = any>(props: ListboxReorderProvide
           disabled={disabled}
           onItemsReorder={onItemsReorder}
           canMoveItems={canMoveItems}
-          isItemSortingDisabled={isItemSortingDisabled}
+          isItemReorderable={isItemReorderable}
           getAnnouncement={getAnnouncement}
           getDropPosition={getDropPosition}
           onDropPositionChange={onDropPositionChange}
@@ -172,7 +172,7 @@ export function ListboxReorderProvider<Value = any>(props: ListboxReorderProvide
       disabled,
       onItemsReorder,
       canMoveItems,
-      isItemSortingDisabled,
+      isItemReorderable,
       getAnnouncement,
       getDropPosition,
       onDropPositionChange,
