@@ -344,7 +344,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       expect(onDraggableDrop).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('left').textContent).toBe('bc');
       expect(screen.getByTestId('right').textContent).toBe('desta');
-      expect(onReorderEnd.mock.calls.at(-1)?.[0].canceled).toBe(false);
+      expect(onReorderEnd.mock.calls.at(-1)?.[0].outcome).toBe('moved');
     },
   );
   it.each([true, false])(

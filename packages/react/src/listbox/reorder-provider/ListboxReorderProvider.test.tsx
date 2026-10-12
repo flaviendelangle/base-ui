@@ -202,7 +202,7 @@ describe('<Listbox.ReorderProvider />', () => {
       [null, details('drop')],
     ]);
     expect(onReorderEnd.mock.calls).toEqual([
-      [{ ...details('drop'), itemIds: expect.any(Array), canceled: false }],
+      [{ ...details('drop'), itemIds: expect.any(Array), outcome: 'moved' }],
     ]);
   });
   it('reorders selected items only on drop by default', async () => {
@@ -260,12 +260,14 @@ describe('<Listbox.ReorderProvider />', () => {
   });
 
   it.each(['moved', 'canceled', 'unchanged'] as const)(
-    'customizes the final %s announcement',
+    'customizes the final %s announcement and reports it to onReorderEnd',
     async (outcome) => {
       const getAnnouncement = vi.fn(({ outcome: result }) => `Result: ${result}`);
+      const onReorderEnd = vi.fn();
       await render(
         <Fixture
           getAnnouncement={getAnnouncement}
+          onReorderEnd={onReorderEnd}
           onItemsReorder={(_, details) => {
             if (outcome === 'canceled') {
               details.cancel();
@@ -292,6 +294,7 @@ describe('<Listbox.ReorderProvider />', () => {
         direction: null,
       });
       expect(screen.getByRole('status')).toHaveTextContent(`Result: ${outcome}`);
+      expect(onReorderEnd).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ outcome }));
     },
   );
 
@@ -351,7 +354,7 @@ describe('<Listbox.ReorderProvider />', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Reordering canceled.');
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onReorderEnd).toHaveBeenCalledWith(
-      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), outcome: 'canceled' }),
     );
   });
   it('keeps a live move when dropping over its source', async () => {
@@ -368,7 +371,7 @@ describe('<Listbox.ReorderProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['c', 'd', 'a', 'b']);
     expect(onReorderEnd).toHaveBeenCalledWith(
-      expect.objectContaining({ itemIds: expect.any(Array), canceled: false }),
+      expect.objectContaining({ itemIds: expect.any(Array), outcome: 'moved' }),
     );
   });
   it('passes item draggable options through to the engine', async () => {
@@ -557,7 +560,7 @@ describe('<Listbox.ReorderProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onReorderEnd).toHaveBeenCalledWith(
-      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), outcome: 'canceled' }),
     );
   });
   it('revalidates movement rules before keeping a live move over its source', async () => {
@@ -578,7 +581,7 @@ describe('<Listbox.ReorderProvider />', () => {
     await flushRaf();
     expect(values()).toEqual(['a', 'b', 'c', 'd']);
     expect(onReorderEnd).toHaveBeenCalledWith(
-      expect.objectContaining({ itemIds: expect.any(Array), canceled: true }),
+      expect.objectContaining({ itemIds: expect.any(Array), outcome: 'canceled' }),
     );
   });
   it('restores focus after a pointer move remounts an item in another group', async () => {

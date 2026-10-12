@@ -149,7 +149,7 @@ Renders a `<div>` element.
 | data-highlighted   | -    | Present when the listbox item is highlighted.                                                                                                                                                                                                                                                                                                  |
 | data-dragging      | -    | Present only on the item physically picked up. Managed by the drag engine.                                                                                                                                                                                                                                                                     |
 | data-disabled      | -    | Present when the listbox item is disabled.                                                                                                                                                                                                                                                                                                     |
-| data-drag-over     | -    | Present when the item is the current pointer reordering or external drop destination.                                                                                                                                                                                                                                                          |
+| data-drag-over     | -    | Present when the item is the current pointer reordering or external drop destination.&#xA;Follows the resolved destination, which `getDropPosition` can redirect, rather than the row&#xA;under the pointer.                                                                                                                                   |
 | data-drop-position | -    | The reordering or external drop destination: before or after.                                                                                                                                                                                                                                                                                  |
 | data-moving        | -    | Present while the item participates in an active pointer reorder, including&#xA;selected items moving with the picked-up item. Items disabled for reordering are excluded.&#xA;Removed when the gesture ends or is canceled; not set by keyboard reordering.&#xA;Unlike `data-dragging`, this does not mean the item was physically picked up. |
 | data-settling      | -    | Present on the item picked up after a pointer drop, until its drag preview's ending&#xA;animation finishes. Managed by the drag engine.                                                                                                                                                                                                        |
@@ -450,7 +450,7 @@ Renders a `<div>` element.
 | data-highlighted   | -    | Present when the listbox item is highlighted.                                                                                                                                                                                                                                                                                                  |
 | data-dragging      | -    | Present only on the item physically picked up. Managed by the drag engine.                                                                                                                                                                                                                                                                     |
 | data-disabled      | -    | Present when the listbox item is disabled.                                                                                                                                                                                                                                                                                                     |
-| data-drag-over     | -    | Present when the item is the current pointer reordering or external drop destination.                                                                                                                                                                                                                                                          |
+| data-drag-over     | -    | Present when the item is the current pointer reordering or external drop destination.&#xA;Follows the resolved destination, which `getDropPosition` can redirect, rather than the row&#xA;under the pointer.                                                                                                                                   |
 | data-drop-position | -    | The reordering or external drop destination: before or after.                                                                                                                                                                                                                                                                                  |
 | data-moving        | -    | Present while the item participates in an active pointer reorder, including&#xA;selected items moving with the picked-up item. Items disabled for reordering are excluded.&#xA;Removed when the gesture ends or is canceled; not set by keyboard reordering.&#xA;Unlike `data-dragging`, this does not mean the item was physically picked up. |
 | data-settling      | -    | Present on the item picked up after a pointer drop, until its drag preview's ending&#xA;animation finishes. Managed by the drag engine.                                                                                                                                                                                                        |
@@ -740,7 +740,7 @@ type ListboxReorderPreviewRenderParameters<Value = any> = {
    * The drag source. To show drag state in the preview, store it with
    * `source.updateDragData()` and call `Draggable.updatePreview()` from a drag handler.
    */
-  source: DraggableRoot.Record;
+  source: DraggableRoot.Record<ListboxReorderDragPayload<Value>, unknown>;
   /** The pointer position and drop targets when the preview renders. */
   location: Draggable.LocationHistory;
 };
@@ -753,19 +753,19 @@ Renders a visually hidden announcement region inside the listbox.
 
 **ReorderProvider Props:**
 
-| Prop                 | Type                                                                                                                              | Default  | Description                                                                                                                                                                                                                                      |
-| :------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| canMoveItems         | `((move: Listbox.ReorderMove<Value>) => boolean)`                                                                                 | -        | Applies the same movement rules to keyboard and pointer reordering.                                                                                                                                                                              |
-| getAnnouncement      | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)`                                             | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                                                   |
-| getDropPosition      | `((context: Listbox.ReorderProvider.PositionContext<Value>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)`       | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                                                  |
-| isItemReorderable    | `((item: Listbox.ReorderItem<Value>) => boolean)`                                                                                 | -        | Whether an item can be moved. Return `false` to keep it in place while it stays&#xA;selectable and available as a destination.                                                                                                                   |
-| kind                 | `DraggableKind<Listbox.ReorderProvider.DragPayload<Value>, any>`                                                                  | -        | An explicit kind for integrating reordering with external drag sources and targets.                                                                                                                                                              |
-| onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails) => void)` | -        | Event handler called when pointer placement changes.&#xA;Receives null when an existing placement is cleared.                                                                                                                                    |
-| onItemsReorder\*     | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`                                               | -        | Event handler called when reordering proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move.                                                                                                 |
-| onReorderEnd         | `((eventDetails: Listbox.ReorderProvider.ReorderEndEventDetails) => void)`                                                        | -        | Event handler called once when pointer reordering ends, after the final move or rollback&#xA;is proposed. `eventDetails.itemIds` lists the dragged items, and&#xA;`eventDetails.canceled` tells whether the reorder was canceled or rolled back. |
-| reorderOn            | `'drop' \| 'move'`                                                                                                                | `'drop'` | When pointer reordering updates the items. Live moves are restored on cancellation&#xA;unless an external reorder conflicts with the drag.                                                                                                       |
-| disabled             | `boolean`                                                                                                                         | `false`  | Disables keyboard and pointer reordering.                                                                                                                                                                                                        |
-| children             | `React.ReactNode`                                                                                                                 | -        | -                                                                                                                                                                                                                                                |
+| Prop                 | Type                                                                                                                              | Default  | Description                                                                                                                                                                                                        |
+| :------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| canMoveItems         | `((move: Listbox.ReorderMove<Value>) => boolean)`                                                                                 | -        | Applies the same movement rules to keyboard and pointer reordering.                                                                                                                                                |
+| getAnnouncement      | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)`                                             | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                     |
+| getDropPosition      | `((context: Listbox.ReorderProvider.PositionContext<Value>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)`       | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                    |
+| isItemReorderable    | `((item: Listbox.ReorderItem<Value>) => boolean)`                                                                                 | -        | Whether an item can be moved. Return `false` to keep it in place while it stays&#xA;selectable and available as a destination.                                                                                     |
+| kind                 | `DraggableKind<Listbox.ReorderProvider.DragPayload<Value>, any>`                                                                  | -        | An explicit kind for integrating reordering with external drag sources and targets.                                                                                                                                |
+| onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails) => void)` | -        | Event handler called when pointer placement changes.&#xA;Receives null when an existing placement is cleared.                                                                                                      |
+| onItemsReorder\*     | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`                                               | -        | Event handler called when reordering proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move.                                                                   |
+| onReorderEnd         | `((eventDetails: Listbox.ReorderProvider.ReorderEndEventDetails) => void)`                                                        | -        | Event handler called once when pointer reordering ends, after the final move or rollback&#xA;is proposed. `eventDetails.itemIds` lists the dragged items, and&#xA;`eventDetails.outcome` tells whether they moved. |
+| reorderOn            | `'drop' \| 'move'`                                                                                                                | `'drop'` | When pointer reordering updates the items. Live moves are restored on cancellation&#xA;unless an external reorder conflicts with the drag.                                                                         |
+| disabled             | `boolean`                                                                                                                         | `false`  | Disables keyboard and pointer reordering.                                                                                                                                                                          |
+| children             | `React.ReactNode`                                                                                                                 | -        | -                                                                                                                                                                                                                  |
 
 ### ReorderProvider.Props
 
@@ -876,11 +876,13 @@ type ListboxReorderProviderReorderEndEventDetails = (
   /** The IDs of the items that were dragged. */
   itemIds: Listbox.ItemId[];
   /**
-   * Whether the reorder was canceled or rolled back: the drag was canceled, it was released
-   * where the items can't move, or `onItemsReorder` canceled the move.
-   * Unlike the drag's own `canceled` flag, it can be `true` when `reason` is `'drop'`.
+   * How the reorder ended:
+   * - `'moved'`: the items moved, including onto another listbox or drop target.
+   * - `'unchanged'`: the items are back where they started.
+   * - `'canceled'`: the reorder was canceled or rolled back. The drag was canceled, it was
+   *   released where the items can't move, or `onItemsReorder` canceled the move.
    */
-  canceled: boolean;
+  outcome: Listbox.ReorderProvider.ReorderOutcome;
 };
 ```
 
@@ -900,6 +902,12 @@ type ListboxReorderProviderReorderEndEventReason =
   | 'handler-error'
   | 'drop'
   | 'outside-release';
+```
+
+### ReorderProvider.ReorderOutcome
+
+```typescript
+type ListboxReorderProviderReorderOutcome = 'moved' | 'unchanged' | 'canceled';
 ```
 
 ## Additional Types
@@ -1022,7 +1030,11 @@ declare namespace ListboxItemDataAttributes {
    * animation finishes. Managed by the drag engine.
    */
   const settling: 'data-settling';
-  /** Present when the item is the current pointer reordering or external drop destination. */
+  /**
+   * Present when the item is the current pointer reordering or external drop destination.
+   * Follows the resolved destination, which `getDropPosition` can redirect, rather than the row
+   * under the pointer.
+   */
   const dragOver: 'data-drag-over';
   /** The reordering or external drop destination: before or after. */
   const dropPosition: 'data-drop-position';
@@ -1055,7 +1067,11 @@ declare namespace ListboxItemExternalDropTargetDataAttributes {
    * animation finishes. Managed by the drag engine.
    */
   const settling: 'data-settling';
-  /** Present when the item is the current pointer reordering or external drop destination. */
+  /**
+   * Present when the item is the current pointer reordering or external drop destination.
+   * Follows the resolved destination, which `getDropPosition` can redirect, rather than the row
+   * under the pointer.
+   */
   const dragOver: 'data-drag-over';
   /** The reordering or external drop destination: before or after. */
   const dropPosition: 'data-drop-position';
@@ -1174,10 +1190,10 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
 - `Listbox.KeyboardReorderProvider`: `Listbox.KeyboardReorderProvider`, `Listbox.KeyboardReorderProvider.Props`
-- `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.PositionContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`
+- `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.PositionContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`, `Listbox.ReorderProvider.ReorderOutcome`
 - `Listbox.ReorderHandle`: `Listbox.ReorderHandle`, `Listbox.ReorderHandle.Props`, `Listbox.ReorderHandle.State`
 - `Listbox.ReorderPreview`: `Listbox.ReorderPreview`, `Listbox.ReorderPreview.Props`, `Listbox.ReorderPreview.RenderParameters`, `Listbox.ReorderPreview.State`
-- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderOutcome`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventReason`
 
 ## Canonical Types
@@ -1213,6 +1229,7 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.ReorderProvider.DropPositionChangeEventReason`: `ListboxReorderProviderDropPositionChangeEventReason`
 - `Listbox.ReorderProvider.ReorderEndEventDetails`: `ListboxReorderProviderReorderEndEventDetails`
 - `Listbox.ReorderProvider.ReorderEndEventReason`: `ListboxReorderProviderReorderEndEventReason`
+- `Listbox.ReorderProvider.ReorderOutcome`: `ListboxReorderProviderReorderOutcome`
 - `Listbox.ReorderHandle.Props`: `ListboxReorderHandleProps`
 - `Listbox.ReorderPreview.Props`: `ListboxReorderPreviewProps`
 - `Listbox.ReorderPreview.RenderParameters`: `ListboxReorderPreviewRenderParameters`

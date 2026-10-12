@@ -18,8 +18,14 @@ export function ListboxReorderPreview<Value = any>(props: ListboxReorderPreview.
     <Draggable.Preview {...other}>
       {typeof children === 'function'
         ? ({ source, location }) => {
-            const payload = source.payload as ListboxReorderDragPayload<Value>;
-            return children({ itemIds: payload.itemIds, items: payload.items, source, location });
+            // The enclosing sortable item owns this draggable's payload.
+            const listboxSource = source as Draggable.Root.Record<ListboxReorderDragPayload<Value>>;
+            return children({
+              itemIds: listboxSource.payload.itemIds,
+              items: listboxSource.payload.items,
+              source: listboxSource,
+              location,
+            });
           }
         : children}
     </Draggable.Preview>
@@ -52,7 +58,7 @@ export interface ListboxReorderPreviewRenderParameters<Value = any> {
    * The drag source. To show drag state in the preview, store it with
    * `source.updateDragData()` and call `Draggable.updatePreview()` from a drag handler.
    */
-  source: Draggable.Root.Record;
+  source: Draggable.Root.Record<ListboxReorderDragPayload<Value>>;
   /** The pointer position and drop targets when the preview renders. */
   location: Draggable.LocationHistory;
 }

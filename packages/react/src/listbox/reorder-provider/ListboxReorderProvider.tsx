@@ -83,13 +83,16 @@ export type ListboxReorderProviderReorderEndEventDetails = BaseUIGenericEventDet
     /** The IDs of the items that were dragged. */
     itemIds: ListboxItemId[];
     /**
-     * Whether the reorder was canceled or rolled back: the drag was canceled, it was released
-     * where the items can't move, or `onItemsReorder` canceled the move.
-     * Unlike the drag's own `canceled` flag, it can be `true` when `reason` is `'drop'`.
+     * How the reorder ended:
+     * - `'moved'`: the items moved, including onto another listbox or drop target.
+     * - `'unchanged'`: the items are back where they started.
+     * - `'canceled'`: the reorder was canceled or rolled back. The drag was canceled, it was
+     *   released where the items can't move, or `onItemsReorder` canceled the move.
      */
-    canceled: boolean;
+    outcome: ListboxReorderProviderReorderOutcome;
   }
 >;
+export type ListboxReorderProviderReorderOutcome = 'moved' | 'unchanged' | 'canceled';
 export type ListboxReorderProviderReorderEndEventReason =
   ListboxReorderProviderReorderEndEventDetails['reason'];
 /** The event details passed to `onDropPositionChange`: why the drop targets under the pointer changed. */
@@ -128,7 +131,7 @@ export interface ListboxReorderProviderProps<Value = any> extends ListboxReorder
   /**
    * Event handler called once when pointer reordering ends, after the final move or rollback
    * is proposed. `eventDetails.itemIds` lists the dragged items, and
-   * `eventDetails.canceled` tells whether the reorder was canceled or rolled back.
+   * `eventDetails.outcome` tells whether they moved.
    */
   onReorderEnd?:
     ((eventDetails: ListboxReorderProvider.ReorderEndEventDetails) => void) | undefined;
@@ -529,7 +532,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
               lastMovePosition.current = null;
               store.context.pointerMoveSuppressedRef.current = false;
               externalCompletion.current = false;
-              onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled: false });
+              onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, outcome: 'moved' });
               return;
             }
             const next = resolve(target, dragSource);
@@ -573,7 +576,10 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
             const finalItems = focusOrder.filter((item) =>
               source.items.some((value) => store.state.isItemEqualToValue(item.value, value)),
             );
-            const completedOutcome = changed ? 'moved' : 'unchanged';
+            let outcome: ListboxReorderProviderReorderOutcome = changed ? 'moved' : 'unchanged';
+            if (canceled) {
+              outcome = 'canceled';
+            }
             sorting.requestFocus(
               focusOrder,
               source.items[source.itemIds.indexOf(source.itemId)],
@@ -584,12 +590,12 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
                   groupId: finalItems[0]?.groupId ?? null,
                 },
               },
-              canceled ? 'canceled' : completedOutcome,
+              outcome,
             );
             focusFrame.request(() => {
               store.context.pointerMoveSuppressedRef.current = false;
             });
-            onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, canceled });
+            onReorderEnd?.({ ...sortEndDetails, itemIds: source.itemIds, outcome });
           }}
         >
           <ListboxSortableContext.Provider value={sortable}>
@@ -611,6 +617,7 @@ export namespace ListboxReorderProvider {
   export type DropPositionChangeEventReason = ListboxReorderProviderDropPositionChangeEventReason;
   export type ReorderEndEventDetails = ListboxReorderProviderReorderEndEventDetails;
   export type ReorderEndEventReason = ListboxReorderProviderReorderEndEventReason;
+  export type ReorderOutcome = ListboxReorderProviderReorderOutcome;
 }
 
 /**

@@ -24,7 +24,11 @@ export const dragging = 'data-dragging';
  * animation finishes. Managed by the drag engine.
  */
 export const settling = 'data-settling';
-/** Present when the item is the current pointer reordering or external drop destination. */
+/**
+ * Present when the item is the current pointer reordering or external drop destination.
+ * Follows the resolved destination, which `getDropPosition` can redirect, rather than the row
+ * under the pointer.
+ */
 export const dragOver = 'data-drag-over';
 /** The reordering or external drop destination: before or after. */
 export const dropPosition = 'data-drop-position';

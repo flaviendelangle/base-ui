@@ -13,7 +13,9 @@ import { expectType } from '#test-utils';
   }}
   onReorderEnd={(eventDetails) => {
     expectType<Listbox.ItemId[], typeof eventDetails.itemIds>(eventDetails.itemIds);
-    expectType<boolean, typeof eventDetails.canceled>(eventDetails.canceled);
+    expectType<'moved' | 'unchanged' | 'canceled', typeof eventDetails.outcome>(
+      eventDetails.outcome,
+    );
   }}
 />;
 
