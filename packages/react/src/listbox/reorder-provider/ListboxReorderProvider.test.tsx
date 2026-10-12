@@ -374,6 +374,27 @@ describe('<Listbox.ReorderProvider />', () => {
       expect.objectContaining({ itemIds: expect.any(Array), outcome: 'moved' }),
     );
   });
+  it('reports a live reorder that ends where it started as unchanged', async () => {
+    const onReorderEnd = vi.fn();
+    await render(<Fixture reorderOn="move" onReorderEnd={onReorderEnd} />);
+    setItemRects();
+    const a = screen.getByRole('option', { name: 'a' });
+    await lift(a, { clientY: 25 });
+    await dragEnter(screen.getByRole('option', { name: 'd' }), { clientY: 375 });
+    expect(values()).toEqual(['c', 'd', 'a', 'b']);
+    setItemRects();
+    await dragEnter(screen.getByRole('option', { name: 'c' }), { clientY: 10 });
+    expect(values()).toEqual(['a', 'b', 'c', 'd']);
+    setItemRects();
+    await dragEnter(a, { clientY: 25 });
+    drop(a, { clientY: 25 });
+    await flushRaf();
+    expect(values()).toEqual(['a', 'b', 'c', 'd']);
+    expect(onReorderEnd).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ outcome: 'unchanged' }),
+    );
+  });
+
   it('passes item draggable options through to the engine', async () => {
     const onBeforeMoveStart = vi.fn((eventDetails: Draggable.Root.BeforeMoveStartEventDetails) =>
       eventDetails.cancel(),

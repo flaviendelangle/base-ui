@@ -549,7 +549,8 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
               lastDestination &&
               sourceIds.length === source.items.length &&
               sorting.canMove(sourceIds, lastDestination);
-            let changed = transaction.hasMoved;
+            // Live moves can bring the items back to where they started.
+            let changed = !transaction.hasOriginalOrder(matchesOrder);
             let focusOrder = sorting.getOrderedItems();
             let canceled =
               dragCanceled ||

@@ -45,6 +45,11 @@ export class SortingTransaction<Order> {
     return this.expected === null || matches(this.expected);
   }
 
+  /** Whether the current order is the one the gesture started from, or is back to it. */
+  hasOriginalOrder(matches: (order: Order) => boolean) {
+    return this.original === null || matches(this.original);
+  }
+
   /**
    * Restore only while the current order still belongs to this gesture.
    * Matching the proposal base allows cancellation to supersede a deferred update.
