@@ -34,7 +34,10 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
     resolve: ({
       source,
       getLocalPoint,
-    }): ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, Value> | null => {
+    }):
+      | ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, Value>
+      | null
+      | false => {
       if (item.id === undefined) {
         return null;
       }
@@ -66,7 +69,11 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
         return null;
       }
       const drop = { ...context, dropPosition: position, destination };
-      return (options.canDrop?.(drop) ?? true) ? drop : null;
+      const verdict = options.canDrop?.(drop) ?? true;
+      if (verdict === 'reject') {
+        return null;
+      }
+      return verdict ? drop : false;
     },
   });
 }

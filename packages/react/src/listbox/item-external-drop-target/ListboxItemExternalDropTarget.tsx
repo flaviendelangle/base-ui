@@ -110,11 +110,15 @@ export interface ListboxItemExternalDropTargetOptions<
   accept: TAccept;
   /** Disables external drops without disabling selection or internal reordering. @default false */
   dropDisabled?: boolean | undefined;
-  /** Validates the resolved destination. Returning false rejects the drop, including ancestor targets. */
+  /**
+   * Validates the resolved destination. Return `false` to skip this item and let an
+   * enclosing target receive the drop, or `'reject'` to block the drop on this item and
+   * the targets enclosing it.
+   */
   canDrop?:
     | ((
         context: ListboxItemExternalDropTargetDropContext<AcceptedDragPayload<TAccept>, TItem>,
-      ) => boolean)
+      ) => boolean | 'reject')
     | undefined;
   /** Overrides the default before/after placement. Returning null rejects the drop. */
   getDropPosition?:

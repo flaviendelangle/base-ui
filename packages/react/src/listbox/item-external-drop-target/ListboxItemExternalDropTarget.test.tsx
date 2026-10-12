@@ -408,23 +408,29 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
     await flushRaf();
     expect(onDraggableDrop).not.toHaveBeenCalled();
   });
-  it('blocks an ancestor target when the matched row rejects the drop', async () => {
-    const ancestorDrop = vi.fn();
-    await render(
-      <Draggable.Provider>
-        <Draggable.Target accept={kind} onDraggableDrop={ancestorDrop}>
-          <Fixture canDrop={() => false} />
-        </Draggable.Target>
-      </Draggable.Provider>,
-    );
-    setRects();
-    const target = screen.getByRole('option', { name: 'a' });
-    await lift(screen.getByTestId('source'));
-    await dragEnter(target, { clientY: 25 });
-    drop(target, { clientY: 25 });
-    await flushRaf();
-    expect(ancestorDrop).not.toHaveBeenCalled();
-  });
+  it.each([
+    { verdict: 'reject' as const, ancestorReceives: false },
+    { verdict: false, ancestorReceives: true },
+  ])(
+    'lets an enclosing target receive the drop when canDrop returns $verdict: $ancestorReceives',
+    async ({ verdict, ancestorReceives }) => {
+      const ancestorDrop = vi.fn();
+      await render(
+        <Draggable.Provider>
+          <Draggable.Target accept={kind} onDraggableDrop={ancestorDrop}>
+            <Fixture canDrop={() => verdict} />
+          </Draggable.Target>
+        </Draggable.Provider>,
+      );
+      setRects();
+      const target = screen.getByRole('option', { name: 'a' });
+      await lift(screen.getByTestId('source'));
+      await dragEnter(target, { clientY: 25 });
+      drop(target, { clientY: 25 });
+      await flushRaf();
+      expect(ancestorDrop).toHaveBeenCalledTimes(ancestorReceives ? 1 : 0);
+    },
+  );
   it('accepts a stationary drag when external dropping is enabled', async () => {
     const onDraggableDrop = vi.fn();
     const { setProps } = await render(<Fixture onDraggableDrop={onDraggableDrop} dropDisabled />);

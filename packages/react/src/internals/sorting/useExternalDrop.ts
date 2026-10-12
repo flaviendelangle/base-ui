@@ -30,7 +30,11 @@ export function useExternalDrop<
   store: Store<ExternalDropState<Position>>;
   collectionId: object;
   disabled: boolean;
-  resolve: (context: Draggable.Target.ResolutionContext) => Context | null;
+  /**
+   * Returns the drop context, `null` to reject the drop on this target and its
+   * ancestors, or `false` to skip this target and let an ancestor receive it.
+   */
+  resolve: (context: Draggable.Target.ResolutionContext) => Context | null | false;
   onDraggableDrop?:
     ((eventDetails: Draggable.Target.DropEventDetails & Context) => void) | undefined;
   onDropPositionChange?:
@@ -96,7 +100,7 @@ export function useExternalDrop<
         return;
       }
       const result = resolve(getResolutionContext(eventDetails));
-      update(result?.dropPosition ?? null, omitDragRecords(eventDetails));
+      update(result ? result.dropPosition : null, omitDragRecords(eventDetails));
     },
   );
   useIsoLayoutEffect(() => reset, [reset]);
@@ -114,7 +118,10 @@ export function useExternalDrop<
         return false;
       }
       const result = resolve(context);
-      validated.current = { input: context.input, context: result };
+      validated.current = { input: context.input, context: result || null };
+      if (result === false) {
+        return false;
+      }
       return result ? true : 'reject';
     },
     onDraggableEnter: show,
