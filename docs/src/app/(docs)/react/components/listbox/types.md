@@ -687,6 +687,12 @@ Renders a `<span>` element.
 | style     | `React.CSSProperties \| ((state: DraggableHandleState) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
 | render    | `ReactElement \| ((props: HTMLProps, state: DraggableHandleState) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
 
+**ReorderHandle Data Attributes:**
+
+| Attribute     | Type | Description                                               |
+| :------------ | :--- | :-------------------------------------------------------- |
+| data-disabled | -    | Present while the item can't be picked up for reordering. |
+
 ### ReorderHandle.Props
 
 Re-export of [ReorderHandle](#reorderhandle) props.
@@ -717,6 +723,21 @@ Renders a `<div>` element, which is copied beside the dragged item while draggin
 | className | `string \| ((state: DraggablePreviewState) => string \| undefined)`                                    | -          | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                        |
 | style     | `React.CSSProperties \| ((state: DraggablePreviewState) => React.CSSProperties \| undefined)`          | -          | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                     |
 | render    | `ReactElement \| ((props: HTMLProps, state: DraggablePreviewState) => ReactElement)`                   | -          | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                   |
+
+**ReorderPreview Data Attributes:**
+
+| Attribute         | Type | Description                                                                                                                                                                                                                                                                                                                      |
+| :---------------- | :--- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| data-drag-preview | -    | Present on the drag preview, whether it's a clone of the item or custom content.&#xA;A clone keeps the item's classes, so use this attribute to tell them apart in CSS.                                                                                                                                                          |
+| data-dropped      | -    | Present on the preview while it ends after a drop on a target. Absent when it ends&#xA;after a release outside every target.                                                                                                                                                                                                     |
+| data-ending-style | -    | Present on the preview while it ends after a deliberate release. A `translate`&#xA;transition then moves it to the item's final position, or back to the item&#xA;after a release outside every target. Without one, it ends where it was released.&#xA;The preview stays mounted until animations started by this state finish. |
+
+**ReorderPreview CSS Variables:**
+
+| Variable               | Type     | Description                                      |
+| :--------------------- | :------- | :----------------------------------------------- |
+| `--drag-source-height` | `number` | The height of the item the drag was lifted from. |
+| `--drag-source-width`  | `number` | The width of the item the drag was lifted from.  |
 
 ### ReorderPreview.Props
 
@@ -1164,6 +1185,62 @@ type ListboxReorderDragPayload<Value = any> = {
 };
 ```
 
+### ListboxReorderHandleDataAttributes
+
+Data attributes of [ReorderHandle](#reorderhandle).
+
+```typescript
+declare namespace ListboxReorderHandleDataAttributes {
+  /** Present while the item can't be picked up for reordering. */
+  const disabled: 'data-disabled';
+}
+```
+
+### ListboxReorderPreviewCssVariables
+
+CSS variables of [ReorderPreview](#reorderpreview).
+
+```typescript
+declare namespace ListboxReorderPreviewCssVariables {
+  /**
+   * The width of the item the drag was lifted from.
+   * @type number
+   */
+  const dragSourceWidth: '--drag-source-width';
+  /**
+   * The height of the item the drag was lifted from.
+   * @type number
+   */
+  const dragSourceHeight: '--drag-source-height';
+}
+```
+
+### ListboxReorderPreviewDataAttributes
+
+Data attributes of [ReorderPreview](#reorderpreview).
+
+```typescript
+declare namespace ListboxReorderPreviewDataAttributes {
+  /**
+   * Present on the drag preview, whether it's a clone of the item or custom content.
+   * A clone keeps the item's classes, so use this attribute to tell them apart in CSS.
+   */
+  const dragPreview: 'data-drag-preview';
+  /**
+   * Present on the preview while it ends after a deliberate release. A `translate`
+   * transition then moves it to the item's final position, or back to the item
+   * after a release outside every target. Without one, it ends where it was released.
+   * The preview stays mounted until animations started by this state finish.
+   */
+  const endingStyle: 'data-ending-style';
+  /**
+   * Present on the preview while it ends after a drop on a target. Absent when it ends
+   * after a release outside every target.
+   */
+  const dropped: 'data-dropped';
+}
+```
+
 ### SelectionMode
 
 The selection mode determines how user interactions (clicks, keyboard)
@@ -1193,7 +1270,7 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.PositionContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`, `Listbox.ReorderProvider.ReorderOutcome`
 - `Listbox.ReorderHandle`: `Listbox.ReorderHandle`, `Listbox.ReorderHandle.Props`, `Listbox.ReorderHandle.State`
 - `Listbox.ReorderPreview`: `Listbox.ReorderPreview`, `Listbox.ReorderPreview.Props`, `Listbox.ReorderPreview.RenderParameters`, `Listbox.ReorderPreview.State`
-- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderOutcome`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxReorderPreviewDataAttributes`, `ListboxReorderPreviewCssVariables`, `ListboxReorderHandleDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderOutcome`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventReason`
 
 ## Canonical Types
