@@ -12,7 +12,10 @@ export { ListboxReorderProvider as ReorderProvider } from './reorder-provider/Li
 export { ListboxReorderHandle as ReorderHandle } from './reorder-handle/ListboxReorderHandle';
 export { ListboxReorderPreview as ReorderPreview } from './reorder-preview/ListboxReorderPreview';
 export type { ListboxItemId as ItemId } from './utils/ListboxItemId';
-export type { ListboxReorderItem as ReorderItem } from './sorting/ListboxSortingContext';
+export type {
+  ListboxReorderItem as ReorderItem,
+  ListboxReorderItemDetails as ReorderItemDetails,
+} from './sorting/ListboxSortingContext';
 export type {
   ListboxReorderMove as ReorderMove,
   ListboxReorderAnnouncementParameters as ReorderAnnouncementParameters,

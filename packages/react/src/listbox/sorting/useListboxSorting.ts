@@ -17,6 +17,7 @@ import { useListboxRootContext } from '../root/ListboxRootContext';
 import { toSortingItem } from './ListboxSortingContext';
 import type {
   ListboxReorderItem,
+  ListboxReorderItemDetails,
   ListboxSortingItemRecord,
   ListboxSortingContextValue,
 } from './ListboxSortingContext';
@@ -83,10 +84,10 @@ export interface ListboxReorderParameters<Value = any> {
   /** Applies the same movement rules to keyboard and pointer reordering. */
   canMoveItems?: ((move: ListboxReorderMove<Value>) => boolean) | undefined;
   /**
-   * Whether an item can be moved. Return `false` to keep it in place while it stays
-   * selectable and available as a destination.
+   * Whether an item can be moved. Receives the item's value, then its ID and position.
+   * Return `false` to keep it in place while it stays selectable and available as a destination.
    */
-  isItemReorderable?: ((item: ListboxReorderItem<Value>) => boolean) | undefined;
+  isItemReorderable?: ((value: Value, details: ListboxReorderItemDetails) => boolean) | undefined;
   /**
    * Customizes polite announcements for keyboard moves and final pointer outcomes.
    * Return `undefined` to use the default text.
@@ -140,7 +141,12 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
     (item: ListboxSortingItemRecord<Value>) =>
       disabled ||
       item.disabled ||
-      (isItemReorderable != null && !isItemReorderable(toSortingItem(item))),
+      (isItemReorderable != null &&
+        !isItemReorderable(item.value, {
+          itemId: item.id,
+          index: item.index,
+          groupId: item.groupId,
+        })),
     [disabled, isItemReorderable],
   );
   const getItemIds = useStableCallback((id: ListboxItemId) => {

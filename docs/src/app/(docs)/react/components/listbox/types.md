@@ -631,14 +631,14 @@ Renders a visually hidden announcement region inside the listbox.
 
 **KeyboardReorderProvider Props:**
 
-| Prop              | Type                                                                                  | Default | Description                                                                                                                                      |
-| :---------------- | :------------------------------------------------------------------------------------ | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-| canMoveItems      | `((move: Listbox.ReorderMove<Value>) => boolean)`                                     | -       | Applies the same movement rules to keyboard and pointer reordering.                                                                              |
-| getAnnouncement   | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)` | -       | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                   |
-| isItemReorderable | `((item: Listbox.ReorderItem<Value>) => boolean)`                                     | -       | Whether an item can be moved. Return `false` to keep it in place while it stays&#xA;selectable and available as a destination.                   |
-| onItemsReorder\*  | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`   | -       | Event handler called when reordering proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move. |
-| disabled          | `boolean`                                                                             | `false` | Disables keyboard and pointer reordering.                                                                                                        |
-| children          | `React.ReactNode`                                                                     | -       | -                                                                                                                                                |
+| Prop              | Type                                                                                  | Default | Description                                                                                                                                                                         |
+| :---------------- | :------------------------------------------------------------------------------------ | :------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| canMoveItems      | `((move: Listbox.ReorderMove<Value>) => boolean)`                                     | -       | Applies the same movement rules to keyboard and pointer reordering.                                                                                                                 |
+| getAnnouncement   | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)` | -       | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                      |
+| isItemReorderable | `((value: Value, details: Listbox.ReorderItemDetails) => boolean)`                    | -       | Whether an item can be moved. Receives the item's value, then its ID and position.&#xA;Return `false` to keep it in place while it stays selectable and available as a destination. |
+| onItemsReorder\*  | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`   | -       | Event handler called when reordering proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move.                                    |
+| disabled          | `boolean`                                                                             | `false` | Disables keyboard and pointer reordering.                                                                                                                                           |
+| children          | `React.ReactNode`                                                                     | -       | -                                                                                                                                                                                   |
 
 ### KeyboardReorderProvider.Props
 
@@ -779,7 +779,7 @@ Renders a visually hidden announcement region inside the listbox.
 | canMoveItems         | `((move: Listbox.ReorderMove<Value>) => boolean)`                                                                                 | -        | Applies the same movement rules to keyboard and pointer reordering.                                                                                                                                                |
 | getAnnouncement      | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)`                                             | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                     |
 | getDropPosition      | `((context: Listbox.ReorderProvider.PositionContext<Value>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)`       | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                    |
-| isItemReorderable    | `((item: Listbox.ReorderItem<Value>) => boolean)`                                                                                 | -        | Whether an item can be moved. Return `false` to keep it in place while it stays&#xA;selectable and available as a destination.                                                                                     |
+| isItemReorderable    | `((value: Value, details: Listbox.ReorderItemDetails) => boolean)`                                                                | -        | Whether an item can be moved. Receives the item's value, then its ID and position.&#xA;Return `false` to keep it in place while it stays selectable and available as a destination.                                |
 | kind                 | `DraggableKind<Listbox.ReorderProvider.DragPayload<Value>, any>`                                                                  | -        | An explicit kind for integrating reordering with external drag sources and targets.                                                                                                                                |
 | onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails) => void)` | -        | Event handler called when pointer placement changes.&#xA;Receives null when an existing placement is cleared.                                                                                                      |
 | onItemsReorder\*     | `((items: Value[], eventDetails: Listbox.ItemsReorderEventDetails<Value>) => void)`                                               | -        | Event handler called when reordering proposes a new order, with all values in that order.&#xA;Render the items in this order to accept the move.                                                                   |
@@ -1004,8 +1004,25 @@ type ListboxReorderDropPosition = {
 
 ```typescript
 type ListboxReorderItem<Value = any> = {
-  itemId: Listbox.ItemId;
   value: Value;
+  itemId: Listbox.ItemId;
+  /**
+   * Zero-based item index across the entire list, including all groups.
+   * This is not an index within the item's group.
+   */
+  index: number;
+  /** The containing group's ID, or null for an ungrouped item. */
+  groupId: string | null;
+};
+```
+
+### Listbox.ReorderItemDetails
+
+The ID and position of an item before reordering moves it.
+
+```typescript
+type ListboxReorderItemDetails = {
+  itemId: Listbox.ItemId;
   /**
    * Zero-based item index across the entire list, including all groups.
    * This is not an index within the item's group.
@@ -1270,7 +1287,7 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.PositionContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`, `Listbox.ReorderProvider.ReorderOutcome`
 - `Listbox.ReorderHandle`: `Listbox.ReorderHandle`, `Listbox.ReorderHandle.Props`, `Listbox.ReorderHandle.State`
 - `Listbox.ReorderPreview`: `Listbox.ReorderPreview`, `Listbox.ReorderPreview.Props`, `Listbox.ReorderPreview.RenderParameters`, `Listbox.ReorderPreview.State`
-- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxReorderPreviewDataAttributes`, `ListboxReorderPreviewCssVariables`, `ListboxReorderHandleDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderOutcome`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderItemDetails`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderItemDetails`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxReorderPreviewDataAttributes`, `ListboxReorderPreviewCssVariables`, `ListboxReorderHandleDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderOutcome`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
 - `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventReason`
 
 ## Canonical Types
@@ -1312,6 +1329,7 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.ReorderPreview.RenderParameters`: `ListboxReorderPreviewRenderParameters`
 - `Listbox.ItemId`: `ListboxItemId`
 - `Listbox.ReorderItem`: `ListboxReorderItem`
+- `Listbox.ReorderItemDetails`: `ListboxReorderItemDetails`
 - `Listbox.ReorderMove`: `ListboxReorderMove`
 - `Listbox.ReorderAnnouncementParameters`: `ListboxReorderAnnouncementParameters`
 - `Listbox.ItemsReorderEventDetails`: `ListboxItemsReorderEventDetails`

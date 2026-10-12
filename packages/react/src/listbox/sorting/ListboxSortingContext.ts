@@ -4,9 +4,9 @@ import type { ExternalDropTargetProps } from '../../internals/sorting/SortableDr
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 
-export interface ListboxReorderItem<Value = any> {
+/** The ID and position of an item before reordering moves it. */
+export interface ListboxReorderItemDetails {
   itemId: ListboxItemId;
-  value: Value;
   /**
    * Zero-based item index across the entire list, including all groups.
    * This is not an index within the item's group.
@@ -14,6 +14,10 @@ export interface ListboxReorderItem<Value = any> {
   index: number;
   /** The containing group's ID, or null for an ungrouped item. */
   groupId: string | null;
+}
+
+export interface ListboxReorderItem<Value = any> extends ListboxReorderItemDetails {
+  value: Value;
 }
 
 export interface ListboxSortingItemRecord<Value = any> extends Omit<

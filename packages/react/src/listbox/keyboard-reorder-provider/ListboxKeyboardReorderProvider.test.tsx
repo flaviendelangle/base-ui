@@ -63,13 +63,20 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
       await waitFor(() => expect(getAnnouncement).toHaveBeenCalled());
       const metadata = [
         ...canMoveItems.mock.calls.flatMap(([parameters]) => parameters.items),
-        ...isItemReorderable.mock.calls.map(([item]) => item),
         ...getAnnouncement.mock.calls.flatMap(([parameters]) => parameters.items),
         ...onItemsReorder.mock.calls.flatMap(([, details]) => [...details.items, ...details.order]),
       ];
       expect(metadata.length).toBeGreaterThan(0);
       metadata.forEach((item) =>
         expect(Object.keys(item).sort()).toEqual(['groupId', 'index', 'itemId', 'value']),
+      );
+      expect(isItemReorderable).toHaveBeenCalledWith('b', {
+        itemId: expect.anything(),
+        index: 1,
+        groupId: null,
+      });
+      isItemReorderable.mock.calls.forEach(([, details]) =>
+        expect(Object.keys(details).sort()).toEqual(['groupId', 'index', 'itemId']),
       );
     });
 
@@ -199,7 +206,7 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
         await render(
           <Provider
             onItemsReorder={onItemsReorder}
-            isItemReorderable={(item) => item.value !== sortingDisabled}
+            isItemReorderable={(value) => value !== sortingDisabled}
           >
             <Listbox.Root>
               <Listbox.List>
@@ -291,10 +298,7 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
     it('skips disabled selected items', async () => {
       const onItemsReorder = vi.fn();
       await render(
-        <Fixture
-          isItemReorderable={(item) => item.value !== 'a'}
-          onItemsReorder={onItemsReorder}
-        />,
+        <Fixture isItemReorderable={(value) => value !== 'a'} onItemsReorder={onItemsReorder} />,
       );
       await keyDown(screen.getByRole('option', { name: 'b' }), {
         key: 'ArrowDown',

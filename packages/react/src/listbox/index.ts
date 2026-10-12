@@ -14,7 +14,10 @@ export type * from './keyboard-reorder-provider/ListboxKeyboardReorderProvider';
 export type * from './reorder-provider/ListboxReorderProvider';
 export type * from './reorder-handle/ListboxReorderHandle';
 export type * from './reorder-preview/ListboxReorderPreview';
-export type { ListboxReorderItem } from './sorting/ListboxSortingContext';
+export type {
+  ListboxReorderItem,
+  ListboxReorderItemDetails,
+} from './sorting/ListboxSortingContext';
 export type {
   ListboxReorderDestination,
   ListboxReorderMove,
