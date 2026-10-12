@@ -130,7 +130,7 @@ Give each `Listbox.Group` a stable `id` when your application allows items to mo
 ### Drop positions
 
 By default, the first half of a row inserts before it, and the second half inserts after it. Horizontal lists use the corresponding left and right halves.
-Use `getDropPosition` to change these zones. It receives the application value as `item`, reordering metadata as `itemMetadata`, the drag source as `source`, the row under the pointer as `target`, and `getLocalPoint()`, which returns where the pointer is within the row, from 0 to 1 across its width and height. `source` is a `Draggable.Root.Record`, matching external-drop callbacks; read dragged items from `source.payload.items`. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
+Use `getDropPosition` to change these zones. It receives the application value as `item`, its position as `index` and `groupId`, the drag source as `source`, the row under the pointer as `target`, and `getLocalPoint()`, which returns where the pointer is within the row, from 0 to 1 across its width and height. `source` is a `Draggable.Root.Record`, matching external-drop callbacks; read dragged items from `source.payload.items`. Return `'before'`, `'after'`, a position object, or `null` to reject that position.
 
 `groupId` is `null` for ungrouped items. Item and destination indices are zero-based and span the entire list, including all groups. They do not reset at group boundaries. Destination insertion indices refer to the order before removing the moved items.
 

@@ -8,7 +8,7 @@ import { expectType } from '#test-utils';
     expectType<string[], typeof source.payload.items>(source.payload.items);
     // @ts-expect-error Sorting callbacks expose the drag source record, not only its payload.
     source.items;
-    expectType<Listbox.ItemId, typeof target.payload.id>(target.payload.id);
+    expectType<Listbox.ItemId, typeof target.payload.itemId>(target.payload.itemId);
     return 'before';
   }}
   onReorderEnd={(eventDetails) => {

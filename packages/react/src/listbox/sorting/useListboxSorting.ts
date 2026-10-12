@@ -34,6 +34,11 @@ export interface ListboxReorderMove<Value = any> {
   items: ListboxReorderItem<Value>[];
   destination: ListboxReorderDestination;
 }
+/** A move of internal item records, reported as a `ListboxReorderMove`. */
+export interface ListboxSortingMove<Value = any> {
+  items: ListboxSortingItemRecord<Value>[];
+  destination: ListboxReorderDestination;
+}
 export type ListboxItemsReorderEventDetails<Value = any> = Omit<
   BaseUIChangeEventDetails<typeof REASONS.none>,
   'reason'
@@ -101,7 +106,7 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
   const pending = React.useRef<{
     order: ListboxSortingItemRecord<Value>[];
     sourceValue: Value;
-    parameters: ListboxReorderMove<Value> | null;
+    parameters: ListboxSortingMove<Value> | null;
     outcome?: 'moved' | 'unchanged' | 'canceled' | undefined;
     reason: 'keyboard' | 'drag';
     direction: ListboxSortingDirection | null;
@@ -250,7 +255,7 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
   const notifyOrder = useStableCallback(
     (
       items: ListboxSortingItemRecord<Value>[],
-      parameters: ListboxReorderMove<Value>,
+      parameters: ListboxSortingMove<Value>,
       event: Event,
       reason: typeof REASONS.drag | typeof REASONS.keyboard,
     ) => {
@@ -323,7 +328,7 @@ export function useListboxSorting<Value>(props: ListboxReorderParameters<Value>)
     (
       order: ListboxSortingItemRecord<Value>[],
       sourceValue: Value,
-      parameters: ListboxReorderMove<Value>,
+      parameters: ListboxSortingMove<Value>,
       outcome: 'moved' | 'unchanged' | 'canceled',
     ) => {
       pending.current = {

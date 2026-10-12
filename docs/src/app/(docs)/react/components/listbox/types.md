@@ -506,7 +506,10 @@ type ListboxItemExternalDropTargetDropContext<TPayload = unknown, TItem = unknow
   /** The item under the pointer. */
   item: TItem;
   itemId: Listbox.ItemId;
-  itemMetadata: { index: number; groupId: string | null };
+  /** The zero-based index across the entire list, including all groups. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /** Returns where the pointer is within the item, as a fraction of its width and height. */
   getLocalPoint: () => DraggableTargetLocalPoint;
 };
@@ -542,7 +545,10 @@ type ListboxItemExternalDropTargetDropEventDetails<TPayload = unknown, TItem = u
   /** The item under the pointer. */
   item: TItem;
   itemId: Listbox.ItemId;
-  itemMetadata: { index: number; groupId: string | null };
+  /** The zero-based index across the entire list, including all groups. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /** Returns where the pointer is within the item, as a fraction of its width and height. */
   getLocalPoint: () => DraggableTargetLocalPoint;
 };
@@ -609,7 +615,10 @@ type ListboxItemExternalDropTargetPositionContext<TPayload = unknown, TItem = un
   /** The item under the pointer. */
   item: TItem;
   itemId: Listbox.ItemId;
-  itemMetadata: { index: number; groupId: string | null };
+  /** The zero-based index across the entire list, including all groups. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /** Returns where the pointer is within the item, as a fraction of its width and height. */
   getLocalPoint: () => DraggableTargetLocalPoint;
 };
@@ -766,7 +775,9 @@ Re-export of [ReorderProvider](#reorderprovider) props.
 
 ```typescript
 type ListboxReorderProviderDragPayload<Value = any> = {
-  id: Listbox.ItemId;
+  /** The ID of the item the drag started on. */
+  itemId: Listbox.ItemId;
+  /** The IDs of the dragged items, in list order. */
   itemIds: Listbox.ItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
@@ -826,8 +837,11 @@ type ListboxReorderProviderDropPositionChangeEventReason =
 type ListboxReorderProviderPositionContext<Value = any> = {
   /** The application value of the row under the pointer. */
   item: Value;
-  itemMetadata: { index: number; groupId: string | null };
   itemId: Listbox.ItemId;
+  /** The zero-based index across the entire list, including all groups, before this drop. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /**
    * Returns where the pointer is within the row, as a fraction of its width and height.
    * The same as `target.getLocalPoint()`.
@@ -946,7 +960,8 @@ type ListboxReorderAnnouncementParameters<Value = any> = {
 
 ```typescript
 type ListboxReorderDropPosition = {
-  id: Listbox.ItemId;
+  /** The ID of the item the drop is placed against. */
+  itemId: Listbox.ItemId;
   placement: 'before' | 'after';
   /**
    * Override the zero-based insertion index across the entire list, including all
@@ -960,7 +975,7 @@ type ListboxReorderDropPosition = {
 
 ```typescript
 type ListboxReorderItem<Value = any> = {
-  id: Listbox.ItemId;
+  itemId: Listbox.ItemId;
   value: Value;
   /**
    * Zero-based item index across the entire list, including all groups.
@@ -1123,7 +1138,9 @@ type ListboxReorderDestination = {
 
 ```typescript
 type ListboxReorderDragPayload<Value = any> = {
-  id: Listbox.ItemId;
+  /** The ID of the item the drag started on. */
+  itemId: Listbox.ItemId;
+  /** The IDs of the dragged items, in list order. */
   itemIds: Listbox.ItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */

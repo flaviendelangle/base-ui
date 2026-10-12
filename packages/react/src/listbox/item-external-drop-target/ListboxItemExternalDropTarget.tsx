@@ -79,7 +79,10 @@ export interface ListboxItemExternalDropTargetPositionContext<TPayload = unknown
   /** The item under the pointer. */
   item: TItem;
   itemId: ListboxItemId;
-  itemMetadata: { index: number; groupId: string | null };
+  /** The zero-based index across the entire list, including all groups. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /** Returns where the pointer is within the item, as a fraction of its width and height. */
   getLocalPoint: () => DraggableTargetLocalPoint;
 }

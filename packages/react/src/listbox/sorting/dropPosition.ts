@@ -6,7 +6,7 @@ export function getListboxDropDestination(
   ordered: ListboxSortingItemRecord<unknown>[],
   position: ListboxReorderDropPosition,
 ): ListboxReorderDestination | null {
-  const target = ordered.find((item) => item.id === position.id);
+  const target = ordered.find((item) => item.id === position.itemId);
   if (!target || target.disabled) {
     return null;
   }

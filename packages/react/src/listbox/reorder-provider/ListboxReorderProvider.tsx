@@ -40,14 +40,17 @@ import { useListboxSorting } from '../sorting/useListboxSorting';
 import type { ListboxReorderParameters } from '../sorting/useListboxSorting';
 
 export interface ListboxReorderDragPayload<Value = any> {
-  id: ListboxItemId;
+  /** The ID of the item the drag started on. */
+  itemId: ListboxItemId;
+  /** The IDs of the dragged items, in list order. */
   itemIds: ListboxItemId[];
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: object;
 }
 export interface ListboxReorderDropPosition {
-  id: ListboxItemId;
+  /** The ID of the item the drop is placed against. */
+  itemId: ListboxItemId;
   placement: 'before' | 'after';
   /**
    * Override the zero-based insertion index across the entire list, including all
@@ -58,8 +61,11 @@ export interface ListboxReorderDropPosition {
 export interface ListboxReorderProviderPositionContext<Value = any> {
   /** The application value of the row under the pointer. */
   item: Value;
-  itemMetadata: { index: number; groupId: string | null };
   itemId: ListboxItemId;
+  /** The zero-based index across the entire list, including all groups, before this drop. */
+  index: number;
+  /** The ID of the item's group, or null when it isn't in a group. */
+  groupId: string | null;
   /**
    * Returns where the pointer is within the row, as a fraction of its width and height.
    * The same as `target.getLocalPoint()`.
@@ -246,7 +252,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
         return null;
       }
       const sourceIds = getSourceItems(source).map((item) => item.id);
-      const id = target.payload.id;
+      const id = target.payload.itemId;
       const item = sorting.getOrderedItems().find((entry) => entry.id === id);
       if (!item || item.disabled || sourceIds.includes(id)) {
         return null;
@@ -258,7 +264,8 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
       const resolved = getDropPosition
         ? getDropPosition({
             item: item.value,
-            itemMetadata: { index: item.index, groupId: item.groupId },
+            index: item.index,
+            groupId: item.groupId,
             itemId: id,
             getLocalPoint: target.getLocalPoint,
             target,
@@ -268,10 +275,10 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
       if (!resolved) {
         return null;
       }
-      const next = typeof resolved === 'string' ? { id, placement: resolved } : resolved;
+      const next = typeof resolved === 'string' ? { itemId: id, placement: resolved } : resolved;
       const destination = getDestination(next);
       return destination &&
-        !sourceIds.includes(next.id) &&
+        !sourceIds.includes(next.itemId) &&
         sourceIds.length === source.items.length &&
         sorting.canMove(sourceIds, destination)
         ? next
@@ -287,7 +294,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
         return;
       }
       position.current = next;
-      store.set('dragOverItemId', next?.id ?? null);
+      store.set('dragOverItemId', next?.itemId ?? null);
       store.set('dropPosition', next?.placement ?? null);
       onDropPositionChange?.(next, eventDetails);
     },
@@ -407,7 +414,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
                   // The declared payload only identifies the row. The dragged items
                   // depend on the selection when the drag starts.
                   eventDetails.source.updatePayload({
-                    id,
+                    itemId: id,
                     itemIds,
                     items,
                     collectionId: store,
@@ -460,8 +467,8 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
           kind={kind}
           disabled={sorting.disabled}
           isTargetDisabled={(target) =>
-            !sorting.records.has(target.id) ||
-            !!sorting.records.get(target.id)?.item.current.disabled
+            !sorting.records.has(target.itemId) ||
+            !!sorting.records.get(target.itemId)?.item.current.disabled
           }
           onMoveStart={(eventDetails) => {
             const source = eventDetails.source;
@@ -529,7 +536,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
             const sourceIds = getSourceItems(source).map((item) => item.id);
             const onSource =
               eventDetails.location.current.targets[0]?.element === dragSource.element ||
-              (target?.payload.collectionId === store && sourceIds.includes(target.payload.id));
+              (target?.payload.collectionId === store && sourceIds.includes(target.payload.itemId));
             const lastDestination =
               lastMovePosition.current && getDestination(lastMovePosition.current);
             const canKeepLiveMove =
@@ -569,7 +576,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
             const completedOutcome = changed ? 'moved' : 'unchanged';
             sorting.requestFocus(
               focusOrder,
-              source.items[source.itemIds.indexOf(source.id)],
+              source.items[source.itemIds.indexOf(source.itemId)],
               {
                 items: finalItems,
                 destination: {
@@ -617,7 +624,7 @@ function ListboxSortableRowPayload<Value>(props: {
 }) {
   const { id, collectionId, children } = props;
   const payload = React.useMemo<ListboxReorderDragPayload<Value>>(
-    () => ({ id, itemIds: [id], items: [], collectionId }),
+    () => ({ itemId: id, itemIds: [id], items: [], collectionId }),
     [id, collectionId],
   );
   return children(payload);

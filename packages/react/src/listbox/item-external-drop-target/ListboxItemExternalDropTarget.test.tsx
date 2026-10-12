@@ -69,7 +69,7 @@ function Fixture({
     <Draggable.Provider>
       <Draggable.Root
         kind={kind}
-        payload={{ id: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
+        payload={{ itemId: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
         data-testid="source"
       >
         foreign
@@ -146,7 +146,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
       });
       expect(target).not.toHaveAttribute('data-drag-over');
       expect(changes.mock.calls).toEqual([
-        [{ id: expect.anything(), placement: 'after' }, positionChangeDetails('pointer')],
+        [{ itemId: expect.anything(), placement: 'after' }, positionChangeDetails('pointer')],
         [null, positionChangeDetails('drop')],
       ]);
     },
@@ -364,7 +364,12 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
         <Draggable.Provider>
           <Draggable.Root
             kind={kind}
-            payload={{ id: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
+            payload={{
+              itemId: 'foreign',
+              itemIds: ['foreign'],
+              items: ['foreign'],
+              collectionId: {},
+            }}
             data-testid="source"
           />
           {sortable ? (
@@ -461,7 +466,7 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
         await setProps({ hiddenItems: ['a'] });
       }
       expect(changes.mock.calls).toEqual([
-        [{ id: expect.anything(), placement: 'before' }, positionChangeDetails('pointer')],
+        [{ itemId: expect.anything(), placement: 'before' }, positionChangeDetails('pointer')],
         [null, positionChangeDetails('pointer')],
       ]);
       cancel();
@@ -478,7 +483,12 @@ describe('<Listbox.ItemExternalDropTarget />', () => {
         <Draggable.Provider>
           <Draggable.Root
             kind={kind}
-            payload={{ id: 'foreign', itemIds: ['foreign'], items: ['foreign'], collectionId: {} }}
+            payload={{
+              itemId: 'foreign',
+              itemIds: ['foreign'],
+              items: ['foreign'],
+              collectionId: {},
+            }}
             onMoveStart={() => setActiveId('foreign')}
             onMoveEnd={() => ReactDOM.flushSync(() => setActiveId(null))}
             data-testid="source"

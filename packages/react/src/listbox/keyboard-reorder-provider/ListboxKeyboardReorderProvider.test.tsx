@@ -69,7 +69,7 @@ for (const Provider of [Listbox.KeyboardReorderProvider, Listbox.ReorderProvider
       ];
       expect(metadata.length).toBeGreaterThan(0);
       metadata.forEach((item) =>
-        expect(Object.keys(item).sort()).toEqual(['groupId', 'id', 'index', 'value']),
+        expect(Object.keys(item).sort()).toEqual(['groupId', 'index', 'itemId', 'value']),
       );
     });
 

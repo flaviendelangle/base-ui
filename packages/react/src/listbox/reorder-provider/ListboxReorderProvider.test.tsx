@@ -198,7 +198,7 @@ describe('<Listbox.ReorderProvider />', () => {
       location: expect.any(Object),
     });
     expect(onDropPositionChange.mock.calls).toEqual([
-      [{ id: expect.anything(), placement: 'after' }, details('pointer')],
+      [{ itemId: expect.anything(), placement: 'after' }, details('pointer')],
       [null, details('drop')],
     ]);
     expect(onReorderEnd.mock.calls).toEqual([
@@ -309,7 +309,8 @@ describe('<Listbox.ReorderProvider />', () => {
     expect(getDropPosition).toHaveBeenCalledWith(
       expect.objectContaining({
         item: 'd',
-        itemMetadata: { index: 3, groupId: null },
+        index: 3,
+        groupId: null,
         source: expect.objectContaining({
           element: screen.getByRole('option', { name: 'a' }),
           payload: expect.objectContaining({ collectionId: expect.any(Object), items: ['a', 'b'] }),

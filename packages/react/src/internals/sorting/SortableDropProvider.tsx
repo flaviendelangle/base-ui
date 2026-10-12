@@ -174,10 +174,10 @@ export function getPayloadCollectionId(payload: unknown): unknown {
 }
 
 export function isSameDropPosition(
-  a: { id: unknown; placement: string; index?: number | undefined } | null,
-  b: { id: unknown; placement: string; index?: number | undefined } | null,
+  a: { itemId: unknown; placement: string; index?: number | undefined } | null,
+  b: { itemId: unknown; placement: string; index?: number | undefined } | null,
 ): boolean {
-  return a?.id === b?.id && a?.placement === b?.placement && a?.index === b?.index;
+  return a?.itemId === b?.itemId && a?.placement === b?.placement && a?.index === b?.index;
 }
 
 export function acceptsExternalDrop(

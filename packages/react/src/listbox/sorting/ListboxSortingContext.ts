@@ -5,7 +5,7 @@ import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxItemDraggableProps } from '../item/ListboxItem';
 
 export interface ListboxReorderItem<Value = any> {
-  id: ListboxItemId;
+  itemId: ListboxItemId;
   value: Value;
   /**
    * Zero-based item index across the entire list, including all groups.
@@ -16,7 +16,11 @@ export interface ListboxReorderItem<Value = any> {
   groupId: string | null;
 }
 
-export interface ListboxSortingItemRecord<Value = any> extends ListboxReorderItem<Value> {
+export interface ListboxSortingItemRecord<Value = any> extends Omit<
+  ListboxReorderItem<Value>,
+  'itemId'
+> {
+  id: ListboxItemId;
   disabled: boolean;
 }
 
@@ -67,6 +71,8 @@ export function useListboxSortablePart(part: string): ListboxSortableContextValu
 }
 
 /** Public movement metadata excludes internal interaction state. */
-export function toSortingItem<Value>(item: ListboxReorderItem<Value>): ListboxReorderItem<Value> {
-  return { id: item.id, value: item.value, index: item.index, groupId: item.groupId };
+export function toSortingItem<Value>(
+  item: Omit<ListboxSortingItemRecord<Value>, 'disabled'>,
+): ListboxReorderItem<Value> {
+  return { itemId: item.id, value: item.value, index: item.index, groupId: item.groupId };
 }

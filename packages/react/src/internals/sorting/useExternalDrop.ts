@@ -13,7 +13,7 @@ import {
 } from './SortableDropProvider';
 import type { ExternalDropTargetProps, OmitDragRecords } from './SortableDropProvider';
 
-type DropPosition = { id: string | number; placement: string; index?: number | undefined };
+type DropPosition = { itemId: string | number; placement: string; index?: number | undefined };
 type DropPositionChangeEventDetails = OmitDragRecords<Draggable.Root.TargetChangeEventDetails>;
 
 /** The collection store state shared by every external drop target of one collection. */

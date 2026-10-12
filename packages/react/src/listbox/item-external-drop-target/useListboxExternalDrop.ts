@@ -46,7 +46,8 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
         source: source as DraggableRootRecord<AcceptedDragPayload<TAccept>>,
         item: item.value as Value,
         itemId: item.id,
-        itemMetadata: { index: item.index, groupId: item.groupId },
+        index: item.index,
+        groupId: item.groupId,
         getLocalPoint,
       };
       const point = getLocalPoint();
@@ -60,7 +61,7 @@ export function useListboxExternalDrop<TAccept extends DraggableAccept<unknown>,
         return null;
       }
       const position =
-        typeof resolved === 'string' ? { id: item.id, placement: resolved } : resolved;
+        typeof resolved === 'string' ? { itemId: item.id, placement: resolved } : resolved;
       const ordered = Array.from(records.values(), (read) => read()).sort(
         (a, b) => a.index - b.index,
       );

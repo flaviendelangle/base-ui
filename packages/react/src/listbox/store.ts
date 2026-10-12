@@ -101,7 +101,7 @@ export const selectors = {
       return null;
     }
     const external = state.externalDropPosition?.position;
-    if (external?.id === itemId) {
+    if (external?.itemId === itemId) {
       return external.placement;
     }
     return state.dragOverItemId === itemId ? state.dropPosition : null;
