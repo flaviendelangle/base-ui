@@ -395,6 +395,25 @@ describe('<Listbox.ReorderProvider />', () => {
     );
   });
 
+  it('reports a drop that moves live-moved items back to where they started as unchanged', async () => {
+    const onReorderEnd = vi.fn();
+    await render(<Fixture reorderOn="move" onReorderEnd={onReorderEnd} />);
+    setItemRects();
+    const c = screen.getByRole('option', { name: 'c' });
+    await lift(screen.getByRole('option', { name: 'a' }), { clientY: 25 });
+    await dragEnter(c, { clientY: 275 });
+    expect(values()).toEqual(['c', 'a', 'b', 'd']);
+    setItemRects();
+    // Released over the zone of the same row that restores the order, before a hover frame
+    // moves the items.
+    drop(c, { clientY: 10 });
+    await flushRaf();
+    expect(values()).toEqual(['a', 'b', 'c', 'd']);
+    expect(onReorderEnd).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ outcome: 'unchanged' }),
+    );
+  });
+
   it('passes item draggable options through to the engine', async () => {
     const onBeforeMoveStart = vi.fn((eventDetails: Draggable.Root.BeforeMoveStartEventDetails) =>
       eventDetails.cancel(),

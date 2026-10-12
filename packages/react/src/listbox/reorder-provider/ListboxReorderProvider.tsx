@@ -549,8 +549,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
               lastDestination &&
               sourceIds.length === source.items.length &&
               sorting.canMove(sourceIds, lastDestination);
-            // Live moves can bring the items back to where they started.
-            let changed = !transaction.hasOriginalOrder(matchesOrder);
+            let movedByDrop = false;
             let focusOrder = sorting.getOrderedItems();
             let canceled =
               dragCanceled ||
@@ -562,10 +561,17 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
                 destination && sorting.move(sourceIds, destination, eventDetails.event);
               canceled = !result;
               if (result) {
-                changed ||= result.changed;
+                movedByDrop = result.changed;
                 focusOrder = result.items;
               }
             }
+            // Live moves, and the drop after them, can bring the items back to where they started.
+            const finalOrder = groupSortingItems(focusOrder);
+            const changed = transaction.hasMoved
+              ? !transaction.hasOriginalOrder((original) =>
+                  matchesSortingOrder(finalOrder, groupSortingItems(original), sameItem),
+                )
+              : movedByDrop;
             if (canceled) {
               focusOrder = rollback() ?? focusOrder;
             }
