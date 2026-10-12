@@ -55,7 +55,7 @@ export interface ListboxReorderDropPosition {
    */
   index?: number | undefined;
 }
-export interface ListboxReorderDropContext<Value = any> {
+export interface ListboxReorderProviderPositionContext<Value = any> {
   /** The application value of the row under the pointer. */
   item: Value;
   itemMetadata: { index: number; groupId: string | null };
@@ -98,7 +98,7 @@ export interface ListboxReorderProviderProps<Value = any> extends ListboxReorder
   /** Resolves pointer placement. Returning null disallows dropping at this position. */
   getDropPosition?:
     | ((
-        context: ListboxReorderProvider.DropContext<Value>,
+        context: ListboxReorderProvider.PositionContext<Value>,
       ) => ListboxReorderDropPosition['placement'] | ListboxReorderDropPosition | null)
     | undefined;
   /**
@@ -599,7 +599,7 @@ function ListboxPointerSorting<Value>(props: ListboxReorderProvider.Props<Value>
 export namespace ListboxReorderProvider {
   export type Props<Value = any> = ListboxReorderProviderProps<Value>;
   export type DragPayload<Value = any> = ListboxReorderDragPayload<Value>;
-  export type DropContext<Value = any> = ListboxReorderDropContext<Value>;
+  export type PositionContext<Value = any> = ListboxReorderProviderPositionContext<Value>;
   export type DropPositionChangeEventDetails = ListboxReorderProviderDropPositionChangeEventDetails;
   export type DropPositionChangeEventReason = ListboxReorderProviderDropPositionChangeEventReason;
   export type ReorderEndEventDetails = ListboxReorderProviderReorderEndEventDetails;

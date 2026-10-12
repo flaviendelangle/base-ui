@@ -298,7 +298,7 @@ describe('<Listbox.ReorderProvider />', () => {
   it('uses custom drop zones and shares movement validation with the keyboard', async () => {
     const canMoveItems = vi.fn(() => true);
     const getDropPosition = vi.fn(
-      (_context: Listbox.ReorderProvider.DropContext<string>) => 'before' as const,
+      (_context: Listbox.ReorderProvider.PositionContext<string>) => 'before' as const,
     );
     await render(<Fixture getDropPosition={getDropPosition} canMoveItems={canMoveItems} />);
     setItemRects();

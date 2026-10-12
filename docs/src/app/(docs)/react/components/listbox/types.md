@@ -435,7 +435,7 @@ Renders a `<div>` element.
 | getDropPosition      | `((context: Listbox.ItemExternalDropTarget.PositionContext<TPayload \| unknown, TItem>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)` | -       | Overrides the default before/after placement. Returning null rejects the drop.                                                                                                                        |
 | nativeButton         | `boolean`                                                                                                                                               | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                                  |
 | onDraggableDrop      | `((eventDetails: Listbox.ItemExternalDropTarget.DropEventDetails<TPayload \| unknown, TItem>) => void)`                                                 | -       | Event handler called when an accepted external drag is dropped on the item.&#xA;Does not insert or remove items. `eventDetails.destination` is where to insert&#xA;the dropped content.               |
-| onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails) => void)`                       | -       | Event handler called when the placement of an incoming drag changes.&#xA;Receives null when the placement clears.                                                                                     |
+| onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails) => void)`                | -       | Event handler called when the placement of an incoming drag changes.&#xA;Receives null when the placement clears.                                                                                     |
 | disabled             | `boolean`                                                                                                                                               | `false` | Whether the component should ignore user interaction.                                                                                                                                                 |
 | children             | `React.ReactNode`                                                                                                                                       | -       | -                                                                                                                                                                                                     |
 | className            | `string \| ((state: Listbox.Item.State) => string \| undefined)`                                                                                        | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                              |
@@ -554,18 +554,50 @@ type ListboxItemExternalDropTargetDropEventDetails<TPayload = unknown, TItem = u
 type ListboxItemExternalDropTargetDropEventReason = 'drop';
 ```
 
-### ItemExternalDropTarget.DropPosition
+### ItemExternalDropTarget.DropPositionChangeEventDetails
 
 ```typescript
-type ListboxItemExternalDropTargetDropPosition = {
-  id: Listbox.ItemId;
-  placement: 'before' | 'after';
-  /**
-   * Override the zero-based insertion index across the entire list, including all
-   * groups, before removing the moved items. Not relative to the destination group.
-   */
-  index?: number;
-};
+type ListboxItemExternalDropTargetDropPositionChangeEventDetails =
+  | { reason: 'escape-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'pointer'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'imperative-action'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'double-click'; event: MouseEvent | PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'modifier-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'tab-key'; event: KeyboardEvent; location: DraggableLocationHistory }
+  | { reason: 'window-blur'; event: FocusEvent; location: DraggableLocationHistory }
+  | { reason: 'page-hidden'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'pointer-canceled'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'capture-lost'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'missed-release'; event: PointerEvent; location: DraggableLocationHistory }
+  | { reason: 'document-detached'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'handler-error'; event: Event; location: DraggableLocationHistory }
+  | { reason: 'drop'; event: MouseEvent | PointerEvent; location: DraggableLocationHistory }
+  | {
+      reason: 'outside-release';
+      event: MouseEvent | PointerEvent;
+      location: DraggableLocationHistory;
+    };
+```
+
+### ItemExternalDropTarget.DropPositionChangeEventReason
+
+```typescript
+type ListboxItemExternalDropTargetDropPositionChangeEventReason =
+  | 'escape-key'
+  | 'pointer'
+  | 'imperative-action'
+  | 'double-click'
+  | 'modifier-key'
+  | 'tab-key'
+  | 'window-blur'
+  | 'page-hidden'
+  | 'pointer-canceled'
+  | 'capture-lost'
+  | 'missed-release'
+  | 'document-detached'
+  | 'handler-error'
+  | 'drop'
+  | 'outside-release';
 ```
 
 ### ItemExternalDropTarget.PositionContext
@@ -716,7 +748,7 @@ Renders a visually hidden announcement region inside the listbox.
 | :------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | canMoveItems         | `((move: Listbox.ReorderMove<Value>) => boolean)`                                                                                 | -        | Applies the same movement rules to keyboard and pointer reordering.                                                                                                                                                                              |
 | getAnnouncement      | `((parameters: Listbox.ReorderAnnouncementParameters<Value>) => string \| undefined)`                                             | -        | Customizes polite announcements for keyboard moves and final pointer outcomes.&#xA;Return `undefined` to use the default text.                                                                                                                   |
-| getDropPosition      | `((context: Listbox.ReorderProvider.DropContext<Value>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)`           | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                                                  |
+| getDropPosition      | `((context: Listbox.ReorderProvider.PositionContext<Value>) => 'before' \| 'after' \| Listbox.ReorderDropPosition \| null)`       | -        | Resolves pointer placement. Returning null disallows dropping at this position.                                                                                                                                                                  |
 | isItemReorderable    | `((item: Listbox.ReorderItem<Value>) => boolean)`                                                                                 | -        | Whether an item can be moved. Return `false` to keep it in place while it stays&#xA;selectable and available as a destination.                                                                                                                   |
 | kind                 | `DraggableKind<Listbox.ReorderProvider.DragPayload<Value>, any>`                                                                  | -        | An explicit kind for integrating reordering with external drag sources and targets.                                                                                                                                                              |
 | onDropPositionChange | `((position: Listbox.ReorderDropPosition \| null, eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails) => void)` | -        | Event handler called when pointer placement changes.&#xA;Receives null when an existing placement is cleared.                                                                                                                                    |
@@ -739,26 +771,6 @@ type ListboxReorderProviderDragPayload<Value = any> = {
   items: Value[];
   /** Identifies the list that owns this drag. */
   collectionId: {};
-};
-```
-
-### ReorderProvider.DropContext
-
-```typescript
-type ListboxReorderProviderDropContext<Value = any> = {
-  /** The application value of the row under the pointer. */
-  item: Value;
-  itemMetadata: { index: number; groupId: string | null };
-  itemId: Listbox.ItemId;
-  /**
-   * Returns where the pointer is within the row, as a fraction of its width and height.
-   * The same as `target.getLocalPoint()`.
-   */
-  getLocalPoint: () => DraggableTargetLocalPoint;
-  /** The row under the pointer. Its payload identifies the row, not the dragged items. */
-  target: DraggableTargetRecord<ListboxReorderDragPayload<Value>, unknown>;
-  /** The item being dragged. */
-  source: DraggableRootRecord<ListboxReorderDragPayload<Value>, unknown>;
 };
 ```
 
@@ -806,6 +818,26 @@ type ListboxReorderProviderDropPositionChangeEventReason =
   | 'handler-error'
   | 'drop'
   | 'outside-release';
+```
+
+### ReorderProvider.PositionContext
+
+```typescript
+type ListboxReorderProviderPositionContext<Value = any> = {
+  /** The application value of the row under the pointer. */
+  item: Value;
+  itemMetadata: { index: number; groupId: string | null };
+  itemId: Listbox.ItemId;
+  /**
+   * Returns where the pointer is within the row, as a fraction of its width and height.
+   * The same as `target.getLocalPoint()`.
+   */
+  getLocalPoint: () => DraggableTargetLocalPoint;
+  /** The row under the pointer. Its payload identifies the row, not the dragged items. */
+  target: DraggableTargetRecord<ListboxReorderDragPayload<Value>, unknown>;
+  /** The item being dragged. */
+  source: DraggableRootRecord<ListboxReorderDragPayload<Value>, unknown>;
+};
 ```
 
 ### ReorderProvider.ReorderEndEventDetails
@@ -1047,7 +1079,7 @@ type ListboxItemExternalDropTargetOptions<
    */
   onDropPositionChange?: (
     position: Listbox.ReorderDropPosition | null,
-    eventDetails: Listbox.ReorderProvider.DropPositionChangeEventDetails,
+    eventDetails: Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails,
   ) => void;
   /**
    * Event handler called when an accepted external drag is dropped on the item.
@@ -1099,26 +1131,6 @@ type ListboxReorderDragPayload<Value = any> = {
 };
 ```
 
-### ListboxReorderDropContext
-
-```typescript
-type ListboxReorderDropContext<Value = any> = {
-  /** The application value of the row under the pointer. */
-  item: Value;
-  itemMetadata: { index: number; groupId: string | null };
-  itemId: Listbox.ItemId;
-  /**
-   * Returns where the pointer is within the row, as a fraction of its width and height.
-   * The same as `target.getLocalPoint()`.
-   */
-  getLocalPoint: () => DraggableTargetLocalPoint;
-  /** The row under the pointer. Its payload identifies the row, not the dragged items. */
-  target: DraggableTargetRecord<ListboxReorderDragPayload<Value>, unknown>;
-  /** The item being dragged. */
-  source: DraggableRootRecord<ListboxReorderDragPayload<Value>, unknown>;
-};
-```
-
 ### SelectionMode
 
 The selection mode determines how user interactions (clicks, keyboard)
@@ -1145,11 +1157,11 @@ type SelectionMode = 'single' | 'multiple' | 'explicit-multiple';
 - `Listbox.GroupLabel`: `Listbox.GroupLabel`, `Listbox.GroupLabel.State`, `Listbox.GroupLabel.Props`
 - `Listbox.LoadingTrigger`: `Listbox.LoadingTrigger`, `Listbox.LoadingTrigger.State`, `Listbox.LoadingTrigger.Props`
 - `Listbox.KeyboardReorderProvider`: `Listbox.KeyboardReorderProvider`, `Listbox.KeyboardReorderProvider.Props`
-- `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.DropContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`
+- `Listbox.ReorderProvider`: `Listbox.ReorderProvider`, `Listbox.ReorderProvider.Props`, `Listbox.ReorderProvider.DragPayload`, `Listbox.ReorderProvider.PositionContext`, `Listbox.ReorderProvider.DropPositionChangeEventDetails`, `Listbox.ReorderProvider.DropPositionChangeEventReason`, `Listbox.ReorderProvider.ReorderEndEventDetails`, `Listbox.ReorderProvider.ReorderEndEventReason`
 - `Listbox.ReorderHandle`: `Listbox.ReorderHandle`, `Listbox.ReorderHandle.Props`, `Listbox.ReorderHandle.State`
 - `Listbox.ReorderPreview`: `Listbox.ReorderPreview`, `Listbox.ReorderPreview.Props`, `Listbox.ReorderPreview.RenderParameters`, `Listbox.ReorderPreview.State`
-- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderDropContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
-- `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPosition`
+- `Default`: `Listbox.ItemId`, `Listbox.ReorderItem`, `Listbox.ReorderMove`, `Listbox.ReorderAnnouncementParameters`, `Listbox.ItemsReorderEventDetails`, `Listbox.ReorderDropPosition`, `SelectionMode`, `ListboxReorderItem`, `ListboxReorderDestination`, `ListboxReorderMove`, `ListboxReorderAnnouncementParameters`, `ListboxItemsReorderEventDetails`, `ListboxItemId`, `ListboxListDataAttributes`, `ListboxItemDataAttributes`, `ListboxItemExternalDropTargetDataAttributes`, `ListboxRootActions`, `ListboxRootProps`, `ListboxRootState`, `ListboxRootChangeEventReason`, `ListboxRootChangeEventDetails`, `ListboxLabelState`, `ListboxLabelProps`, `ListboxListState`, `ListboxListProps`, `ListboxItemState`, `ListboxItemProps`, `ListboxItemDraggableProps`, `ListboxItemIndicatorState`, `ListboxItemIndicatorProps`, `ListboxItemTextState`, `ListboxItemTextProps`, `ListboxGroupState`, `ListboxGroupProps`, `ListboxGroupLabelState`, `ListboxGroupLabelProps`, `ListboxLoadingTriggerState`, `ListboxLoadingTriggerProps`, `ListboxKeyboardReorderProviderProps`, `ListboxReorderDragPayload`, `ListboxReorderDropPosition`, `ListboxReorderProviderPositionContext`, `ListboxReorderProviderReorderEndEventDetails`, `ListboxReorderProviderReorderEndEventReason`, `ListboxReorderProviderDropPositionChangeEventDetails`, `ListboxReorderProviderDropPositionChangeEventReason`, `ListboxReorderProviderProps`, `ListboxReorderHandleProps`, `ListboxReorderPreviewProps`, `ListboxReorderPreviewRenderParameters`, `ListboxItemExternalDropTargetPositionContext`, `ListboxItemExternalDropTargetDropContext`, `ListboxItemExternalDropTargetDropEventDetails`, `ListboxItemExternalDropTargetDropEventReason`, `ListboxItemExternalDropTargetDropPositionChangeEventDetails`, `ListboxItemExternalDropTargetDropPositionChangeEventReason`, `ListboxItemExternalDropTargetOptions`, `ListboxItemExternalDropTargetProps`, `ListboxItemExternalDropTargetState`
+- `Listbox.ItemExternalDropTarget`: `Listbox.ItemExternalDropTarget`, `Listbox.ItemExternalDropTarget.Props`, `Listbox.ItemExternalDropTarget.State`, `Listbox.ItemExternalDropTarget.PositionContext`, `Listbox.ItemExternalDropTarget.DropContext`, `Listbox.ItemExternalDropTarget.DropEventDetails`, `Listbox.ItemExternalDropTarget.DropEventReason`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails`, `Listbox.ItemExternalDropTarget.DropPositionChangeEventReason`
 
 ## Canonical Types
 
@@ -1179,6 +1191,7 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.LoadingTrigger.Props`: `ListboxLoadingTriggerProps`
 - `Listbox.KeyboardReorderProvider.Props`: `ListboxKeyboardReorderProviderProps`
 - `Listbox.ReorderProvider.Props`: `ListboxReorderProviderProps`
+- `Listbox.ReorderProvider.PositionContext`: `ListboxReorderProviderPositionContext`
 - `Listbox.ReorderProvider.DropPositionChangeEventDetails`: `ListboxReorderProviderDropPositionChangeEventDetails`
 - `Listbox.ReorderProvider.DropPositionChangeEventReason`: `ListboxReorderProviderDropPositionChangeEventReason`
 - `Listbox.ReorderProvider.ReorderEndEventDetails`: `ListboxReorderProviderReorderEndEventDetails`
@@ -1198,3 +1211,5 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Listbox.ItemExternalDropTarget.DropContext`: `ListboxItemExternalDropTargetDropContext`
 - `Listbox.ItemExternalDropTarget.DropEventDetails`: `ListboxItemExternalDropTargetDropEventDetails`
 - `Listbox.ItemExternalDropTarget.DropEventReason`: `ListboxItemExternalDropTargetDropEventReason`
+- `Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails`: `ListboxItemExternalDropTargetDropPositionChangeEventDetails`
+- `Listbox.ItemExternalDropTarget.DropPositionChangeEventReason`: `ListboxItemExternalDropTargetDropPositionChangeEventReason`

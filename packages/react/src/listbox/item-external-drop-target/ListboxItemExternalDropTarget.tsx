@@ -2,9 +2,15 @@
 import * as React from 'react';
 import { Draggable } from '../../draggable';
 import { useListboxExternalDrop } from './useListboxExternalDrop';
-import type { AcceptedDragPayload } from '../../utils/drag-and-drop/types';
+import type {
+  AcceptedDragPayload,
+  DragEventDetailsProperties,
+} from '../../utils/drag-and-drop/types';
 import type { DraggableAccept, DraggableKind } from '../../draggable/DraggableProvider';
-import type { DraggableRootRecord } from '../../draggable/root/DraggableRoot';
+import type {
+  DraggableRootRecord,
+  DraggableRootTargetChangeEventReason,
+} from '../../draggable/root/DraggableRoot';
 import type {
   DraggableTargetDropEventDetails,
   DraggableTargetLocalPoint,
@@ -13,10 +19,8 @@ import { useListboxItemElement, renderListboxItem } from '../item/ListboxItem';
 import type { ListboxItemProps, ListboxItemState } from '../item/ListboxItem';
 import type { ListboxItemId } from '../utils/ListboxItemId';
 import type { ListboxReorderDestination } from '../sorting/useListboxSorting';
-import type {
-  ListboxReorderDropPosition,
-  ListboxReorderProviderDropPositionChangeEventDetails,
-} from '../reorder-provider/ListboxReorderProvider';
+import type { ListboxReorderDropPosition } from '../reorder-provider/ListboxReorderProvider';
+import type { BaseUIGenericEventDetails } from '../../internals/createBaseUIEventDetails';
 
 /**
  * A complete listbox item that also accepts drags from outside this listbox.
@@ -102,6 +106,13 @@ export interface ListboxItemExternalDropTargetDropEventDetails<TPayload = unknow
     ListboxItemExternalDropTargetDropContext<TPayload, TItem> {}
 export type ListboxItemExternalDropTargetDropEventReason =
   ListboxItemExternalDropTargetDropEventDetails['reason'];
+/** The event details passed to `onDropPositionChange`: why the drop targets under the pointer changed. */
+export type ListboxItemExternalDropTargetDropPositionChangeEventDetails = BaseUIGenericEventDetails<
+  DraggableRootTargetChangeEventReason,
+  DragEventDetailsProperties
+>;
+export type ListboxItemExternalDropTargetDropPositionChangeEventReason =
+  ListboxItemExternalDropTargetDropPositionChangeEventDetails['reason'];
 export interface ListboxItemExternalDropTargetOptions<
   TAccept extends DraggableAccept<unknown> = DraggableKind<unknown>,
   TItem = unknown,
@@ -133,7 +144,7 @@ export interface ListboxItemExternalDropTargetOptions<
   onDropPositionChange?:
     | ((
         position: ListboxReorderDropPosition | null,
-        eventDetails: ListboxReorderProviderDropPositionChangeEventDetails,
+        eventDetails: ListboxItemExternalDropTargetDropPositionChangeEventDetails,
       ) => void)
     | undefined;
   /**
@@ -179,5 +190,8 @@ export namespace ListboxItemExternalDropTarget {
     TItem = unknown,
   > = ListboxItemExternalDropTargetDropEventDetails<TPayload, TItem>;
   export type DropEventReason = ListboxItemExternalDropTargetDropEventReason;
-  export type DropPosition = ListboxReorderDropPosition;
+  export type DropPositionChangeEventDetails =
+    ListboxItemExternalDropTargetDropPositionChangeEventDetails;
+  export type DropPositionChangeEventReason =
+    ListboxItemExternalDropTargetDropPositionChangeEventReason;
 }

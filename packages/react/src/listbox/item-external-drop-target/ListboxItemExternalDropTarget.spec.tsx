@@ -50,3 +50,15 @@ const count = Draggable.createKind<number>('count');
     expectType<Parameters<NonNullable<Listbox.Item.Props['onDrop']>>[0], typeof event>(event);
   }}
 />;
+
+<Listbox.ItemExternalDropTarget
+  value="a"
+  accept={Draggable.anyKind}
+  canDrop={() => 'reject'}
+  onDropPositionChange={(position, eventDetails) => {
+    expectType<Listbox.ReorderDropPosition | null, typeof position>(position);
+    expectType<Listbox.ItemExternalDropTarget.DropPositionChangeEventDetails, typeof eventDetails>(
+      eventDetails,
+    );
+  }}
+/>;
