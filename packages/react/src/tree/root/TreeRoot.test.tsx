@@ -41,7 +41,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
 
       const view = await render({
         items: [{ id: '1' }, { id: '2' }, { id: '3' }],
-        selectionMode: 'multiple',
+        multiple: true,
         onSelectedItemsChange,
       });
 
@@ -347,7 +347,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
       const onSelectedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: 'all' }, { id: 'other' }],
-        selectionMode: 'multiple',
+        multiple: true,
         onSelectedItemsChange,
       });
 
@@ -442,7 +442,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
           { id: 1, label: 'Numeric one' },
           { id: '1', label: 'String one' },
         ],
-        selectionMode: 'multiple',
+        multiple: true,
       });
 
       const numericItem = view.actionsRef.current!.getItemDOMElement(1)!;
@@ -498,7 +498,7 @@ describeTree('TreeRoot - Items', ({ render }) => {
       const view = await render({
         items: [{ id: 0 }, { id: 1 }],
         checkboxSelection: true,
-        selectionMode: 'multiple',
+        multiple: true,
       });
       const checkbox = view.getItemRoot(0).querySelector('[role=checkbox]')!;
 

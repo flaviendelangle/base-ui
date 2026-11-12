@@ -100,7 +100,7 @@ describe.skipIf(isJSDOM)('Tree axe checks', () => {
     const { container } = await render(
       <Tree.Root
         items={items}
-        selectionMode="multiple"
+        multiple
         defaultExpandedItems={['documents']}
         defaultSelectedItems={['resume']}
       >

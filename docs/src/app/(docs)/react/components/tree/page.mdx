@@ -138,7 +138,7 @@ The part must render the element that receives focus. Other focusable elements i
 
 ### Checkbox selection
 
-Use `<Tree.ItemCheckbox>` to select an item with a checkbox. Set `selectionMode="multiple"` on `<Tree.Root>` to allow more than one item to be selected.
+Use `<Tree.ItemCheckbox>` to select an item with a checkbox. Set `multiple` on `<Tree.Root>` to allow more than one item to be selected.
 
 import { DemoTreeCheckboxItems } from './demos/checkbox-items';
 
@@ -146,7 +146,7 @@ import { DemoTreeCheckboxItems } from './demos/checkbox-items';
 
 ### Selection propagation
 
-The `checkboxSelectionPropagation` prop controls how checkbox selection affects related items. With `descendants`, selecting a parent selects its whole branch. With `parents`, selecting all selectable children selects their parent. Both are enabled by default in multiple-selection mode.
+The `checkboxSelectionPropagation` prop controls how checkbox selection affects related items. With `descendants`, selecting a parent selects its whole branch. With `parents`, selecting all selectable children selects their parent. Both are enabled by default with `multiple`.
 
 import { DemoTreeSelectionPropagation } from './demos/selection-propagation';
 
@@ -154,17 +154,17 @@ import { DemoTreeSelectionPropagation } from './demos/selection-propagation';
 
 ### Select all
 
-In multiple-selection mode, use `Tree.SELECTION_ALL` to select every selectable item without listing its ID.
+With `multiple`, use `Tree.SELECTION_ALL` to select every selectable item without listing its ID.
 
 ```tsx
-<Tree.Root items={items} selectionMode="multiple" defaultSelectedItems={Tree.SELECTION_ALL}>
+<Tree.Root items={items} multiple defaultSelectedItems={Tree.SELECTION_ALL}>
   <Tree.List>{renderItem}</Tree.List>
 </Tree.Root>
 ```
 
 ### Links
 
-Render `<Tree.ItemLink>` inside `<Tree.ItemContent>` to link an item to another page, and set `active` on the current page's link. With `selectionMode="none"`, <kbd>Enter</kbd> follows the link instead of selecting the item. Tabbing into the tree focuses the current page's item, unless an item is selected or another item had focus before.
+Render `<Tree.ItemLink>` inside `<Tree.ItemContent>` to link an item to another page, and set `active` on the current page's link. On an item that can't be selected, <kbd>Enter</kbd> follows the link. Tabbing into the tree focuses the current page's item, unless an item is selected or another item had focus before.
 
 import { DemoTreeLinkItems } from './demos/link-items';
 

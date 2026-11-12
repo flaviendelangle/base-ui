@@ -400,7 +400,7 @@ describe('applyTransaction', () => {
         defaultItems={ITEMS}
         actionsRef={actionsRef}
         onItemsChange={onItemsChange}
-        selectionMode="multiple"
+        multiple
         defaultSelectedItems={['a1', 'a2']}
         defaultExpandedItems={['a']}
       >
@@ -1132,7 +1132,7 @@ describe('removal selection/expansion pruning', () => {
         items={ITEMS}
         onItemsChange={onItemsChange}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         defaultSelectedItems={['a']}
         defaultExpandedItems={['a']}
         onSelectedItemsChange={onSelectedItemsChange}
@@ -1175,7 +1175,7 @@ describe('removal selection/expansion pruning', () => {
               sync ? ReactDOM.flushSync(() => setItems(next)) : setItems(next)
             }
             actionsRef={actionsRef}
-            selectionMode="multiple"
+            multiple
             defaultSelectedItems={['a']}
             defaultExpandedItems={['a']}
             onSelectedItemsChange={onSelectedItemsChange}
@@ -1228,7 +1228,7 @@ describe('removal selection/expansion pruning', () => {
             )
           }
           actionsRef={actionsRef}
-          selectionMode="multiple"
+          multiple
           defaultSelectedItems={['a']}
           defaultExpandedItems={['a']}
           onSelectedItemsChange={onSelectedItemsChange}
@@ -1262,7 +1262,7 @@ describe('removal selection/expansion pruning', () => {
       <Tree.Root
         defaultItems={ITEMS}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         defaultSelectedItems={['a']}
         checkboxSelectionPropagation={{ descendants: true }}
         onSelectedItemsChange={onSelectedItemsChange}
@@ -1304,7 +1304,7 @@ describe('removal selection/expansion pruning', () => {
           },
         ]}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         defaultSelectedItems={['selected']}
         checkboxSelectionPropagation={{ parents: true }}
         onSelectedItemsChange={onSelectedItemsChange}
@@ -1336,7 +1336,7 @@ describe('removal selection/expansion pruning', () => {
       <Tree.Root
         defaultItems={ITEMS}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         // `gone` is not an item, but a removal that names it drops it too.
         defaultSelectedItems={['a1', 'c', 'gone']}
         defaultExpandedItems={['a', 'b', 'gone']}
@@ -1377,7 +1377,7 @@ describe('removal selection/expansion pruning', () => {
       <Tree.Root
         defaultItems={ITEMS}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         selectedItems={['a1', 'b1']}
         defaultExpandedItems={['a', 'b']}
         onSelectedItemsChange={onSelectedItemsChange}
@@ -1670,7 +1670,7 @@ describe('mutations run from onItemsChange', () => {
           actionsRef={actionsRef}
           defaultExpandedItems={['b']}
           defaultSelectedItems={['b']}
-          selectionMode="multiple"
+          multiple
           onItemsChange={(next) => {
             // The rename's own items win over the removal run from its callback.
             if (!nested.current) {
@@ -2006,7 +2006,7 @@ describe('selection pruning', () => {
           { id: 'z', label: 'Z' },
         ]}
         actionsRef={actionsRef}
-        selectionMode="multiple"
+        multiple
         defaultSelectedItems={['x']}
         disableEmptySelection
         onSelectedItemsChange={onSelectedItemsChange}
@@ -2042,7 +2042,7 @@ describe('selection pruning', () => {
             acceptProposal = () => setItems(nextItems);
           }}
           actionsRef={actionsRef}
-          selectionMode="multiple"
+          multiple
           defaultSelectedItems={['x', 'z']}
           onSelectedItemsChange={onSelectedItemsChange}
         >

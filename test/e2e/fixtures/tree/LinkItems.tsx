@@ -13,9 +13,16 @@ const items: Tree.DefaultItem[] = [
   { id: 'handbook', label: 'Handbook', children: [{ id: 'styling', label: 'Styling' }] },
 ];
 
+const collection = Tree.createItems(items, {
+  getId: (item) => item.id,
+  getLabel: (item) => item.label,
+  getChildren: (item) => item.children,
+  isSelectionDisabled: () => true,
+});
+
 export default function LinkItemsTree() {
   return (
-    <Tree.Root items={items} defaultExpandedItems={['overview']} selectionMode="none">
+    <Tree.Root items={collection} defaultExpandedItems={['overview']}>
       <Tree.List aria-label="Documentation">
         {(item: Tree.DefaultItem) => (
           <Tree.Item

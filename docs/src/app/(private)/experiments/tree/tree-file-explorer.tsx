@@ -181,7 +181,7 @@ export default function TreeFileExplorer() {
           }))
         }
         defaultExpandedItems={['packages', 'packages/react', 'packages/react/src']}
-        selectionMode="multiple"
+        multiple
         checkboxSelectionPropagation={{ parents: false, descendants: false }}
         expandOnClick
         actionsRef={actionsRef}

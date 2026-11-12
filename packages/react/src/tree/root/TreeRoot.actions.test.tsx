@@ -193,7 +193,7 @@ describe('Tree.ItemCheckboxIndicator', () => {
           data-testid="select-a"
           onClick={() => actionsRef.current!.setItemSelection('a', true)}
         />
-        <Tree.Root defaultItems={ITEMS} selectionMode="multiple" actionsRef={actionsRef}>
+        <Tree.Root defaultItems={ITEMS} multiple actionsRef={actionsRef}>
           <Tree.List>
             {(item: Item) => (
               <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>

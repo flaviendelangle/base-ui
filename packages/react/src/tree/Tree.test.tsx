@@ -38,7 +38,7 @@ function TestTree(props: {
   const grid = (
     <Tree.Root
       items={ITEMS}
-      selectionMode="multiple"
+      multiple
       defaultExpandedItems={props.defaultExpandedItems}
       onItemHighlighted={props.onItemHighlighted}
     >
@@ -130,7 +130,7 @@ describe('Tree', () => {
 
   it('lets aria-label replace the built-in control names', async () => {
     await render(
-      <Tree.Root items={ITEMS} selectionMode="multiple">
+      <Tree.Root items={ITEMS} multiple>
         <Tree.List aria-label="Files">
           {(item) => (
             <Tree.Item itemId={item.id}>
@@ -332,7 +332,7 @@ describe('Tree', () => {
             { id: 'documents', label: 'Documents', disabled },
             { id: 'music', label: 'Music' },
           ]}
-          selectionMode="multiple"
+          multiple
         >
           <Tree.List>
             {(item: TreeDefaultItem) => (
@@ -560,8 +560,13 @@ describe('Tree', () => {
   );
 
   it('skips a disabled checkbox, with the arrows and with Tab', async () => {
+    const selectionLockedItems = Tree.createItems(FLAT_ITEMS, {
+      getId: (item) => item.id,
+      getLabel: (item) => item.label,
+      isSelectionDisabled: () => true,
+    });
     await render(
-      <Tree.Root items={FLAT_ITEMS} selectionMode="none">
+      <Tree.Root items={selectionLockedItems}>
         <Tree.List>
           {(item: Item) => (
             <Tree.Item itemId={item.id} data-testid={`row-${item.id}`}>
@@ -1028,7 +1033,7 @@ describe('Tree', () => {
       return (
         <React.Fragment>
           <button type="button">Before</button>
-          <Tree.Root items={ITEMS} selectionMode="multiple">
+          <Tree.Root items={ITEMS} multiple>
             <Tree.List aria-label="Files">
               {(item: Item) => (
                 <Tree.Item itemId={item.id} data-testid={`tab-row-${item.id}`}>
@@ -1278,7 +1283,7 @@ describe('Tree', () => {
   it('ignores presses and focus in content a row portals elsewhere', async () => {
     const onItemHighlighted = vi.fn();
     await render(
-      <Tree.Root items={FLAT_ITEMS} selectionMode="multiple" onItemHighlighted={onItemHighlighted}>
+      <Tree.Root items={FLAT_ITEMS} multiple onItemHighlighted={onItemHighlighted}>
         <Tree.List>
           {(item: Item) => (
             <Tree.Item itemId={item.id} data-testid={`row-${item.id}`}>
@@ -1312,7 +1317,7 @@ describe('Tree', () => {
     await render(
       <Tree.Root
         items={[{ id: 'music', label: 'Music' }]}
-        selectionMode="multiple"
+        multiple
         onSelectedItemsChange={onSelectedItemsChange}
       >
         <Tree.List>
@@ -1396,7 +1401,7 @@ describe('Tree', () => {
     const inputRef = React.createRef<HTMLInputElement>();
     await render(
       <form data-testid="file-form">
-        <Tree.Root items={[{ id: 'music', label: 'Music' }]} selectionMode="multiple">
+        <Tree.Root items={[{ id: 'music', label: 'Music' }]} multiple>
           <Tree.List>
             {(item: Item) => (
               <Tree.Item itemId={item.id}>
@@ -1428,7 +1433,7 @@ describe('Tree', () => {
               { id: 'music', label: 'Music' },
               { id: 'photos', label: 'Photos' },
             ]}
-            selectionMode="multiple"
+            multiple
           >
             <Tree.List>
               {(item: Item) => (
@@ -1464,7 +1469,7 @@ describe('Tree', () => {
     const { rerender } = await render(
       <Tree.Root
         items={selectionLockedItems}
-        selectionMode="multiple"
+        multiple
         onSelectedItemsChange={onSelectedItemsChange}
       >
         <Tree.List>
@@ -1487,25 +1492,7 @@ describe('Tree', () => {
     expect(onSelectedItemsChange).not.toHaveBeenCalled();
 
     await rerender(
-      <Tree.Root items={[{ id: 'music', label: 'Music' }]} selectionMode="none">
-        <Tree.List>
-          {(item: Item) => (
-            <Tree.Item itemId={item.id}>
-              <Tree.ItemContent>
-                <Tree.ItemCheckbox />
-              </Tree.ItemContent>
-            </Tree.Item>
-          )}
-        </Tree.List>
-      </Tree.Root>,
-    );
-    expect(screen.getByRole('checkbox', { name: 'Select Music' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-
-    await rerender(
-      <Tree.Root items={[{ id: 'music', label: 'Music' }]} selectionMode="multiple" disabled>
+      <Tree.Root items={[{ id: 'music', label: 'Music' }]} multiple disabled>
         <Tree.List>
           {(item: Item) => (
             <Tree.Item itemId={item.id}>
@@ -1534,7 +1521,7 @@ describe('Tree', () => {
               children: [{ id: 'child', label: 'Child' }],
             },
           ]}
-          selectionMode="multiple"
+          multiple
         >
           <Tree.List>
             {(item: Item) =>
@@ -1593,7 +1580,7 @@ describe('Tree', () => {
       <Tree.FilterProvider value={filterValue}>
         <Tree.Root
           items={[root]}
-          selectionMode="multiple"
+          multiple
           actionsRef={actionsRef}
           onSelectedItemsChange={onSelectedItemsChange}
         >
@@ -1665,7 +1652,7 @@ describe('checkbox keyboard selection', () => {
       const { user } = await render(
         <Tree.Root
           items={ITEMS}
-          selectionMode="multiple"
+          multiple
           defaultSelectedItems={initial}
           checkboxSelectionPropagation={{ parents: true, descendants }}
           onSelectedItemsChange={onSelectedItemsChange}
@@ -1700,11 +1687,7 @@ describe('Tree.ItemCheckbox', () => {
     const checkboxStates: Tree.ItemCheckbox.State[] = [];
     const indicatorStates: Tree.ItemCheckboxIndicator.State[] = [];
     await render(
-      <Tree.Root
-        items={[{ id: 'a', label: 'A' }]}
-        selectionMode="multiple"
-        defaultSelectedItems={['a']}
-      >
+      <Tree.Root items={[{ id: 'a', label: 'A' }]} multiple defaultSelectedItems={['a']}>
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id}>

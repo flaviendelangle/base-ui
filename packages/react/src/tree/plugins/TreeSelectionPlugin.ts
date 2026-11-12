@@ -9,7 +9,6 @@ import type {
   TreeCheckboxSelectionPropagation,
   TreeItemId,
   TreeRootSelectionChangeEventReason,
-  TreeSelectionMode,
   TreeDefaultItem,
   TreeState,
 } from '../store/types';
@@ -25,7 +24,7 @@ import { forEachDescendant } from '../utils/forEachDescendant';
 import { collectAncestorIds } from '../utils/pruneDescendantIds';
 
 export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   private lastSelectedItem: TreeItemId | null = null;
 
@@ -39,7 +38,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     model: SelectionModel;
   } | null = null;
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 
@@ -62,11 +61,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     reason: TreeRootSelectionChangeEventReason;
     event?: Event | undefined;
   }) => {
-    if (this.store.state.selectionMode === 'none') {
-      return;
-    }
-
-    const isMulti = this.store.state.selectionMode === 'multiple';
+    const isMulti = this.store.state.multiple;
     let newSelected: TreeItemId[] | TreeItemId | null;
 
     if (keepExistingSelection) {
@@ -117,7 +112,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
   ) => {
     this.setItemSelection({
       itemId,
-      keepExistingSelection: this.store.state.selectionMode === 'multiple',
+      keepExistingSelection: this.store.state.multiple,
       shouldBeSelected: checked,
       shouldPropagate: true,
       reason,
@@ -125,13 +120,13 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     });
   };
 
-  /** Converts an uncontrolled selection to the shape of a new selection mode. */
-  public handleSelectionModeChange = (selectionMode: TreeSelectionMode | undefined) => {
+  /** Converts an uncontrolled selection to the shape a new `multiple` value expects. */
+  public handleMultipleChange = (multiple: boolean) => {
     const { selectedItems, selectedItemsProp } = this.store.state;
-    if (selectionMode === 'none' || selectedItemsProp !== undefined) {
+    if (selectedItemsProp !== undefined) {
       return;
     }
-    if (selectionMode === 'multiple') {
+    if (multiple) {
       if (!Array.isArray(selectedItems) && selectedItems !== TREE_SELECTION_ALL) {
         this.store.set(
           'selectedItems',
@@ -178,7 +173,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
    */
   public toggleSelectAll = (reason: TreeRootSelectionChangeEventReason, event?: Event) => {
     const state = this.store.state;
-    if (state.disabled || state.selectionMode !== 'multiple') {
+    if (state.disabled || !state.multiple) {
       return;
     }
     if (selectors.isViewTransformed(state)) {
@@ -216,11 +211,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
   /** Deselects every item of a multiple-selection tree. Returns whether the selection changed. */
   public clearSelection = (reason: TreeRootSelectionChangeEventReason, event?: Event): boolean => {
     const state = this.store.state;
-    if (
-      state.disabled ||
-      state.selectionMode !== 'multiple' ||
-      this.materializeSelectedItems().length === 0
-    ) {
+    if (state.disabled || !state.multiple || this.materializeSelectedItems().length === 0) {
       return false;
     }
     return this.setSelectedItems([], reason, event, { anchor: { itemId: null } });
@@ -288,7 +279,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) => {
-    if (this.store.state.selectionMode !== 'multiple') {
+    if (!this.store.state.multiple) {
       return;
     }
 
@@ -362,7 +353,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
   public reconcileSelectionAfterItemsMutation = (): void => {
     const { state } = this.store;
     if (
-      state.selectionMode !== 'multiple' ||
+      !state.multiple ||
       state.selectedItems === TREE_SELECTION_ALL ||
       (!state.checkboxSelectionPropagation.descendants &&
         !state.checkboxSelectionPropagation.parents)
@@ -465,7 +456,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
         }
       }
       if (fallback !== undefined) {
-        newSelected = state.selectionMode === 'multiple' ? [fallback] : fallback;
+        newSelected = state.multiple ? [fallback] : fallback;
       }
     }
     const pruned = newSelected;
@@ -515,7 +506,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     let cleanModel: TreeItemId[] | TreeItemId | null | typeof TREE_SELECTION_ALL;
     if (
       propagateFrom !== undefined &&
-      this.store.state.selectionMode === 'multiple' &&
+      this.store.state.multiple &&
       newModel !== TREE_SELECTION_ALL
     ) {
       cleanModel = this.propagateSelection(
@@ -743,7 +734,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     reason: TreeRootSelectionChangeEventReason,
     event?: Event,
   ) {
-    if (this.store.state.selectionMode !== 'multiple') {
+    if (!this.store.state.multiple) {
       return;
     }
 

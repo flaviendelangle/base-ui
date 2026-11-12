@@ -98,7 +98,7 @@ describe('<Tree.Status />', () => {
       );
     }
 
-    function SelectionTree(props: Omit<Tree.Root.Props<Item, 'multiple'>, 'children'>) {
+    function SelectionTree(props: Omit<Tree.Root.Props<Item, true>, 'children'>) {
       return (
         <Tree.Root defaultExpandedItems={['documents']} {...props}>
           <Tree.List>{renderCheckboxRow}</Tree.List>
@@ -135,7 +135,7 @@ describe('<Tree.Status />', () => {
       await render(
         <SelectionTree
           items={ITEMS}
-          selectionMode="multiple"
+          multiple
           checkboxSelectionPropagation={{ parents: false, descendants: false }}
         />,
       );
@@ -150,9 +150,9 @@ describe('<Tree.Status />', () => {
       fireEvent.click(screen.getByTestId('notes-checkbox'));
       expect(status).toHaveTextContent('Notes not selected. 1 item selected.');
 
-      // Pressing a row replaces the selection.
+      // Pressing a row toggles it, like its checkbox.
       fireEvent.click(screen.getByTestId('invoice-q2'));
-      expect(status.textContent).toBe('Invoice Q2 selected.');
+      expect(status).toHaveTextContent('Invoice Q2 selected. 2 items selected.');
 
       press('invoice-q2', 'a', { ctrlKey: true });
       expect(status).toHaveTextContent('All items selected.');
@@ -169,7 +169,7 @@ describe('<Tree.Status />', () => {
         return (
           <SelectionTree
             items={ITEMS}
-            selectionMode="multiple"
+            multiple
             checkboxSelectionPropagation={{ parents: false, descendants: false }}
             actionsRef={actionsRef}
             selectedItems={selectedItems}

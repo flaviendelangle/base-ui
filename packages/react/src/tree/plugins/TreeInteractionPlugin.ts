@@ -12,7 +12,6 @@ import type { MaybeBaseUIEvent } from '../../internals/types';
 import type {
   TreeItemId,
   TreeRootHighlightEventReason,
-  TreeSelectionMode,
   TreeDefaultItem,
   TreeState,
 } from '../store/types';
@@ -94,7 +93,7 @@ function keepsHorizontalArrow(element: Element, key: string): boolean {
 }
 
 export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   /**
    * What moves focus next: the reason, and the keydown or press behind it when
@@ -120,7 +119,7 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   /** Controls registered by the row parts, keyed by item. */
   private controls = new Map<string, Set<RegisteredControl>>();
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 
@@ -652,7 +651,7 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
 
     const ctrlPressed = event.ctrlKey || event.metaKey;
     const key = event.key;
-    const isMulti = this.store.state.selectionMode === 'multiple';
+    const isMulti = this.store.state.multiple;
     const isRtl = this.store.state.direction === 'rtl';
     const expandKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
     const collapseKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
@@ -1049,18 +1048,19 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     }
 
     if (selectors.canItemBeSelected(this.store.state, itemId)) {
-      const isMulti = this.store.state.selectionMode === 'multiple';
-      if (isMulti && (event.ctrlKey || event.metaKey)) {
+      const isMulti = this.store.state.multiple;
+      if (isMulti && event.shiftKey) {
+        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
+        return;
+      }
+      // Like Listbox's `multiple`, each press toggles the item and keeps the rest.
+      if (isMulti) {
         this.store.selection.setItemSelection({
           itemId,
           keepExistingSelection: true,
           reason: REASONS.itemPress,
           event: event.nativeEvent,
         });
-        return;
-      }
-      if (isMulti && event.shiftKey) {
-        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
         return;
       }
       this.store.selection.setItemSelection({

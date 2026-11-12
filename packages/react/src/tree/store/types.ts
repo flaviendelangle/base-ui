@@ -10,14 +10,6 @@ import type { TreeStatusChange } from '../status/TreeStatus';
 
 export type TreeItemId = string | number;
 
-/**
- * The selection mode of the hierarchical collection.
- * - `'none'`: Selection is disabled.
- * - `'single'`: Only one item can be selected at a time.
- * - `'multiple'`: Multiple items can be selected.
- */
-export type TreeSelectionMode = 'none' | 'single' | 'multiple';
-
 /** Controls how a filtered tree presents non-matching items. */
 export type TreeFilterMode = 'hide-non-matches' | 'collapse-non-matches' | 'expand-matches';
 
@@ -35,8 +27,7 @@ export type TreeFilterFunction<TItem> = (text: string, query: string, item: TIte
  * When used as the value of `selectedItems`, every item that supports selection and is
  * not disabled is considered selected — including items added after the value is set.
  *
- * Use it with `selectionMode="multiple"`. A tree that pauses selection with
- * `selectionMode="none"` or `disabled` keeps it. Deselecting an item replaces it with
+ * Use it with `multiple`. A `disabled` tree keeps it. Deselecting an item replaces it with
  * an array of the remaining selected IDs. Exposed as `Tree.SELECTION_ALL`.
  *
  * It is a unique symbol rather than a string, so it never collides with an item
@@ -45,28 +36,19 @@ export type TreeFilterFunction<TItem> = (text: string, query: string, item: TIte
 export const TREE_SELECTION_ALL: unique symbol = Symbol('Base UI: Tree.SELECTION_ALL');
 
 /**
- * Conditional type that narrows the selected items type based on the `selectionMode` prop.
- * When `Mode` is `'multiple'`, the type is `readonly TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
- * The `'none'` mode accepts either cardinality so a controlled tree can preserve
- * its selection while interaction is temporarily disabled.
+ * Conditional type that narrows the selected items type based on the `multiple` prop.
+ * When `Multiple` is `true`, the type is `readonly TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
  */
-export type TreeSelectedItemsType<Mode extends TreeSelectionMode | undefined> =
-  Mode extends 'multiple'
-    ? readonly TreeItemId[] | typeof TREE_SELECTION_ALL
-    : Mode extends 'none'
-      ? TreeItemId | readonly TreeItemId[] | typeof TREE_SELECTION_ALL
-      : TreeItemId;
+export type TreeSelectedItemsType<Multiple extends boolean | undefined> = Multiple extends true
+  ? readonly TreeItemId[] | typeof TREE_SELECTION_ALL
+  : TreeItemId;
 
 /**
  * The value `onSelectedItemsChange` receives: the shape of `TreeSelectedItemsType`, with
  * mutable arrays the tree doesn't keep.
  */
-export type TreeSelectedItemsChangeValue<Mode extends TreeSelectionMode | undefined> =
-  Mode extends 'multiple'
-    ? TreeItemId[] | typeof TREE_SELECTION_ALL
-    : Mode extends 'none'
-      ? TreeItemId | TreeItemId[] | typeof TREE_SELECTION_ALL
-      : TreeItemId;
+export type TreeSelectedItemsChangeValue<Multiple extends boolean | undefined> =
+  Multiple extends true ? TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
 
 /**
  * The shape of an item as provided by the user in the `items` prop.
@@ -448,9 +430,8 @@ export interface TreeState<TItem = any> extends TreeItemsState<TItem> {
   transactionThrottle: number;
   /**
    * Currently selected items.
-   * - `TreeItemId | null` when selectionMode is 'single'
-   * - `TreeItemId[]`, or the `TREE_SELECTION_ALL` sentinel, when selectionMode is 'multiple'
-   * - null when selectionMode is 'none'
+   * - `TreeItemId | null` with single selection
+   * - `TreeItemId[]`, or the `TREE_SELECTION_ALL` sentinel, with `multiple`
    */
   selectedItems: TreeItemId | null | readonly TreeItemId[] | typeof TREE_SELECTION_ALL;
   /**
@@ -461,9 +442,9 @@ export interface TreeState<TItem = any> extends TreeItemsState<TItem> {
   selectedItemsProp:
     TreeItemId | null | readonly TreeItemId[] | typeof TREE_SELECTION_ALL | undefined;
   /**
-   * The selection mode of the tree
+   * Whether multiple items can be selected
    */
-  selectionMode: TreeSelectionMode;
+  multiple: boolean;
   /**
    * Whether the user is prevented from deselecting the last selected item
    */
@@ -550,13 +531,13 @@ export interface TreeStoreContext<TItem> {
 export type TreeStateDefaultedKeys =
   | 'disabled'
   | 'expandOnClick'
-  | 'selectionMode'
+  | 'multiple'
   | 'disableEmptySelection'
   | 'checkboxSelectionPropagation'
   | 'itemFocusableWhenDisabled';
 
 export interface TreeStoreParameters<
-  Mode extends TreeSelectionMode | undefined = undefined,
+  Multiple extends boolean | undefined = undefined,
   TItem = TreeDefaultItem,
 > extends Pick<TreeState<TItem>, TreeStateDefaultedKeys> {
   /** The active normalized collection descriptor. */
@@ -617,15 +598,15 @@ export interface TreeStoreParameters<
    * To render an uncontrolled component, use the `defaultSelectedItems` prop instead.
    */
   selectedItems?:
-    TreeSelectedItemsType<Mode> | (Mode extends 'multiple' ? never : null) | undefined;
+    TreeSelectedItemsType<Multiple> | (Multiple extends true ? never : null) | undefined;
   /**
    * The items that are initially selected.
-   * Defaults to `null` in single-selection mode and `[]` in multiple-selection mode.
+   * Defaults to `null`, or `[]` with `multiple`.
    *
    * To render a controlled component, use the `selectedItems` prop instead.
    */
   defaultSelectedItems?:
-    TreeSelectedItemsType<Mode> | (Mode extends 'multiple' ? never : null) | undefined;
+    TreeSelectedItemsType<Multiple> | (Multiple extends true ? never : null) | undefined;
   /**
    * Event handler called when the selected items change.
    *
@@ -637,7 +618,7 @@ export interface TreeStoreParameters<
   onSelectedItemsChange?:
     | ((
         selectedItems:
-          TreeSelectedItemsChangeValue<Mode> | (Mode extends 'multiple' ? never : null),
+          TreeSelectedItemsChangeValue<Multiple> | (Multiple extends true ? never : null),
         eventDetails: TreeRootSelectionChangeEventDetails,
       ) => void)
     | undefined;

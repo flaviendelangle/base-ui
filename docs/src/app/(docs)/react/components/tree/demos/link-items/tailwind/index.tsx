@@ -68,15 +68,19 @@ const TRIGGER_CLASS =
 
 const LABEL_CLASS = 'min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap';
 
+// The links navigate instead of selecting, so no item can be selected.
+// @highlight-start
+const collection = Tree.createItems(items, {
+  getId: (item) => item.id,
+  getLabel: (item) => item.label,
+  getChildren: (item) => item.children,
+  isSelectionDisabled: () => true,
+});
+// @highlight-end
+
 export default function ExampleTreeLinkItems() {
   return (
-    <Tree.Root
-      items={items}
-      defaultExpandedItems={['overview']}
-      // @highlight-start
-      selectionMode="none"
-      // @highlight-end
-    >
+    <Tree.Root items={collection} defaultExpandedItems={['overview']}>
       <Tree.List
         aria-label="Documentation"
         className="box-content w-56 border border-neutral-200 bg-white p-1 text-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white"
