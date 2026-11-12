@@ -112,7 +112,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
   ) => {
     this.setItemSelection({
       itemId,
-      keepExistingSelection: this.store.state.multiple,
+      keepExistingSelection: this.store.state.multiple !== false,
       shouldBeSelected: checked,
       shouldPropagate: true,
       reason,
@@ -121,7 +121,7 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
   };
 
   /** Converts an uncontrolled selection to the shape a new `multiple` value expects. */
-  public handleMultipleChange = (multiple: boolean) => {
+  public handleMultipleChange = (multiple: boolean | 'opt-in') => {
     const { selectedItems, selectedItemsProp } = this.store.state;
     if (selectedItemsProp !== undefined) {
       return;
@@ -271,6 +271,21 @@ export class TreeSelectionPlugin<TItem = TreeDefaultItem> {
     event?: Event,
   ) => {
     this.selectRange([itemId, edgeItemId], this.lastSelectedItem, reason, event);
+  };
+
+  /**
+   * Moves the selection to the item, keeping it as the range anchor. An item that can't be
+   * selected, such as a disabled one, leaves nothing selected.
+   */
+  public moveSelectionTo = (
+    itemId: TreeItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event?: Event,
+  ) => {
+    const selectable = selectors.canItemBeSelected(this.store.state, itemId);
+    this.setSelectedItems(selectable ? [itemId] : [], reason, event, {
+      anchor: { itemId: selectable ? itemId : null },
+    });
   };
 
   public selectItemFromArrowNavigation = (

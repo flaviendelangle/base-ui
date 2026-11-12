@@ -30,7 +30,7 @@ import { buildItemsState } from './itemIndex';
 const ACCESSOR_REBUILD_WARNING_THRESHOLD = 20;
 
 export class TreeStore<
-  Multiple extends boolean | undefined = undefined,
+  Multiple extends boolean | 'opt-in' | undefined = undefined,
   TItem = TreeDefaultItem,
 > extends ReactStore<TreeState<TItem>, TreeStoreContext<TItem>, typeof selectors> {
   public items = new TreeItemsPlugin<TItem>(this);

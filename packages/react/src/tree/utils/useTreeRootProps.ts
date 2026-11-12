@@ -48,7 +48,7 @@ export function useTreeRootProps(props: { id?: string | undefined; render?: unkn
     id,
     role: 'treegrid',
     'aria-labelledby': labelId,
-    'aria-multiselectable': (multiple || undefined) as true | undefined,
+    'aria-multiselectable': multiple ? true : undefined,
     'aria-disabled': disabled || undefined,
     // The roving tab stop normally lives on a row. The container takes it when
     // there is no focusable row.

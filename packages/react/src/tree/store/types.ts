@@ -37,18 +37,17 @@ export const TREE_SELECTION_ALL: unique symbol = Symbol('Base UI: Tree.SELECTION
 
 /**
  * Conditional type that narrows the selected items type based on the `multiple` prop.
- * When `Multiple` is `true`, the type is `readonly TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
+ * When `Multiple` is `true` or `'opt-in'`, the type is `readonly TreeItemId[]` or `typeof TREE_SELECTION_ALL`.
  */
-export type TreeSelectedItemsType<Multiple extends boolean | undefined> = Multiple extends true
-  ? readonly TreeItemId[] | typeof TREE_SELECTION_ALL
-  : TreeItemId;
+export type TreeSelectedItemsType<Multiple extends boolean | 'opt-in' | undefined> =
+  Multiple extends true | 'opt-in' ? readonly TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
 
 /**
  * The value `onSelectedItemsChange` receives: the shape of `TreeSelectedItemsType`, with
  * mutable arrays the tree doesn't keep.
  */
-export type TreeSelectedItemsChangeValue<Multiple extends boolean | undefined> =
-  Multiple extends true ? TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
+export type TreeSelectedItemsChangeValue<Multiple extends boolean | 'opt-in' | undefined> =
+  Multiple extends true | 'opt-in' ? TreeItemId[] | typeof TREE_SELECTION_ALL : TreeItemId;
 
 /**
  * The shape of an item as provided by the user in the `items` prop.
@@ -442,9 +441,10 @@ export interface TreeState<TItem = any> extends TreeItemsState<TItem> {
   selectedItemsProp:
     TreeItemId | null | readonly TreeItemId[] | typeof TREE_SELECTION_ALL | undefined;
   /**
-   * Whether multiple items can be selected
+   * Whether multiple items can be selected, and whether pressing an item without a modifier
+   * replaces the selection (`'opt-in'`)
    */
-  multiple: boolean;
+  multiple: boolean | 'opt-in';
   /**
    * Whether the user is prevented from deselecting the last selected item
    */
@@ -537,7 +537,7 @@ export type TreeStateDefaultedKeys =
   | 'itemFocusableWhenDisabled';
 
 export interface TreeStoreParameters<
-  Multiple extends boolean | undefined = undefined,
+  Multiple extends boolean | 'opt-in' | undefined = undefined,
   TItem = TreeDefaultItem,
 > extends Pick<TreeState<TItem>, TreeStateDefaultedKeys> {
   /** The active normalized collection descriptor. */
@@ -598,7 +598,7 @@ export interface TreeStoreParameters<
    * To render an uncontrolled component, use the `defaultSelectedItems` prop instead.
    */
   selectedItems?:
-    TreeSelectedItemsType<Multiple> | (Multiple extends true ? never : null) | undefined;
+    TreeSelectedItemsType<Multiple> | (Multiple extends true | 'opt-in' ? never : null) | undefined;
   /**
    * The items that are initially selected.
    * Defaults to `null`, or `[]` with `multiple`.
@@ -606,7 +606,7 @@ export interface TreeStoreParameters<
    * To render a controlled component, use the `selectedItems` prop instead.
    */
   defaultSelectedItems?:
-    TreeSelectedItemsType<Multiple> | (Multiple extends true ? never : null) | undefined;
+    TreeSelectedItemsType<Multiple> | (Multiple extends true | 'opt-in' ? never : null) | undefined;
   /**
    * Event handler called when the selected items change.
    *
@@ -618,7 +618,8 @@ export interface TreeStoreParameters<
   onSelectedItemsChange?:
     | ((
         selectedItems:
-          TreeSelectedItemsChangeValue<Multiple> | (Multiple extends true ? never : null),
+          | TreeSelectedItemsChangeValue<Multiple>
+          | (Multiple extends true | 'opt-in' ? never : null),
         eventDetails: TreeRootSelectionChangeEventDetails,
       ) => void)
     | undefined;

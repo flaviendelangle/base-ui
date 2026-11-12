@@ -42,12 +42,22 @@ const CHECKBOX_SELECTION_PROPAGATION_DISABLED = { parents: false, descendants: f
  *
  * Documentation: [Base UI Tree](https://base-ui.com/react/components/tree)
  */
-export function TreeRoot<TItem = TreeDefaultItem, Multiple extends boolean | undefined = undefined>(
-  componentProps: TreeRoot.Props<TItem, Multiple>,
-) {
-  // `TreeRootProps` is distributed by `multiple` for consumers. Inside the generic
-  // implementation all branches share this non-distributed runtime shape.
-  const resolvedProps = componentProps as TreeRootImplementationProps<TItem, Multiple>;
+export function TreeRoot<
+  TItem = TreeDefaultItem,
+  Multiple extends boolean | 'opt-in' | undefined = undefined,
+>(componentProps: TreeRoot.Props<TItem, Multiple>): React.JSX.Element;
+// A wrapper passing on `TreeRoot.Props<TItem>` gives a union of every `multiple` value, which
+// TypeScript can't infer a single `Multiple` from, since it mixes booleans and a string.
+export function TreeRoot<TItem = TreeDefaultItem>(
+  componentProps: TreeRoot.Props<TItem>,
+): React.JSX.Element;
+export function TreeRoot<TItem = TreeDefaultItem>(componentProps: object) {
+  // `TreeRootProps` is distributed by `multiple` for consumers. Inside the implementation all
+  // branches share this non-distributed runtime shape.
+  const resolvedProps = componentProps as TreeRootImplementationProps<
+    TItem,
+    boolean | 'opt-in' | undefined
+  >;
   const {
     // Data
     disabled = false,
@@ -133,7 +143,7 @@ export function TreeRoot<TItem = TreeDefaultItem, Multiple extends boolean | und
   }
 
   const store = useRefWithInit(() => {
-    const created = new TreeStore<Multiple, TItem>({
+    const created = new TreeStore<boolean | 'opt-in' | undefined, TItem>({
       disabled,
       items: itemsControlled ? itemData : undefined,
       defaultItems: itemsControlled ? undefined : itemData,
@@ -307,21 +317,32 @@ interface TreeRootOwnProps<TItem> {
   itemFocusableWhenDisabled?: boolean | undefined;
 }
 
-type TreeRootMultipleProps<Multiple extends boolean | undefined> = Multiple extends undefined
-  ? {
-      /**
-       * Whether multiple items can be selected.
-       * @default false
-       */
-      multiple?: false | undefined;
-    }
-  : {
-      /**
-       * Whether multiple items can be selected.
-       * @default false
-       */
-      multiple: Multiple;
-    };
+type TreeRootMultipleProps<Multiple extends boolean | 'opt-in' | undefined> =
+  Multiple extends undefined
+    ? {
+        /**
+         * Whether multiple items can be selected, and how selecting an item affects the current selection.
+         * - `false`: only one item can be selected.
+         * - `true`: each item is toggled independently.
+         * - `'opt-in'`: selecting an item moves the current selection to it, and users hold a modifier key
+         *   to select more than one item. On touch devices, where there are no modifier keys, it behaves
+         *   like `true`.
+         * @default false
+         */
+        multiple?: false | undefined;
+      }
+    : {
+        /**
+         * Whether multiple items can be selected, and how selecting an item affects the current selection.
+         * - `false`: only one item can be selected.
+         * - `true`: each item is toggled independently.
+         * - `'opt-in'`: selecting an item moves the current selection to it, and users hold a modifier key
+         *   to select more than one item. On touch devices, where there are no modifier keys, it behaves
+         *   like `true`.
+         * @default false
+         */
+        multiple: Multiple;
+      };
 
 /**
  * Public Tree root props, distributed by `multiple` so it stays correlated with the
@@ -329,14 +350,14 @@ type TreeRootMultipleProps<Multiple extends boolean | undefined> = Multiple exte
  */
 export type TreeRootProps<
   TItem = TreeDefaultItem,
-  Multiple extends boolean | undefined = boolean | undefined,
-> = Multiple extends boolean | undefined
+  Multiple extends boolean | 'opt-in' | undefined = boolean | 'opt-in' | undefined,
+> = Multiple extends boolean | 'opt-in' | undefined
   ? Omit<TreeStoreParameters<Multiple, TItem>, TreeRootInternalKeys | TreeRootDefaultedKeys> &
       TreeRootOwnProps<TItem> &
       TreeRootMultipleProps<Multiple>
   : never;
 
-type TreeRootImplementationProps<TItem, Multiple extends boolean | undefined> = Omit<
+type TreeRootImplementationProps<TItem, Multiple extends boolean | 'opt-in' | undefined> = Omit<
   TreeStoreParameters<Multiple, TItem>,
   TreeRootInternalKeys | TreeRootDefaultedKeys
 > &
@@ -346,7 +367,7 @@ export namespace TreeRoot {
   export type State = TreeRootState;
   export type Props<
     TItem = TreeDefaultItem,
-    Multiple extends boolean | undefined = boolean | undefined,
+    Multiple extends boolean | 'opt-in' | undefined = boolean | 'opt-in' | undefined,
   > = TreeRootProps<TItem, Multiple>;
   export type Actions<TItem = TreeDefaultItem> = TreeRootActions<TItem>;
   export type ExpansionChangeEventReason = TreeRootExpansionChangeEventReason;

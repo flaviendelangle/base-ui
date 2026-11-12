@@ -556,31 +556,6 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         expect(view.getSelectedTreeItems()).toEqual(['2']);
       });
 
-      it('should un-select selected item when clicking on its content while holding Ctrl', async () => {
-        const view = await render({
-          multiple: true,
-          items: [{ id: '1' }, { id: '2' }],
-          defaultSelectedItems: ['1', '2'],
-        });
-
-        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
-        fireEvent.click(view.getItemRoot('1'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).toEqual(['2']);
-      });
-
-      it('should un-select selected item when clicking on its content while holding Meta', async () => {
-        const view = await render({
-          multiple: true,
-          items: [{ id: '1' }, { id: '2' }],
-          defaultSelectedItems: ['1', '2'],
-        });
-
-        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
-
-        fireEvent.click(view.getItemRoot('1'), { metaKey: true });
-        expect(view.getSelectedTreeItems()).toEqual(['2']);
-      });
-
       it('should not select an item when clicking on a disabled item', async () => {
         const view = await render({
           multiple: true,
@@ -590,19 +565,6 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         expect(view.isItemSelected('1')).toBe(false);
         fireEvent.click(view.getItemRoot('1'));
         expect(view.isItemSelected('1')).toBe(false);
-      });
-
-      it('should select un-selected item when clicking on its content while holding Ctrl', async () => {
-        const view = await render({
-          multiple: true,
-          items: [{ id: '1' }, { id: '2' }, { id: '3' }],
-          defaultSelectedItems: ['1'],
-        });
-
-        expect(view.getSelectedTreeItems()).toEqual(['1']);
-
-        fireEvent.click(view.getItemRoot('3'), { ctrlKey: true });
-        expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
       });
 
       it('should do nothing when clicking on an item on a fresh tree while holding Shift', async () => {
@@ -752,6 +714,64 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         fireEvent.click(view.getItemRoot('2'), { shiftKey: true });
 
         expect(view.getSelectedTreeItems()).toEqual(['1.1.1', '2']);
+      });
+    });
+
+    describe('opt-in multiple selection', () => {
+      it('should replace the selection when clicking on an item', async () => {
+        const view = await render({
+          multiple: 'opt-in',
+          items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+          defaultSelectedItems: ['1', '2'],
+        });
+
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
+
+        fireEvent.click(view.getItemRoot('3'));
+        expect(view.getSelectedTreeItems()).toEqual(['3']);
+      });
+
+      it('should keep a selected item selected when clicking on it', async () => {
+        const view = await render({
+          multiple: 'opt-in',
+          items: [{ id: '1' }, { id: '2' }],
+          defaultSelectedItems: ['1', '2'],
+        });
+
+        fireEvent.click(view.getItemRoot('1'));
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
+      });
+
+      it.each([
+        { name: 'Ctrl', modifiers: { ctrlKey: true } },
+        { name: 'Meta', modifiers: { metaKey: true } },
+      ])(
+        'should toggle an item and keep the rest when clicking it while holding $name',
+        async ({ modifiers }) => {
+          const view = await render({
+            multiple: 'opt-in',
+            items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+            defaultSelectedItems: ['1', '2'],
+          });
+
+          fireEvent.click(view.getItemRoot('3'), modifiers);
+          expect(view.getSelectedTreeItems()).toEqual(['1', '2', '3']);
+
+          fireEvent.click(view.getItemRoot('1'), modifiers);
+          expect(view.getSelectedTreeItems()).toEqual(['2', '3']);
+        },
+      );
+
+      it('should toggle an item and keep the rest when tapping it', async () => {
+        const view = await render({
+          multiple: 'opt-in',
+          items: [{ id: '1' }, { id: '2' }],
+          defaultSelectedItems: ['1'],
+        });
+
+        fireEvent.pointerDown(view.getItemRoot('2'), { pointerType: 'touch' });
+        fireEvent.click(view.getItemRoot('2'));
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
       });
     });
   });
@@ -1251,11 +1271,14 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       expect(view.getRoot()).not.toHaveAttribute('aria-multiselectable');
     });
 
-    it('should have the attribute `aria-multiselectable=true if using multi select`', async () => {
-      const view = await render({ items: [{ id: '1' }, { id: '2' }], multiple: true });
+    it.each([{ multiple: true }, { multiple: 'opt-in' as const }])(
+      'should have the attribute `aria-multiselectable=true` with multiple=$multiple',
+      async ({ multiple }) => {
+        const view = await render({ items: [{ id: '1' }, { id: '2' }], multiple });
 
-      expect(view.getRoot()).toHaveAttribute('aria-multiselectable', 'true');
-    });
+        expect(view.getRoot()).toHaveAttribute('aria-multiselectable', 'true');
+      },
+    );
   });
 
   describe('aria-selected item attribute (Tree.Item)', () => {

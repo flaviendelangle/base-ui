@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
+import { platform } from '@base-ui/utils/platform';
 import { act, fireEvent, screen } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
 import { DirectionProvider } from '../../direction-provider';
@@ -1414,6 +1415,91 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
           fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
           expect(view.getSelectedTreeItems()).toEqual(['2']);
         });
+      });
+    });
+
+    describe('opt-in multiple selection', () => {
+      // macOS reserves Ctrl+Arrow and Ctrl+Space, so Option replaces Ctrl there.
+      const toggleModifier = platform.os.mac ? { altKey: true } : { ctrlKey: true };
+
+      it.each([
+        { key: 'ArrowDown', from: '1', to: '2' },
+        { key: 'ArrowUp', from: '2', to: '1' },
+      ])('should move the selection with focus when $key is pressed', async ({ key, from, to }) => {
+        const view = await render({
+          items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+          multiple: 'opt-in',
+          defaultSelectedItems: [from, '3'],
+        });
+
+        act(() => {
+          view.getItemRoot(from).focus();
+        });
+        fireEvent.keyDown(view.getItemRoot(from), { key });
+        expect(view.getFocusedItemId()).toBe(to);
+        expect(view.getSelectedTreeItems()).toEqual([to]);
+      });
+
+      it('should leave nothing selected when an arrow key moves focus to a disabled item', async () => {
+        const view = await render({
+          items: [{ id: '1' }, { id: '2', disabled: true }],
+          multiple: 'opt-in',
+          defaultSelectedItems: ['1'],
+        });
+
+        act(() => {
+          view.getItemRoot('1').focus();
+        });
+        fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown' });
+        expect(view.getFocusedItemId()).toBe('2');
+        expect(view.getSelectedTreeItems()).toEqual([]);
+      });
+
+      it('should move focus without changing the selection when ArrowDown is pressed with the toggle modifier', async () => {
+        const view = await render({
+          items: [{ id: '1' }, { id: '2' }],
+          multiple: 'opt-in',
+          defaultSelectedItems: ['1'],
+        });
+
+        act(() => {
+          view.getItemRoot('1').focus();
+        });
+        fireEvent.keyDown(view.getItemRoot('1'), { key: 'ArrowDown', ...toggleModifier });
+        expect(view.getFocusedItemId()).toBe('2');
+        expect(view.getSelectedTreeItems()).toEqual(['1']);
+      });
+
+      it.each([' ', 'Enter'])('should replace the selection when %j is pressed', async (key) => {
+        const view = await render({
+          items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+          multiple: 'opt-in',
+          defaultSelectedItems: ['1', '2'],
+        });
+
+        act(() => {
+          view.getItemRoot('3').focus();
+        });
+        fireEvent.keyDown(view.getItemRoot('3'), { key });
+        expect(view.getSelectedTreeItems()).toEqual(['3']);
+      });
+
+      it('should toggle the focused item and keep the rest when Space is pressed with the toggle modifier', async () => {
+        const view = await render({
+          items: [{ id: '1' }, { id: '2' }],
+          multiple: 'opt-in',
+          defaultSelectedItems: ['1'],
+        });
+
+        act(() => {
+          view.getItemRoot('2').focus();
+        });
+        fireEvent.keyDown(view.getItemRoot('2'), {
+          key: ' ',
+          code: 'Space',
+          ...toggleModifier,
+        });
+        expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
       });
     });
   });
