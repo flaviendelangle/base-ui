@@ -280,7 +280,6 @@ export default function TreeFilterBuilder() {
             }}
             actionsRef={actionsRef}
             expandedItems={expandedItems}
-            selectionMode="none"
           >
             <FilterList />
             <Tree.Status className={styles.VisuallyHidden}>

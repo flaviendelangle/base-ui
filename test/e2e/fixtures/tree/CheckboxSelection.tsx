@@ -15,7 +15,7 @@ const items: Tree.DefaultItem[] = [
 
 export default function CheckboxSelectionTree() {
   return (
-    <Tree.Root items={items} defaultExpandedItems={['documents']} selectionMode="multiple">
+    <Tree.Root items={items} defaultExpandedItems={['documents']} multiple>
       <Tree.Label>Files to share</Tree.Label>
       <Tree.List>
         {(item: Tree.DefaultItem) => (

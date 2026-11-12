@@ -13,11 +13,20 @@ function Example(props: {
   items?: Tree.DefaultItem[] | undefined;
   current?: string | undefined;
   onNavigate?: ((itemId: Tree.ItemId) => void) | undefined;
-  root?: { selectionMode?: 'none' | 'single' | undefined; disabled?: boolean } | undefined;
+  selectionDisabled?: boolean | undefined;
+  root?: { disabled?: boolean } | undefined;
 }) {
-  const { items: treeItems = items, current, onNavigate, root } = props;
+  const { items: treeItems = items, current, onNavigate, selectionDisabled, root } = props;
+  const collection = selectionDisabled
+    ? Tree.createItems(treeItems, {
+        getId: (item) => item.id,
+        getLabel: (item) => item.label,
+        getChildren: (item) => item.children,
+        isSelectionDisabled: () => true,
+      })
+    : treeItems;
   return (
-    <Tree.Root items={treeItems} defaultExpandedItems={['docs']} {...root}>
+    <Tree.Root items={collection} defaultExpandedItems={['docs']} {...root}>
       <Tree.List aria-label="Pages">
         {(item) => (
           <Tree.Item itemId={item.id} data-testid={item.id}>
@@ -70,7 +79,7 @@ describe('<Tree.ItemLink />', () => {
 
   it('follows the link when Enter has no other action on the item', async () => {
     const onNavigate = vi.fn();
-    await render(<Example onNavigate={onNavigate} root={{ selectionMode: 'none' }} />);
+    await render(<Example onNavigate={onNavigate} selectionDisabled />);
     const row = screen.getByTestId('about');
     act(() => row.focus());
     fireEvent.keyDown(row, { key: 'Enter' });
@@ -79,9 +88,7 @@ describe('<Tree.ItemLink />', () => {
 
   it('does not follow the link of a disabled item on Enter', async () => {
     const onNavigate = vi.fn();
-    await render(
-      <Example onNavigate={onNavigate} root={{ selectionMode: 'none', disabled: true }} />,
-    );
+    await render(<Example onNavigate={onNavigate} selectionDisabled root={{ disabled: true }} />);
     const row = screen.getByTestId('about');
     act(() => row.focus());
     expect(row).toHaveFocus();
@@ -123,7 +130,7 @@ describe('<Tree.ItemLink />', () => {
 
   it('keeps Enter for expansion and selection', async () => {
     const onNavigate = vi.fn();
-    await render(<Example onNavigate={onNavigate} root={{ selectionMode: 'single' }} />);
+    await render(<Example onNavigate={onNavigate} />);
     const folder = screen.getByTestId('docs');
     act(() => folder.focus());
     fireEvent.keyDown(folder, { key: 'Enter' });

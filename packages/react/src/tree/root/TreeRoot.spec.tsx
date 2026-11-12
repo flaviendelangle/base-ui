@@ -15,7 +15,7 @@ const list = <Tree.List>{() => null}</Tree.List>;
 // Direct use keeps the narrow inference
 // ---------------------------------------------------------------------------
 
-// Without `selectionMode`, selection is the single-select scalar shape.
+// Without `multiple`, selection is the single-select scalar shape.
 <Tree.Root
   items={[] as FileItem[]}
   onSelectedItemsChange={(selected) => {
@@ -25,30 +25,13 @@ const list = <Tree.List>{() => null}</Tree.List>;
   {list}
 </Tree.Root>;
 
-// With `selectionMode="multiple"` it is the array shape (plus the select-all
-// sentinel, which is part of the multiple-mode model).
+// With `multiple` it is the array shape (plus the select-all sentinel, which is
+// part of the multiple selection model).
 <Tree.Root
   items={[] as FileItem[]}
-  selectionMode="multiple"
+  multiple
   onSelectedItemsChange={(selected) => {
     expectType<(string | number)[] | typeof Tree.SELECTION_ALL, typeof selected>(selected);
-  }}
->
-  {list}
-</Tree.Root>;
-
-// Disabling selection preserves either cardinality so a controlled tree can
-// switch between `none` and its previous mode without clearing the model.
-<Tree.Root
-  items={[] as FileItem[]}
-  selectionMode="none"
-  selectedItems={['a']}
-  onSelectedItemsChange={(selected, details) => {
-    expectType<
-      string | number | null | (string | number)[] | typeof Tree.SELECTION_ALL,
-      typeof selected
-    >(selected);
-    void details;
   }}
 >
   {list}
@@ -63,7 +46,7 @@ function StateSetterHandlers() {
   return (
     <Tree.Root
       items={[] as FileItem[]}
-      selectionMode="multiple"
+      multiple
       expandedItems={expandedItems}
       onExpandedItemsChange={setExpandedItems}
       selectedItems={selectedItems}
@@ -163,50 +146,47 @@ type RemovedRootAccessorKeys = AssertNever<
 void (null! as RemovedRootAccessorKeys);
 
 // ---------------------------------------------------------------------------
-// A wrapper typed on the public alias accepts either mode
+// A wrapper typed on the public alias accepts either selection
 // ---------------------------------------------------------------------------
 
-// `Props<TItem>` deliberately leaves the mode broad: a wrapper is written once
+// `Props<TItem>` deliberately leaves `multiple` broad: a wrapper is written once
 // and has to accept whatever its own consumer passes through. Narrowing the
-// default to `undefined` made this reject `selectionMode="multiple"` outright.
+// default to `undefined` made this reject `multiple` outright.
 function FileTree(props: Tree.Root.Props<FileItem>) {
   return <Tree.Root {...props} />;
 }
 
 <FileTree items={[]}>{list}</FileTree>;
-<FileTree items={[]} selectionMode="multiple" selectedItems={['a']}>
+<FileTree items={[]} multiple selectedItems={['a']}>
   {list}
 </FileTree>;
-<FileTree items={[]} selectionMode="single" selectedItems="a">
-  {list}
-</FileTree>;
-<FileTree items={[]} selectionMode="none">
+<FileTree items={[]} selectedItems="a">
   {list}
 </FileTree>;
 
-// Narrowing it explicitly still works for a wrapper that wants one mode only.
-function MultiFileTree(props: Tree.Root.Props<FileItem, 'multiple'>) {
+// Narrowing it explicitly still works for a wrapper that wants one kind of selection only.
+function MultiFileTree(props: Tree.Root.Props<FileItem, true>) {
   return <Tree.Root {...props} />;
 }
 
-<MultiFileTree items={[]} selectionMode="multiple" selectedItems={['a']}>
+<MultiFileTree items={[]} multiple selectedItems={['a']}>
   {list}
 </MultiFileTree>;
 
 // @ts-expect-error single selection accepts one item id, not an array.
-<FileTree items={[]} selectionMode="single" selectedItems={['a', 'b']}>
+<FileTree items={[]} selectedItems={['a', 'b']}>
   {list}
 </FileTree>;
 
 // @ts-expect-error multiple selection accepts an array or Tree.SELECTION_ALL.
-<FileTree items={[]} selectionMode="multiple" selectedItems="a">
+<FileTree items={[]} multiple selectedItems="a">
   {list}
 </FileTree>;
 
 <MultiFileTree
   items={[]}
-  // @ts-expect-error the narrowed wrapper only accepts its declared mode.
-  selectionMode="single"
+  // @ts-expect-error the narrowed wrapper only accepts its declared selection.
+  multiple={false}
 >
   {list}
 </MultiFileTree>;

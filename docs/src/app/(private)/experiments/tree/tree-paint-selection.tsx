@@ -28,7 +28,7 @@ export default function TreePaintSelection() {
     <div className={styles.Page}>
       <Tree.Root
         items={ITEMS}
-        selectionMode="multiple"
+        multiple
         actionsRef={actionsRef}
         onSelectedItemsChange={() => setChangeCount((count) => count + 1)}
       >

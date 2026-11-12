@@ -27,7 +27,7 @@ const visuallyHidden: React.CSSProperties = {
 
 export default function CheckboxStatusTree() {
   return (
-    <Tree.Root items={items} defaultExpandedItems={['documents']} selectionMode="multiple">
+    <Tree.Root items={items} defaultExpandedItems={['documents']} multiple>
       <Tree.List aria-label="Files to share">
         {(item: Tree.DefaultItem) => (
           <Tree.Item itemId={item.id}>

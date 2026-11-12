@@ -241,7 +241,7 @@ describe('Tree conformance', () => {
       refInstanceof: window.HTMLSpanElement,
       testRenderPropWith: 'span',
       render(node) {
-        return renderInItem(node, { selectionMode: 'multiple' });
+        return renderInItem(node, { multiple: true });
       },
     }));
   });
@@ -252,7 +252,7 @@ describe('Tree conformance', () => {
       testRenderPropWith: 'span',
       render(node) {
         return renderInItem(<Tree.ItemCheckbox>{node}</Tree.ItemCheckbox>, {
-          selectionMode: 'multiple',
+          multiple: true,
         });
       },
     }));

@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
 import { EMPTY_ARRAY } from '@base-ui/utils/empty';
+import { platform } from '@base-ui/utils/platform';
 import { activeElement, contains, getTarget } from '@base-ui/utils/shadowDom';
 import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
@@ -12,7 +13,6 @@ import type { MaybeBaseUIEvent } from '../../internals/types';
 import type {
   TreeItemId,
   TreeRootHighlightEventReason,
-  TreeSelectionMode,
   TreeDefaultItem,
   TreeState,
 } from '../store/types';
@@ -94,7 +94,7 @@ function keepsHorizontalArrow(element: Element, key: string): boolean {
 }
 
 export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   /**
    * What moves focus next: the reason, and the keydown or press behind it when
@@ -104,6 +104,9 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   private lastFocusCause: FocusCause = { reason: REASONS.none };
 
   private typeaheadQuery = '';
+
+  /** The pointer type of the last press on a row, so a touch tap can toggle in opt-in mode. */
+  private lastPointerType = '';
 
   private focusRecoveryCleanup: (() => void) | null = null;
 
@@ -120,7 +123,7 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   /** Controls registered by the row parts, keyed by item. */
   private controls = new Map<string, Set<RegisteredControl>>();
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 
@@ -646,13 +649,24 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   }
 
   private handleKeyDown(event: React.KeyboardEvent, itemId: TreeItemId) {
-    if (event.altKey) {
+    const key = event.key;
+    const isMulti = this.store.state.multiple !== false;
+    const optIn = this.store.state.multiple === 'opt-in';
+    // macOS reserves Ctrl+Arrow and Ctrl/Cmd+Space, so Option toggles an item, and moves focus
+    // without moving the selection, there instead. Option+Space types a non-breaking space, so
+    // match the physical key.
+    const optionSpace = platform.os.mac && event.altKey && event.code === 'Space';
+    const optionArrow =
+      platform.os.mac && event.altKey && (key === 'ArrowDown' || key === 'ArrowUp');
+    if (event.altKey && !(isMulti && optionSpace) && !(optIn && optionArrow)) {
       return;
     }
 
     const ctrlPressed = event.ctrlKey || event.metaKey;
-    const key = event.key;
-    const isMulti = this.store.state.selectionMode === 'multiple';
+    // The modifier that toggles an item, or moves focus without moving the selection.
+    const toggleModifier = platform.os.mac
+      ? event.altKey && !ctrlPressed
+      : ctrlPressed && !event.altKey;
     const isRtl = this.store.state.direction === 'rtl';
     const expandKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
     const collapseKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
@@ -668,12 +682,20 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     // Select the item when pressing "Space" — unless a typeahead is in progress,
     // where the Space belongs to a multi-word label ("New Folder") and falls
     // through to the typeahead branch below.
-    if (key === ' ' && this.typeaheadQuery === '') {
+    if ((key === ' ' || optionSpace) && this.typeaheadQuery === '') {
       // Always preventDefault, even for non-selectable items, so the page doesn't scroll.
       event.preventDefault();
       if (selectors.canItemBeSelected(this.store.state, itemId)) {
         if (isMulti && event.shiftKey) {
           this.store.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
+        } else if (optIn && !toggleModifier) {
+          // Without a modifier, opt-in mode moves the selection to the item.
+          this.store.selection.setItemSelection({
+            itemId,
+            shouldBeSelected: true,
+            reason: REASONS.itemPress,
+            event: event.nativeEvent,
+          });
         } else {
           // Activating a row is a press, whichever input does it.
           this.store.selection.setItemChecked(
@@ -688,7 +710,15 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
       if (this.store.expansion.toggleItemExpansion(itemId, REASONS.itemPress, event.nativeEvent)) {
         event.preventDefault();
       } else if (selectors.canItemBeSelected(this.store.state, itemId)) {
-        if (isMulti) {
+        if (optIn && !toggleModifier) {
+          event.preventDefault();
+          this.store.selection.setItemSelection({
+            itemId,
+            shouldBeSelected: true,
+            reason: REASONS.itemPress,
+            event: event.nativeEvent,
+          });
+        } else if (isMulti) {
           event.preventDefault();
           this.store.selection.setItemSelection({
             itemId,
@@ -730,6 +760,10 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
             REASONS.keyboard,
             event.nativeEvent,
           );
+        } else if (optIn && !ctrlPressed && !event.altKey) {
+          // In opt-in mode, the selection follows focus (the APG alternative multiple selection
+          // model). Ctrl+Arrow, or Option+Arrow on macOS, moves focus alone.
+          this.store.selection.moveSelectionTo(targetItem, REASONS.keyboard, event.nativeEvent);
         }
       }
     } else if (key === expandKey) {
@@ -1049,18 +1083,24 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     }
 
     if (selectors.canItemBeSelected(this.store.state, itemId)) {
-      const isMulti = this.store.state.selectionMode === 'multiple';
-      if (isMulti && (event.ctrlKey || event.metaKey)) {
+      const { multiple } = this.store.state;
+      if (multiple !== false && event.shiftKey) {
+        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
+        return;
+      }
+      // Like Listbox's `multiple`, each press toggles the item and keeps the rest. `'opt-in'`
+      // toggles with Ctrl/Cmd, or on touch, which has no modifier keys.
+      if (
+        multiple === true ||
+        (multiple === 'opt-in' &&
+          (event.ctrlKey || event.metaKey || this.lastPointerType === 'touch'))
+      ) {
         this.store.selection.setItemSelection({
           itemId,
           keepExistingSelection: true,
           reason: REASONS.itemPress,
           event: event.nativeEvent,
         });
-        return;
-      }
-      if (isMulti && event.shiftKey) {
-        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
         return;
       }
       this.store.selection.setItemSelection({
@@ -1077,7 +1117,12 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     }
   };
 
+  private readonly handleItemPointerDown = (event: React.PointerEvent) => {
+    this.lastPointerType = event.pointerType;
+  };
+
   public readonly itemEventHandlers = {
+    onPointerDown: this.handleItemPointerDown,
     onMouseDown: this.handleItemMouseDown,
     onClick: this.handleItemClick,
     onFocus: this.handleItemFocus,

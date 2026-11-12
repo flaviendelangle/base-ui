@@ -183,7 +183,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         { id: 'three', label: 'Match three' },
       ],
       filterValue: 'match',
-      selectionMode: 'multiple',
+      multiple: true,
       onSelectedItemsChange,
     });
 
@@ -210,7 +210,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         },
       ],
       filterValue: 'needle',
-      selectionMode: 'multiple',
+      multiple: true,
       checkboxSelection: true,
       onSelectedItemsChange,
     });
@@ -229,7 +229,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         { id: 'apricot', label: 'Apricot' },
       ],
       filterValue: 'ap',
-      selectionMode: 'multiple',
+      multiple: true,
       defaultSelectedItems: ['banana'],
       onSelectedItemsChange,
     });

@@ -44,15 +44,19 @@ const items: LinkItemModel[] = [
   { id: 'about', label: 'About', href: 'https://base-ui.com/react/overview/about' },
 ];
 
+// The links navigate instead of selecting, so no item can be selected.
+// @highlight-start
+const collection = Tree.createItems(items, {
+  getId: (item) => item.id,
+  getLabel: (item) => item.label,
+  getChildren: (item) => item.children,
+  isSelectionDisabled: () => true,
+});
+// @highlight-end
+
 export default function ExampleTreeLinkItems() {
   return (
-    <Tree.Root
-      items={items}
-      defaultExpandedItems={['overview']}
-      // @highlight-start
-      selectionMode="none"
-      // @highlight-end
-    >
+    <Tree.Root items={collection} defaultExpandedItems={['overview']}>
       <Tree.List aria-label="Documentation" className={styles.Tree}>
         {(item: LinkItemModel) => {
           if (item.href) {

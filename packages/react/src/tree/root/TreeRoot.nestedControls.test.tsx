@@ -24,7 +24,7 @@ function row(itemId: string): HTMLElement {
 describe('Tree — controls nested in item content', () => {
   function TreeWithButtons(props: { onAction?: (() => void) | undefined }) {
     return (
-      <Tree.Root items={ITEMS} selectionMode="multiple">
+      <Tree.Root items={ITEMS} multiple>
         <Tree.List>
           {(item: Item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
