@@ -19,7 +19,7 @@ export interface DescribeTreeRendererUtils {
   getAllTreeItemIds: () => string[];
   getFocusedItemId: () => string | null;
   getItemRoot: (id: TreeItemId) => HTMLElement;
-  getItemExpansionTrigger: (id: TreeItemId) => HTMLElement | null;
+  getItemIndicator: (id: TreeItemId) => HTMLElement | null;
   getItemText: (id: TreeItemId) => HTMLElement | null;
   isItemExpanded: (id: TreeItemId) => boolean;
   isItemSelected: (id: TreeItemId) => boolean;
@@ -47,7 +47,7 @@ const FILTER_PROPS = ['filterValue', 'filter', 'filteredItems', 'filterMode'];
 
 function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
   const getRoot = () => {
-    const root = result.container.querySelector('[role="treegrid"]');
+    const root = result.container.querySelector('[role="tree"]');
     if (!root) {
       throw new Error('Could not find tree root');
     }
@@ -55,7 +55,7 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
   };
 
   const getAllTreeItemIds = () =>
-    Array.from(result.container.querySelectorAll('[role="row"]')).map(
+    Array.from(result.container.querySelectorAll('[role="treeitem"]')).map(
       (item) => (item as HTMLElement).dataset.itemId!,
     );
 
@@ -68,7 +68,7 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
    */
   const getFocusedItemId = () => {
     const active = activeElement(ownerDocument(result.container));
-    if (!active || active.getAttribute('role') !== 'row') {
+    if (!active || active.getAttribute('role') !== 'treeitem') {
       return null;
     }
     return (active as HTMLElement).dataset.itemId ?? null;
@@ -82,9 +82,9 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
     return item as HTMLElement;
   };
 
-  const getItemExpansionTrigger = (id: TreeItemId): HTMLElement | null => {
+  const getItemIndicator = (id: TreeItemId): HTMLElement | null => {
     const item = getItemRoot(id);
-    return item.querySelector<HTMLElement>('button');
+    return item.querySelector<HTMLElement>('[data-testid="expansion-indicator"]');
   };
 
   const getItemText = (id: TreeItemId): HTMLElement | null => {
@@ -99,7 +99,7 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
     getItemRoot(id).getAttribute('aria-selected') === 'true';
 
   const getSelectedTreeItems = () =>
-    Array.from(result.container.querySelectorAll('[role="row"][aria-selected="true"]')).map(
+    Array.from(result.container.querySelectorAll('[role="treeitem"][aria-selected="true"]')).map(
       (item) => (item as HTMLElement).dataset.itemId!,
     );
 
@@ -108,7 +108,7 @@ function getUtils(result: BaseUIRenderResult): DescribeTreeRendererUtils {
     getAllTreeItemIds,
     getFocusedItemId,
     getItemRoot,
-    getItemExpansionTrigger,
+    getItemIndicator,
     getItemText,
     isItemExpanded,
     isItemSelected,
@@ -247,21 +247,15 @@ export function describeTree(
           <Tree.List>
             {(item: TreeDefaultItem) =>
               checkboxSelection ? (
-                <Tree.Item key={item.id} itemId={item.id}>
-                  <Tree.ItemContent>
-                    <Tree.ItemCheckbox>
-                      <Tree.ItemCheckboxIndicator />
-                    </Tree.ItemCheckbox>
-                    <Tree.ItemExpansionTrigger />
-                    <span data-testid="text">{item.label}</span>
-                  </Tree.ItemContent>
-                </Tree.Item>
+                <Tree.CheckboxItem key={item.id} itemId={item.id}>
+                  <Tree.CheckboxItemIndicator keepMounted data-testid="checkbox" />
+                  <Tree.ItemIndicator keepMounted data-testid="expansion-indicator" />
+                  <span data-testid="text">{item.label}</span>
+                </Tree.CheckboxItem>
               ) : (
                 <Tree.Item key={item.id} itemId={item.id}>
-                  <Tree.ItemContent>
-                    <Tree.ItemExpansionTrigger />
-                    <span data-testid="text">{item.label}</span>
-                  </Tree.ItemContent>
+                  <Tree.ItemIndicator keepMounted data-testid="expansion-indicator" />
+                  <span data-testid="text">{item.label}</span>
                 </Tree.Item>
               )
             }

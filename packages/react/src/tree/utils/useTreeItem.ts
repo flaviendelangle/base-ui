@@ -5,12 +5,10 @@ import { fastObjectShallowCompare } from '@base-ui/utils/fastObjectShallowCompar
 import { activeElement, contains } from '@base-ui/utils/shadowDom';
 import { ownerDocument } from '@base-ui/utils/owner';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
-import { warn } from '@base-ui/utils/warn';
 import type { TreeItemId, TreeState } from '../store/types';
 
 import type { TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
-import { getItemIdKey } from './itemIdKey';
 import * as TreeItemCssVars from '../item/TreeItemCssVars';
 
 /**
@@ -34,11 +32,9 @@ export function useTreeItem(parameters: UseTreeItemParameters): UseTreeItemRetur
       siblingsCount: selectors.itemSiblingsCount(state, itemId),
       posInSet: selectors.itemPositionInSet(state, itemId),
       level: selectors.itemLevel(state, itemId),
-      ariaLabel: selectors.itemLabel(state, itemId),
       filterMatch: store.filtering?.isItemMatch(state, itemId) ?? false,
       selected: selectors.isItemSelected(state, itemId),
       selectionSupported: selectors.isItemSelectionSupported(state, itemId),
-      current: state.activeLinkCounts[getItemIdKey(itemId)] !== undefined,
     });
     let previousState: TreeState | undefined;
     let previous: ReturnType<typeof readState> | undefined;
@@ -64,11 +60,9 @@ export function useTreeItem(parameters: UseTreeItemParameters): UseTreeItemRetur
     siblingsCount,
     posInSet,
     level,
-    ariaLabel,
     filterMatch,
     selected,
     selectionSupported,
-    current,
   } = useStore(store, selectItemState);
   const [element, setElement] = React.useState<HTMLElement | null>(null);
 
@@ -79,19 +73,6 @@ export function useTreeItem(parameters: UseTreeItemParameters): UseTreeItemRetur
     return store.items.registerItemDOMElement(itemId, element);
   }, [store, itemId, element]);
 
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    React.useEffect(() => {
-      if (element?.querySelector('[role="gridcell"]') === null) {
-        warn(
-          'A <Tree.Item> renders no cell.',
-          'Each row of the treegrid needs one for assistive technology to read its content.',
-          'Render the content of the item inside <Tree.ItemContent>.',
-        );
-      }
-    }, [element]);
-  }
-
   // Restore focus when the focused row remounts. The virtualizer recycling an
   // off-screen row, and a `Tree.GroupTransition` re-parenting a row on
   // expand/collapse, both recreate its DOM node without a blur that clears
@@ -100,8 +81,8 @@ export function useTreeItem(parameters: UseTreeItemParameters): UseTreeItemRetur
     if (!element || !focused) {
       return;
     }
-    // Focus already lives inside this row (the row or a nested control such as
-    // the inline label editor); re-focusing the row would steal it.
+    // Focus already lives inside this item, such as in a popup opened from it;
+    // re-focusing the item would steal it.
     if (contains(element, activeElement(ownerDocument(element)))) {
       return;
     }
@@ -129,17 +110,12 @@ export function useTreeItem(parameters: UseTreeItemParameters): UseTreeItemRetur
   };
 
   const props: React.HTMLAttributes<HTMLElement> = {
-    role: 'row',
-    // A tree row otherwise derives its name from every descendant,
-    // including control labels. Naming it from the item model keeps row
-    // focus concise while each control retains its own accessible name.
-    'aria-label': ariaLabel,
+    role: 'treeitem',
     'aria-expanded': expandable ? expanded : undefined,
     'aria-level': level,
     'aria-setsize': siblingsCount,
     'aria-posinset': posInSet,
     'aria-disabled': disabled || undefined,
-    'aria-current': current ? 'page' : undefined,
     tabIndex: isDefaultFocusable ? 0 : -1,
     style: { [TreeItemCssVars.level]: level } as React.CSSProperties,
   };
@@ -174,7 +150,7 @@ export interface TreeItemBaseState {
    */
   collapsed: boolean;
   /**
-   * Whether the item is highlighted: it has focus, or one of its controls does.
+   * Whether the item has focus.
    */
   highlighted: boolean;
   /**

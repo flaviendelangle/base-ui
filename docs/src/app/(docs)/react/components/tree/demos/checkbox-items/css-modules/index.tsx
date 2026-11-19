@@ -26,15 +26,6 @@ const items: Tree.DefaultItem[] = [
     children: [
       { id: 'sunset', label: 'Sunset.jpg' },
       { id: 'mountains', label: 'Mountains.png' },
-      { id: 'family-dinner', label: 'Family Dinner.jpg' },
-    ],
-  },
-  {
-    id: 'music',
-    label: 'Music',
-    children: [
-      { id: 'blue-in-green', label: 'Blue in Green.mp3' },
-      { id: 'moonlight-sonata', label: 'Moonlight Sonata.flac' },
     ],
   },
   { id: 'notes', label: 'Notes.txt' },
@@ -46,66 +37,56 @@ export default function ExampleTreeCheckboxItems() {
       items={items}
       defaultExpandedItems={['documents']}
       // @highlight-start
-      selectionMode="multiple"
+      multiple
+      checkboxSelectionPropagation={{ descendants: true, parents: true }}
       // @highlight-end
     >
-      <Tree.List aria-label="File system" className={styles.Tree}>
+      <Tree.List aria-label="Files to back up" className={styles.Tree}>
         {(item: Tree.DefaultItem) => (
-          <Tree.Item itemId={item.id} className={styles.Item}>
-            <Tree.ItemContent className={styles.ItemContent}>
-              {/* @highlight-start @focus @padding 2 */}
-              <Tree.ItemCheckbox className={styles.Checkbox}>
-                <Tree.ItemCheckboxIndicator className={styles.CheckboxIndicator} keepMounted>
-                  <CheckIcon className={styles.CheckIcon} />
-                  <MinusIcon className={styles.MinusIcon} />
-                </Tree.ItemCheckboxIndicator>
-              </Tree.ItemCheckbox>
+          // @highlight-start
+          <Tree.CheckboxItem itemId={item.id} className={styles.Item}>
+            {/* @highlight-end */}
+            <Tree.ItemIndicator keepMounted className={styles.Chevron}>
+              <ChevronIcon />
+            </Tree.ItemIndicator>
+            <span className={styles.Checkbox}>
+              {/* @highlight-start */}
+              <Tree.CheckboxItemIndicator className={styles.CheckboxIndicator}>
+                <CheckIcon className={styles.CheckIcon} />
+                <MinusIcon className={styles.MinusIcon} />
+              </Tree.CheckboxItemIndicator>
               {/* @highlight-end */}
-              <div className={styles.Hierarchy}>
-                <Tree.ItemExpansionTrigger className={styles.ExpansionTrigger}>
-                  <ChevronIcon />
-                </Tree.ItemExpansionTrigger>
-                <span className={styles.Label}>{item.label}</span>
-              </div>
-            </Tree.ItemContent>
-          </Tree.Item>
+            </span>
+            <span className={styles.Label}>{item.label}</span>
+          </Tree.CheckboxItem>
         )}
       </Tree.List>
-      {/* @highlight-start */}
       {/* Screen readers don't reliably announce selection changes in a tree */}
       <Tree.Status className={styles.VisuallyHidden} />
-      {/* @highlight-end */}
     </Tree.Root>
   );
 }
 
-function ChevronIcon(props: React.ComponentProps<'svg'>) {
+function ChevronIcon() {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path
-        d="M4.5 2L8.5 6L4.5 10"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M4.5 2 8.5 6l-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
 
 function CheckIcon(props: React.ComponentProps<'svg'>) {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path d="M9.854 3.146a.5.5 0 010 .708l-4.5 4.5a.5.5 0 01-.708 0l-2-2a.5.5 0 01.708-.708L5 7.293l4.146-4.147a.5.5 0 01.708 0z" />
+    <svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M9.1603 1.12218C9.50684 1.34873 9.60427 1.81354 9.37792 2.16038L5.13603 8.66012C5.01614 8.8438 4.82192 8.96576 4.60451 8.99384C4.3871 9.02194 4.1683 8.95335 4.00574 8.80615L1.24664 6.30769C0.939709 6.02975 0.916013 5.55541 1.19372 5.24822C1.47142 4.94102 1.94536 4.91731 2.2523 5.19524L4.36085 7.10461L8.12299 1.33999C8.34934 0.993152 8.81376 0.895638 9.1603 1.12218Z" />
     </svg>
   );
 }
 
 function MinusIcon(props: React.ComponentProps<'svg'>) {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path d="M2.5 6a.5.5 0 01.5-.5h6a.5.5 0 010 1H3a.5.5 0 01-.5-.5z" />
+    <svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" {...props}>
+      <rect x="1.5" y="4.25" width="7" height="1.5" rx="0.75" />
     </svg>
   );
 }

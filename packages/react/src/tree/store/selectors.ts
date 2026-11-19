@@ -150,20 +150,16 @@ const selectedItemsSetSelector = createSelectorMemoized(
  * every row while the whole tree is disabled) — a selected row that goes disabled
  * must keep announcing that it is selected.
  */
-const isItemSelectionSupportedSelector = (state: TreeState, itemId: TreeItemId): boolean => {
-  if (state.selectionMode === 'none') {
-    return false;
-  }
-  return itemMetaLookupSelector(state)[getItemIdKey(itemId)]?.selectable ?? false;
-};
+const isItemSelectionSupportedSelector = (state: TreeState, itemId: TreeItemId): boolean =>
+  itemMetaLookupSelector(state)[getItemIdKey(itemId)]?.selectable ?? false;
 
 const canItemBeSelectedSelector = (state: TreeState, itemId: TreeItemId): boolean =>
   isItemSelectionSupportedSelector(state, itemId) && !isItemDisabledSelector(state, itemId);
 
 /**
  * Whether `TREE_SELECTION_ALL` selects the item: it supports selection and is not
- * disabled on its own or through an ancestor. The tree-wide `disabled` state and
- * `selectionMode="none"` only pause interaction, so they keep the selection as is.
+ * disabled on its own or through an ancestor. The tree-wide `disabled` state only pauses
+ * interaction, so it keeps the selection as is.
  */
 function isMetaInSelectionAll(meta: TreeItemMeta | undefined): boolean {
   return meta != null && meta.selectable && !meta.resolvedDisabled;
@@ -207,11 +203,7 @@ export type CheckboxSelectionStatus = 'checked' | 'indeterminate' | 'empty';
 const selectableDescendantCountsSelector = createSelectorMemoized(
   itemOrderedChildrenIdsLookupSelector,
   itemMetaLookupSelector,
-  (state: TreeState) => state.selectionMode,
-  (childrenLookup, metaLookup, selectionMode): TreeParentKeyed<number> => {
-    if (selectionMode === 'none') {
-      return {};
-    }
+  (childrenLookup, metaLookup): TreeParentKeyed<number> => {
     const order: TreeItemId[] = [];
     forEachDescendant(childrenLookup, null, (itemId) => {
       order.push(itemId);
@@ -393,19 +385,11 @@ const flatListIndexLookupSelector = createSelectorMemoized(flatListSelector, bui
 
 const defaultFocusableItemIdSelector = createSelectorMemoized(
   (state: TreeState) => state.selectedItems,
-  (state: TreeState) => state.activeLinkCounts,
   viewSelector,
   itemMetaLookupSelector,
   (state: TreeState) => state.itemFocusableWhenDisabled,
   (state: TreeState) => state.disabled,
-  (
-    selectedItems,
-    activeLinkCounts,
-    view,
-    metaLookup,
-    disabledFocusable,
-    treeDisabled,
-  ): TreeItemId | null => {
+  (selectedItems, view, metaLookup, disabledFocusable, treeDisabled): TreeItemId | null => {
     // A tree-wide `disabled` disables every item, so unless disabled items stay
     // focusable there is nothing to focus.
     if (treeDisabled && !disabledFocusable) {
@@ -424,17 +408,6 @@ const defaultFocusableItemIdSelector = createSelectorMemoized(
         ) {
           return selectedId;
         }
-      }
-    }
-
-    // Then the row linking to the current page, as in the APG navigation tree view.
-    for (const itemKey of Object.keys(activeLinkCounts)) {
-      const meta = metaLookup[itemKey];
-      if (
-        isMetaFocusable(meta, treeDisabled, disabledFocusable) &&
-        isMetaInView(view, metaLookup, meta)
-      ) {
-        return meta!.id;
       }
     }
 

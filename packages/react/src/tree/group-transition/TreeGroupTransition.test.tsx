@@ -39,13 +39,8 @@ function AnimatedTree(props: {
         {(item: Item) => (
           <React.Fragment>
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>
-                <Tree.ItemExpansionTrigger data-testid={`trigger-${item.id}`} />
-                {item.label}
-                <button type="button" data-testid={`action-${item.id}`}>
-                  Action
-                </button>
-              </Tree.ItemContent>
+              <Tree.ItemIndicator keepMounted data-testid={`indicator-${item.id}`} />
+              {item.label}
             </Tree.Item>
             <Tree.GroupTransition
               ref={props.groupRef}
@@ -143,7 +138,7 @@ describe.skipIf(isJSDOM)('<Tree.GroupTransition /> focus preservation', () => {
     await render(<AnimatedTree actionsRef={actionsRef} defaultExpandedItems={['parent']} />);
 
     const parent = screen.getByTestId('item-parent');
-    const childAction = screen.getByTestId('action-child-1');
+    const child = screen.getByTestId('item-child-1');
     act(() => {
       parent.focus();
       actionsRef.current!.setItemExpansion('parent', false);
@@ -153,7 +148,7 @@ describe.skipIf(isJSDOM)('<Tree.GroupTransition /> focus preservation', () => {
     expect(transition).toHaveAttribute('aria-hidden', 'true');
     expect(transition).toHaveAttribute('inert');
 
-    childAction.focus();
+    child.focus();
     expect(document.activeElement).toBe(parent);
   });
 

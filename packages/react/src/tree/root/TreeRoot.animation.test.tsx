@@ -27,10 +27,8 @@ function AnimatedTree(props: { expandedItems?: readonly string[] | undefined } =
         {(item: any) => (
           <React.Fragment>
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>
-                <Tree.ItemExpansionTrigger data-testid={`trigger-${item.id}`} />
-                {item.label}
-              </Tree.ItemContent>
+              <Tree.ItemIndicator keepMounted data-testid={`indicator-${item.id}`} />
+              {item.label}
             </Tree.Item>
             <Tree.GroupTransition className="TestGroupTransition" data-testid={`gt-${item.id}`} />
           </React.Fragment>
@@ -63,10 +61,8 @@ describe('Tree.List group transitions', () => {
           {(item) => (
             <React.Fragment>
               <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>
-                  <Tree.ItemExpansionTrigger />
-                  {item.label}
-                </Tree.ItemContent>
+                <Tree.ItemIndicator keepMounted />
+                {item.label}
               </Tree.Item>
               <Tree.GroupTransition data-testid={`gt-${item.id}`} />
             </React.Fragment>
@@ -115,9 +111,7 @@ describe('Tree.List group transitions', () => {
         <Tree.List>
           {(item) => (
             <React.Fragment>
-              <Tree.Item itemId={item.id}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
-              </Tree.Item>
+              <Tree.Item itemId={item.id}>{item.label}</Tree.Item>
               <Tree.GroupTransition />
             </React.Fragment>
           )}
@@ -149,9 +143,7 @@ describe('Tree.List group transitions', () => {
         <Tree.List aria-label="Files">
           {(item) => (
             <React.Fragment>
-              <Tree.Item itemId={item.id}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
-              </Tree.Item>
+              <Tree.Item itemId={item.id}>{item.label}</Tree.Item>
               <Tree.GroupTransition data-testid={`gt-${item.id}`} />
             </React.Fragment>
           )}
@@ -164,10 +156,10 @@ describe('Tree.List group transitions', () => {
 
     expect(
       within(screen.getByTestId('gt-a'))
-        .getAllByRole('row')
+        .getAllByRole('treeitem')
         .map((row) => row.getAttribute('data-item-id')),
     ).toEqual(['b', 'c']);
-    expect(screen.getAllByRole('row')).toHaveLength(3);
+    expect(screen.getAllByRole('treeitem')).toHaveLength(3);
   });
 
   function PartiallyAnimatedTree(props: { animatedItemIds: readonly string[] }) {
@@ -177,10 +169,8 @@ describe('Tree.List group transitions', () => {
           {(item: any) => (
             <React.Fragment>
               <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>
-                  <Tree.ItemExpansionTrigger data-testid={`trigger-${item.id}`} />
-                  {item.label}
-                </Tree.ItemContent>
+                <Tree.ItemIndicator keepMounted data-testid={`indicator-${item.id}`} />
+                {item.label}
               </Tree.Item>
               {props.animatedItemIds.includes(item.id) && (
                 <Tree.GroupTransition data-testid={`gt-${item.id}`} />
@@ -199,9 +189,7 @@ describe('Tree.List group transitions', () => {
           {(item) => (
             <React.Fragment>
               <Tree.Item itemId={item.id}>
-                <Tree.ItemContent>
-                  <Tree.ItemExpansionTrigger data-testid={`trigger-${item.id}`} />
-                </Tree.ItemContent>
+                <Tree.ItemIndicator keepMounted data-testid={`indicator-${item.id}`} />
               </Tree.Item>
               <Tree.GroupTransition
                 className={(state) => `${state.animation}-${state.transitionStatus}`}
@@ -213,7 +201,7 @@ describe('Tree.List group transitions', () => {
       </Tree.Root>,
     );
 
-    fireEvent.click(screen.getByTestId('trigger-documents'));
+    fireEvent.click(screen.getByTestId('indicator-documents'));
 
     expect(screen.getByTestId('gt-documents')).toHaveClass('expanding-starting');
   });
@@ -221,7 +209,7 @@ describe('Tree.List group transitions', () => {
   it('shows the children of a row that renders no Tree.GroupTransition', async () => {
     await render(<PartiallyAnimatedTree animatedItemIds={['photos']} />);
 
-    fireEvent.click(screen.getByTestId('trigger-documents'));
+    fireEvent.click(screen.getByTestId('indicator-documents'));
 
     expect(document.querySelector('[data-parent-id]')).toBeNull();
     expect(screen.getByTestId('item-resume')).toBeInTheDocument();
@@ -231,7 +219,7 @@ describe('Tree.List group transitions', () => {
   it('releases the children when a row stops rendering its Tree.GroupTransition mid-transition', async () => {
     const view = await render(<PartiallyAnimatedTree animatedItemIds={['documents']} />);
 
-    fireEvent.click(screen.getByTestId('trigger-documents'));
+    fireEvent.click(screen.getByTestId('indicator-documents'));
     expect(screen.getByTestId('gt-documents')).toContainElement(screen.getByTestId('item-resume'));
 
     await view.rerender(<PartiallyAnimatedTree animatedItemIds={[]} />);
@@ -277,7 +265,7 @@ describe.skipIf(isJSDOM)('Tree.List group transition lifecycle', () => {
     const documentsItem = screen.getByTestId('item-documents');
     expect(documentsItem).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(screen.getByTestId('trigger-documents'));
+    fireEvent.click(screen.getByTestId('indicator-documents'));
 
     // The wrapper mounts with the expanding children retained inside it.
     const wrapper = screen.getByTestId('gt-documents');
@@ -327,7 +315,7 @@ describe.skipIf(isJSDOM)('Tree.List group transition lifecycle', () => {
             {(item) => (
               <React.Fragment>
                 <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                  <Tree.ItemContent>{item.label}</Tree.ItemContent>
+                  {item.label}
                 </Tree.Item>
                 <Tree.GroupTransition
                   className="TestGroupTransition"
@@ -392,15 +380,15 @@ describe.skipIf(isJSDOM)('Tree.List group transition lifecycle', () => {
     await render(<AnimatedTree />);
 
     const documentsItem = screen.getByTestId('item-documents');
-    const trigger = screen.getByTestId('trigger-documents');
+    const indicator = screen.getByTestId('indicator-documents');
 
     // Expand fully so we start from a settled expanded state.
-    fireEvent.click(trigger);
+    fireEvent.click(indicator);
     await waitFor(() => expect(screen.queryByTestId('gt-documents')).toBeNull());
     expect(documentsItem).toHaveAttribute('aria-expanded', 'true');
 
     // Start collapsing, then flip back to expanding before the transition ends.
-    fireEvent.click(trigger);
+    fireEvent.click(indicator);
     const wrapper = screen.getByTestId('gt-documents');
 
     let rejectCollapse!: () => void;
@@ -422,7 +410,7 @@ describe.skipIf(isJSDOM)('Tree.List group transition lifecycle', () => {
     });
     await waitFor(() => expect(getAnimations).toHaveBeenCalledOnce());
 
-    fireEvent.click(trigger);
+    fireEvent.click(indicator);
     rejectCollapse();
 
     // The interrupted collapse animation is cancelled by the flip. With

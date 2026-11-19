@@ -11,7 +11,6 @@ import type {
   TreeItemId,
   TreeParentKeyed,
   TreeParentLookupKey,
-  TreeSelectionMode,
   TreeState,
   TreeView,
 } from '../store/types';
@@ -270,7 +269,7 @@ export class TreeFilteringPlugin<TItem = TreeDefaultItem> {
     }
   }
 
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   private inputElement: HTMLInputElement | null = null;
 
@@ -288,7 +287,7 @@ export class TreeFilteringPlugin<TItem = TreeDefaultItem> {
     output: TreeHierarchy;
   } | null = null;
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
     store.set('viewTransform', this.transform);
 

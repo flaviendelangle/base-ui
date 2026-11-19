@@ -1,4 +1,4 @@
-import type { TreeDefaultItem, TreeItemId, TreeSelectionMode } from '../store/types';
+import type { TreeDefaultItem, TreeItemId } from '../store/types';
 import type { TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
 import { buildItemsState } from '../store/itemIndex';
@@ -7,14 +7,14 @@ import { getRowsPerPage } from '../utils/viewport';
 import type { TreeViewport } from '../utils/viewport';
 
 export class TreeItemsPlugin<TItem = TreeDefaultItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   private elements = new Map<string, HTMLElement>();
 
   /** The mounted list. */
   private viewport: TreeViewport | null = null;
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 

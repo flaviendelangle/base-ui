@@ -2,14 +2,11 @@ import { ReactStore } from '@base-ui/utils/store';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { warn } from '@base-ui/utils/warn';
 import { TimeoutManager } from '../../internals/TimeoutManager';
-import { getItemIdKey } from '../utils/itemIdKey';
 import type {
   TreeState,
   TreeStoreContext,
   TreeDefaultItem,
-  TreeItemId,
   TreeRootActions,
-  TreeSelectionMode,
   TreeStoreParameters,
 } from './types';
 
@@ -31,7 +28,7 @@ import { buildItemsState } from './itemIndex';
 const ACCESSOR_REBUILD_WARNING_THRESHOLD = 20;
 
 export class TreeStore<
-  Mode extends TreeSelectionMode | undefined = undefined,
+  Multiple extends boolean | 'opt-in' | undefined = undefined,
   TItem = TreeDefaultItem,
 > extends ReactStore<TreeState<TItem>, TreeStoreContext<TItem>, typeof selectors> {
   public items = new TreeItemsPlugin<TItem>(this);
@@ -55,7 +52,7 @@ export class TreeStore<
   /** Whether the root is mounted. Asynchronous work checks it before changing the tree. */
   public mounted = false;
 
-  constructor(parameters: TreeStoreParameters<Mode, TItem>) {
+  constructor(parameters: TreeStoreParameters<Multiple, TItem>) {
     const {
       disabled,
       items,
@@ -69,9 +66,8 @@ export class TreeStore<
       defaultSelectedItems,
       onSelectedItemsChange,
       onItemSelectionToggle,
-      selectionMode,
+      multiple,
       disableEmptySelection,
-      expandOnClick,
       checkboxSelectionPropagation,
       itemFocusableWhenDisabled,
       onItemHighlighted,
@@ -92,14 +88,10 @@ export class TreeStore<
         ...initialItemsState,
         expandedItems: expandedItems ?? defaultExpandedItems ?? EMPTY_ARRAY,
         expandedItemsProp: expandedItems,
-        expandOnClick,
         transactionThrottle: 0,
-        selectedItems:
-          selectedItems ??
-          defaultSelectedItems ??
-          (selectionMode === 'multiple' ? EMPTY_ARRAY : null),
+        selectedItems: selectedItems ?? defaultSelectedItems ?? (multiple ? EMPTY_ARRAY : null),
         selectedItemsProp: selectedItems,
-        selectionMode,
+        multiple,
         disableEmptySelection,
         checkboxSelectionPropagation,
         focusedItemId: null,
@@ -107,7 +99,6 @@ export class TreeStore<
         itemFocusableWhenDisabled,
         direction,
         animatingGroups: EMPTY_OBJECT,
-        activeLinkCounts: EMPTY_OBJECT,
         hasItemsChangeHandler: false,
         hasItemSelectionToggleHandler: false,
         statusChange: null,
@@ -182,8 +173,8 @@ export class TreeStore<
     );
 
     void this.observe(
-      (state: TreeState<TItem>) => state.selectionMode,
-      this.selection.handleSelectionModeChange,
+      (state: TreeState<TItem>) => state.multiple,
+      this.selection.handleMultipleChange,
     );
   }
 
@@ -232,19 +223,6 @@ export class TreeStore<
     ...this.selection.actions,
     ...this.interaction.actions,
   };
-
-  /** Adds `delta` to an item's count in a counter lookup, dropping the entry at zero. */
-  public updateItemCount(field: 'activeLinkCounts', itemId: TreeItemId, delta: number): void {
-    const key = getItemIdKey(itemId);
-    const count = (this.state[field][key] ?? 0) + delta;
-    const next = { ...this.state[field] };
-    if (count > 0) {
-      next[key] = count;
-    } else {
-      delete next[key];
-    }
-    this.set(field, next);
-  }
 
   public getActions = (): TreeRootActions<TItem> => {
     return this.actions;

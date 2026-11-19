@@ -4,7 +4,6 @@ import { REASONS } from '../../internals/reasons';
 import type {
   TreeItemId,
   TreeRootItemsChangeEventReason,
-  TreeSelectionMode,
   TreeState,
   TreeItemTransaction,
 } from '../store/types';
@@ -20,14 +19,14 @@ import type { TreeItemsProposal } from '../store/itemsProposals';
 import { areItemModelsEquivalent } from '../utils/areItemModelsEquivalent';
 
 export class TreeItemMutationPlugin<TItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   /** The changes proposed to a parent that controls `items`. */
   private proposals = new TreeItemsProposals<TItem>((items, expected) =>
     this.matchesItemModels(items, expected),
   );
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 

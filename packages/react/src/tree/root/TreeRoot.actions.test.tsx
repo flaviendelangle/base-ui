@@ -36,7 +36,7 @@ async function mountTree(props?: {
       <Tree.List>
         {(item: Item) => (
           <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-            <Tree.ItemContent>{item.label}</Tree.ItemContent>
+            {item.label}
           </Tree.Item>
         )}
       </Tree.List>
@@ -46,7 +46,7 @@ async function mountTree(props?: {
 }
 
 function renderedItemIds(): string[] {
-  return screen.getAllByRole('row').map((element) => element.dataset.itemId!);
+  return screen.getAllByRole('treeitem').map((element) => element.dataset.itemId!);
 }
 
 describe('Tree actionsRef', () => {
@@ -147,11 +147,7 @@ describe('Tree.Empty', () => {
     return (
       <Tree.Root items={props.items}>
         <Tree.List>
-          {(item: Item) => (
-            <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent />
-            </Tree.Item>
-          )}
+          {(item: Item) => <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}></Tree.Item>}
         </Tree.List>
         <Tree.Empty data-testid="empty">Nothing here</Tree.Empty>
       </Tree.Root>
@@ -183,7 +179,7 @@ describe('Tree.Empty', () => {
   });
 });
 
-describe('Tree.ItemCheckboxIndicator', () => {
+describe('Tree.CheckboxItemIndicator', () => {
   function CheckboxTree(props: { keepMounted?: boolean | undefined }) {
     const actionsRef = React.useRef<Tree.Root.Actions<Item> | null>(null);
     return (
@@ -193,19 +189,15 @@ describe('Tree.ItemCheckboxIndicator', () => {
           data-testid="select-a"
           onClick={() => actionsRef.current!.setItemSelection('a', true)}
         />
-        <Tree.Root defaultItems={ITEMS} selectionMode="multiple" actionsRef={actionsRef}>
+        <Tree.Root defaultItems={ITEMS} multiple actionsRef={actionsRef}>
           <Tree.List>
             {(item: Item) => (
-              <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>
-                  <Tree.ItemCheckbox>
-                    <Tree.ItemCheckboxIndicator
-                      keepMounted={props.keepMounted}
-                      data-testid={`indicator-${item.id}`}
-                    />
-                  </Tree.ItemCheckbox>
-                </Tree.ItemContent>
-              </Tree.Item>
+              <Tree.CheckboxItem itemId={item.id} data-testid={`item-${item.id}`}>
+                <Tree.CheckboxItemIndicator
+                  keepMounted={props.keepMounted}
+                  data-testid={`indicator-${item.id}`}
+                />
+              </Tree.CheckboxItem>
             )}
           </Tree.List>
         </Tree.Root>

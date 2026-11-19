@@ -26,7 +26,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
     it('should move DOM focus to a modifier-clicked item', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }, { id: '3' }],
-        selectionMode: 'multiple',
+        multiple: true,
       });
 
       act(() => view.getItemRoot('1').focus());
@@ -226,7 +226,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }, { id: '3' }],
         selectedItems: ['2', '3'],
-        selectionMode: 'multiple',
+        multiple: true,
       });
 
       expect(view.getItemRoot('1').tabIndex).toBe(-1);
@@ -238,7 +238,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }, { id: '3' }],
         selectedItems: ['1.1', '3'],
-        selectionMode: 'multiple',
+        multiple: true,
       });
 
       expect(view.getItemRoot('1').tabIndex).toBe(-1);
@@ -260,7 +260,7 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       const view = await render({
         items: [{ id: '1' }, { id: '2', children: [{ id: '2.1' }, { id: '2.2' }] }],
         selectedItems: ['2.1', '2.2'],
-        selectionMode: 'multiple',
+        multiple: true,
       });
 
       expect(view.getItemRoot('1').tabIndex).toBe(0);
@@ -521,38 +521,6 @@ describeTree('TreeRoot - Focus', ({ render }) => {
       expect(onItemHighlighted).toHaveBeenCalledTimes(2);
       expect(onItemHighlighted.mock.calls.at(-1)![0]).toBe(undefined);
       expect(onItemHighlighted.mock.calls.at(-1)![1]).toHaveProperty('reason', 'none');
-    });
-  });
-
-  describe('expansion trigger', () => {
-    it('should keep focus on the treeitem when the chevron is pressed', async () => {
-      // The chevron has `tabIndex={-1}`: a native button takes focus on
-      // pointerdown, which parked DOM focus outside the roving tab order.
-      const view = await render({
-        items: [{ id: '1', children: [{ id: '1.1' }] }],
-      });
-
-      const trigger = view.getItemRoot('1').querySelector('button')!;
-      fireEvent.pointerDown(trigger);
-      fireEvent.click(trigger);
-
-      expect(document.activeElement).toBe(view.getItemRoot('1'));
-      expect(view.getFocusedItemId()).toBe('1');
-    });
-
-    it('should report item-press when the chevron focuses the treeitem', async () => {
-      const onItemHighlighted = vi.fn();
-      const view = await render({
-        items: [{ id: '1', children: [{ id: '1.1' }] }],
-        onItemHighlighted,
-      });
-
-      fireEvent.pointerDown(view.getItemExpansionTrigger('1')!);
-
-      expect(onItemHighlighted).toHaveBeenCalledWith(
-        '1',
-        expect.objectContaining({ reason: 'item-press' }),
-      );
     });
   });
 

@@ -17,7 +17,6 @@ import type {
   TreeRootExpansionChangeEventDetails,
   TreeRootSelectionChangeEventReason,
   TreeRootSelectionChangeEventDetails,
-  TreeSelectionMode,
   TreeState,
   TreeStoreContext,
   TreeRootHighlightEventReason,
@@ -45,11 +44,20 @@ const CHECKBOX_SELECTION_PROPAGATION_DISABLED = { parents: false, descendants: f
  */
 export function TreeRoot<
   TItem = TreeDefaultItem,
-  Mode extends TreeSelectionMode | undefined = undefined,
->(componentProps: TreeRoot.Props<TItem, Mode>) {
-  // `TreeRootProps` is distributed by mode for consumers. Inside the generic
-  // implementation all branches share this non-distributed runtime shape.
-  const resolvedProps = componentProps as TreeRootImplementationProps<TItem, Mode>;
+  Multiple extends boolean | 'opt-in' | undefined = undefined,
+>(componentProps: TreeRoot.Props<TItem, Multiple>): React.JSX.Element;
+// A wrapper passing on `TreeRoot.Props<TItem>` gives a union of every `multiple` value, which
+// TypeScript can't infer a single `Multiple` from, since it mixes booleans and a string.
+export function TreeRoot<TItem = TreeDefaultItem>(
+  componentProps: TreeRoot.Props<TItem>,
+): React.JSX.Element;
+export function TreeRoot<TItem = TreeDefaultItem>(componentProps: object) {
+  // `TreeRootProps` is distributed by `multiple` for consumers. Inside the implementation all
+  // branches share this non-distributed runtime shape.
+  const resolvedProps = componentProps as TreeRootImplementationProps<
+    TItem,
+    boolean | 'opt-in' | undefined
+  >;
   const {
     // Data
     disabled = false,
@@ -59,7 +67,6 @@ export function TreeRoot<
     // Expansion
     expandedItems,
     defaultExpandedItems,
-    expandOnClick = false,
     onExpandedItemsChange,
     transactionThrottle = 0,
     onItemExpansionToggle,
@@ -68,7 +75,7 @@ export function TreeRoot<
     defaultSelectedItems,
     onSelectedItemsChange,
     onItemSelectionToggle,
-    selectionMode = 'single' as TreeSelectionMode,
+    multiple = false,
     disableEmptySelection = false,
     checkboxSelectionPropagation,
     // Focus
@@ -112,18 +119,17 @@ export function TreeRoot<
     () => ({ parents: propagateToParents, descendants: propagateToDescendants }),
     [propagateToParents, propagateToDescendants],
   );
-  const effectiveCheckboxSelectionPropagation =
-    selectionMode === 'multiple'
-      ? multipleCheckboxSelectionPropagation
-      : CHECKBOX_SELECTION_PROPAGATION_DISABLED;
+  const effectiveCheckboxSelectionPropagation = multiple
+    ? multipleCheckboxSelectionPropagation
+    : CHECKBOX_SELECTION_PROPAGATION_DISABLED;
 
   if (process.env.NODE_ENV !== 'production') {
     if (
-      selectionMode !== 'multiple' &&
+      !multiple &&
       (checkboxSelectionPropagation?.parents || checkboxSelectionPropagation?.descendants)
     ) {
       warn(
-        `The \`checkboxSelectionPropagation\` prop has no effect when \`selectionMode="${selectionMode}"\`. Use \`selectionMode="multiple"\` to enable selection propagation.`,
+        'The `checkboxSelectionPropagation` prop has no effect without `multiple`. Set `multiple` to enable selection propagation.',
       );
     }
   }
@@ -136,21 +142,20 @@ export function TreeRoot<
   }
 
   const store = useRefWithInit(() => {
-    const created = new TreeStore<Mode, TItem>({
+    const created = new TreeStore<boolean | 'opt-in' | undefined, TItem>({
       disabled,
       items: itemsControlled ? itemData : undefined,
       defaultItems: itemsControlled ? undefined : itemData,
       itemCollection,
       expandedItems,
       defaultExpandedItems,
-      expandOnClick,
       onExpandedItemsChange,
       onItemExpansionToggle,
       selectedItems,
       defaultSelectedItems,
       onSelectedItemsChange,
       onItemSelectionToggle,
-      selectionMode,
+      multiple,
       disableEmptySelection,
       checkboxSelectionPropagation: effectiveCheckboxSelectionPropagation,
       itemFocusableWhenDisabled,
@@ -177,9 +182,8 @@ export function TreeRoot<
     disabled,
     itemsProp: itemsControlled ? itemData : undefined,
     itemCollection,
-    expandOnClick,
     transactionThrottle,
-    selectionMode,
+    multiple,
     disableEmptySelection,
     checkboxSelectionPropagation: effectiveCheckboxSelectionPropagation,
     itemFocusableWhenDisabled,
@@ -277,12 +281,6 @@ interface TreeRootOwnProps<TItem> {
    */
   transactionThrottle?: number | undefined;
   /**
-   * Whether clicking anywhere on an item row toggles expansion.
-   * When `false`, clicking the row does not toggle expansion; clicking its expansion trigger does.
-   * @default false
-   */
-  expandOnClick?: boolean | undefined;
-  /**
    * Whether the user is prevented from deselecting the last selected item.
    * An empty initial or controlled selection is still allowed.
    * @default false
@@ -310,48 +308,58 @@ interface TreeRootOwnProps<TItem> {
   itemFocusableWhenDisabled?: boolean | undefined;
 }
 
-type TreeRootSelectionModeProps<Mode extends TreeSelectionMode | undefined> = Mode extends undefined
-  ? {
-      /**
-       * The selection mode of the component.
-       * @default 'single'
-       */
-      selectionMode?: 'single' | undefined;
-    }
-  : {
-      /**
-       * The selection mode of the component.
-       * Use `'single'` for single selection, `'multiple'` for multiple selection,
-       * or `'none'` to disable selection.
-       */
-      selectionMode: Mode;
-    };
+type TreeRootMultipleProps<Multiple extends boolean | 'opt-in' | undefined> =
+  Multiple extends undefined
+    ? {
+        /**
+         * Whether multiple items can be selected, and how selecting an item affects the current selection.
+         * - `false`: only one item can be selected.
+         * - `true`: each item is toggled independently.
+         * - `'opt-in'`: selecting an item moves the current selection to it, and users hold a modifier key
+         *   to select more than one item. On touch devices, where there are no modifier keys, it behaves
+         *   like `true`.
+         * @default false
+         */
+        multiple?: false | undefined;
+      }
+    : {
+        /**
+         * Whether multiple items can be selected, and how selecting an item affects the current selection.
+         * - `false`: only one item can be selected.
+         * - `true`: each item is toggled independently.
+         * - `'opt-in'`: selecting an item moves the current selection to it, and users hold a modifier key
+         *   to select more than one item. On touch devices, where there are no modifier keys, it behaves
+         *   like `true`.
+         * @default false
+         */
+        multiple: Multiple;
+      };
 
 /**
- * Public Tree root props, distributed by selection mode so the mode and selection
- * value remain correlated when this type is used by a wrapper component.
+ * Public Tree root props, distributed by `multiple` so it stays correlated with the
+ * selection value when this type is used by a wrapper component.
  */
 export type TreeRootProps<
   TItem = TreeDefaultItem,
-  Mode extends TreeSelectionMode | undefined = TreeSelectionMode | undefined,
-> = Mode extends TreeSelectionMode | undefined
-  ? Omit<TreeStoreParameters<Mode, TItem>, TreeRootInternalKeys | TreeRootDefaultedKeys> &
+  Multiple extends boolean | 'opt-in' | undefined = boolean | 'opt-in' | undefined,
+> = Multiple extends boolean | 'opt-in' | undefined
+  ? Omit<TreeStoreParameters<Multiple, TItem>, TreeRootInternalKeys | TreeRootDefaultedKeys> &
       TreeRootOwnProps<TItem> &
-      TreeRootSelectionModeProps<Mode>
+      TreeRootMultipleProps<Multiple>
   : never;
 
-type TreeRootImplementationProps<TItem, Mode extends TreeSelectionMode | undefined> = Omit<
-  TreeStoreParameters<Mode, TItem>,
+type TreeRootImplementationProps<TItem, Multiple extends boolean | 'opt-in' | undefined> = Omit<
+  TreeStoreParameters<Multiple, TItem>,
   TreeRootInternalKeys | TreeRootDefaultedKeys
 > &
-  TreeRootOwnProps<TItem> & { selectionMode?: Mode | undefined };
+  TreeRootOwnProps<TItem> & { multiple?: Multiple | undefined };
 
 export namespace TreeRoot {
   export type State = TreeRootState;
   export type Props<
     TItem = TreeDefaultItem,
-    Mode extends TreeSelectionMode | undefined = TreeSelectionMode | undefined,
-  > = TreeRootProps<TItem, Mode>;
+    Multiple extends boolean | 'opt-in' | undefined = boolean | 'opt-in' | undefined,
+  > = TreeRootProps<TItem, Multiple>;
   export type Actions<TItem = TreeDefaultItem> = TreeRootActions<TItem>;
   export type ExpansionChangeEventReason = TreeRootExpansionChangeEventReason;
   export type ExpansionChangeEventDetails = TreeRootExpansionChangeEventDetails;

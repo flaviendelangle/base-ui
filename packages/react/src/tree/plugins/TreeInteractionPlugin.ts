@@ -1,8 +1,8 @@
 import type * as React from 'react';
 import { AnimationFrame } from '@base-ui/utils/useAnimationFrame';
-import { EMPTY_ARRAY } from '@base-ui/utils/empty';
-import { activeElement, contains, getTarget } from '@base-ui/utils/shadowDom';
-import { ownerDocument, ownerWindow } from '@base-ui/utils/owner';
+import { platform } from '@base-ui/utils/platform';
+import { activeElement, closest, contains, getTarget } from '@base-ui/utils/shadowDom';
+import { ownerDocument } from '@base-ui/utils/owner';
 import { isElement } from '@floating-ui/utils/dom';
 import { createGenericEventDetails } from '../../internals/createBaseUIEventDetails';
 import type { ReasonToEvent } from '../../internals/createBaseUIEventDetails';
@@ -12,17 +12,14 @@ import type { MaybeBaseUIEvent } from '../../internals/types';
 import type {
   TreeItemId,
   TreeRootHighlightEventReason,
-  TreeSelectionMode,
+  TreeRootSelectionChangeEventReason,
   TreeDefaultItem,
   TreeState,
 } from '../store/types';
 
 import type { TreeStore } from '../store/TreeStore';
 import { selectors } from '../store/selectors';
-import { isWithinInteractiveContent } from '../utils/isWithinInteractiveContent';
-import { isControlFocusable, sortInComposedOrder } from '../utils/focusability';
-import { getItemIdKey, ITEM_KEY_ATTRIBUTE } from '../utils/itemIdKey';
-import type { TreeItemControlKeys } from '../item-control/TreeItemControl';
+import { getItemIdKey, ITEM_KEY_ATTRIBUTE, ITEM_SELECTOR } from '../utils/itemIdKey';
 import {
   getFirstNavigableChild,
   getFirstNavigableItem,
@@ -33,12 +30,6 @@ import {
 
 /** Where DOM focus sits relative to the tree container. */
 export type FocusLocation = 'lost' | 'inside' | 'outside';
-
-interface RegisteredControl {
-  element: HTMLElement;
-  getKeys: () => Required<TreeItemControlKeys>;
-  isDisabled: () => boolean;
-}
 
 let typeaheadCollator: Intl.Collator | undefined;
 
@@ -56,45 +47,12 @@ function labelStartsWith(label: string, query: string): boolean {
   return typeaheadCollator.compare(label.slice(0, query.length), query) === 0;
 }
 
-const CONTROL_NAVIGATION_KEYS = new Set([
-  'ArrowLeft',
-  'ArrowRight',
-  'ArrowUp',
-  'ArrowDown',
-  'Home',
-  'End',
-  'Escape',
-]);
-
 function isPrintableKey(key: string): boolean {
   return key.length === 1 && !!key.match(/\S/);
 }
 
-/**
- * Whether a horizontal arrow moves the caret of a text field instead of leaving
- * it: the field has a selection, or its caret is away from the edge the arrow
- * moves toward. Inputs without a selection API, such as `email` and `number`,
- * never keep it.
- */
-function keepsHorizontalArrow(element: Element, key: string): boolean {
-  if (element.localName !== 'input' && element.localName !== 'textarea') {
-    return false;
-  }
-  const { selectionStart, selectionEnd, value } = element as HTMLInputElement | HTMLTextAreaElement;
-  if (selectionStart == null) {
-    return false;
-  }
-  if (selectionStart !== selectionEnd) {
-    return true;
-  }
-  // The caret follows the text's direction, which can differ from the tree's.
-  const isRtl = ownerWindow(element).getComputedStyle(element).direction === 'rtl';
-  const forward = key === (isRtl ? 'ArrowLeft' : 'ArrowRight');
-  return forward ? selectionStart < value.length : selectionStart > 0;
-}
-
 export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
-  declare private store: TreeStore<TreeSelectionMode | undefined, TItem>;
+  declare private store: TreeStore<boolean | undefined, TItem>;
 
   /**
    * What moves focus next: the reason, and the keydown or press behind it when
@@ -104,6 +62,9 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   private lastFocusCause: FocusCause = { reason: REASONS.none };
 
   private typeaheadQuery = '';
+
+  /** The pointer type of the last press on a row, so a touch tap can toggle in opt-in mode. */
+  private lastPointerType = '';
 
   private focusRecoveryCleanup: (() => void) | null = null;
 
@@ -115,12 +76,13 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
 
   private focusRecoveryFrame = AnimationFrame.create();
 
-  private controlRecoveryFrame = AnimationFrame.create();
+  /** Clicks that started on an item's expansion indicator, which only expand or collapse it. */
+  private indicatorPresses = new WeakSet<Event>();
 
-  /** Controls registered by the row parts, keyed by item. */
-  private controls = new Map<string, Set<RegisteredControl>>();
+  /** The items rendered as `Tree.CheckboxItem`, whose presses toggle their selection. */
+  private checkboxItems = new Map<string, number>();
 
-  constructor(store: TreeStore<TreeSelectionMode | undefined, TItem>) {
+  constructor(store: TreeStore<boolean | undefined, TItem>) {
     this.store = store;
   }
 
@@ -386,74 +348,7 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     this.focusRecoveryCleanup?.();
     this.focusRecoveryCleanup = null;
     this.focusRecoveryFrame.cancel();
-    this.controlRecoveryFrame.cancel();
   };
-
-  /**
-   * Registers a control rendered inside an item's row so the row's keyboard
-   * navigation can reach it. Returns the cleanup that unregisters it.
-   */
-  public registerControl = (
-    itemId: TreeItemId,
-    element: HTMLElement,
-    getKeys: () => Required<TreeItemControlKeys>,
-    isDisabled: () => boolean,
-  ): (() => void) => {
-    const key = getItemIdKey(itemId);
-    let itemControls = this.controls.get(key);
-    if (itemControls == null) {
-      itemControls = new Set();
-      this.controls.set(key, itemControls);
-    }
-    const control: RegisteredControl = { element, getKeys, isDisabled };
-    itemControls.add(control);
-
-    return () => {
-      itemControls.delete(control);
-      if (itemControls.size === 0 && this.controls.get(key) === itemControls) {
-        this.controls.delete(key);
-      }
-    };
-  };
-
-  /** The registration of `element` among an item's controls. The last registration wins. */
-  private findControl(itemKey: string | null, element: Element): RegisteredControl | undefined {
-    let control: RegisteredControl | undefined;
-    for (const candidate of (itemKey == null ? null : this.controls.get(itemKey)) ?? EMPTY_ARRAY) {
-      if (candidate.element === element) {
-        control = candidate;
-      }
-    }
-    return control;
-  }
-
-  /** The focusable registered controls of an item, in composed tree order. */
-  private getControls(itemId: TreeItemId): RegisteredControl[] {
-    const itemElement = this.store.items.getItemDOMElement(itemId);
-    const itemControls = this.controls.get(getItemIdKey(itemId));
-    if (itemElement == null || itemControls == null) {
-      return [];
-    }
-    return sortInComposedOrder(
-      itemElement,
-      Array.from(itemControls).filter(
-        (control) => !control.isDisabled() && isControlFocusable(control.element, itemElement),
-      ),
-    );
-  }
-
-  /**
-   * Moves focus back to the item once a focused control has left the DOM,
-   * unless something else took focus in the meantime.
-   */
-  public recoverFocusFromRemovedControl(itemId: TreeItemId) {
-    this.scheduleFocusRecovery((_rootElement, focusLocation) => {
-      // Leave focus alone when something already took it deliberately.
-      if (focusLocation === 'lost' && selectors.itemMeta(this.store.state, itemId) != null) {
-        this.focusItem(itemId);
-      }
-    }, this.controlRecoveryFrame);
-  }
 
   public focusItem = (
     itemId: TreeItemId,
@@ -482,121 +377,6 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     focusItem: (itemId: TreeItemId) => this.focusItem(itemId, REASONS.imperativeAction),
     getFocusedItemId: (): TreeItemId | null => selectors.focusedItemId(this.store.state),
   };
-
-  /**
-   * Focuses a control without the browser's focus scroll, which scrolls every
-   * ancestor. The list only scrolls rows into view vertically, so bring the
-   * control into view horizontally.
-   */
-  private focusControl(control: RegisteredControl) {
-    control.element.focus({ preventScroll: true });
-    this.store.items.revealHorizontally(control.element);
-  }
-
-  /**
-   * Keys pressed on a registered control. The control keeps every key it
-   * declares as its own; the remaining navigation keys move through the row and
-   * the tree. Modified keys always stay with the control and the browser.
-   */
-  private handleControlKeyDown(
-    event: React.KeyboardEvent,
-    itemId: TreeItemId,
-    itemElement: HTMLElement,
-    target: Element,
-  ) {
-    if (!CONTROL_NAVIGATION_KEYS.has(event.key)) {
-      return;
-    }
-    // A disabled control that stays focusable prevents every key to block its
-    // activation. Navigation keys still apply to it.
-    const disabledFocusable = target.getAttribute('aria-disabled') === 'true';
-    if (
-      (event.defaultPrevented && !disabledFocusable) ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey ||
-      event.nativeEvent.isComposing
-    ) {
-      return;
-    }
-
-    const control = this.findControl(getItemIdKey(itemId), target);
-    if (control == null) {
-      return;
-    }
-    // A disabled control can't act on any key, so the navigation keys move
-    // focus away from it, including from one that stays focusable.
-    const unavailable =
-      disabledFocusable ||
-      control.isDisabled() ||
-      !isControlFocusable(control.element, itemElement);
-    const keys: TreeItemControlKeys = unavailable ? {} : control.getKeys();
-    const isRtl = this.store.state.direction === 'rtl';
-    const forwardKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
-    const backwardKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
-
-    switch (event.key) {
-      case forwardKey:
-      case backwardKey: {
-        if (
-          keys.horizontal === 'control' ||
-          (!unavailable && keepsHorizontalArrow(target, event.key))
-        ) {
-          return;
-        }
-        event.preventDefault();
-        const controls = this.getControls(itemId);
-        const index = controls.indexOf(control);
-        // Bounded: backward from the first control returns to the row, forward
-        // from the last one stays put.
-        if (event.key === backwardKey) {
-          if (index > 0) {
-            this.focusControl(controls[index - 1]);
-          } else {
-            itemElement.focus({ preventScroll: true });
-          }
-        } else if (index < controls.length - 1) {
-          this.focusControl(controls[index + 1]);
-        }
-        return;
-      }
-      case 'ArrowDown':
-      case 'ArrowUp': {
-        // The row's own handling, as no modifier is held.
-        if (keys.vertical !== 'control') {
-          this.handleKeyDown(event, itemId);
-        }
-        return;
-      }
-      case 'Home':
-      case 'End': {
-        if (keys.homeEnd === 'control') {
-          return;
-        }
-        event.preventDefault();
-        const controls = this.getControls(itemId);
-        if (controls.length === 0) {
-          itemElement.focus({ preventScroll: true });
-          return;
-        }
-        this.focusControl(event.key === 'Home' ? controls[0] : controls[controls.length - 1]);
-        return;
-      }
-      case 'Escape': {
-        if (keys.escape === 'control') {
-          return;
-        }
-        // Consumed so an enclosing dialog stays open; Escape on the row itself
-        // is left to the containing UI.
-        event.preventDefault();
-        event.stopPropagation();
-        itemElement.focus({ preventScroll: true });
-        return;
-      }
-      default:
-    }
-  }
 
   private getFirstItemMatchingTypeaheadQuery(
     itemId: TreeItemId,
@@ -646,13 +426,26 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   }
 
   private handleKeyDown(event: React.KeyboardEvent, itemId: TreeItemId) {
-    if (event.altKey) {
+    const key = event.key;
+    const isMulti = this.store.state.multiple !== false;
+    const optIn = this.store.state.multiple === 'opt-in';
+    // macOS reserves Ctrl+Arrow and Ctrl/Cmd+Space, so Option toggles an item, and moves focus
+    // without moving the selection, there instead. Option+Space types a non-breaking space, so
+    // match the physical key.
+    const optionSpace = platform.os.mac && event.altKey && event.code === 'Space';
+    const optionArrow =
+      platform.os.mac && event.altKey && (key === 'ArrowDown' || key === 'ArrowUp');
+    if (event.altKey && !(isMulti && optionSpace) && !(optIn && optionArrow)) {
       return;
     }
 
     const ctrlPressed = event.ctrlKey || event.metaKey;
-    const key = event.key;
-    const isMulti = this.store.state.selectionMode === 'multiple';
+    // The modifier that toggles an item, or moves focus without moving the selection.
+    const toggleModifier = platform.os.mac
+      ? event.altKey && !ctrlPressed
+      : ctrlPressed && !event.altKey;
+    // Space and Enter toggle a checkbox item, whatever the selection mode.
+    const checkboxItem = this.isCheckboxItem(itemId);
     const isRtl = this.store.state.direction === 'rtl';
     const expandKey = isRtl ? 'ArrowLeft' : 'ArrowRight';
     const collapseKey = isRtl ? 'ArrowRight' : 'ArrowLeft';
@@ -668,52 +461,51 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     // Select the item when pressing "Space" — unless a typeahead is in progress,
     // where the Space belongs to a multi-word label ("New Folder") and falls
     // through to the typeahead branch below.
-    if (key === ' ' && this.typeaheadQuery === '') {
+    if ((key === ' ' || optionSpace) && this.typeaheadQuery === '') {
       // Always preventDefault, even for non-selectable items, so the page doesn't scroll.
       event.preventDefault();
       if (selectors.canItemBeSelected(this.store.state, itemId)) {
         if (isMulti && event.shiftKey) {
           this.store.selection.expandSelectionRange(itemId, REASONS.keyboard, event.nativeEvent);
+        } else if (optIn && !toggleModifier && !checkboxItem) {
+          // Without a modifier, opt-in mode moves the selection to the item.
+          this.store.selection.setItemSelection({
+            itemId,
+            shouldBeSelected: true,
+            reason: REASONS.itemPress,
+            event: event.nativeEvent,
+          });
         } else {
           // Activating a row is a press, whichever input does it.
-          this.store.selection.setItemChecked(
-            itemId,
-            undefined,
-            REASONS.itemPress,
-            event.nativeEvent,
-          );
+          this.toggleItem(itemId, REASONS.itemPress, event.nativeEvent);
         }
       }
     } else if (key === 'Enter') {
-      if (this.store.expansion.toggleItemExpansion(itemId, REASONS.itemPress, event.nativeEvent)) {
+      // The APG tree's default action: select the item, as Space does. An item that
+      // can't be selected expands or collapses instead.
+      if (selectors.canItemBeSelected(this.store.state, itemId)) {
         event.preventDefault();
-      } else if (selectors.canItemBeSelected(this.store.state, itemId)) {
-        if (isMulti) {
-          event.preventDefault();
+        if (optIn && !toggleModifier && !checkboxItem) {
           this.store.selection.setItemSelection({
             itemId,
-            keepExistingSelection: true,
+            shouldBeSelected: true,
             reason: REASONS.itemPress,
             event: event.nativeEvent,
           });
-        } else if (!selectors.isItemSelected(this.store.state, itemId)) {
+        } else if (isMulti || checkboxItem) {
+          this.toggleItem(itemId, REASONS.itemPress, event.nativeEvent);
+        } else {
           this.store.selection.setItemSelection({
             itemId,
+            shouldBeSelected: true,
             reason: REASONS.itemPress,
             event: event.nativeEvent,
           });
-          event.preventDefault();
         }
-      } else if (!selectors.isItemDisabled(this.store.state, itemId)) {
-        // Without another action, Enter follows the item's link, as on a link
-        // that has focus itself. A disabled item doesn't forward it.
-        const link = this.getControls(itemId).find(
-          (control) => control.element.localName === 'a' && control.element.hasAttribute('href'),
-        );
-        if (link != null) {
-          event.preventDefault();
-          (link.element as HTMLElement).click();
-        }
+      } else if (
+        this.store.expansion.toggleItemExpansion(itemId, REASONS.itemPress, event.nativeEvent)
+      ) {
+        event.preventDefault();
       }
     } else if (key === 'ArrowDown' || key === 'ArrowUp') {
       event.preventDefault();
@@ -730,6 +522,10 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
             REASONS.keyboard,
             event.nativeEvent,
           );
+        } else if (optIn && !ctrlPressed && !event.altKey) {
+          // In opt-in mode, the selection follows focus (the APG alternative multiple selection
+          // model). Ctrl+Arrow, or Option+Arrow on macOS, moves focus alone.
+          this.store.selection.moveSelectionTo(targetItem, REASONS.keyboard, event.nativeEvent);
         }
       }
     } else if (key === expandKey) {
@@ -739,15 +535,10 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
       const expanded = selectors.isItemExpanded(this.store.state, itemId);
       if (!expanded && this.store.expansion.canToggleItemExpansion(itemId)) {
         this.store.expansion.setItemExpansion(itemId, true, REASONS.keyboard, event.nativeEvent);
-      } else {
-        const controls = this.getControls(itemId);
-        if (controls.length > 0) {
-          this.focusControl(controls[0]);
-        } else if (expanded) {
-          const firstFocusableChild = getFirstNavigableChild(this.store.state, itemId);
-          if (firstFocusableChild != null) {
-            this.focusItem(firstFocusableChild, REASONS.keyboard, event.nativeEvent);
-          }
+      } else if (expanded) {
+        const firstFocusableChild = getFirstNavigableChild(this.store.state, itemId);
+        if (firstFocusableChild != null) {
+          this.focusItem(firstFocusableChild, REASONS.keyboard, event.nativeEvent);
         }
       }
       event.preventDefault();
@@ -850,46 +641,17 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
   }
 
   /**
-   * Whether the event comes from interactive content of the row, such as a registered
-   * control, which owns it: it doesn't select, expand, or sort the item.
-   */
-  private isEventFromInteractiveDescendant(event: React.SyntheticEvent): boolean {
-    const target = getTarget(event.nativeEvent);
-    const itemKey = (event.currentTarget as Element).getAttribute(ITEM_KEY_ATTRIBUTE);
-    return isElement(target) && this.isWithinControl(itemKey, target, event.currentTarget);
-  }
-
-  private isWithinControl(itemKey: string | null, target: Element, container: Element): boolean {
-    return isWithinInteractiveContent(
-      target,
-      container,
-      (node) => this.findControl(itemKey, node) != null,
-    );
-  }
-
-  /**
-   * Whether a press on `target` belongs to interactive content of the item below
-   * `container`, such as a registered control, rather than to the item.
-   */
-  public isPressOnItemControl(itemId: TreeItemId, target: Element, container: Element): boolean {
-    return this.isWithinControl(getItemIdKey(itemId), target, container);
-  }
-
-  /**
    * Whether the event bubbled through the row from content rendered outside it,
    * such as a portaled popup, which the row doesn't own.
    */
   private isEventFromOutsideItem(event: React.SyntheticEvent): boolean {
     const target = getTarget(event.nativeEvent);
-    return isElement(target) && !contains(event.currentTarget as Element, target);
-  }
-
-  /**
-   * Whether a row event belongs to other content: rendered outside the row, or
-   * inside a control or nested widget, including a nested Tree's row.
-   */
-  public isEventForeignToItem(event: React.SyntheticEvent): boolean {
-    return this.isEventFromOutsideItem(event) || this.isEventFromInteractiveDescendant(event);
+    // An item of a nested tree inside this one owns its own events.
+    return (
+      isElement(target) &&
+      (!contains(event.currentTarget as Element, target) ||
+        closest(target, ITEM_SELECTOR) !== event.currentTarget)
+    );
   }
 
   private readonly handleItemFocus = (event: React.FocusEvent) => {
@@ -945,12 +707,6 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
     // focus next — tabbing to another row reported `item-press`.
     if (!itemDisabled) {
       this.setPressFocusCause(event.nativeEvent);
-    }
-
-    // The control, or the label editor's input, owns its press, such as a
-    // shift-click selecting text.
-    if (this.isEventFromInteractiveDescendant(event)) {
-      return;
     }
 
     const hasModifier = event.shiftKey || event.ctrlKey || event.metaKey;
@@ -1021,21 +777,59 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
         return;
       }
       const itemElement = this.store.items.getItemDOMElement(focusedId);
+      // Keys from other content, such as a popup rendered from the item, stay with it.
       if (target === itemElement) {
         this.handleKeyDown(event, focusedId);
-        return;
-      }
-      // Registered controls share the row's navigation keys. Anything else, such
-      // as popups rendered from the row or unregistered elements, keeps all of
-      // its keys.
-      if (itemElement != null && contains(itemElement, target)) {
-        this.handleControlKeyDown(event, focusedId, itemElement, target);
       }
     },
   };
 
+  /** Marks a click that started on an item's expansion indicator, before it bubbles to the item. */
+  public markIndicatorPress = (event: React.MouseEvent): void => {
+    this.indicatorPresses.add(event.nativeEvent);
+  };
+
+  /** Records that `itemId` renders as a checkbox item. Returns the cleanup. */
+  public registerCheckboxItem = (itemId: TreeItemId): (() => void) => {
+    const key = getItemIdKey(itemId);
+    this.checkboxItems.set(key, (this.checkboxItems.get(key) ?? 0) + 1);
+    return () => {
+      const count = (this.checkboxItems.get(key) ?? 1) - 1;
+      if (count > 0) {
+        this.checkboxItems.set(key, count);
+      } else {
+        this.checkboxItems.delete(key);
+      }
+    };
+  };
+
+  /**
+   * Toggles an item's selection, keeping the rest in a multiple selection. Only a checkbox item
+   * propagates the change to its parents and descendants, as `checkboxSelectionPropagation` sets.
+   */
+  private toggleItem(
+    itemId: TreeItemId,
+    reason: TreeRootSelectionChangeEventReason,
+    event: Event,
+  ): void {
+    if (this.isCheckboxItem(itemId)) {
+      this.store.selection.setItemChecked(itemId, undefined, reason, event);
+      return;
+    }
+    this.store.selection.setItemSelection({
+      itemId,
+      keepExistingSelection: this.store.state.multiple !== false,
+      reason,
+      event,
+    });
+  }
+
+  private isCheckboxItem(itemId: TreeItemId): boolean {
+    return this.checkboxItems.has(getItemIdKey(itemId));
+  }
+
   private readonly handleItemClick = (event: React.MouseEvent): void => {
-    if (this.isEventFromOutsideItem(event) || this.isEventFromInteractiveDescendant(event)) {
+    if (this.isEventFromOutsideItem(event)) {
       return;
     }
     const itemId = this.getItemIdFromEvent(event);
@@ -1048,36 +842,66 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
       this.store.set('focusedItemId', itemId);
     }
 
+    const { multiple } = this.store.state;
+    const ctrlPressed = event.ctrlKey || event.metaKey;
+    // The second click of a double-click must not toggle the item straight back.
+    const firstClick = event.detail <= 1;
+
+    // The expansion indicator only expands or collapses its item, or with Alt (Option on
+    // macOS), its whole subtree.
+    if (this.indicatorPresses.has(event.nativeEvent)) {
+      if (!firstClick) {
+        return;
+      }
+      if (event.altKey) {
+        this.store.expansion.toggleSubtreeExpansion(
+          itemId,
+          REASONS.triggerPress,
+          event.nativeEvent,
+        );
+      } else {
+        this.store.expansion.toggleItemExpansion(itemId, REASONS.triggerPress, event.nativeEvent);
+      }
+      return;
+    }
+
+    const checkboxItem = this.isCheckboxItem(itemId);
     if (selectors.canItemBeSelected(this.store.state, itemId)) {
-      const isMulti = this.store.state.selectionMode === 'multiple';
-      if (isMulti && (event.ctrlKey || event.metaKey)) {
+      if (multiple !== false && event.shiftKey) {
+        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
+      } else if (checkboxItem) {
+        // Like a checkbox, a checkbox item toggles itself and keeps the rest of the selection.
+        this.toggleItem(itemId, REASONS.itemPress, event.nativeEvent);
+      } else if (
+        // Like Listbox's `multiple`, each press toggles the item and keeps the rest. `'opt-in'`
+        // toggles with Ctrl/Cmd, or on touch, which has no modifier keys.
+        multiple === true ||
+        (multiple === 'opt-in' && (ctrlPressed || this.lastPointerType === 'touch'))
+      ) {
+        this.toggleItem(itemId, REASONS.itemPress, event.nativeEvent);
+      } else {
         this.store.selection.setItemSelection({
           itemId,
-          keepExistingSelection: true,
+          shouldBeSelected: true,
           reason: REASONS.itemPress,
           event: event.nativeEvent,
         });
-        return;
       }
-      if (isMulti && event.shiftKey) {
-        this.store.selection.expandSelectionRange(itemId, REASONS.itemPress, event.nativeEvent);
-        return;
-      }
-      this.store.selection.setItemSelection({
-        itemId,
-        shouldBeSelected: true,
-        reason: REASONS.itemPress,
-        event: event.nativeEvent,
-      });
     }
 
-    // The second click of a double-click must not toggle the row straight back.
-    if (this.store.state.expandOnClick && event.detail <= 1) {
+    // A plain press on a parent item also expands or collapses it, as in the APG file directory
+    // tree. A press on a checkbox item, or one that extends the selection, only selects.
+    if (!checkboxItem && !event.shiftKey && !ctrlPressed && firstClick) {
       this.store.expansion.toggleItemExpansion(itemId, REASONS.itemPress, event.nativeEvent);
     }
   };
 
+  private readonly handleItemPointerDown = (event: React.PointerEvent) => {
+    this.lastPointerType = event.pointerType;
+  };
+
   public readonly itemEventHandlers = {
+    onPointerDown: this.handleItemPointerDown,
     onMouseDown: this.handleItemMouseDown,
     onClick: this.handleItemClick,
     onFocus: this.handleItemFocus,
