@@ -69,6 +69,7 @@
     "./toolbar": "./src/toolbar/index.ts",
     "./tooltip": "./src/tooltip/index.ts",
     "./tree": "./src/tree/index.ts",
+    "./tree-grid": "./src/tree-grid/index.ts",
     "./types": "./src/types/index.ts",
     "./unstable-use-media-query": "./src/unstable-use-media-query/index.ts",
     "./use-render": "./src/use-render/index.ts",

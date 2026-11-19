@@ -1,0 +1,388 @@
+# Tree Grid
+
+<Subtitle>
+  A hierarchical grid of rows that expand to reveal their children, with interactive controls inside
+  rows.
+</Subtitle>
+
+<Meta
+  name="description"
+  content="A high-quality, unstyled React tree grid component for interactive hierarchical data."
+/>
+
+> **Note:** Tree Grid is currently in preview. Its API may change before it becomes stable.
+
+import { DemoTreeGridHero } from './demos/hero';
+
+<DemoTreeGridHero />
+
+## Usage guidelines
+
+- **Avoid trees for site navigation**: Prefer links grouped under disclosure buttons, such as [Collapsible](/react/components/collapsible). The [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/patterns/treeview/examples/treeview-navigation/) caution against trees for site navigation. If you use one, follow the [links](#links) example.
+- **Give the tree an accessible name**: Prefer `<TreeGrid.Label>`, or provide an `aria-label` on `<TreeGrid.List>` when no visible label is rendered.
+- **Name every control**: Label `<TreeGrid.Input>` with a visible label or an `aria-label`, and give icon-only custom controls an `aria-label`. The built-in checkbox, expansion trigger, and clear button have English names that include the item label, such as "Expand Documents": pass your own `aria-label` to translate them.
+- **Support touch screen readers**: VoiceOver on iOS and TalkBack users can't press arrow keys. Render `<TreeGrid.ItemExpansionTrigger>`, and `<TreeGrid.ItemCheckbox>` with checkbox selection, so they can expand and select items by tapping.
+
+## Anatomy
+
+Import the component and assemble its parts:
+
+```jsx title="Anatomy"
+import { TreeGrid } from '@base-ui/react/tree-grid';
+
+<TreeGrid.FilterProvider>
+  <TreeGrid.Root>
+    <TreeGrid.Label />
+    <TreeGrid.Input />
+    <TreeGrid.Clear />
+    <TreeGrid.Status />
+    <TreeGrid.Empty />
+
+    <TreeGrid.List>
+      {(item) => (
+        <>
+          <TreeGrid.Item itemId={item.id}>
+            <TreeGrid.ItemContent>
+              <TreeGrid.ItemIndentGuide />
+              <TreeGrid.ItemExpansionTrigger />
+              <TreeGrid.ItemCheckbox>
+                <TreeGrid.ItemCheckboxIndicator />
+              </TreeGrid.ItemCheckbox>
+              <TreeGrid.ItemGroupIndicator />
+              <TreeGrid.ItemButton />
+              <TreeGrid.ItemInput />
+              <TreeGrid.ItemLink />
+              <TreeGrid.ItemControl />
+            </TreeGrid.ItemContent>
+          </TreeGrid.Item>
+          <TreeGrid.GroupTransition />
+        </>
+      )}
+    </TreeGrid.List>
+  </TreeGrid.Root>
+</TreeGrid.FilterProvider>;
+```
+
+`<TreeGrid.FilterProvider>` wraps `<TreeGrid.Root>` to add filtering, so trees without it don't bundle the filter. Adding or removing it remounts the tree, so keep it rendered and pass an empty `value` to turn filtering off.
+
+## Item models
+
+To add fields to the standard item, extend `TreeGrid.DefaultItem` and redeclare `children` with your own type. Otherwise, nested items only need the standard fields, while callbacks type them as your model.
+
+```tsx title="Extending the standard item"
+interface Folder extends TreeGrid.DefaultItem {
+  color: string;
+  children?: Folder[];
+}
+```
+
+For any other item model, use `TreeGrid.createItems()`. Supply `setChildren` for nested edits and managed reparenting.
+
+```tsx title="Custom item model"
+const items = TreeGrid.createItems(nodes, {
+  getId: (node) => node.key,
+  getLabel: (node) => node.name,
+  getChildren: (node) => node.nodes,
+  setChildren: (node, children) => ({ ...node, nodes: [...children] }),
+});
+
+<TreeGrid.Root items={items}>
+  <TreeGrid.List<Node>>{(node) => <Row node={node} />}</TreeGrid.List>
+</TreeGrid.Root>;
+```
+
+The root infers the item type from `items`. Parts outside the root's props, such as `<TreeGrid.List>` and the providers, can't see it, so they type items as `any` unless you pass the type, as `<TreeGrid.List<Node>>` does.
+
+## Controls inside items
+
+Render controls with `<TreeGrid.ItemButton>`, `<TreeGrid.ItemInput>`, `<TreeGrid.ItemLink>`, or `<TreeGrid.ItemControl>` to include them in the item's keyboard navigation. `<TreeGrid.ItemCheckbox>` is included automatically. See the [item controls example](#item-controls).
+
+```tsx title="Controls inside an item"
+<TreeGrid.Item itemId={task.id} aria-description="Press Tab to reach the task controls">
+  <TreeGrid.ItemContent>
+    <TreeGrid.ItemLink href={task.url}>{task.label}</TreeGrid.ItemLink>
+    <TreeGrid.ItemInput aria-label={`Estimate for ${task.label}`} />
+    <TreeGrid.ItemButton aria-label={`Remove ${task.label}`}>
+      <RemoveIcon />
+    </TreeGrid.ItemButton>
+  </TreeGrid.ItemContent>
+</TreeGrid.Item>
+```
+
+A focused row announces its label, not its controls or the rest of its content.
+
+- Describe how to reach the controls with `aria-description` on the items that have them, or once on `<TreeGrid.List>` when most items do.
+- Pass secondary content, such as a count or a status, to `aria-describedby` on `<TreeGrid.Item>`.
+
+Base UI doesn't ship these strings, so translate them with the rest of your interface.
+
+To use a popup trigger as a control, pass it to the `render` prop of `<TreeGrid.ItemButton>`:
+
+```tsx title="Using popups with item controls"
+<Menu.Root>
+  {/* @highlight */}
+  <TreeGrid.ItemButton render={<Menu.Trigger />} aria-label={`Actions for ${item.label}`} />
+  <Menu.Portal>{/* Compose the rest of the menu */}</Menu.Portal>
+</Menu.Root>
+```
+
+Controls keep the keys they use, such as the caret keys of a text input or the up and down arrows of a popup trigger. Typeahead characters, <kbd>Space</kbd>, and <kbd>Enter</kbd> always belong to the control. Use the `controlKeys` prop to change which keys a control keeps. `<TreeGrid.ItemControl>` keeps every key by default, so assign the key groups the tree should handle. For example, a custom rating widget that only uses the left and right arrows:
+
+```tsx title="Custom control"
+<TreeGrid.ItemControl
+  render={<RatingInput />}
+  controlKeys={{ vertical: 'tree', homeEnd: 'tree', escape: 'tree' }}
+/>
+```
+
+The part must render the element that receives focus. Other focusable elements inside an item keep all of their keys, stay out of the item's navigation, and add a tab stop to every item.
+
+## Examples
+
+### Checkbox selection
+
+Use `<TreeGrid.ItemCheckbox>` to select an item with a checkbox. Set `multiple` on `<TreeGrid.Root>` to allow more than one item to be selected.
+
+import { DemoTreeGridCheckboxItems } from './demos/checkbox-items';
+
+<DemoTreeGridCheckboxItems />
+
+### Selection propagation
+
+The `checkboxSelectionPropagation` prop controls how checkbox selection affects related items. With `descendants`, selecting a parent selects its whole branch. With `parents`, selecting all selectable children selects their parent. Both are enabled by default with `multiple`.
+
+import { DemoTreeGridSelectionPropagation } from './demos/selection-propagation';
+
+<DemoTreeGridSelectionPropagation />
+
+### Select all
+
+With `multiple`, use `TreeGrid.SELECTION_ALL` to select every selectable item without listing its ID.
+
+```tsx
+<TreeGrid.Root items={items} multiple defaultSelectedItems={TreeGrid.SELECTION_ALL}>
+  <TreeGrid.List>{renderItem}</TreeGrid.List>
+</TreeGrid.Root>
+```
+
+### Links
+
+Render `<TreeGrid.ItemLink>` inside `<TreeGrid.ItemContent>` to link an item to another page, and set `active` on the current page's link. On an item that can't be selected, <kbd>Enter</kbd> follows the link. Tabbing into the tree focuses the current page's item, unless an item is selected or another item had focus before.
+
+import { DemoTreeGridLinkItems } from './demos/link-items';
+
+<DemoTreeGridLinkItems />
+
+### Item controls
+
+Each task combines a link, an estimate input, a switch, and a remove button. Press <kbd>Tab</kbd> or <kbd>Arrow Right</kbd> from a task to reach them.
+
+import { DemoTreeGridItemControls } from './demos/item-controls';
+
+<DemoTreeGridItemControls />
+
+### Animated expansion
+
+Render `<TreeGrid.GroupTransition>` after each item to animate expanding and collapsing branches. Use the `--tree-grid-group-transition-height` CSS variable with the `data-starting-style` and `data-ending-style` attributes to animate the group's height.
+
+import { DemoTreeGridAnimated } from './demos/animated';
+
+<DemoTreeGridAnimated />
+
+### Filtering
+
+Wrap `<TreeGrid.Root>` in `<TreeGrid.FilterProvider>` and add `<TreeGrid.Input>` inside the root.
+Type to narrow the items, then press <kbd>Arrow Down</kbd> or <kbd>Enter</kbd> to focus the first match, or <kbd>Arrow Up</kbd> to focus the last one.
+Typing while an item has focus continues the query, and <kbd>Escape</kbd> clears it.
+
+import { DemoTreeGridFiltering } from './demos/filtering';
+
+<DemoTreeGridFiltering />
+
+A match keeps its ancestors visible. Use `mode` to choose how the items that don't match are shown.
+
+#### Matching items
+
+Items match their label by default and receive a `data-filter-match` attribute.
+
+By default, an item matches when its label contains the query, ignoring case, accents, and punctuation.
+Use `filter` to replace the matching. It receives each item's label, the trimmed query, and the item, and keeps the item when it returns `true`.
+
+```jsx title="Custom matching"
+<TreeGrid.FilterProvider
+  filter={(text, query, item) => text.startsWith(query) || item.tags.includes(query)}
+>
+  <TreeGrid.Root items={items}>{/* tree parts */}</TreeGrid.Root>
+</TreeGrid.FilterProvider>
+```
+
+`TreeGrid.useFilter` provides the same locale-aware comparisons:
+
+```jsx title="Locale-aware prefix matching"
+const { startsWith } = TreeGrid.useFilter();
+
+<TreeGrid.FilterProvider filter={startsWith}>
+  <TreeGrid.Root items={items}>{/* tree parts */}</TreeGrid.Root>
+</TreeGrid.FilterProvider>;
+```
+
+#### External filtering
+
+To match items on a server, pass the matches to `filteredItems`. The tree keeps showing their ancestors and applies `mode`. Every match must also be in the tree's items.
+
+```jsx title="Server-side matches"
+<TreeGrid.FilterProvider value={query} onValueChange={setQuery} filteredItems={matches}>
+  <TreeGrid.Root items={items}>{/* tree parts */}</TreeGrid.Root>
+</TreeGrid.FilterProvider>
+```
+
+To render the results yourself, pass `filter={null}` and give the root the filtered items.
+
+### Status messages
+
+`<TreeGrid.Status>` politely announces filter matches and selection changes to screen readers.
+Keep it mounted and hide it visually, as the demos above do, since screen readers don't reliably announce a live region that appears with its message.
+
+The messages are in English.
+To translate them or write your own, pass the content as `children`, or a function that receives the latest `change` and its default `message`:
+
+```jsx title="Custom status messages"
+<TreeGrid.Status>
+  {({ change, message }) =>
+    change?.type === 'filter' ? `${change.matchCount} files found.` : message
+  }
+</TreeGrid.Status>
+```
+
+### Sticky ancestors
+
+To keep the ancestors of the rows at the top visible while scrolling, render copies of them above the list. With a fixed row height, the scroll position tells which row each copy covers, and `actionsRef` gives that row's ancestors. Hide the copies from assistive technology, and in `onItemHighlighted`, scroll a highlighted row out from under them.
+
+import { DemoTreeGridStickyAncestors } from './demos/sticky-ancestors';
+
+<DemoTreeGridStickyAncestors />
+
+### Updating items
+
+Use `actionsRef.current.applyTransaction()` to add, update, move, or remove items without rebuilding `items` yourself. The operations apply in the order they're called, as a single change, and each one sees the items as the earlier ones left them.
+
+import { DemoTreeGridUpdatingItems } from './demos/updating-items';
+
+<DemoTreeGridUpdatingItems />
+
+`onItemsChange` lists the changes in `eventDetails.changes`, in the order they applied, so applying them to another copy of the items, such as on a server, gives the same result. With a controlled `items`, inserted items render only once the parent passes them back, so wait for that before focusing them.
+
+### High-frequency updates
+
+Set `transactionThrottle` to commit the transactions of a short window together.
+
+import { DemoTreeGridHighFrequencyUpdates } from './demos/high-frequency-updates';
+
+<DemoTreeGridHighFrequencyUpdates />
+
+## API reference
+
+import { TypesTreeGrid, TypesTreeGridAdditional } from './types';
+
+### FilterProvider
+
+<TypesTreeGrid.FilterProvider />
+
+### Root
+
+<TypesTreeGrid.Root />
+
+### Label
+
+<TypesTreeGrid.Label />
+
+### List
+
+<TypesTreeGrid.List />
+
+### Item
+
+<TypesTreeGrid.Item />
+
+### ItemContent
+
+<TypesTreeGrid.ItemContent />
+
+### ItemCheckbox
+
+<TypesTreeGrid.ItemCheckbox />
+
+### ItemCheckboxIndicator
+
+<TypesTreeGrid.ItemCheckboxIndicator />
+
+### ItemGroupIndicator
+
+<TypesTreeGrid.ItemGroupIndicator />
+
+### ItemIndentGuide
+
+<TypesTreeGrid.ItemIndentGuide />
+
+### ItemExpansionTrigger
+
+<TypesTreeGrid.ItemExpansionTrigger />
+
+### ItemButton
+
+<TypesTreeGrid.ItemButton />
+
+### ItemInput
+
+<TypesTreeGrid.ItemInput />
+
+### ItemLink
+
+<TypesTreeGrid.ItemLink />
+
+### ItemControl
+
+<TypesTreeGrid.ItemControl />
+
+### Input
+
+<TypesTreeGrid.Input />
+
+### Clear
+
+<TypesTreeGrid.Clear />
+
+### Empty
+
+<TypesTreeGrid.Empty />
+
+### Status
+
+<TypesTreeGrid.Status />
+
+### GroupTransition
+
+<TypesTreeGrid.GroupTransition />
+
+## createItems
+
+Normalizes a custom item model into a collection for the `items` prop of `<TreeGrid.Root>`, deriving each item's ID, label, and children.
+Create static collections at module scope, and memoize dynamic collections by their data and every value their accessors read.
+
+<TypesTreeGrid.createItems hideDescription />
+
+## useFilter
+
+Matches items against a query using `Intl.Collator` for robust string matching.
+This hook is used when customizing how items match.
+Call its methods inside the `filter` prop of `<TreeGrid.FilterProvider>`.
+
+<TypesTreeGrid.useFilter hideDescription />
+
+## Additional types
+
+<TypesTreeGridAdditional />
+
+export const metadata = {
+  keywords: ['React TreeGrid', 'Accessible TreeGrid', 'Hierarchical Grid', 'Base UI'],
+};

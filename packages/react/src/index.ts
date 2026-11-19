@@ -40,6 +40,7 @@ export * from './toggle-group';
 export * from './toolbar';
 export * from './tooltip';
 export * from './tree';
+export * from './tree-grid';
 export * from './use-render';
 
 export type * from './types';
