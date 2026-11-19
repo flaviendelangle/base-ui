@@ -2025,42 +2025,24 @@ A hierarchical list of items that expand to reveal their children.
 
 <summary>Outline</summary>
 
-- Keywords: React Tree, Accessible Tree, Hierarchical Grid, Base UI
+- Keywords: React Tree, Accessible Tree, Base UI
 - Sections:
   - Usage guidelines
   - Anatomy
   - Item models
-  - Controls inside items
   - Examples
-    - Checkbox selection
-    - Selection propagation
-    - Select all
-    - Links
-    - Item controls
-    - Animated expansion
-    - Filtering
-      - Matching items
-      - External filtering
-    - Status messages
-    - Sticky ancestors
-    - Updating items
-    - High-frequency updates
+    - File directory
+    - Checkbox items
   - API reference
     - FilterProvider
     - Root
     - Label
     - List
     - Item
-    - ItemContent
-    - ItemCheckbox
-    - ItemCheckboxIndicator
-    - ItemGroupIndicator
+    - ItemIndicator
+    - CheckboxItem
+    - CheckboxItemIndicator
     - ItemIndentGuide
-    - ItemExpansionTrigger
-    - ItemButton
-    - ItemInput
-    - ItemLink
-    - ItemControl
     - Input
     - Clear
     - Empty
@@ -2128,12 +2110,57 @@ A hierarchical list of items that expand to reveal their children.
 
 ## Tree Grid
 
-No description available
+A hierarchical grid of rows that expand to reveal their children, with interactive controls inside
+rows.
 
 <details>
 
 <summary>Outline</summary>
 
+- Keywords: React Tree Grid, Accessible Tree Grid, Hierarchical Grid, Base UI
+- Sections:
+  - Usage guidelines
+  - Anatomy
+  - Item models
+  - Controls inside items
+  - Examples
+    - Checkbox selection
+    - Selection propagation
+    - Select all
+    - Links
+    - Item controls
+    - Animated expansion
+    - Filtering
+      - Matching items
+      - External filtering
+    - Status messages
+    - Sticky ancestors
+    - Updating items
+    - High-frequency updates
+  - API reference
+    - FilterProvider
+    - Root
+    - Label
+    - List
+    - Item
+    - ItemContent
+    - ItemCheckbox
+    - ItemCheckboxIndicator
+    - ItemGroupIndicator
+    - ItemIndentGuide
+    - ItemExpansionTrigger
+    - ItemButton
+    - ItemInput
+    - ItemLink
+    - ItemControl
+    - Input
+    - Clear
+    - Empty
+    - Status
+    - GroupTransition
+  - createItems
+  - useFilter
+  - Additional types
 - Exports:
   - Tree Grid - Root
     - Props: actionsRef, checkboxSelectionPropagation, children, defaultExpandedItems, defaultItems, defaultSelectedItems, disableEmptySelection, disabled, expandOnClick, expandedItems, itemFocusableWhenDisabled, items, multiple, onExpandedItemsChange, onItemExpansionToggle, onItemHighlighted, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, selectedItems, transactionThrottle
