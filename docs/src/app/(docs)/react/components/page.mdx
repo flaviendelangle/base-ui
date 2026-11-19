@@ -2071,7 +2071,7 @@ A hierarchical list of items that expand to reveal their children.
   - Additional types
 - Exports:
   - Tree - Root
-    - Props: actionsRef, checkboxSelectionPropagation, children, defaultExpandedItems, defaultItems, defaultSelectedItems, disableEmptySelection, disabled, expandOnClick, expandedItems, itemFocusableWhenDisabled, items, multiple, onExpandedItemsChange, onItemExpansionToggle, onItemHighlighted, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, selectedItems, transactionThrottle
+    - Props: actionsRef, checkboxSelectionPropagation, children, defaultExpandedItems, defaultItems, defaultSelectedItems, disableEmptySelection, disabled, expandedItems, itemFocusableWhenDisabled, items, multiple, onExpandedItemsChange, onItemExpansionToggle, onItemHighlighted, onItemSelectionToggle, onItemsChange, onSelectedItemsChange, selectedItems, transactionThrottle
   - Tree - Input
     - Props: className, disabled, render, style
     - Data Attributes: data-disabled
@@ -2091,6 +2091,15 @@ A hierarchical list of items that expand to reveal their children.
     - Props: children, className, render, style
   - Tree - Empty
     - Props: className, render, style
+  - Tree - ItemIndicator
+    - Props: children, className, keepMounted, match, render, style
+    - Data Attributes: data-collapsed, data-ending-style, data-expanded, data-starting-style
+  - Tree - CheckboxItem
+    - Props: className, itemId, render, style
+    - Data Attributes: data-checked, data-collapsed, data-disabled, data-expandable, data-expanded, data-filter-match, data-highlighted, data-indeterminate, data-item-id, data-unchecked
+  - Tree - CheckboxItemIndicator
+    - Props: children, className, keepMounted, render, style
+    - Data Attributes: data-checked, data-disabled, data-ending-style, data-indeterminate, data-starting-style, data-unchecked
   - Tree - createItems
     - Parameters: data, options
   - Tree - FilterFunction
@@ -2101,42 +2110,17 @@ A hierarchical list of items that expand to reveal their children.
     - Props: className, render, style
     - Data Attributes: data-collapsing, data-ending-style, data-expanding, data-parent-id, data-starting-style
     - CSS Variables: --tree-group-transition-height
-  - Tree - ItemButton
-    - Props: className, controlKeys, disabled, focusableWhenDisabled, nativeButton, render, style
-    - Data Attributes: data-disabled, data-focusable
-  - Tree - ItemCheckbox
-    - Props: className, id, inputRef, nativeButton, render, style
-    - Data Attributes: data-checked, data-disabled, data-indeterminate, data-unchecked
-  - Tree - ItemCheckboxIndicator
-    - Props: className, keepMounted, render, style
-    - Data Attributes: data-checked, data-disabled, data-ending-style, data-indeterminate, data-starting-style, data-unchecked
   - Tree - ItemCollection
-  - Tree - ItemContent
-    - Props: className, render, style
-  - Tree - ItemControl
-    - Props: className, controlKeys, render, style
-  - Tree - ItemExpansionTrigger
-    - Props: className, disabled, nativeButton, render, style
-    - Data Attributes: data-collapsed, data-disabled, data-expanded
-  - Tree - ItemGroupIndicator
-    - Props: className, render, style
-    - Data Attributes: data-collapsed, data-expanded
   - Tree - ItemIndentGuide
     - Props: className, render, style
     - Data Attributes: data-last, data-level
     - CSS Variables: --tree-indent-guide-level
-  - Tree - ItemInput
-    - Props: className, controlKeys, defaultValue, disabled, focusableWhenDisabled, render, style
-    - Data Attributes: data-disabled, data-focusable
-  - Tree - ItemLink
-    - Props: active, className, controlKeys, render, style
-    - Data Attributes: data-active, data-disabled
   - Tree - useFilter
     - Parameters: options
   - TreeFilterFunction
     - Parameters: text, query, item
   - TreeItemCollection
-- Types: Tree.Clear.Props, Tree.Clear.State, Tree.Empty.Props, Tree.Empty.State, Tree.FilterProvider.ChangeEventDetails, Tree.FilterProvider.ChangeEventReason, Tree.FilterProvider.Props, Tree.FilterProvider.State, Tree.GroupTransition.Props, Tree.GroupTransition.State, Tree.Input.Props, Tree.Input.State, Tree.Item.Props, Tree.Item.State, Tree.ItemButton.Props, Tree.ItemButton.State, Tree.ItemCheckbox.Props, Tree.ItemCheckbox.State, Tree.ItemCheckboxIndicator.Props, Tree.ItemCheckboxIndicator.State, Tree.ItemContent.Props, Tree.ItemContent.State, Tree.ItemControl.Keys, Tree.ItemControl.Props, Tree.ItemControl.State, Tree.ItemExpansionTrigger.Props, Tree.ItemExpansionTrigger.State, Tree.ItemGroupIndicator.Props, Tree.ItemGroupIndicator.State, Tree.ItemIndentGuide.Props, Tree.ItemIndentGuide.State, Tree.ItemInput.Props, Tree.ItemInput.State, Tree.ItemLink.Props, Tree.ItemLink.State, Tree.Label.Props, Tree.Label.State, Tree.List.Props, Tree.List.State, Tree.Root.Actions, Tree.Root.ExpansionChangeEventDetails, Tree.Root.ExpansionChangeEventReason, Tree.Root.HighlightEventDetails, Tree.Root.HighlightEventReason, Tree.Root.ItemExpansionToggleEventDetails, Tree.Root.ItemExpansionToggleValue, Tree.Root.ItemSelectionToggleEventDetails, Tree.Root.ItemSelectionToggleValue, Tree.Root.Items, Tree.Root.ItemsChangeEventDetails, Tree.Root.ItemsChangeEventReason, Tree.Root.Props, Tree.Root.SelectionChangeEventDetails, Tree.Root.SelectionChangeEventReason, Tree.Root.State, Tree.Status.Change, Tree.Status.FilterChange, Tree.Status.Props, Tree.Status.SelectionChange, Tree.Status.State
+- Types: Tree.CheckboxItem.Props, Tree.CheckboxItem.State, Tree.CheckboxItemIndicator.Props, Tree.CheckboxItemIndicator.State, Tree.Clear.Props, Tree.Clear.State, Tree.Empty.Props, Tree.Empty.State, Tree.FilterProvider.ChangeEventDetails, Tree.FilterProvider.ChangeEventReason, Tree.FilterProvider.Props, Tree.FilterProvider.State, Tree.GroupTransition.Props, Tree.GroupTransition.State, Tree.Input.Props, Tree.Input.State, Tree.Item.Props, Tree.Item.State, Tree.ItemIndentGuide.Props, Tree.ItemIndentGuide.State, Tree.ItemIndicator.Props, Tree.ItemIndicator.State, Tree.Label.Props, Tree.Label.State, Tree.List.Props, Tree.List.State, Tree.Root.Actions, Tree.Root.ExpansionChangeEventDetails, Tree.Root.ExpansionChangeEventReason, Tree.Root.HighlightEventDetails, Tree.Root.HighlightEventReason, Tree.Root.ItemExpansionToggleEventDetails, Tree.Root.ItemExpansionToggleValue, Tree.Root.ItemSelectionToggleEventDetails, Tree.Root.ItemSelectionToggleValue, Tree.Root.Items, Tree.Root.ItemsChangeEventDetails, Tree.Root.ItemsChangeEventReason, Tree.Root.Props, Tree.Root.SelectionChangeEventDetails, Tree.Root.SelectionChangeEventReason, Tree.Root.State, Tree.Status.Change, Tree.Status.FilterChange, Tree.Status.Props, Tree.Status.SelectionChange, Tree.Status.State
 
 </details>
 

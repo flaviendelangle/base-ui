@@ -13,28 +13,22 @@
 }
 
 .Item {
-  --indent: 1.5rem;
-  --trigger-width: 1.75rem;
-  --leaf-offset: 0rem;
-
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  padding-block: 0.25rem;
+  padding-inline: calc(0.5rem + 1.25rem * (var(--tree-item-level) - 1)) 0.5rem;
   border-inline-start: 2px solid transparent;
+  cursor: default;
   -webkit-user-select: none;
   user-select: none;
-  color: oklch(14.5% 0 0deg);
   font-size: 0.875rem;
   line-height: 1.5;
   outline: none;
 
-  @media (prefers-color-scheme: dark) {
-    color: white;
-  }
-
+  /* Line leaves up with the labels of expandable siblings. */
   &:not([data-expandable]) {
-    --leaf-offset: calc(var(--trigger-width) + 1.5rem);
+    padding-inline-start: calc(1.75rem + 1.25rem * (var(--tree-item-level) - 1));
   }
 
   @media (hover: hover) {
@@ -75,28 +69,12 @@
   }
 }
 
-.ItemContent {
-  width: 100%;
-  display: flex;
-  align-items: inherit;
-  gap: 0.5rem;
-  min-width: 0;
-  flex: 1;
-  margin-inline-start: calc(var(--indent) * (var(--tree-item-level) - 1));
-  padding-inline-start: var(--leaf-offset);
-}
-
-.ExpansionTrigger {
-  position: relative;
+.Chevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  padding: 0;
+  width: 0.75rem;
   color: oklch(55.6% 0 0deg);
-  background: transparent;
-  border: 0;
   flex-shrink: 0;
 
   @media (prefers-color-scheme: dark) {
@@ -106,39 +84,11 @@
   & svg {
     width: 0.75rem;
     height: 0.75rem;
+    transition: transform 150ms;
   }
 
-  &:focus-visible {
-    outline: 2px solid oklch(14.5% 0 0deg);
-
-    @media (prefers-color-scheme: dark) {
-      outline: 2px solid white;
-    }
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -0.125rem;
-  }
-}
-
-.ExpansionTrigger[data-expanded] svg {
-  transform: rotate(90deg);
-}
-
-.GroupIndicator {
-  display: inline-flex;
-  color: oklch(55.6% 0 0deg);
-  flex-shrink: 0;
-
-  @media (prefers-color-scheme: dark) {
-    color: oklch(70.8% 0 0deg);
-  }
-
-  & svg {
-    width: 1rem;
-    height: 1rem;
+  &[data-expanded] svg {
+    transform: rotate(90deg);
   }
 }
 

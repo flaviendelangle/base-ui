@@ -562,7 +562,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
     });
 
     describe('key: Enter', () => {
-      it('should expand an item with children if it is collapsed', async () => {
+      it('should select a parent item without expanding it', async () => {
         const view = await render({
           items: [{ id: '1', children: [{ id: '1.1' }] }],
         });
@@ -570,22 +570,32 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         act(() => {
           view.getItemRoot('1').focus();
         });
+        expect(view.isItemSelected('1')).toBe(false);
         fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
-        expect(view.isItemExpanded('1')).toBe(true);
-      });
-
-      it('should collapse an item with children if it is expanded', async () => {
-        const view = await render({
-          items: [{ id: '1', children: [{ id: '1.1' }] }],
-          defaultExpandedItems: ['1'],
-        });
-
-        act(() => {
-          view.getItemRoot('1').focus();
-        });
-        fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
+        expect(view.isItemSelected('1')).toBe(true);
         expect(view.isItemExpanded('1')).toBe(false);
       });
+
+      it.each([
+        { name: 'expand a collapsed', defaultExpandedItems: [], expanded: true },
+        { name: 'collapse an expanded', defaultExpandedItems: ['1'], expanded: false },
+      ])(
+        'should $name parent item that cannot be selected',
+        async ({ defaultExpandedItems, expanded }) => {
+          const view = await render({
+            items: [{ id: '1', children: [{ id: '1.1' }] }],
+            defaultExpandedItems,
+            isItemSelectionDisabled: (item: any) => item.id === '1',
+          });
+
+          act(() => {
+            view.getItemRoot('1').focus();
+          });
+          fireEvent.keyDown(view.getItemRoot('1'), { key: 'Enter' });
+          expect(view.isItemExpanded('1')).toBe(expanded);
+          expect(view.isItemSelected('1')).toBe(false);
+        },
+      );
 
       it('should not expand an item with children if it is collapsed but disabled even if itemFocusableWhenDisabled={true}', async () => {
         const view = await render({
@@ -796,6 +806,7 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
+        isItemSelectionDisabled: () => true,
         onExpandedItemsChange,
       });
 
@@ -1470,6 +1481,30 @@ describeTree('TreeRoot - Keyboard', ({ render }) => {
         expect(view.getSelectedTreeItems()).toEqual(['1']);
       });
 
+      it.each([
+        { name: 'Space', key: ' ' },
+        { name: 'Enter', key: 'Enter' },
+      ])(
+        'should toggle a checkbox item without replacing the selection when $name is pressed',
+        async ({ key }) => {
+          const view = await render({
+            items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+            multiple: 'opt-in',
+            checkboxSelection: true,
+            defaultSelectedItems: ['1'],
+          });
+
+          act(() => {
+            view.getItemRoot('3').focus();
+          });
+          fireEvent.keyDown(view.getItemRoot('3'), { key });
+          expect(view.getSelectedTreeItems()).toEqual(['1', '3']);
+
+          fireEvent.keyDown(view.getItemRoot('3'), { key, repeat: false });
+          expect(view.getSelectedTreeItems()).toEqual(['1']);
+        },
+      );
+
       it.each([' ', 'Enter'])('should replace the selection when %j is pressed', async (key) => {
         const view = await render({
           items: [{ id: '1' }, { id: '2' }, { id: '3' }],
@@ -1972,10 +2007,8 @@ describe('TreeRoot - Keyboard (RTL)', () => {
           <Tree.List>
             {(item: any) => (
               <Tree.Item key={item.id} itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>
-                  <Tree.ItemExpansionTrigger />
-                  {item.label}
-                </Tree.ItemContent>
+                <Tree.ItemIndicator keepMounted />
+                {item.label}
               </Tree.Item>
             )}
           </Tree.List>
@@ -1995,7 +2028,7 @@ describe('TreeRoot - Keyboard (RTL)', () => {
   // The direction only drives the arrow keys: the page owns the text direction.
   it('should not set the dir attribute', async () => {
     await renderElement(<RTLTree items={[{ id: '1', label: '1' }]} />);
-    expect(document.querySelector('[role="treegrid"]')).not.toHaveAttribute('dir');
+    expect(document.querySelector('[role="tree"]')).not.toHaveAttribute('dir');
   });
 
   it('should expand a collapsed item on ArrowLeft in RTL', async () => {
@@ -2058,46 +2091,65 @@ describe('TreeRoot - Keyboard (RTL)', () => {
 });
 
 describe('TreeRoot - Keyboard (consumer handlers)', () => {
-  it.each(['row', 'button'] as const)(
-    'does not navigate when a %s keydown handler prevents the Base UI handler',
-    async (part) => {
-      const preventArrowDown = (
-        event: React.KeyboardEvent & { preventBaseUIHandler: () => void },
-      ) => {
-        if (event.key === 'ArrowDown') {
-          event.preventBaseUIHandler();
-        }
-      };
-      await renderElement(
-        <Tree.Root
-          items={[
-            { id: 'a', label: 'A' },
-            { id: 'b', label: 'B' },
-          ]}
-        >
-          <Tree.List>
-            {(item: TreeDefaultItem) => (
-              <Tree.Item itemId={item.id} onKeyDown={part === 'row' ? preventArrowDown : undefined}>
-                <Tree.ItemContent>
-                  {item.label}
-                  <Tree.ItemButton onKeyDown={part === 'button' ? preventArrowDown : undefined}>
-                    Open {item.label}
-                  </Tree.ItemButton>
-                </Tree.ItemContent>
-              </Tree.Item>
-            )}
-          </Tree.List>
-        </Tree.Root>,
-      );
+  it('does not navigate when a treeitem keydown handler prevents the Base UI handler', async () => {
+    const preventArrowDown = (
+      event: React.KeyboardEvent & { preventBaseUIHandler: () => void },
+    ) => {
+      if (event.key === 'ArrowDown') {
+        event.preventBaseUIHandler();
+      }
+    };
+    await renderElement(
+      <Tree.Root
+        items={[
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ]}
+      >
+        <Tree.List>
+          {(item: TreeDefaultItem) => (
+            <Tree.Item itemId={item.id} onKeyDown={preventArrowDown}>
+              {item.label}
+            </Tree.Item>
+          )}
+        </Tree.List>
+      </Tree.Root>,
+    );
 
-      const focused =
-        part === 'row'
-          ? screen.getByRole('row', { name: 'A' })
-          : screen.getByRole('button', { name: 'Open A' });
-      act(() => focused.focus());
-      fireEvent.keyDown(focused, { key: 'ArrowDown' });
+    const item = screen.getByRole('treeitem', { name: 'A' });
+    act(() => item.focus());
+    fireEvent.keyDown(item, { key: 'ArrowDown' });
 
-      expect(focused).toHaveFocus();
-    },
-  );
+    expect(item).toHaveFocus();
+  });
+
+  it('leaves keys pressed on other content inside an item to that content', async () => {
+    await renderElement(
+      <Tree.Root
+        items={[
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ]}
+      >
+        <Tree.List>
+          {(item: TreeDefaultItem) => (
+            <Tree.Item itemId={item.id}>
+              {item.label}
+              <span tabIndex={-1} data-testid={`content-${item.id}`} />
+            </Tree.Item>
+          )}
+        </Tree.List>
+      </Tree.Root>,
+    );
+
+    const item = screen.getByRole('treeitem', { name: 'A' });
+    // The item keeps the tree's focus while its content has DOM focus.
+    act(() => item.focus());
+    const content = screen.getByTestId('content-a');
+    act(() => content.focus());
+    fireEvent.keyDown(content, { key: 'ArrowDown' });
+
+    expect(content).toHaveFocus();
+    expect(screen.getByRole('treeitem', { name: 'B' })).not.toHaveFocus();
+  });
 });

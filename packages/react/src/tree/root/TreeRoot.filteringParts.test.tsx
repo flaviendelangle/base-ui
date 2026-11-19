@@ -21,10 +21,8 @@ const items: Tree.DefaultItem[] = [
 function renderItem(item: Tree.DefaultItem) {
   return (
     <Tree.Item itemId={item.id}>
-      <Tree.ItemContent>
-        <Tree.ItemExpansionTrigger />
-        {item.label}
-      </Tree.ItemContent>
+      <Tree.ItemIndicator keepMounted />
+      {item.label}
     </Tree.Item>
   );
 }
@@ -48,17 +46,17 @@ function FilterableTree(
   );
 }
 
-const rowIds = () => screen.queryAllByRole('row').map((row) => row.getAttribute('data-item-id'));
+const rowIds = () =>
+  screen.queryAllByRole('treeitem').map((row) => row.getAttribute('data-item-id'));
 const getInput = () => screen.getByRole('searchbox', { name: 'Filter files' });
 
 describe('Tree filtering parts', () => {
   const { render } = createRenderer();
 
-  it('exposes filterMatch state and data-filter-match on rows containing different controls', async () => {
+  it('exposes filterMatch state and data-filter-match on items and checkbox items', async () => {
     const matchItems = [
       { id: 'item', label: 'Match item' },
       { id: 'checkbox', label: 'Match checkbox' },
-      { id: 'link', label: 'Match link' },
     ];
 
     await render(
@@ -68,27 +66,13 @@ describe('Tree filtering parts', () => {
             {(item) => {
               if (item.id === 'checkbox') {
                 return (
-                  <Tree.Item
+                  <Tree.CheckboxItem
                     itemId={item.id}
                     className={(state) => (state.filterMatch ? 'exact-match' : undefined)}
                   >
-                    <Tree.ItemContent>
-                      <Tree.ItemCheckbox />
-                      {item.label}
-                    </Tree.ItemContent>
-                  </Tree.Item>
-                );
-              }
-              if (item.id === 'link') {
-                return (
-                  <Tree.Item
-                    itemId={item.id}
-                    className={(state) => (state.filterMatch ? 'exact-match' : undefined)}
-                  >
-                    <Tree.ItemContent>
-                      <a href="#link">{item.label}</a>
-                    </Tree.ItemContent>
-                  </Tree.Item>
+                    <Tree.CheckboxItemIndicator />
+                    {item.label}
+                  </Tree.CheckboxItem>
                 );
               }
               return (
@@ -96,7 +80,7 @@ describe('Tree filtering parts', () => {
                   itemId={item.id}
                   className={(state) => (state.filterMatch ? 'exact-match' : undefined)}
                 >
-                  <Tree.ItemContent>{item.label}</Tree.ItemContent>
+                  {item.label}
                 </Tree.Item>
               );
             }}
@@ -105,8 +89,8 @@ describe('Tree filtering parts', () => {
       </Tree.FilterProvider>,
     );
 
-    for (const name of ['Match item', 'Match checkbox', 'Match link']) {
-      const row = screen.getByRole('row', { name });
+    for (const name of ['Match item', 'Match checkbox']) {
+      const row = screen.getByRole('treeitem', { name });
       expect(row).toHaveAttribute('data-filter-match');
       expect(row).toHaveClass('exact-match');
     }
@@ -166,11 +150,7 @@ describe('Tree filtering parts', () => {
         <Tree.FilterProvider<Item> defaultValue="res" filter={startsWith}>
           <Tree.Root items={collection}>
             <Tree.List<Item>>
-              {(item) => (
-                <Tree.Item itemId={item.key}>
-                  <Tree.ItemContent>{item.name}</Tree.ItemContent>
-                </Tree.Item>
-              )}
+              {(item) => <Tree.Item itemId={item.key}>{item.name}</Tree.Item>}
             </Tree.List>
           </Tree.Root>
         </Tree.FilterProvider>
@@ -178,7 +158,7 @@ describe('Tree filtering parts', () => {
     }
 
     await render(<CustomTree />);
-    expect(screen.getAllByRole('row').map((row) => row.textContent)).toEqual([
+    expect(screen.getAllByRole('treeitem').map((row) => row.textContent)).toEqual([
       'Folder',
       'Résumé',
       'Result',
@@ -241,7 +221,7 @@ describe('Tree filtering parts', () => {
           <Tree.List<Item>>
             {(item) => (
               <Tree.Item itemId={item.key} data-source-name={item.name}>
-                <Tree.ItemContent>{item.name}</Tree.ItemContent>
+                {item.name}
               </Tree.Item>
             )}
           </Tree.List>
@@ -249,13 +229,12 @@ describe('Tree filtering parts', () => {
       </Tree.FilterProvider>,
     );
 
-    expect(screen.getAllByRole('row').map((row) => row.getAttribute('data-source-name'))).toEqual([
-      'Parent',
-      'Second match',
-    ]);
+    expect(
+      screen.getAllByRole('treeitem').map((row) => row.getAttribute('data-source-name')),
+    ).toEqual(['Parent', 'Second match']);
     expect(
       screen
-        .getAllByRole('row')
+        .getAllByRole('treeitem')
         .filter((row) => row.hasAttribute('data-filter-match'))
         .map((row) => row.getAttribute('data-source-name')),
     ).toEqual(['Second match']);
@@ -308,7 +287,7 @@ describe('Tree filtering parts', () => {
     const view = await render(<App value="" />);
     const input = screen.getByRole('textbox', { name: 'Filter' });
     // Leave the tree from a row that the query below hides.
-    act(() => screen.getByRole('row', { name: 'One' }).focus());
+    act(() => screen.getByRole('treeitem', { name: 'One' }).focus());
     act(() => input.focus());
     await view.setProps({ value: 'two' });
     await act(async () => {
@@ -327,12 +306,10 @@ describe('Tree filtering parts', () => {
           <Tree.List>
             {() => (
               <Tree.Item itemId="outer">
-                <Tree.ItemContent>
-                  Outer
-                  <Tree.Root items={[{ id: 'inner', label: 'Inner' }]}>
-                    <Tree.List aria-label="Nested">{renderItem}</Tree.List>
-                  </Tree.Root>
-                </Tree.ItemContent>
+                Outer
+                <Tree.Root items={[{ id: 'inner', label: 'Inner' }]}>
+                  <Tree.List aria-label="Nested">{renderItem}</Tree.List>
+                </Tree.Root>
               </Tree.Item>
             )}
           </Tree.List>
@@ -340,8 +317,14 @@ describe('Tree filtering parts', () => {
       </Tree.FilterProvider>,
     );
 
-    expect(screen.getByRole('row', { name: 'Inner' })).not.toHaveAttribute('data-filter-match');
-    expect(screen.getByRole('row', { name: 'Outer' })).toHaveAttribute('data-filter-match');
+    expect(screen.getByRole('treeitem', { name: 'Inner' })).not.toHaveAttribute(
+      'data-filter-match',
+    );
+    // The outer item takes its name from its content, which includes the nested tree.
+    const outer = screen
+      .getAllByRole('treeitem')
+      .find((item) => item.getAttribute('data-item-id') === 'outer');
+    expect(outer).toHaveAttribute('data-filter-match');
   });
 
   describe('Tree.Input', () => {
@@ -350,7 +333,7 @@ describe('Tree filtering parts', () => {
       const input = getInput();
       expect(input).toHaveAttribute('type', 'text');
       expect(input).toHaveAttribute('autocomplete', 'off');
-      const list = screen.getByRole('treegrid', { name: 'Files' });
+      const list = screen.getByRole('tree', { name: 'Files' });
       expect(list.id).not.toBe('');
       expect(input).toHaveAttribute('aria-controls', list.id);
     });
@@ -364,7 +347,7 @@ describe('Tree filtering parts', () => {
           </Tree.Root>
         </Tree.FilterProvider>,
       );
-      expect(screen.getByRole('treegrid')).toHaveAttribute('id', 'file-list');
+      expect(screen.getByRole('tree')).toHaveAttribute('id', 'file-list');
       expect(getInput()).toHaveAttribute('aria-controls', 'file-list');
     });
 
@@ -450,15 +433,15 @@ describe('Tree filtering parts', () => {
       act(() => getInput().focus());
 
       fireEvent.keyDown(getInput(), { key: 'ArrowDown' });
-      expect(screen.getByRole('row', { name: 'Resume.pdf' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Resume.pdf' })).toHaveFocus();
 
       act(() => getInput().focus());
       fireEvent.keyDown(getInput(), { key: 'ArrowUp' });
-      expect(screen.getByRole('row', { name: 'Invoice Q1.pdf' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Invoice Q1.pdf' })).toHaveFocus();
 
       act(() => getInput().focus());
       fireEvent.keyDown(getInput(), { key: 'Enter' });
-      expect(screen.getByRole('row', { name: 'Resume.pdf' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Resume.pdf' })).toHaveFocus();
     });
 
     it('skips disabled matches when moving focus from the input', async () => {
@@ -476,11 +459,11 @@ describe('Tree filtering parts', () => {
       act(() => getInput().focus());
 
       fireEvent.keyDown(getInput(), { key: 'ArrowDown' });
-      expect(screen.getByRole('row', { name: 'Match middle' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Match middle' })).toHaveFocus();
 
       act(() => getInput().focus());
       fireEvent.keyDown(getInput(), { key: 'ArrowUp' });
-      expect(screen.getByRole('row', { name: 'Match middle' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Match middle' })).toHaveFocus();
     });
 
     it('moves focus to the tab stop without a query and leaves Enter to the input', async () => {
@@ -492,7 +475,7 @@ describe('Tree filtering parts', () => {
       expect(getInput()).toHaveFocus();
 
       fireEvent.keyDown(getInput(), { key: 'ArrowDown' });
-      expect(screen.getByRole('row', { name: 'Notes.txt' })).toHaveFocus();
+      expect(screen.getByRole('treeitem', { name: 'Notes.txt' })).toHaveFocus();
     });
 
     it('leaves modified arrows to the input', async () => {
@@ -531,7 +514,7 @@ describe('Tree filtering parts', () => {
 
     it('moves focus back to the input when typing on a row', async () => {
       await render(<FilterableTree defaultValue="notes" />);
-      const row = screen.getByRole('row', { name: 'Notes.txt' });
+      const row = screen.getByRole('treeitem', { name: 'Notes.txt' });
       act(() => row.focus());
 
       fireEvent.keyDown(row, { key: 'x' });
@@ -542,7 +525,7 @@ describe('Tree filtering parts', () => {
     it.skipIf(isJSDOM)('types a key pressed on a row into the input', async () => {
       const { userEvent: browserUser } = await import('vitest/browser');
       await render(<FilterableTree defaultValue="no" />);
-      const row = screen.getByRole('row', { name: 'Notes.txt' });
+      const row = screen.getByRole('treeitem', { name: 'Notes.txt' });
       act(() => row.focus());
 
       await act(async () => {

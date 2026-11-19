@@ -3,6 +3,9 @@ import { act, fireEvent, screen } from '@mui/internal-test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { createRenderer } from '#test-utils';
 import { Tree } from '..';
+import { TreeStoreTap } from '../../../test/describeTree/TreeStoreTap';
+import type { TreeStore } from '../store/TreeStore';
+import { selectors } from '../store/selectors';
 
 const { render } = createRenderer();
 
@@ -40,7 +43,7 @@ function TestTree(props: {
       <Tree.List<Node>>
         {(item) => (
           <Tree.Item itemId={item.key} data-testid={item.key}>
-            <Tree.ItemContent>{item.name}</Tree.ItemContent>
+            {item.name}
           </Tree.Item>
         )}
       </Tree.List>
@@ -161,7 +164,7 @@ describe('Tree.createItems', () => {
                 kind === 'collection' ? item.name : (item as unknown as { label: string }).label;
               return (
                 <Tree.Item itemId={id} data-testid={id}>
-                  <Tree.ItemContent>{label}</Tree.ItemContent>
+                  {label}
                 </Tree.Item>
               );
             }}
@@ -262,7 +265,10 @@ describe('Tree.createItems', () => {
   });
 
   it('rebuilds lookup metadata when accessor identity changes', async () => {
-    const data = [{ key: 'a', name: 'A' }];
+    const data = [
+      { key: 'a', name: 'A' },
+      { key: 'b', name: 'B' },
+    ];
     function App(props: { prefix: string }) {
       const collection = React.useMemo(
         () =>
@@ -275,11 +281,17 @@ describe('Tree.createItems', () => {
       return <TestTree items={collection} />;
     }
 
+    // Typeahead matches the labels, so it shows which accessor the tree read them with.
     const view = await render(<App prefix="" />);
-    expect(screen.getByTestId('a')).toHaveAttribute('aria-label', 'A');
+    act(() => {
+      screen.getByTestId('a').focus();
+    });
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'i' });
+    expect(screen.getByTestId('a')).toHaveFocus();
 
     await view.rerender(<App prefix="Item: " />);
-    expect(screen.getByTestId('a')).toHaveAttribute('aria-label', 'Item: A');
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'i' });
+    expect(screen.getByTestId('b')).toHaveFocus();
   });
 
   it('treats undefined collection data as controlled loading data', async () => {
@@ -289,15 +301,11 @@ describe('Tree.createItems', () => {
         defaultItems={createNodeCollection([{ key: 'default', name: 'Default' }])}
       >
         <Tree.List<Node>>
-          {(item) => (
-            <Tree.Item itemId={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
-            </Tree.Item>
-          )}
+          {(item) => <Tree.Item itemId={item.key}>{item.name}</Tree.Item>}
         </Tree.List>
       </Tree.Root>,
     );
-    expect(screen.queryAllByRole('row')).toHaveLength(0);
+    expect(screen.queryAllByRole('treeitem')).toHaveLength(0);
 
     await view.rerender(
       <Tree.Root
@@ -307,7 +315,7 @@ describe('Tree.createItems', () => {
         <Tree.List<Node>>
           {(item) => (
             <Tree.Item itemId={item.key} data-testid={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
+              {item.name}
             </Tree.Item>
           )}
         </Tree.List>
@@ -367,6 +375,7 @@ describe('Tree.createItems', () => {
       };
       const data = [{ key: 'parent', name: 'Parent', nodes: [{ key: 'a', name: 'A' }] }];
       const actionsRef = React.createRef<Tree.Root.Actions<Node> | null>();
+      const storeRef = React.createRef<TreeStore | null>() as React.RefObject<TreeStore | null>;
       function App() {
         const [items, setItems] = React.useState<Node[]>(data);
         const collection = React.useMemo(() => Tree.createItems(items, options), [items]);
@@ -380,13 +389,15 @@ describe('Tree.createItems', () => {
             <Tree.List<Node>>
               {(item) => (
                 <Tree.Item itemId={item.key} data-testid={item.key}>
-                  <Tree.ItemContent>{item.name}</Tree.ItemContent>
+                  {item.name}
                 </Tree.Item>
               )}
             </Tree.List>
+            <TreeStoreTap storeRef={storeRef} />
           </Tree.Root>
         );
       }
+      const parentLabel = () => selectors.itemLabel(storeRef.current!.state, 'parent');
 
       await render(<App />);
       await act(async () => {
@@ -394,7 +405,7 @@ describe('Tree.createItems', () => {
           transaction.add({ key: 'b', name: 'B' }, { parentId: 'parent', index: 1 }),
         );
       });
-      expect(screen.getByTestId('parent')).toHaveAttribute('aria-label', 'Parent (2)');
+      expect(parentLabel()).toBe('Parent (2)');
 
       act(() => {
         actionsRef.current!.applyTransaction((transaction) => {
@@ -402,7 +413,7 @@ describe('Tree.createItems', () => {
           transaction.remove('b');
         });
       });
-      expect(screen.getByTestId('parent')).toHaveAttribute('aria-label', 'Parent (0)');
+      expect(parentLabel()).toBe('Parent (0)');
     },
   );
 
@@ -501,11 +512,7 @@ describe('Tree.createItems writers', () => {
     await render(
       <Tree.Root defaultItems={rootItems} actionsRef={actionsRef}>
         <Tree.List<Node>>
-          {(item) => (
-            <Tree.Item itemId={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
-            </Tree.Item>
-          )}
+          {(item) => <Tree.Item itemId={item.key}>{item.name}</Tree.Item>}
         </Tree.List>
       </Tree.Root>,
     );
@@ -541,16 +548,12 @@ describe('Tree.createItems writers', () => {
     await render(
       <Tree.Root defaultItems={items} actionsRef={actionsRef} multiple>
         <Tree.List<Node>>
-          {(item) => (
-            <Tree.Item itemId={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
-            </Tree.Item>
-          )}
+          {(item) => <Tree.Item itemId={item.key}>{item.name}</Tree.Item>}
         </Tree.List>
       </Tree.Root>,
     );
 
-    const item = screen.getByRole('row');
+    const item = screen.getByRole('treeitem');
     expect(item).not.toHaveAttribute('aria-selected');
     act(() => {
       actionsRef.current!.applyTransaction((transaction) =>
@@ -579,11 +582,7 @@ describe('Tree.createItems writers', () => {
     await render(
       <Tree.Root defaultItems={items} actionsRef={actionsRef} multiple>
         <Tree.List<Node>>
-          {(item) => (
-            <Tree.Item itemId={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
-            </Tree.Item>
-          )}
+          {(item) => <Tree.Item itemId={item.key}>{item.name}</Tree.Item>}
         </Tree.List>
       </Tree.Root>,
     );
@@ -594,7 +593,7 @@ describe('Tree.createItems writers', () => {
       );
     });
 
-    expect(screen.getByRole('row')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('treeitem')).toHaveAttribute('aria-disabled', 'true');
     expect(actionsRef.current!.isItemDisabled('item')).toBe(true);
   });
 });

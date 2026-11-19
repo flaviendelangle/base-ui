@@ -67,7 +67,6 @@ export function TreeRoot<TItem = TreeDefaultItem>(componentProps: object) {
     // Expansion
     expandedItems,
     defaultExpandedItems,
-    expandOnClick = false,
     onExpandedItemsChange,
     transactionThrottle = 0,
     onItemExpansionToggle,
@@ -150,7 +149,6 @@ export function TreeRoot<TItem = TreeDefaultItem>(componentProps: object) {
       itemCollection,
       expandedItems,
       defaultExpandedItems,
-      expandOnClick,
       onExpandedItemsChange,
       onItemExpansionToggle,
       selectedItems,
@@ -184,7 +182,6 @@ export function TreeRoot<TItem = TreeDefaultItem>(componentProps: object) {
     disabled,
     itemsProp: itemsControlled ? itemData : undefined,
     itemCollection,
-    expandOnClick,
     transactionThrottle,
     multiple,
     disableEmptySelection,
@@ -283,12 +280,6 @@ interface TreeRootOwnProps<TItem> {
    * @default 0
    */
   transactionThrottle?: number | undefined;
-  /**
-   * Whether clicking anywhere on an item row toggles expansion.
-   * When `false`, clicking the row does not toggle expansion; clicking its expansion trigger does.
-   * @default false
-   */
-  expandOnClick?: boolean | undefined;
   /**
    * Whether the user is prevented from deselecting the last selected item.
    * An empty initial or controlled selection is still allowed.

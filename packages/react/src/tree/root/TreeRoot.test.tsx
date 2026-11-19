@@ -65,14 +65,18 @@ describeTree('TreeRoot - Items', ({ render }) => {
       expect(view.getItemRoot('1')).not.toHaveAttribute('aria-expanded');
     });
 
-    it('should use itemToStringLabel to name the rows', async () => {
+    it('should use itemToStringLabel to label the items', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
-        itemToStringLabel: (item: any) => `Label: ${item.id}`,
+        itemToStringLabel: (item: any) => (item.id === '1' ? 'Alpha' : 'Beta'),
       });
 
-      expect(view.getItemRoot('1')).toHaveAttribute('aria-label', 'Label: 1');
-      expect(view.getItemRoot('2')).toHaveAttribute('aria-label', 'Label: 2');
+      // Typeahead matches the labels, which the ids alone would not.
+      act(() => {
+        view.getItemRoot('1').focus();
+      });
+      fireEvent.keyDown(view.getItemRoot('1'), { key: 'b' });
+      expect(view.getFocusedItemId()).toBe('2');
     });
 
     it('should use itemToChildren to find children', async () => {
@@ -500,12 +504,12 @@ describeTree('TreeRoot - Items', ({ render }) => {
         checkboxSelection: true,
         multiple: true,
       });
-      const checkbox = view.getItemRoot(0).querySelector('[role=checkbox]')!;
+      const item = view.getItemRoot(0);
 
-      fireEvent.click(checkbox);
+      fireEvent.click(item);
       expect(view.actionsRef.current!.isItemSelected(0)).toBe(true);
 
-      fireEvent.click(checkbox);
+      fireEvent.click(item);
       expect(view.actionsRef.current!.isItemSelected(0)).toBe(false);
     });
   });
@@ -526,19 +530,18 @@ describe('nested Tree item lookup', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`outer-${item.id}`}>
-              <Tree.ItemContent>
-                {item.id === 'a' ? (
-                  <Tree.Root items={[{ id: 'shared', label: 'Nested shared' }]}>
-                    <Tree.List>
-                      {(nestedItem) => (
-                        <Tree.Item itemId={nestedItem.id} data-testid={`inner-${nestedItem.id}`}>
-                          <Tree.ItemContent />
-                        </Tree.Item>
-                      )}
-                    </Tree.List>
-                  </Tree.Root>
-                ) : null}
-              </Tree.ItemContent>
+              {item.id === 'a' ? (
+                <Tree.Root items={[{ id: 'shared', label: 'Nested shared' }]}>
+                  <Tree.List>
+                    {(nestedItem) => (
+                      <Tree.Item
+                        itemId={nestedItem.id}
+                        data-testid={`inner-${nestedItem.id}`}
+                      ></Tree.Item>
+                    )}
+                  </Tree.List>
+                </Tree.Root>
+              ) : null}
             </Tree.Item>
           )}
         </Tree.List>
@@ -569,7 +572,7 @@ describe('TreeRoot uncontrolled items', () => {
         <Tree.List<Node>>
           {(item) => (
             <Tree.Item itemId={item.key} data-testid={item.key}>
-              <Tree.ItemContent>{item.name}</Tree.ItemContent>
+              {item.name}
             </Tree.Item>
           )}
         </Tree.List>
@@ -598,11 +601,7 @@ describe('TreeRoot checkboxSelectionPropagation warning', () => {
           checkboxSelectionPropagation={{ descendants: true, parents: false }}
         >
           <Tree.List>
-            {(item: { id: string }) => (
-              <Tree.Item itemId={item.id}>
-                <Tree.ItemContent />
-              </Tree.Item>
-            )}
+            {(item: { id: string }) => <Tree.Item itemId={item.id}></Tree.Item>}
           </Tree.List>
         </Tree.Root>
       );

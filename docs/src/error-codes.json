@@ -112,5 +112,6 @@
   "113": "Base UI: TreeGridRootContext is missing. TreeGrid parts read their state from <TreeGrid.Root> and cannot render outside it. Place TreeGrid parts within <TreeGrid.Root>.",
   "114": "Base UI: A TreeGrid items transaction was used after its callback returned. The transaction is applied when the callback returns, so this change would be lost. Record every change synchronously within the callback, and apply a new transaction for changes that come later.",
   "115": "Base UI: %s tried to update a custom item, but the item collection does not define the %s option, so the source model cannot be updated safely. Provide %s to TreeGrid.createItems(). See https://base-ui.com/react/components/tree-grid#createitems",
-  "116": "Base UI: the `items` or `defaultItems` prop received an object that is not a valid item collection, so its items and accessors cannot be read. Pass a standard item array or the result of `TreeGrid.createItems()`. See https://base-ui.com/react/components/tree-grid#createitems"
+  "116": "Base UI: the `items` or `defaultItems` prop received an object that is not a valid item collection, so its items and accessors cannot be read. Pass a standard item array or the result of `TreeGrid.createItems()`. See https://base-ui.com/react/components/tree-grid#createitems",
+  "117": "Base UI: TreeCheckboxItemContext is missing. <Tree.CheckboxItemIndicator> reads its state from <Tree.CheckboxItem> and cannot render outside it. Place <Tree.CheckboxItemIndicator> within <Tree.CheckboxItem>."
 }

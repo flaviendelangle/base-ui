@@ -420,10 +420,6 @@ export interface TreeState<TItem = any> extends TreeItemsState<TItem> {
    */
   expandedItemsProp: readonly TreeItemId[] | undefined;
   /**
-   * Whether clicking anywhere on an item row toggles expansion
-   */
-  expandOnClick: boolean;
-  /**
    * The minimum time between two commits of `applyTransaction()`, in milliseconds.
    */
   transactionThrottle: number;
@@ -477,8 +473,6 @@ export interface TreeState<TItem = any> extends TreeItemsState<TItem> {
    * Key: parent item ID, Value: animation direction and affected children.
    */
   animatingGroups: TreeItemKeyed<TreeAnimatingGroup>;
-  /** How many active `Tree.ItemLink` parts each item renders. */
-  activeLinkCounts: TreeItemKeyed<number>;
   /**
    * Whether the consumer passed `onItemsChange`. The store's context always holds
    * a stable wrapper for it, so checking that would never tell a supplied handler
@@ -530,7 +524,6 @@ export interface TreeStoreContext<TItem> {
  */
 export type TreeStateDefaultedKeys =
   | 'disabled'
-  | 'expandOnClick'
   | 'multiple'
   | 'disableEmptySelection'
   | 'checkboxSelectionPropagation'

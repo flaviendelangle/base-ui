@@ -4,6 +4,12 @@ import { act, fireEvent, screen } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
 import { describeTree } from '../../../test/describeTree';
 import { Tree } from '..';
+import type { TreeItemId } from '../store/types';
+
+/** The `Tree.ItemIndicator` that `describeTree` renders in an item, if any. */
+function getIndicator(view: { getItemRoot: (id: TreeItemId) => HTMLElement }, id: TreeItemId) {
+  return view.getItemRoot(id).querySelector<HTMLElement>('[data-testid="expansion-indicator"]');
+}
 
 const items = [
   {
@@ -215,7 +221,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
       onSelectedItemsChange,
     });
 
-    fireEvent.click(view.getItemRoot('parent').querySelector('[role=checkbox]')!);
+    fireEvent.click(view.getItemText('parent')!);
     expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['parent', 'match', 'hidden']);
   });
 
@@ -313,7 +319,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
       });
     });
 
-    expect(screen.getByRole('treegrid')).toHaveFocus();
+    expect(screen.getByRole('tree')).toHaveFocus();
   });
 
   describe('expanding and collapsing while filtering', () => {
@@ -338,7 +344,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         expect(view.isItemExpanded('archive')).toBe(true);
         expect(view.getAllTreeItemIds()).toContain('old');
 
-        fireEvent.keyDown(view.getItemRoot('archive'), { key: 'Enter' });
+        fireEvent.click(getIndicator(view, 'archive')!);
         expect(view.isItemExpanded('archive')).toBe(false);
 
         // Filter-only expansion is view state: the model never changed.
@@ -355,7 +361,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         onExpandedItemsChange,
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('archive')!);
+      fireEvent.click(getIndicator(view, 'archive')!);
 
       expect(view.isItemExpanded('archive')).toBe(false);
       expect(onExpandedItemsChange.mock.calls.at(-1)![0]).toEqual(['projects']);
@@ -370,7 +376,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         onExpandedItemsChange,
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('archive')!);
+      fireEvent.click(getIndicator(view, 'archive')!);
 
       expect(onExpandedItemsChange).toHaveBeenCalledTimes(1);
       expect(view.isItemExpanded('archive')).toBe(true);
@@ -385,7 +391,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
           eventDetails.cancel(),
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('archive')!);
+      fireEvent.click(getIndicator(view, 'archive')!);
       expect(view.isItemExpanded('archive')).toBe(true);
 
       // The filter still expands the path to its matches once the model collapses it.
@@ -429,10 +435,12 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         'readme',
       ]);
 
-      fireEvent.click(view.getItemExpansionTrigger('documents')!);
+      fireEvent.click(getIndicator(view, 'documents')!);
       expect(view.isItemExpanded('documents')).toBe(false);
       expect(view.getAllTreeItemIds()).not.toContain('notes');
 
+      // The press focused the item it toggled.
+      act(() => view.getItemRoot('projects').focus());
       fireEvent.keyDown(view.getItemRoot('projects'), { key: 'ArrowLeft' });
       expect(view.isItemExpanded('projects')).toBe(false);
       expect(onExpandedItemsChange).not.toHaveBeenCalled();
@@ -448,7 +456,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         onExpandedItemsChange,
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('projects')!, { altKey: true });
+      fireEvent.click(getIndicator(view, 'projects')!, { altKey: true });
       expect(view.getAllTreeItemIds()).toEqual([
         'projects',
         'alpha',
@@ -459,7 +467,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
         'readme',
       ]);
 
-      fireEvent.click(view.getItemExpansionTrigger('projects')!, { altKey: true });
+      fireEvent.click(getIndicator(view, 'projects')!, { altKey: true });
       expect(view.getAllTreeItemIds()).toEqual(['projects', 'documents', 'notes', 'readme']);
       expect(onExpandedItemsChange).not.toHaveBeenCalled();
 
@@ -491,7 +499,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
     it('discards the expansion changes when the filter changes', async () => {
       const view = await render({ items, filterValue: 'old' });
 
-      fireEvent.click(view.getItemExpansionTrigger('archive')!);
+      fireEvent.click(getIndicator(view, 'archive')!);
       expect(view.isItemExpanded('archive')).toBe(false);
 
       await view.setProps({ filterValue: 'ol' });
@@ -500,7 +508,7 @@ describeTree('TreeRoot - Filtering', ({ render }) => {
       await view.setProps({ filterValue: 'old' });
       expect(view.isItemExpanded('archive')).toBe(true);
 
-      fireEvent.click(view.getItemExpansionTrigger('archive')!);
+      fireEvent.click(getIndicator(view, 'archive')!);
       await view.setProps({ filterValue: '' });
       await view.setProps({ filterValue: 'old' });
       expect(view.isItemExpanded('archive')).toBe(true);
@@ -519,15 +527,13 @@ it('re-renders only the new rows when a row of a filtered tree expands', async (
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id}>
-              <Tree.ItemContent>
-                <Tree.ItemIndentGuide
-                  render={(props) => {
-                    renderedGuides.add(item.id);
-                    return <span {...props} />;
-                  }}
-                />
-                {item.label}
-              </Tree.ItemContent>
+              <Tree.ItemIndentGuide
+                render={(props) => {
+                  renderedGuides.add(item.id);
+                  return <span {...props} />;
+                }}
+              />
+              {item.label}
             </Tree.Item>
           )}
         </Tree.List>

@@ -519,12 +519,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         expect(view.isItemSelected('1')).toBe(false);
       });
 
-      it('should not select an item when clicking the expansion trigger', async () => {
+      it('should not select an item when clicking its expansion indicator', async () => {
         const view = await render({
           items: [{ id: '1', children: [{ id: '1.1' }] }],
         });
 
-        fireEvent.click(view.getItemExpansionTrigger('1')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=expansion-indicator]')!);
+        expect(view.isItemExpanded('1')).toBe(true);
         expect(view.isItemSelected('1')).toBe(false);
       });
     });
@@ -786,7 +787,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
         expect(view.isItemSelected('1')).toBe(false);
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(true);
       });
 
@@ -799,7 +800,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
         expect(view.isItemSelected('1')).toBe(true);
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(false);
       });
 
@@ -810,7 +811,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         expect(view.isItemSelected('1')).toBe(false);
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(false);
       });
     });
@@ -826,7 +827,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
         expect(view.getSelectedTreeItems()).toEqual(['2']);
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
       });
 
@@ -840,7 +841,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
         expect(view.isItemSelected('1')).toBe(true);
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(false);
       });
 
@@ -852,7 +853,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         expect(view.isItemSelected('1')).toBe(false);
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(false);
       });
 
@@ -863,20 +864,20 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           items: [{ id: '1' }, { id: '2' }, { id: '2.1' }, { id: '3' }, { id: '4' }],
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1']);
 
-        fireEvent.click(view.getItemRoot('2').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('2').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '2']);
 
-        fireEvent.click(view.getItemRoot('2').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('2').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         fireEvent.click(view.getItemRoot('3'), { shiftKey: true });
         expect(view.getSelectedTreeItems()).toEqual(['1', '2', '2.1', '3']);
       });
 
-      it('should only toggle the clicked checkbox when shift-clicking a checkbox', async () => {
+      it('should extend the selection range when shift-clicking a checkbox item', async () => {
         const onSelectedItemsChange = vi.fn();
         const view = await render({
           multiple: true,
@@ -885,13 +886,12 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('2').querySelector('[role=checkbox]')!);
-        fireEvent.click(view.getItemRoot('4').querySelector('[role=checkbox]')!, {
-          shiftKey: true,
-        });
+        fireEvent.click(view.getItemRoot('2'));
+        expect(view.getSelectedTreeItems()).toEqual(['2']);
 
-        expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['4', '2']);
-        expect(view.getSelectedTreeItems()).toEqual(['2', '4']);
+        fireEvent.click(view.getItemRoot('4'), { shiftKey: true });
+
+        expect(view.getSelectedTreeItems()).toEqual(['2', '3', '4']);
       });
 
       it('should keep the default propagation for the keys a partial checkboxSelectionPropagation omits', async () => {
@@ -906,7 +906,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1.1', '1.2', '1']);
       });
 
@@ -920,7 +920,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: false, descendants: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1.1', '1.2']);
       });
 
@@ -934,7 +934,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: false, descendants: false },
         });
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
       });
@@ -953,7 +953,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1', '1.2'],
         });
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
       });
@@ -970,15 +970,15 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1'],
         });
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
 
         // Use expansion trigger to collapse/expand without toggling selection
-        fireEvent.click(view.getItemExpansionTrigger('1')!);
-        fireEvent.click(view.getItemExpansionTrigger('2')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=expansion-indicator]')!);
+        fireEvent.click(view.getItemRoot('2').querySelector('[data-testid=expansion-indicator]')!);
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
       });
@@ -1001,18 +1001,18 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['1', '1.1'],
         });
 
-        expect(view.getItemRoot('1.1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
 
         // Use expansion trigger to collapse/expand without toggling selection
-        fireEvent.click(view.getItemExpansionTrigger('1')!);
-        fireEvent.click(view.getItemExpansionTrigger('2')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=expansion-indicator]')!);
+        fireEvent.click(view.getItemRoot('2').querySelector('[data-testid=expansion-indicator]')!);
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
           'data-indeterminate',
         );
       });
@@ -1025,13 +1025,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           defaultExpandedItems: ['2'],
         });
 
-        const parentCheckbox = view.getItemRoot('2').querySelector('[role=checkbox]');
+        const parentCheckbox = view.getItemRoot('2').querySelector('[data-testid=checkbox]');
         expect(parentCheckbox).not.toHaveAttribute('data-indeterminate');
 
-        fireEvent.click(view.getItemRoot('2.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('2.1').querySelector('[data-testid=checkbox]')!);
         expect(parentCheckbox).toHaveAttribute('data-indeterminate');
 
-        fireEvent.click(view.getItemRoot('2.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('2.1').querySelector('[data-testid=checkbox]')!);
         expect(parentCheckbox).not.toHaveAttribute('data-indeterminate');
       });
     });
@@ -1047,7 +1047,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true, parents: false },
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.2']);
       });
 
@@ -1061,7 +1061,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true, parents: false },
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual([]);
       });
 
@@ -1075,7 +1075,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true, parents: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1.1', '1.2']);
       });
 
@@ -1089,7 +1089,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true, parents: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '1.2']);
       });
     });
@@ -1104,7 +1104,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: true, descendants: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.1.1']);
       });
 
@@ -1118,7 +1118,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: true, descendants: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual([]);
       });
     });
@@ -1139,7 +1139,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { descendants: true, parents: false },
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '1.1', '1.3']);
       });
 
@@ -1161,7 +1161,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1', '1.1', '1.3']);
       });
 
@@ -1180,7 +1180,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           checkboxSelectionPropagation: { parents: true, descendants: false },
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(view.getSelectedTreeItems()).toEqual(['1', '1.1']);
       });
 
@@ -1202,7 +1202,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1.1', '1']);
       });
 
@@ -1224,7 +1224,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('1.1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')!);
         expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual(['1.1', '1.2']);
       });
     });
@@ -1300,7 +1300,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
       });
 
-      it('should keep `aria-checked` on the checkbox, not the row', async () => {
+      it('should put `aria-selected` on a checkbox item, not `aria-checked`', async () => {
         const view = await render({
           items: [{ id: '1' }, { id: '2' }],
           checkboxSelection: true,
@@ -1308,10 +1308,8 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-          'aria-checked',
-          'true',
-        );
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
+        expect(view.getItemRoot('2')).toHaveAttribute('aria-selected', 'false');
       });
     });
 
@@ -1350,43 +1348,34 @@ describeTree('TreeRoot - Selection', ({ render }) => {
     });
   });
 
-  describe('aria-checked item attribute (Tree.ItemCheckbox)', () => {
-    it('should have the attribute `aria-checked=false` if not selected', async () => {
+  describe('checkbox item state (Tree.CheckboxItem)', () => {
+    it('should be unchecked if not selected', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'false',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-unchecked');
     });
 
-    it('should have the attribute `aria-checked=true` if selected', async () => {
+    it('should be checked if selected', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
         defaultSelectedItems: '1',
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-checked');
     });
 
-    it('should have the attribute `aria-checked="mixed"` if partially selected', async () => {
+    it('should be indeterminate if partially selected', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }, { id: '2' }],
         defaultSelectedItems: '1.1',
         defaultExpandedItems: ['1'],
         checkboxSelection: true,
       });
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'mixed',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
     });
 
     it('keeps the mixed state of a partially selected parent while the tree is disabled', async () => {
@@ -1399,10 +1388,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       await view.setProps({ disabled: true });
 
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'mixed',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-indeterminate');
     });
 
     it('should not show indeterminate when all selectable descendants are selected and some are disabled', async () => {
@@ -1421,10 +1407,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       // All selectable descendants are selected, so parent should show checked (not mixed)
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-checked');
     });
 
     it('should not show indeterminate when all selectable descendants are selected via isItemSelectionDisabled', async () => {
@@ -1444,10 +1427,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       });
 
       // '1.2' is not selectable, '1.1' and '1.3' are selected — parent should show checked
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-checked');
     });
 
     it('should correctly handle checkbox status with deeply nested disabled items', async () => {
@@ -1474,13 +1454,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
       // '1.1' and its child '1.1.1' are disabled, so only '1.2' is selectable
       // Since '1.2' is selected, the parent should show checked
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-checked');
     });
 
-    it('should keep `aria-checked` on a disabled item', async () => {
+    it('should keep the checked state on a disabled item', async () => {
       const view = await render({
         multiple: true,
         items: [{ id: '1', disabled: true }, { id: '2' }],
@@ -1488,24 +1465,22 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
-      expect(view.getItemRoot('2').querySelector('[role=checkbox]')).toHaveAttribute(
-        'aria-checked',
-        'false',
-      );
+      expect(view.getItemRoot('1')).toHaveAttribute('data-checked');
+      expect(view.getItemRoot('2')).toHaveAttribute('data-unchecked');
     });
 
-    it('should not have `aria-selected` attribute', async () => {
+    it('should mark the indicator with the checked state of its item', async () => {
       const view = await render({
         items: [{ id: '1' }, { id: '2' }],
+        defaultSelectedItems: '1',
         checkboxSelection: true,
       });
 
-      expect(view.getItemRoot('1').querySelector('[role=checkbox]')).not.toHaveAttribute(
-        'aria-selected',
+      expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
+        'data-checked',
+      );
+      expect(view.getItemRoot('2').querySelector('[data-testid=checkbox]')).toHaveAttribute(
+        'data-unchecked',
       );
     });
   });
@@ -1585,10 +1560,10 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         const view = await render({
           items: [{ id: '1', children: [{ id: '1.1' }, { id: '1.2' }] }],
           defaultExpandedItems: ['1'],
+          defaultSelectedItems: ['1'],
           multiple: true,
         });
 
-        fireEvent.click(view.getItemRoot('1'));
         expect(view.getSelectedTreeItems()).toEqual(['1']);
 
         act(() => {
@@ -1613,7 +1588,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         expect(view.isItemSelected('1')).toBe(true);
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(true);
         expect(onSelectedItemsChange).not.toHaveBeenCalled();
       });
@@ -1685,7 +1660,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         });
 
         expect(view.isItemSelected('1')).toBe(true);
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         expect(view.isItemSelected('1')).toBe(true);
         expect(onSelectedItemsChange).not.toHaveBeenCalled();
       });
@@ -1737,11 +1712,13 @@ describeTree('TreeRoot - Selection', ({ render }) => {
 
         fireEvent.click(view.getItemRoot('1'));
         expect(onSelectedItemsChange).not.toHaveBeenCalled();
+        // The press still collapses it.
+        expect(view.isItemExpanded('1')).toBe(false);
 
-        fireEvent.click(view.getItemRoot('1.1'));
+        fireEvent.click(view.getItemRoot('2'));
         expect(onSelectedItemsChange).toHaveBeenCalledTimes(1);
-        expect(onSelectedItemsChange.mock.calls[0][0]).toBe('1.1');
-        expect(view.isItemSelected('1.1')).toBe(true);
+        expect(onSelectedItemsChange.mock.calls[0][0]).toBe('2');
+        expect(view.isItemSelected('2')).toBe(true);
       });
 
       it('should not have aria-selected attribute when item is not selectable (Tree.Item)', async () => {
@@ -1763,13 +1740,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           isItemSelectionDisabled: (item: any) => !!item.children && item.children.length > 0,
         });
 
-        expect(view.getItemRoot('1').querySelector('[role=checkbox]')).toHaveAttribute(
-          'aria-disabled',
-          'true',
+        expect(view.getItemRoot('1').querySelector('[data-testid=checkbox]')).toHaveAttribute(
+          'data-disabled',
         );
-        expect(view.getItemRoot('1.1').querySelector('[role=checkbox]')).toHaveAttribute(
-          'aria-checked',
-          'false',
+        expect(view.getItemRoot('1.1').querySelector('[data-testid=checkbox]')).not.toHaveAttribute(
+          'data-disabled',
         );
       });
     });
@@ -1784,11 +1759,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
           onSelectedItemsChange,
         });
 
-        fireEvent.click(view.getItemRoot('1').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('1').querySelector('[data-testid=checkbox]')!);
         fireEvent.click(view.getItemRoot('1'));
         expect(onSelectedItemsChange).not.toHaveBeenCalled();
 
-        fireEvent.click(view.getItemRoot('2').querySelector('[role=checkbox]')!);
+        fireEvent.click(view.getItemRoot('2').querySelector('[data-testid=checkbox]')!);
         expect(onSelectedItemsChange).toHaveBeenCalledTimes(1);
         expect(onSelectedItemsChange.mock.calls[0][0]).toBe('2');
       });
@@ -1949,12 +1924,11 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         isItemSelectionDisabled: (item: any) => item.id === '3',
       });
 
-      const getCheckbox = (id: string) => view.getItemRoot(id).querySelector('[role=checkbox]');
       for (const id of ['1', '1.1', '1.2', '2', '3.1']) {
-        expect(getCheckbox(id)).toHaveAttribute('aria-checked', 'true');
+        expect(view.getItemRoot(id)).toHaveAttribute('data-checked');
       }
       // Not selectable itself, so it reads as checked through its descendants.
-      expect(getCheckbox('3')).toHaveAttribute('aria-checked', 'true');
+      expect(view.getItemRoot('3')).toHaveAttribute('data-checked');
     });
 
     it('should select children revealed by expanding an item after Ctrl+A', async () => {
@@ -2046,7 +2020,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         onSelectedItemsChange,
       });
 
-      fireEvent.click(view.getItemRoot(1).querySelector('[role=checkbox]')!);
+      fireEvent.click(view.getItemRoot(1).querySelector('[data-testid=checkbox]')!);
 
       expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([1]);
       expect(view.isItemSelected(1)).toBe(true);
@@ -2113,7 +2087,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         onSelectedItemsChange,
       });
 
-      fireEvent.click(view.getItemRoot(1).querySelector('[role=checkbox]')!);
+      fireEvent.click(view.getItemRoot(1).querySelector('[data-testid=checkbox]')!);
       expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([1, 11, 12]);
     });
 
@@ -2129,7 +2103,7 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         onSelectedItemsChange,
       });
 
-      fireEvent.click(view.getItemRoot(11).querySelector('[role=checkbox]')!);
+      fireEvent.click(view.getItemRoot(11).querySelector('[data-testid=checkbox]')!);
       expect(onSelectedItemsChange.mock.calls.at(-1)![0]).toEqual([11, 1]);
     });
 
@@ -2157,17 +2131,18 @@ describeTree('TreeRoot - Selection', ({ render }) => {
       const onSelectedItemsChange = vi.fn();
       const view = await render({
         multiple: true,
-        items: [{ id: 'A' }, { id: 'B', children: [{ id: 'B1' }] }, { id: 'C' }],
+        // A second child keeps B from being selected along with B1.
+        items: [{ id: 'A' }, { id: 'B', children: [{ id: 'B1' }, { id: 'B2' }] }, { id: 'C' }],
         onSelectedItemsChange,
       });
 
       // Expand B and select its child B1 — this sets the Shift anchor to B1.
-      fireEvent.click(view.getItemExpansionTrigger('B')!);
+      fireEvent.click(view.getItemRoot('B').querySelector('[data-testid=expansion-indicator]')!);
       fireEvent.click(view.getItemRoot('B1'));
       expect(view.isItemSelected('B1')).toBe(true);
 
       // Collapse B so the anchor (B1) is no longer in the visible flat list.
-      fireEvent.click(view.getItemExpansionTrigger('B')!);
+      fireEvent.click(view.getItemRoot('B').querySelector('[data-testid=expansion-indicator]')!);
       expect(view.isItemExpanded('B')).toBe(false);
 
       // Shift+Click a visible sibling. This previously threw an "Invalid range"

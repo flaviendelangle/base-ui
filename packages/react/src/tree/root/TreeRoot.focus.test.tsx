@@ -524,38 +524,6 @@ describeTree('TreeRoot - Focus', ({ render }) => {
     });
   });
 
-  describe('expansion trigger', () => {
-    it('should keep focus on the treeitem when the chevron is pressed', async () => {
-      // The chevron has `tabIndex={-1}`: a native button takes focus on
-      // pointerdown, which parked DOM focus outside the roving tab order.
-      const view = await render({
-        items: [{ id: '1', children: [{ id: '1.1' }] }],
-      });
-
-      const trigger = view.getItemRoot('1').querySelector('button')!;
-      fireEvent.pointerDown(trigger);
-      fireEvent.click(trigger);
-
-      expect(document.activeElement).toBe(view.getItemRoot('1'));
-      expect(view.getFocusedItemId()).toBe('1');
-    });
-
-    it('should report item-press when the chevron focuses the treeitem', async () => {
-      const onItemHighlighted = vi.fn();
-      const view = await render({
-        items: [{ id: '1', children: [{ id: '1.1' }] }],
-        onItemHighlighted,
-      });
-
-      fireEvent.pointerDown(view.getItemExpansionTrigger('1')!);
-
-      expect(onItemHighlighted).toHaveBeenCalledWith(
-        '1',
-        expect.objectContaining({ reason: 'item-press' }),
-      );
-    });
-  });
-
   describe('removal reconciliation', () => {
     it.each([false, true])(
       'should focus the empty tree after removing its final item (uncontrolled: %s)',

@@ -19,7 +19,6 @@ Doesn't render its own HTML element.
 | defaultItems                 | `Tree.Root.Items<TItem>`                                                                                                                                                                                                                                               | -                                      | The item data used for an uncontrolled component on its initial render.&#xA;Accepts the same data as `items`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | defaultSelectedItems         | `Tree.ItemId \| Tree.ItemId[] \| Tree.SELECTION_ALL \| null`                                                                                                                                                                                                           | -                                      | The items that are initially selected.&#xA;Defaults to `null`, or `[]` with `multiple`. To render a controlled component, use the `selectedItems` prop instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | disableEmptySelection        | `boolean`                                                                                                                                                                                                                                                              | `false`                                | Whether the user is prevented from deselecting the last selected item.&#xA;An empty initial or controlled selection is still allowed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| expandOnClick                | `boolean`                                                                                                                                                                                                                                                              | `false`                                | Whether clicking anywhere on an item row toggles expansion.&#xA;When `false`, clicking the row does not toggle expansion; clicking its expansion trigger does.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | expandedItems                | `Tree.ItemId[]`                                                                                                                                                                                                                                                        | -                                      | The expanded items. To render an uncontrolled component, use the `defaultExpandedItems` prop instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | itemFocusableWhenDisabled    | `boolean`                                                                                                                                                                                                                                                              | `true`                                 | Whether disabled items should be focusable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | items                        | `Tree.Root.Items<TItem>`                                                                                                                                                                                                                                               | -                                      | The controlled item data. Pass a standard item array, or a collection returned by&#xA;`Tree.createItems()` for a custom item model.&#xA;A model that extends the standard item must redeclare `children` with its own type.                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -422,16 +421,16 @@ Renders a `<div>` element.
 
 **Item Data Attributes:**
 
-| Attribute         | Type     | Description                                                                      |
-| :---------------- | :------- | :------------------------------------------------------------------------------- |
-| data-selected     | -        | Present when the item is selected.                                               |
-| data-highlighted  | -        | Present when the item is highlighted: it has focus, or one of its controls does. |
-| data-disabled     | -        | Present when the item is disabled.                                               |
-| data-collapsed    | -        | Present when the item is collapsed.                                              |
-| data-expandable   | -        | Present when the item can be expanded.                                           |
-| data-expanded     | -        | Present when the item is expanded.                                               |
-| data-filter-match | -        | Present when the item is an exact filter match.                                  |
-| data-item-id      | `string` | The id of the item.                                                              |
+| Attribute         | Type     | Description                                     |
+| :---------------- | :------- | :---------------------------------------------- |
+| data-selected     | -        | Present when the item is selected.              |
+| data-highlighted  | -        | Present when the item has focus.                |
+| data-disabled     | -        | Present when the item is disabled.              |
+| data-collapsed    | -        | Present when the item is collapsed.             |
+| data-expandable   | -        | Present when the item can be expanded.          |
+| data-expanded     | -        | Present when the item is expanded.              |
+| data-filter-match | -        | Present when the item is an exact filter match. |
+| data-item-id      | `string` | The id of the item.                             |
 
 **Item CSS Variables:**
 
@@ -457,7 +456,7 @@ type TreeItemState = {
   expandable: boolean;
   /** Whether the item is expandable and currently collapsed. */
   collapsed: boolean;
-  /** Whether the item is highlighted: it has focus, or one of its controls does. */
+  /** Whether the item has focus. */
   highlighted: boolean;
   /** Whether the component should ignore user interaction. */
   disabled: boolean;
@@ -593,6 +592,154 @@ Re-export of [Empty](#empty) props.
 
 ```typescript
 type TreeEmptyState = {};
+```
+
+### ItemIndicator
+
+Shows whether its tree item is expanded, such as a chevron or a folder icon.
+A press on it expands or collapses the item without changing the selection.
+Renders a `<span>` element in items that can be expanded.
+
+**ItemIndicator Props:**
+
+| Prop        | Type                                                                                             | Default  | Description                                                                                                                                                                                   |
+| :---------- | :----------------------------------------------------------------------------------------------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| match       | `'open' \| 'closed'`                                                                             | `'open'` | Which expansion state the indicator renders in.&#xA;Use `'open'` and `'closed'` indicators together to swap them, such as an open and a closed folder icon.                                   |
+| children    | `React.ReactNode`                                                                                | -        | -                                                                                                                                                                                             |
+| className   | `string \| ((state: Tree.ItemIndicator.State) => string \| undefined)`                           | -        | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style       | `React.CSSProperties \| ((state: Tree.ItemIndicator.State) => React.CSSProperties \| undefined)` | -        | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| keepMounted | `boolean`                                                                                        | `false`  | Whether to keep the element in the DOM in both expansion states, such as a chevron that rotates when expanded.                                                                                |
+| render      | `ReactElement \| ((props: HTMLProps, state: Tree.ItemIndicator.State) => ReactElement)`          | -        | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+
+**ItemIndicator Data Attributes:**
+
+| Attribute           | Type | Description                                  |
+| :------------------ | :--- | :------------------------------------------- |
+| data-collapsed      | -    | Present when the item is collapsed.          |
+| data-expanded       | -    | Present when the item is expanded.           |
+| data-starting-style | -    | Present when the indicator is animating in.  |
+| data-ending-style   | -    | Present when the indicator is animating out. |
+
+### ItemIndicator.Props
+
+Re-export of [ItemIndicator](#itemindicator) props.
+
+### ItemIndicator.State
+
+```typescript
+type TreeItemIndicatorState = {
+  /** Whether the item is expanded. */
+  expanded: boolean;
+  /** The transition status of the component. */
+  transitionStatus: TransitionStatus;
+};
+```
+
+### CheckboxItem
+
+A tree item with a checkbox. Pressing it toggles whether it's selected, and keeps the
+rest of the selection.
+Use it in place of `<Tree.Item>`.
+Renders a `<div>` element.
+
+**CheckboxItem Props:**
+
+| Prop      | Type                                                                                            | Default | Description                                                                                                                                                                                   |
+| :-------- | :---------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| itemId\*  | `Tree.ItemId`                                                                                   | -       | The id of the item.                                                                                                                                                                           |
+| className | `string \| ((state: Tree.CheckboxItem.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style     | `React.CSSProperties \| ((state: Tree.CheckboxItem.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| render    | `ReactElement \| ((props: HTMLProps, state: Tree.CheckboxItem.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+
+**CheckboxItem Data Attributes:**
+
+| Attribute          | Type     | Description                                                                       |
+| :----------------- | :------- | :-------------------------------------------------------------------------------- |
+| data-checked       | -        | Present when the item is selected.                                                |
+| data-unchecked     | -        | Present when the item is not selected and isn't indeterminate.                    |
+| data-highlighted   | -        | Present when the item has focus.                                                  |
+| data-disabled      | -        | Present when the item is disabled.                                                |
+| data-collapsed     | -        | Present when the item is collapsed.                                               |
+| data-expandable    | -        | Present when the item can be expanded.                                            |
+| data-expanded      | -        | Present when the item is expanded.                                                |
+| data-filter-match  | -        | Present when the item is an exact filter match.                                   |
+| data-indeterminate | -        | Present when the item is not selected but some of its selectable descendants are. |
+| data-item-id       | `string` | The id of the item.                                                               |
+
+### CheckboxItem.Props
+
+Re-export of [CheckboxItem](#checkboxitem) props.
+
+### CheckboxItem.State
+
+```typescript
+type TreeCheckboxItemState = {
+  /** Whether the item is selected. */
+  checked: boolean;
+  /** Whether the item is not selected but some of its selectable descendants are. */
+  indeterminate: boolean;
+  /** The id of the item. */
+  itemId: Tree.ItemId;
+  /** Whether the item is currently expanded. */
+  expanded: boolean;
+  /** Whether the item can be expanded. */
+  expandable: boolean;
+  /** Whether the item is expandable and currently collapsed. */
+  collapsed: boolean;
+  /** Whether the item has focus. */
+  highlighted: boolean;
+  /** Whether the component should ignore user interaction. */
+  disabled: boolean;
+  /** The level of the item in the tree hierarchy (1-based, matches aria-level). */
+  level: number;
+  /** Whether the item is an exact match for the active filter. */
+  filterMatch: boolean;
+};
+```
+
+### CheckboxItemIndicator
+
+Indicates whether the checkbox item is selected, or indeterminate.
+Renders a `<span>` element.
+
+**CheckboxItemIndicator Props:**
+
+| Prop        | Type                                                                                                     | Default | Description                                                                                                                                                                                   |
+| :---------- | :------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| children    | `React.ReactNode`                                                                                        | -       | -                                                                                                                                                                                             |
+| className   | `string \| ((state: Tree.CheckboxItemIndicator.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
+| style       | `React.CSSProperties \| ((state: Tree.CheckboxItemIndicator.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
+| keepMounted | `boolean`                                                                                                | `false` | Whether to keep the element in the DOM when the item is not selected or indeterminate.                                                                                                        |
+| render      | `ReactElement \| ((props: HTMLProps, state: Tree.CheckboxItemIndicator.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
+
+**CheckboxItemIndicator Data Attributes:**
+
+| Attribute           | Type | Description                                                                       |
+| :------------------ | :--- | :-------------------------------------------------------------------------------- |
+| data-checked        | -    | Present when the item is selected.                                                |
+| data-unchecked      | -    | Present when the item is not selected and isn't indeterminate.                    |
+| data-disabled       | -    | Present when the item is disabled or cannot be selected.                          |
+| data-indeterminate  | -    | Present when the item is not selected but some of its selectable descendants are. |
+| data-starting-style | -    | Present when the indicator is animating in.                                       |
+| data-ending-style   | -    | Present when the indicator is animating out.                                      |
+
+### CheckboxItemIndicator.Props
+
+Re-export of [CheckboxItemIndicator](#checkboxitemindicator) props.
+
+### CheckboxItemIndicator.State
+
+```typescript
+type TreeCheckboxItemIndicatorState = {
+  /** Whether the item is selected. */
+  checked: boolean;
+  /** Whether the item is not selected but some of its selectable descendants are. */
+  indeterminate: boolean;
+  /** Whether the item is disabled or cannot be selected. */
+  disabled: boolean;
+  /** The transition status of the component. */
+  transitionStatus: TransitionStatus;
+};
 ```
 
 ### createItems
@@ -743,275 +890,12 @@ type TreeGroupTransitionState = {
 };
 ```
 
-### ItemButton
-
-A button inside a tree item that takes part in the item's keyboard navigation.
-Renders a `<button>` element.
-
-**ItemButton Props:**
-
-| Prop                  | Type                                                                                          | Default | Description                                                                                                                                                                                               |
-| :-------------------- | :-------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| controlKeys           | `Tree.ItemControl.Keys`                                                                       | -       | Which keys the button handles itself instead of the tree.&#xA;By default, the arrows, Home, End, and Escape navigate the tree.&#xA;A popup trigger keeps the Up and Down arrows so it can open its popup. |
-| focusableWhenDisabled | `boolean`                                                                                     | `true`  | Whether the button remains focusable when disabled.                                                                                                                                                       |
-| nativeButton          | `boolean`                                                                                     | `true`  | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `false` if the rendered element is not a button (for example, `<div>`).                 |
-| disabled              | `boolean`                                                                                     | `false` | Whether the button should ignore user interaction.&#xA;The button is also disabled while its item or the tree is disabled.                                                                                |
-| className             | `string \| ((state: Tree.ItemButton.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                  |
-| style                 | `React.CSSProperties \| ((state: Tree.ItemButton.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                               |
-| render                | `ReactElement \| ((props: HTMLProps, state: Tree.ItemButton.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.             |
-
-**ItemButton Data Attributes:**
-
-| Attribute      | Type | Description                                              |
-| :------------- | :--- | :------------------------------------------------------- |
-| data-disabled  | -    | Present when the button is disabled.                     |
-| data-focusable | -    | Present when the button remains focusable when disabled. |
-
-### ItemButton.Props
-
-Re-export of [ItemButton](#itembutton) props.
-
-### ItemButton.State
-
-```typescript
-type TreeItemButtonState = {
-  /** Whether the button is disabled. */
-  disabled: boolean;
-  /** Whether the button remains focusable when disabled. */
-  focusable: boolean;
-};
-```
-
-### ItemCheckbox
-
-A checkbox that controls selection for its tree item.
-Renders a `<span>` element and a hidden `<input>` beside it.
-
-**ItemCheckbox Props:**
-
-| Prop         | Type                                                                                            | Default | Description                                                                                                                                                                                   |
-| :----------- | :---------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| nativeButton | `boolean`                                                                                       | `false` | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `true` if the rendered element is a native button.                          |
-| inputRef     | `React.Ref<HTMLInputElement>`                                                                   | -       | A ref to access the hidden `<input>` element.                                                                                                                                                 |
-| id           | `string`                                                                                        | -       | The id of the hidden input element.                                                                                                                                                           |
-| className    | `string \| ((state: Tree.ItemCheckbox.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style        | `React.CSSProperties \| ((state: Tree.ItemCheckbox.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render       | `ReactElement \| ((props: HTMLProps, state: Tree.ItemCheckbox.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-**ItemCheckbox Data Attributes:**
-
-| Attribute          | Type | Description                                                                       |
-| :----------------- | :--- | :-------------------------------------------------------------------------------- |
-| data-checked       | -    | Present when the checkbox is checked.                                             |
-| data-unchecked     | -    | Present when the checkbox is not checked.                                         |
-| data-disabled      | -    | Present when the item is disabled or cannot be selected.                          |
-| data-indeterminate | -    | Present when the item is not selected but some of its selectable descendants are. |
-
-### ItemCheckbox.Props
-
-Re-export of [ItemCheckbox](#itemcheckbox) props.
-
-### ItemCheckbox.State
-
-```typescript
-type TreeItemCheckboxState = {
-  /** Whether the item is selected. */
-  checked: boolean;
-  /** Whether the item is not selected but some of its selectable descendants are. */
-  indeterminate: boolean;
-  /** Whether the checkbox is disabled, because its item is disabled or can't be selected. */
-  disabled: boolean;
-};
-```
-
-### ItemCheckboxIndicator
-
-Renders when the tree item checkbox is checked or mixed.
-Renders a `<span>` element.
-
-**ItemCheckboxIndicator Props:**
-
-| Prop        | Type                                                                                                     | Default | Description                                                                                                                                                                                   |
-| :---------- | :------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| className   | `string \| ((state: Tree.ItemCheckboxIndicator.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style       | `React.CSSProperties \| ((state: Tree.ItemCheckboxIndicator.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| keepMounted | `boolean`                                                                                                | `false` | Whether to keep the element in the DOM when the checkbox is not checked.                                                                                                                      |
-| render      | `ReactElement \| ((props: HTMLProps, state: Tree.ItemCheckboxIndicator.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-**ItemCheckboxIndicator Data Attributes:**
-
-| Attribute           | Type | Description                                                                       |
-| :------------------ | :--- | :-------------------------------------------------------------------------------- |
-| data-checked        | -    | Present when the checkbox is checked.                                             |
-| data-unchecked      | -    | Present when the checkbox is not checked.                                         |
-| data-disabled       | -    | Present when the item is disabled or cannot be selected.                          |
-| data-indeterminate  | -    | Present when the item is not selected but some of its selectable descendants are. |
-| data-starting-style | -    | Present when the indicator is animating in.                                       |
-| data-ending-style   | -    | Present when the indicator is animating out.                                      |
-
-### ItemCheckboxIndicator.Props
-
-Re-export of [ItemCheckboxIndicator](#itemcheckboxindicator) props.
-
-### ItemCheckboxIndicator.State
-
-```typescript
-type TreeItemCheckboxIndicatorState = {
-  /** The transition status of the component. */
-  transitionStatus: TransitionStatus;
-  /** Whether the item is selected. */
-  checked: boolean;
-  /** Whether the item is not selected but some of its selectable descendants are. */
-  indeterminate: boolean;
-  /** Whether the checkbox is disabled, because its item is disabled or can't be selected. */
-  disabled: boolean;
-};
-```
-
 ### ItemCollection
 
 An opaque collection created by `Tree.createItems()`.
 
 It carries the source item type so the root can infer it for its props, callbacks, and actions.
 Pass it directly to the root component; it has no public members.
-
-### ItemContent
-
-Contains the interactive content of a tree item.
-Renders a `<div>` element with `role="gridcell"`, named after its item.
-
-**ItemContent Props:**
-
-| Prop      | Type                                                                                           | Default | Description                                                                                                                                                                                   |
-| :-------- | :--------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| className | `string \| ((state: Tree.ItemContent.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style     | `React.CSSProperties \| ((state: Tree.ItemContent.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render    | `ReactElement \| ((props: HTMLProps, state: Tree.ItemContent.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-### ItemContent.Props
-
-Re-export of [ItemContent](#itemcontent) props.
-
-### ItemContent.State
-
-```typescript
-type TreeItemContentState = {};
-```
-
-### ItemControl
-
-Adds any focusable element inside a tree item to the item's keyboard navigation.
-Renders a `<div>` element.
-
-**ItemControl Props:**
-
-| Prop        | Type                                                                                           | Default | Description                                                                                                                                                                                   |
-| :---------- | :--------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| controlKeys | `Tree.ItemControl.Keys`                                                                        | -       | Which keys the control handles itself instead of the tree.&#xA;By default, the control keeps every key. Assign a key group to `'tree'`&#xA;to let it navigate the item and the tree.          |
-| className   | `string \| ((state: Tree.ItemControl.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style       | `React.CSSProperties \| ((state: Tree.ItemControl.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render      | `ReactElement \| ((props: HTMLProps, state: Tree.ItemControl.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-### ItemControl.Props
-
-Re-export of [ItemControl](#itemcontrol) props.
-
-### ItemControl.State
-
-```typescript
-type TreeItemControlState = {};
-```
-
-### ItemControl.Keys
-
-```typescript
-type TreeItemControlKeys = {
-  /**
-   * Left and Right arrows. With `tree`, they move to the previous or next control,
-   * and back to the item from the first control. In a text input, they move the
-   * caret until it reaches the start or end of the text.
-   */
-  horizontal?: 'control' | 'tree';
-  /** Up and Down arrows. With `tree`, they move to the previous or next item. */
-  vertical?: 'control' | 'tree';
-  /** Home and End. With `tree`, they move to the first or last control of the item. */
-  homeEnd?: 'control' | 'tree';
-  /** Escape. With `tree`, it moves focus back to the item. */
-  escape?: 'control' | 'tree';
-};
-```
-
-### ItemExpansionTrigger
-
-A button that toggles the expansion state of a tree item.
-Alt-click (Option-click on macOS) toggles its descendants too.
-Renders a `<button>` element when the item can be expanded.
-
-**ItemExpansionTrigger Props:**
-
-| Prop         | Type                                                                                                    | Default | Description                                                                                                                                                                                   |
-| :----------- | :------------------------------------------------------------------------------------------------------ | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| nativeButton | `boolean`                                                                                               | `true`  | Whether the component renders a native `<button>` element when replacing it&#xA;via the `render` prop.&#xA;Set to `false` if the rendered element is not a button (for example, `<div>`).     |
-| disabled     | `boolean`                                                                                               | `false` | Whether the component should ignore user interaction.&#xA;The trigger is also disabled while its item or the tree is disabled.                                                                |
-| className    | `string \| ((state: Tree.ItemExpansionTrigger.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style        | `React.CSSProperties \| ((state: Tree.ItemExpansionTrigger.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render       | `ReactElement \| ((props: HTMLProps, state: Tree.ItemExpansionTrigger.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-**ItemExpansionTrigger Data Attributes:**
-
-| Attribute      | Type | Description                                                  |
-| :------------- | :--- | :----------------------------------------------------------- |
-| data-disabled  | -    | Present when the trigger, its item, or the tree is disabled. |
-| data-collapsed | -    | Present when the item is collapsed.                          |
-| data-expanded  | -    | Present when the item is expanded.                           |
-
-### ItemExpansionTrigger.Props
-
-Re-export of [ItemExpansionTrigger](#itemexpansiontrigger) props.
-
-### ItemExpansionTrigger.State
-
-```typescript
-type TreeItemExpansionTriggerState = {
-  /** Whether the item is currently expanded. */
-  expanded: boolean;
-  /** Whether the trigger is disabled, on its own or because its item or the tree is. */
-  disabled: boolean;
-};
-```
-
-### ItemGroupIndicator
-
-A visual indicator for expandable tree items.
-Renders a `<span>` element when the item can be expanded.
-
-**ItemGroupIndicator Props:**
-
-| Prop      | Type                                                                                                  | Default | Description                                                                                                                                                                                   |
-| :-------- | :---------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| className | `string \| ((state: Tree.ItemGroupIndicator.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style     | `React.CSSProperties \| ((state: Tree.ItemGroupIndicator.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render    | `ReactElement \| ((props: HTMLProps, state: Tree.ItemGroupIndicator.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-**ItemGroupIndicator Data Attributes:**
-
-| Attribute      | Type | Description                         |
-| :------------- | :--- | :---------------------------------- |
-| data-collapsed | -    | Present when the item is collapsed. |
-| data-expanded  | -    | Present when the item is expanded.  |
-
-### ItemGroupIndicator.Props
-
-Re-export of [ItemGroupIndicator](#itemgroupindicator) props.
-
-### ItemGroupIndicator.State
-
-```typescript
-type TreeItemGroupIndicatorState = {
-  /** Whether the item is currently expanded. */
-  expanded: boolean;
-};
-```
 
 ### ItemIndentGuide
 
@@ -1050,82 +934,6 @@ Re-export of [ItemIndentGuide](#itemindentguide) props.
 type TreeItemIndentGuideState = {
   /** The level of the item in the tree hierarchy (1-based). */
   level: number;
-};
-```
-
-### ItemInput
-
-An input inside a tree item that takes part in the item's keyboard navigation.
-Renders an `<input>` element.
-
-**ItemInput Props:**
-
-| Prop                  | Type                                                                                         | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| :-------------------- | :------------------------------------------------------------------------------------------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| defaultValue          | `string \| number \| string[]`                                                               | -       | The default value of the input. Use when uncontrolled.                                                                                                                                                                                                                                                                                                                                                                               |
-| controlKeys           | `Tree.ItemControl.Keys`                                                                      | -       | Which keys the input handles itself instead of the tree.&#xA;By default, the input keeps Home and End. A text input keeps the Left and Right&#xA;arrows until the caret reaches the start or end of its text. Email and number&#xA;inputs don't expose their caret, so the arrows leave them, and other inputs keep&#xA;them. The Up and Down arrows move between items unless the input uses them,&#xA;like a number or date input. |
-| focusableWhenDisabled | `boolean`                                                                                    | `true`  | Whether the input remains focusable when disabled.&#xA;A disabled input that remains focusable is read-only, and still submits its value with a form.&#xA;Otherwise it is natively disabled, and a form doesn't submit its value.                                                                                                                                                                                                    |
-| disabled              | `boolean`                                                                                    | `false` | Whether the input is disabled.&#xA;The input is also disabled while its item or the tree is disabled.                                                                                                                                                                                                                                                                                                                                |
-| className             | `string \| ((state: Tree.ItemInput.State) => string \| undefined)`                           | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                                                                                                                                                                                                                                                             |
-| style                 | `React.CSSProperties \| ((state: Tree.ItemInput.State) => React.CSSProperties \| undefined)` | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                                                                                                                                                                                                                                                          |
-| render                | `ReactElement \| ((props: HTMLProps, state: Tree.ItemInput.State) => ReactElement)`          | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.                                                                                                                                                                                                                                        |
-
-**ItemInput Data Attributes:**
-
-| Attribute      | Type | Description                                             |
-| :------------- | :--- | :------------------------------------------------------ |
-| data-disabled  | -    | Present when the input is disabled.                     |
-| data-focusable | -    | Present when the input remains focusable when disabled. |
-
-### ItemInput.Props
-
-Re-export of [ItemInput](#iteminput) props.
-
-### ItemInput.State
-
-```typescript
-type TreeItemInputState = {
-  /** Whether the input is disabled. */
-  disabled: boolean;
-  /** Whether the input remains focusable when disabled. */
-  focusable: boolean;
-};
-```
-
-### ItemLink
-
-A link inside a tree item that takes part in the item's keyboard navigation.
-Renders an `<a>` element.
-
-**ItemLink Props:**
-
-| Prop        | Type                                                                                                                                                               | Default | Description                                                                                                                                                                                   |
-| :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| active      | `boolean`                                                                                                                                                          | `false` | Whether the link is the currently active page.&#xA;Marks the link and its item with `aria-current="page"`.                                                                                    |
-| controlKeys | `Tree.ItemControl.Keys`                                                                                                                                            | -       | Which keys the link handles itself instead of the tree.&#xA;By default, the arrows, Home, End, and Escape navigate the tree.                                                                  |
-| className   | `string \| ((state: Tree.ItemLink.State) => string \| undefined)`                                                                                                  | -       | CSS class applied to the element, or a function that&#xA;returns a class based on the component's state.                                                                                      |
-| style       | `React.CSSProperties \| ((state: Tree.ItemLink.State) => React.CSSProperties \| undefined)`                                                                        | -       | Style applied to the element, or a function that&#xA;returns a style object based on the component's state.                                                                                   |
-| render      | `ReactElement \| ((props: React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>, state: Tree.ItemLink.State) => ReactElement)` | -       | Allows you to replace the component's HTML element&#xA;with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render. |
-
-**ItemLink Data Attributes:**
-
-| Attribute     | Type | Description                                                         |
-| :------------ | :--- | :------------------------------------------------------------------ |
-| data-disabled | -    | Present when the link is disabled, because its item or the tree is. |
-| data-active   | -    | Present when the link is the currently active page.                 |
-
-### ItemLink.Props
-
-Re-export of [ItemLink](#itemlink) props.
-
-### ItemLink.State
-
-```typescript
-type TreeItemLinkState = {
-  /** Whether the link is the currently active page. */
-  active: boolean;
-  /** Whether the link is disabled, because its item or the tree is. */
-  disabled: boolean;
 };
 ```
 
@@ -1360,6 +1168,59 @@ It is a unique symbol rather than a string, so it never collides with an item
 type TreeSELECTION_ALL = Tree.SELECTION_ALL;
 ```
 
+### TreeCheckboxItemDataAttributes
+
+Data attributes of [CheckboxItem](#checkboxitem).
+
+```typescript
+declare namespace TreeCheckboxItemDataAttributes {
+  /**
+   * The id of the item.
+   * @type string
+   */
+  const itemId: 'data-item-id';
+  /** Present when the item is selected. */
+  const checked: 'data-checked';
+  /** Present when the item is not selected and isn't indeterminate. */
+  const unchecked: 'data-unchecked';
+  /** Present when the item is not selected but some of its selectable descendants are. */
+  const indeterminate: 'data-indeterminate';
+  /** Present when the item is expanded. */
+  const expanded: 'data-expanded';
+  /** Present when the item is collapsed. */
+  const collapsed: 'data-collapsed';
+  /** Present when the item has focus. */
+  const highlighted: 'data-highlighted';
+  /** Present when the item is disabled. */
+  const disabled: 'data-disabled';
+  /** Present when the item can be expanded. */
+  const expandable: 'data-expandable';
+  /** Present when the item is an exact filter match. */
+  const filterMatch: 'data-filter-match';
+}
+```
+
+### TreeCheckboxItemIndicatorDataAttributes
+
+Data attributes of [CheckboxItemIndicator](#checkboxitemindicator).
+
+```typescript
+declare namespace TreeCheckboxItemIndicatorDataAttributes {
+  /** Present when the item is selected. */
+  const checked: 'data-checked';
+  /** Present when the item is not selected and isn't indeterminate. */
+  const unchecked: 'data-unchecked';
+  /** Present when the item is not selected but some of its selectable descendants are. */
+  const indeterminate: 'data-indeterminate';
+  /** Present when the item is disabled or cannot be selected. */
+  const disabled: 'data-disabled';
+  /** Present when the indicator is animating in. */
+  const startingStyle: 'data-starting-style';
+  /** Present when the indicator is animating out. */
+  const endingStyle: 'data-ending-style';
+}
+```
+
 ### TreeClearDataAttributes
 
 Data attributes of [Clear](#clear).
@@ -1418,57 +1279,6 @@ declare namespace TreeInputDataAttributes {
 }
 ```
 
-### TreeItemButtonDataAttributes
-
-Data attributes of [ItemButton](#itembutton).
-
-```typescript
-declare namespace TreeItemButtonDataAttributes {
-  /** Present when the button is disabled. */
-  const disabled: 'data-disabled';
-  /** Present when the button remains focusable when disabled. */
-  const focusable: 'data-focusable';
-}
-```
-
-### TreeItemCheckboxDataAttributes
-
-Data attributes of [ItemCheckbox](#itemcheckbox).
-
-```typescript
-declare namespace TreeItemCheckboxDataAttributes {
-  /** Present when the checkbox is checked. */
-  const checked: 'data-checked';
-  /** Present when the checkbox is not checked. */
-  const unchecked: 'data-unchecked';
-  /** Present when the item is not selected but some of its selectable descendants are. */
-  const indeterminate: 'data-indeterminate';
-  /** Present when the item is disabled or cannot be selected. */
-  const disabled: 'data-disabled';
-}
-```
-
-### TreeItemCheckboxIndicatorDataAttributes
-
-Data attributes of [ItemCheckboxIndicator](#itemcheckboxindicator).
-
-```typescript
-declare namespace TreeItemCheckboxIndicatorDataAttributes {
-  /** Present when the checkbox is checked. */
-  const checked: 'data-checked';
-  /** Present when the checkbox is not checked. */
-  const unchecked: 'data-unchecked';
-  /** Present when the item is not selected but some of its selectable descendants are. */
-  const indeterminate: 'data-indeterminate';
-  /** Present when the item is disabled or cannot be selected. */
-  const disabled: 'data-disabled';
-  /** Present when the indicator is animating in. */
-  const startingStyle: 'data-starting-style';
-  /** Present when the indicator is animating out. */
-  const endingStyle: 'data-ending-style';
-}
-```
-
 ### TreeItemCssVariables
 
 CSS variables of [Item](#item).
@@ -1500,7 +1310,7 @@ declare namespace TreeItemDataAttributes {
   const collapsed: 'data-collapsed';
   /** Present when the item is selected. */
   const selected: 'data-selected';
-  /** Present when the item is highlighted: it has focus, or one of its controls does. */
+  /** Present when the item has focus. */
   const highlighted: 'data-highlighted';
   /** Present when the item is disabled. */
   const disabled: 'data-disabled';
@@ -1508,34 +1318,6 @@ declare namespace TreeItemDataAttributes {
   const expandable: 'data-expandable';
   /** Present when the item is an exact filter match. */
   const filterMatch: 'data-filter-match';
-}
-```
-
-### TreeItemExpansionTriggerDataAttributes
-
-Data attributes of [ItemExpansionTrigger](#itemexpansiontrigger).
-
-```typescript
-declare namespace TreeItemExpansionTriggerDataAttributes {
-  /** Present when the item is expanded. */
-  const expanded: 'data-expanded';
-  /** Present when the item is collapsed. */
-  const collapsed: 'data-collapsed';
-  /** Present when the trigger, its item, or the tree is disabled. */
-  const disabled: 'data-disabled';
-}
-```
-
-### TreeItemGroupIndicatorDataAttributes
-
-Data attributes of [ItemGroupIndicator](#itemgroupindicator).
-
-```typescript
-declare namespace TreeItemGroupIndicatorDataAttributes {
-  /** Present when the item is expanded. */
-  const expanded: 'data-expanded';
-  /** Present when the item is collapsed. */
-  const collapsed: 'data-collapsed';
 }
 ```
 
@@ -1574,29 +1356,20 @@ declare namespace TreeItemIndentGuideDataAttributes {
 }
 ```
 
-### TreeItemInputDataAttributes
+### TreeItemIndicatorDataAttributes
 
-Data attributes of [ItemInput](#iteminput).
-
-```typescript
-declare namespace TreeItemInputDataAttributes {
-  /** Present when the input is disabled. */
-  const disabled: 'data-disabled';
-  /** Present when the input remains focusable when disabled. */
-  const focusable: 'data-focusable';
-}
-```
-
-### TreeItemLinkDataAttributes
-
-Data attributes of [ItemLink](#itemlink).
+Data attributes of [ItemIndicator](#itemindicator).
 
 ```typescript
-declare namespace TreeItemLinkDataAttributes {
-  /** Present when the link is the currently active page. */
-  const active: 'data-active';
-  /** Present when the link is disabled, because its item or the tree is. */
-  const disabled: 'data-disabled';
+declare namespace TreeItemIndicatorDataAttributes {
+  /** Present when the item is expanded. */
+  const expanded: 'data-expanded';
+  /** Present when the item is collapsed. */
+  const collapsed: 'data-collapsed';
+  /** Present when the indicator is animating in. */
+  const startingStyle: 'data-starting-style';
+  /** Present when the indicator is animating out. */
+  const endingStyle: 'data-ending-style';
 }
 ```
 
@@ -1618,15 +1391,9 @@ declare namespace TreeListDataAttributes {
 - `Tree.Root`: `Tree.Root`, `Tree.Root.State`, `Tree.Root.Props`, `Tree.Root.Actions`, `Tree.Root.ExpansionChangeEventReason`, `Tree.Root.ExpansionChangeEventDetails`, `Tree.Root.SelectionChangeEventReason`, `Tree.Root.SelectionChangeEventDetails`, `Tree.Root.ItemExpansionToggleEventDetails`, `Tree.Root.ItemExpansionToggleValue`, `Tree.Root.ItemSelectionToggleEventDetails`, `Tree.Root.ItemSelectionToggleValue`, `Tree.Root.HighlightEventReason`, `Tree.Root.HighlightEventDetails`, `Tree.Root.ItemsChangeEventReason`, `Tree.Root.ItemsChangeEventDetails`, `Tree.Root.Items`
 - `Tree.Label`: `Tree.Label`, `Tree.Label.State`, `Tree.Label.Props`
 - `Tree.Item`: `Tree.Item`, `Tree.Item.State`, `Tree.Item.Props`
-- `Tree.ItemContent`: `Tree.ItemContent`, `Tree.ItemContent.State`, `Tree.ItemContent.Props`
-- `Tree.ItemCheckbox`: `Tree.ItemCheckbox`, `Tree.ItemCheckbox.State`, `Tree.ItemCheckbox.Props`
-- `Tree.ItemCheckboxIndicator`: `Tree.ItemCheckboxIndicator`, `Tree.ItemCheckboxIndicator.State`, `Tree.ItemCheckboxIndicator.Props`
-- `Tree.ItemExpansionTrigger`: `Tree.ItemExpansionTrigger`, `Tree.ItemExpansionTrigger.State`, `Tree.ItemExpansionTrigger.Props`
-- `Tree.ItemButton`: `Tree.ItemButton`, `Tree.ItemButton.State`, `Tree.ItemButton.Props`
-- `Tree.ItemInput`: `Tree.ItemInput`, `Tree.ItemInput.State`, `Tree.ItemInput.Props`
-- `Tree.ItemLink`: `Tree.ItemLink`, `Tree.ItemLink.State`, `Tree.ItemLink.Props`
-- `Tree.ItemControl`: `Tree.ItemControl`, `Tree.ItemControl.State`, `Tree.ItemControl.Props`, `Tree.ItemControl.Keys`
-- `Tree.ItemGroupIndicator`: `Tree.ItemGroupIndicator`, `Tree.ItemGroupIndicator.State`, `Tree.ItemGroupIndicator.Props`
+- `Tree.CheckboxItem`: `Tree.CheckboxItem`, `Tree.CheckboxItem.State`, `Tree.CheckboxItem.Props`
+- `Tree.CheckboxItemIndicator`: `Tree.CheckboxItemIndicator`, `Tree.CheckboxItemIndicator.State`, `Tree.CheckboxItemIndicator.Props`
+- `Tree.ItemIndicator`: `Tree.ItemIndicator`, `Tree.ItemIndicator.State`, `Tree.ItemIndicator.Props`
 - `Tree.List`: `Tree.List`, `Tree.List.Props`, `Tree.List.State`
 - `Tree.GroupTransition`: `Tree.GroupTransition`, `Tree.GroupTransition.State`, `Tree.GroupTransition.Props`
 - `Tree.Empty`: `Tree.Empty`, `Tree.Empty.State`, `Tree.Empty.Props`
@@ -1636,7 +1403,7 @@ declare namespace TreeListDataAttributes {
 - `Tree.Input`: `Tree.Input`, `Tree.Input.State`, `Tree.Input.Props`
 - `Tree.Clear`: `Tree.Clear`, `Tree.Clear.State`, `Tree.Clear.Props`
 - `Tree.useFilter`
-- `Default`: `Tree.Filter`, `Tree.FilterOptions`, `Tree.CreateItemsOptions`, `Tree.DefaultItem`, `Tree.ItemId`, `Tree.CheckboxSelectionPropagation`, `Tree.FilterMode`, `Tree.ItemPosition`, `Tree.ItemDestination`, `Tree.ItemTransaction`, `Tree.ItemChange`, `Tree.SELECTION_ALL`, `TreeItemDataAttributes`, `TreeItemExpansionTriggerDataAttributes`, `TreeItemGroupIndicatorDataAttributes`, `TreeGroupTransitionDataAttributes`, `TreeItemIndentGuideDataAttributes`, `TreeInputDataAttributes`, `TreeClearDataAttributes`, `TreeItemCheckboxDataAttributes`, `TreeItemCheckboxIndicatorDataAttributes`, `TreeItemButtonDataAttributes`, `TreeItemLinkDataAttributes`, `TreeItemInputDataAttributes`, `TreeListDataAttributes`, `TreeItemCssVariables`, `TreeGroupTransitionCssVariables`, `TreeItemIndentGuideCssVariables`, `TreeFilter`, `TreeFilterOptions`, `TreeCreateItemsOptions`, `TreeItemCollection`, `TreeItemId`, `TreeFilterMode`, `TreeFilterFunction`, `TreeDefaultItem`, `TreeCheckboxSelectionPropagation`, `TreeRootActions`, `TreeRootExpansionChangeEventReason`, `TreeRootExpansionChangeEventDetails`, `TreeRootSelectionChangeEventReason`, `TreeRootSelectionChangeEventDetails`, `TreeRootHighlightEventReason`, `TreeRootHighlightEventDetails`, `TreeRootItemExpansionToggleEventDetails`, `TreeRootItemExpansionToggleValue`, `TreeRootItemSelectionToggleEventDetails`, `TreeRootItemSelectionToggleValue`, `TreeRootItemsChangeEventReason`, `TreeRootItemsChangeEventDetails`, `TreeItemChange`, `TreeItemDestination`, `TreeItemPosition`, `TreeItemTransaction`, `TreeRootState`, `TreeRootItems`, `TreeRootProps`, `TreeLabelState`, `TreeLabelProps`, `TreeItemState`, `TreeItemProps`, `TreeItemExpansionTriggerState`, `TreeItemExpansionTriggerProps`, `TreeItemGroupIndicatorState`, `TreeItemGroupIndicatorProps`, `TreeListState`, `TreeListProps`, `TreeGroupTransitionState`, `TreeGroupTransitionProps`, `TreeEmptyState`, `TreeEmptyProps`, `TreeStatusFilterChange`, `TreeStatusSelectionChange`, `TreeStatusChange`, `TreeStatusState`, `TreeStatusProps`, `TreeItemIndentGuideState`, `TreeItemIndentGuideProps`, `TreeFilterProviderProps`, `TreeFilterProviderChangeEventReason`, `TreeFilterProviderChangeEventDetails`, `TreeFilterProviderState`, `TreeInputState`, `TreeInputProps`, `TreeClearState`, `TreeClearProps`, `TreeItemContentState`, `TreeItemContentProps`, `TreeItemCheckboxProps`, `TreeItemCheckboxState`, `TreeItemCheckboxIndicatorState`, `TreeItemCheckboxIndicatorProps`, `TreeItemButtonState`, `TreeItemButtonProps`, `TreeItemInputState`, `TreeItemInputProps`, `TreeItemLinkState`, `TreeItemLinkProps`, `TreeItemControlKeys`, `TreeItemControlState`, `TreeItemControlProps`
+- `Default`: `Tree.Filter`, `Tree.FilterOptions`, `Tree.CreateItemsOptions`, `Tree.DefaultItem`, `Tree.ItemId`, `Tree.CheckboxSelectionPropagation`, `Tree.FilterMode`, `Tree.ItemPosition`, `Tree.ItemDestination`, `Tree.ItemTransaction`, `Tree.ItemChange`, `Tree.SELECTION_ALL`, `TreeItemDataAttributes`, `TreeItemIndicatorDataAttributes`, `TreeGroupTransitionDataAttributes`, `TreeItemIndentGuideDataAttributes`, `TreeInputDataAttributes`, `TreeClearDataAttributes`, `TreeCheckboxItemDataAttributes`, `TreeCheckboxItemIndicatorDataAttributes`, `TreeListDataAttributes`, `TreeItemCssVariables`, `TreeGroupTransitionCssVariables`, `TreeItemIndentGuideCssVariables`, `TreeFilter`, `TreeFilterOptions`, `TreeCreateItemsOptions`, `TreeItemCollection`, `TreeItemId`, `TreeFilterMode`, `TreeFilterFunction`, `TreeDefaultItem`, `TreeCheckboxSelectionPropagation`, `TreeRootActions`, `TreeRootExpansionChangeEventReason`, `TreeRootExpansionChangeEventDetails`, `TreeRootSelectionChangeEventReason`, `TreeRootSelectionChangeEventDetails`, `TreeRootHighlightEventReason`, `TreeRootHighlightEventDetails`, `TreeRootItemExpansionToggleEventDetails`, `TreeRootItemExpansionToggleValue`, `TreeRootItemSelectionToggleEventDetails`, `TreeRootItemSelectionToggleValue`, `TreeRootItemsChangeEventReason`, `TreeRootItemsChangeEventDetails`, `TreeItemChange`, `TreeItemDestination`, `TreeItemPosition`, `TreeItemTransaction`, `TreeRootState`, `TreeRootItems`, `TreeRootProps`, `TreeLabelState`, `TreeLabelProps`, `TreeItemState`, `TreeItemProps`, `TreeItemIndicatorState`, `TreeItemIndicatorProps`, `TreeListState`, `TreeListProps`, `TreeGroupTransitionState`, `TreeGroupTransitionProps`, `TreeEmptyState`, `TreeEmptyProps`, `TreeStatusFilterChange`, `TreeStatusSelectionChange`, `TreeStatusChange`, `TreeStatusState`, `TreeStatusProps`, `TreeItemIndentGuideState`, `TreeItemIndentGuideProps`, `TreeFilterProviderProps`, `TreeFilterProviderChangeEventReason`, `TreeFilterProviderChangeEventDetails`, `TreeFilterProviderState`, `TreeInputState`, `TreeInputProps`, `TreeClearState`, `TreeClearProps`, `TreeCheckboxItemState`, `TreeCheckboxItemProps`, `TreeCheckboxItemIndicatorState`, `TreeCheckboxItemIndicatorProps`
 - `Tree.createItems`
 - `Tree.ItemCollection`
 - `Tree.FilterFunction`
@@ -1665,25 +1432,12 @@ Maps `Canonical`: `Alias` — Use Canonical when its namespace is already import
 - `Tree.Label.Props`: `TreeLabelProps`
 - `Tree.Item.State`: `TreeItemState`
 - `Tree.Item.Props`: `TreeItemProps`
-- `Tree.ItemContent.State`: `TreeItemContentState`
-- `Tree.ItemContent.Props`: `TreeItemContentProps`
-- `Tree.ItemCheckbox.State`: `TreeItemCheckboxState`
-- `Tree.ItemCheckbox.Props`: `TreeItemCheckboxProps`
-- `Tree.ItemCheckboxIndicator.State`: `TreeItemCheckboxIndicatorState`
-- `Tree.ItemCheckboxIndicator.Props`: `TreeItemCheckboxIndicatorProps`
-- `Tree.ItemExpansionTrigger.State`: `TreeItemExpansionTriggerState`
-- `Tree.ItemExpansionTrigger.Props`: `TreeItemExpansionTriggerProps`
-- `Tree.ItemButton.State`: `TreeItemButtonState`
-- `Tree.ItemButton.Props`: `TreeItemButtonProps`
-- `Tree.ItemInput.State`: `TreeItemInputState`
-- `Tree.ItemInput.Props`: `TreeItemInputProps`
-- `Tree.ItemLink.State`: `TreeItemLinkState`
-- `Tree.ItemLink.Props`: `TreeItemLinkProps`
-- `Tree.ItemControl.State`: `TreeItemControlState`
-- `Tree.ItemControl.Props`: `TreeItemControlProps`
-- `Tree.ItemControl.Keys`: `TreeItemControlKeys`
-- `Tree.ItemGroupIndicator.State`: `TreeItemGroupIndicatorState`
-- `Tree.ItemGroupIndicator.Props`: `TreeItemGroupIndicatorProps`
+- `Tree.CheckboxItem.State`: `TreeCheckboxItemState`
+- `Tree.CheckboxItem.Props`: `TreeCheckboxItemProps`
+- `Tree.CheckboxItemIndicator.State`: `TreeCheckboxItemIndicatorState`
+- `Tree.CheckboxItemIndicator.Props`: `TreeCheckboxItemIndicatorProps`
+- `Tree.ItemIndicator.State`: `TreeItemIndicatorState`
+- `Tree.ItemIndicator.Props`: `TreeItemIndicatorProps`
 - `Tree.List.Props`: `TreeListProps`
 - `Tree.List.State`: `TreeListState`
 - `Tree.GroupTransition.State`: `TreeGroupTransitionState`
@@ -1726,9 +1480,7 @@ Maps `Type`: `URL` — the docs of a built-in type the page references.
 - `Element`: <https://developer.mozilla.org/docs/Web/API/Element>
 - `Event`: <https://developer.mozilla.org/docs/Web/API/Event>
 - `FocusEvent`: <https://developer.mozilla.org/docs/Web/API/FocusEvent>
-- `HTMLAnchorElement`: <https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement>
 - `HTMLElement`: <https://developer.mozilla.org/docs/Web/API/HTMLElement>
-- `HTMLInputElement`: <https://developer.mozilla.org/docs/Web/API/HTMLInputElement>
 - `InputEvent`: <https://developer.mozilla.org/docs/Web/API/InputEvent>
 - `Intl.LocalesArgument`: <https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl#locales_argument>
 - `KeyboardEvent`: <https://developer.mozilla.org/docs/Web/API/KeyboardEvent>

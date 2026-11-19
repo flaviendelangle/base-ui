@@ -3,6 +3,11 @@ import { act, fireEvent } from '@mui/internal-test-utils';
 import { describeTree } from '../../../test/describeTree';
 import type { TreeItemId } from '../store/types';
 
+/** The `Tree.ItemIndicator` that `describeTree` renders in an item, if any. */
+function getIndicator(view: { getItemRoot: (id: TreeItemId) => HTMLElement }, id: TreeItemId) {
+  return view.getItemRoot(id).querySelector<HTMLElement>('[data-testid="expansion-indicator"]');
+}
+
 /**
  * All tests related to keyboard navigation (e.g.: expanding using "Enter" and "ArrowRight")
  * are located in the `TreeRoot.keyboard.test.tsx` file.
@@ -66,7 +71,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -85,7 +89,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
           { id: '1', children: [{ id: '1.1' }] },
           { id: '2', children: [{ id: '2.1' }] },
         ],
-        expandOnClick: true,
         onExpandedItemsChange,
         defaultExpandedItems: ['1'],
       });
@@ -105,7 +108,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
           { id: '1', children: [{ id: '1.1' }] },
           { id: '2', children: [{ id: '2.1' }] },
         ],
-        expandOnClick: true,
         onExpandedItemsChange,
         defaultExpandedItems: ['1'],
       });
@@ -124,7 +126,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -162,7 +163,7 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
   // uncontrolled (`state.expandedItemsProp === undefined`), matching the
   // Calendar/DateField `valueProp` pattern.
   describe('controlled mode', () => {
-    it('should report the intended toggle when clicking the expansion trigger while controlled', async () => {
+    it('should report the intended toggle when pressing the item indicator while controlled', async () => {
       const onExpandedItemsChange = vi.fn();
       const onItemExpansionToggle = vi.fn();
 
@@ -175,7 +176,7 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       expect(view.isItemExpanded('1')).toBe(false);
 
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
 
       expect(onExpandedItemsChange.mock.calls.length).toBe(1);
       expect(onExpandedItemsChange.mock.calls.at(-1)![0]).toEqual(['1']);
@@ -188,14 +189,13 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       expect(onItemExpansionToggle.mock.calls.at(-1)![1]).toHaveProperty('reason', 'trigger-press');
     });
 
-    it('should report the intended toggle when clicking the item (expandOnClick) while controlled', async () => {
+    it('should report the intended toggle when clicking the item while controlled', async () => {
       const onExpandedItemsChange = vi.fn();
       const onItemExpansionToggle = vi.fn();
 
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
         expandedItems: [],
-        expandOnClick: true,
         onExpandedItemsChange,
         onItemExpansionToggle,
       });
@@ -209,7 +209,7 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       expect(onItemExpansionToggle.mock.calls.length).toBe(1);
     });
 
-    it('should not expand when clicking the expansion trigger while controlled', async () => {
+    it('should not expand when pressing the item indicator while controlled', async () => {
       const onExpandedItemsChange = vi.fn();
 
       const view = await render({
@@ -220,20 +220,19 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       expect(view.isItemExpanded('1')).toBe(false);
 
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
 
       // The parent never updated the prop, so it should stay collapsed.
       expect(view.isItemExpanded('1')).toBe(false);
       expect(view.getAllTreeItemIds()).toEqual(['1', '2']);
     });
 
-    it('should not expand when clicking the item (expandOnClick) while controlled', async () => {
+    it('should not expand when clicking the item while controlled', async () => {
       const onExpandedItemsChange = vi.fn();
 
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
         expandedItems: [],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -252,7 +251,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
-        expandOnClick: true,
         onItemExpansionToggle,
       });
 
@@ -272,7 +270,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
         defaultExpandedItems: ['1'],
-        expandOnClick: true,
         onItemExpansionToggle,
       });
 
@@ -344,7 +341,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
     it('should expand collapsed item when clicking on an item', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        expandOnClick: true,
       });
 
       expect(view.isItemExpanded('1')).toBe(false);
@@ -355,7 +351,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
     it('should collapse expanded item when clicking on an item', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        expandOnClick: true,
         defaultExpandedItems: ['1'],
       });
 
@@ -368,7 +363,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', disabled: true, children: [{ id: '1.1' }] }, { id: '2' }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -383,7 +377,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       const view = await render({
         items: [{ id: '1', disabled: true, children: [{ id: '1.1' }] }, { id: '2' }],
         defaultExpandedItems: ['1'],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -397,7 +390,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
@@ -413,7 +405,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
     it('should expand collapsed item when clicking on an item label', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
-        expandOnClick: true,
       });
 
       expect(view.isItemExpanded('1')).toBe(false);
@@ -459,71 +450,74 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
     });
   });
 
-  describe('Tree.ItemExpansionTrigger', () => {
-    it('should not render the expansion trigger for items without children', async () => {
+  describe('Tree.ItemIndicator', () => {
+    it('should render only in items that can be expanded', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
       });
 
-      expect(view.getItemExpansionTrigger('1')).not.toBe(null);
-      expect(view.getItemExpansionTrigger('2')).toBe(null);
+      expect(getIndicator(view, '1')).not.toBe(null);
+      expect(getIndicator(view, '2')).toBe(null);
     });
 
-    it('should expand a collapsed item when clicking the expansion trigger', async () => {
+    it('should expand a collapsed item when pressed', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
       });
 
       expect(view.isItemExpanded('1')).toBe(false);
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
       expect(view.isItemExpanded('1')).toBe(true);
     });
 
-    it('should collapse an expanded item when clicking the expansion trigger', async () => {
+    it('should collapse an expanded item when pressed', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
         defaultExpandedItems: ['1'],
       });
 
       expect(view.isItemExpanded('1')).toBe(true);
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
       expect(view.isItemExpanded('1')).toBe(false);
     });
 
-    it('should not toggle a disabled item when clicking its expansion trigger', async () => {
+    it('should not toggle a disabled item when pressed', async () => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', disabled: true, children: [{ id: '1.1' }] }],
         onExpandedItemsChange,
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
       expect(view.isItemExpanded('1')).toBe(false);
       expect(onExpandedItemsChange).not.toHaveBeenCalled();
     });
 
-    it('should not select the item when clicking the expansion trigger', async () => {
+    it('should not select the item when pressed', async () => {
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
       });
 
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
+      fireEvent.click(getIndicator(view, '1')!);
+      expect(view.isItemExpanded('1')).toBe(true);
       expect(view.isItemSelected('1')).toBe(false);
+
+      // A press elsewhere on the item selects it.
+      fireEvent.click(view.getItemText('1')!);
+      expect(view.isItemSelected('1')).toBe(true);
     });
 
-    it('should not double-toggle expansion when expandOnClick is true and clicking the expansion trigger', async () => {
+    it('should toggle expansion once when pressed', async () => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 
       expect(view.isItemExpanded('1')).toBe(false);
-      fireEvent.click(view.getItemExpansionTrigger('1')!);
-      // The item should be expanded (not toggled twice back to collapsed)
+      fireEvent.click(getIndicator(view, '1')!);
+      // The item's own press handling must not toggle it straight back.
       expect(view.isItemExpanded('1')).toBe(true);
-      // onExpandedItemsChange should only be called once
       expect(onExpandedItemsChange.mock.calls.length).toBe(1);
     });
   });
@@ -557,7 +551,7 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       },
     });
 
-    fireEvent.click(view.getItemExpansionTrigger('1')!);
+    fireEvent.click(getIndicator(view, '1')!);
     expect(view.isItemExpanded('1')).toBe(true);
   });
 
@@ -669,7 +663,6 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       const view = await render({
         items: [{ id: 1, children: [{ id: 11 }] }, { id: 2 }],
-        expandOnClick: true,
         onExpandedItemsChange,
       });
 

@@ -25,47 +25,27 @@ const items: Tree.DefaultItem[] = [
     children: [
       { id: 'sunset', label: 'Sunset.jpg' },
       { id: 'mountains', label: 'Mountains.png' },
-      { id: 'family-dinner', label: 'Family Dinner.jpg' },
-    ],
-  },
-  {
-    id: 'music',
-    label: 'Music',
-    children: [
-      { id: 'blue-in-green', label: 'Blue in Green.mp3' },
-      { id: 'moonlight-sonata', label: 'Moonlight Sonata.flac' },
     ],
   },
   { id: 'notes', label: 'Notes.txt' },
 ];
 
-// A leaf has no expansion trigger, so it takes the trigger's width to line up
-// with its expandable siblings.
 const ITEM_CLASS =
-  'flex items-center gap-1 px-2 py-1 text-sm/[1.5] text-neutral-950 select-none dark:text-white ' +
-  '[--leaf-offset:0rem] not-data-expandable:[--leaf-offset:1.5rem] ' +
+  'group flex cursor-default items-center gap-2 py-1 pe-2 select-none text-sm/[1.5] outline-none ' +
+  'ps-[calc(0.5rem+1.25rem*(var(--tree-item-level)-1))] ' +
+  'not-data-expandable:ps-[calc(1.75rem+1.25rem*(var(--tree-item-level)-1))] ' +
   'hover:bg-neutral-100 dark:hover:bg-neutral-800 ' +
-  'data-selected:bg-neutral-200 dark:data-selected:bg-neutral-700 ' +
-  'border-s-2 border-transparent data-selected:border-neutral-950 dark:data-selected:border-white ' +
-  'forced-colors:border-[color:Canvas] forced-colors:data-selected:border-[color:Highlight] ' +
-  'data-disabled:cursor-default data-disabled:opacity-50 ' +
-  'focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white';
+  'focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 ' +
+  'dark:focus-visible:outline-white';
 
-const TRIGGER_CLASS =
-  'relative after:absolute after:-inset-0.5 ' +
-  'inline-flex size-5 shrink-0 items-center justify-center border-none bg-transparent p-0 text-neutral-500 ' +
-  'hover:bg-neutral-200 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-white ' +
-  '[&_svg]:size-3 [&_svg]:transition-transform [&_svg]:duration-150 [&_svg]:ease-[ease] data-expanded:[&_svg]:rotate-90';
-
-const HIERARCHY_CLASS =
-  'ms-[calc(1.5rem*(var(--tree-item-level)-1))] flex min-w-0 flex-1 items-center gap-1 ' +
-  'ps-[var(--leaf-offset)]';
-
-// `group` so the two icons below can react to the indicator's checked state.
-const INDICATOR_CLASS =
-  'group box-content inline-flex size-4 shrink-0 items-center justify-center border border-neutral-950 bg-white text-white ' +
-  'data-checked:bg-neutral-950 data-indeterminate:bg-neutral-950 ' +
-  'dark:border-white dark:bg-neutral-950 dark:text-neutral-950 dark:data-checked:bg-white dark:data-indeterminate:bg-white';
+const CHECKBOX_CLASS =
+  'flex size-4 shrink-0 items-center justify-center border border-neutral-300 dark:border-neutral-600 ' +
+  'group-data-checked:border-neutral-950 group-data-checked:bg-neutral-950 group-data-checked:text-white ' +
+  'group-data-indeterminate:border-neutral-950 group-data-indeterminate:bg-neutral-950 group-data-indeterminate:text-white ' +
+  'dark:group-data-checked:border-white dark:group-data-checked:bg-white dark:group-data-checked:text-neutral-950 ' +
+  'dark:group-data-indeterminate:border-white dark:group-data-indeterminate:bg-white dark:group-data-indeterminate:text-neutral-950 ' +
+  'forced-colors:group-data-checked:border-[color:Highlight] forced-colors:group-data-checked:bg-[color:Highlight] ' +
+  'forced-colors:group-data-indeterminate:border-[color:Highlight] forced-colors:group-data-indeterminate:bg-[color:Highlight]';
 
 export default function ExampleTreeCheckboxItems() {
   return (
@@ -74,70 +54,63 @@ export default function ExampleTreeCheckboxItems() {
       defaultExpandedItems={['documents']}
       // @highlight-start
       multiple
+      checkboxSelectionPropagation={{ descendants: true, parents: true }}
       // @highlight-end
     >
       <Tree.List
-        aria-label="File system"
-        className="box-content w-56 border border-neutral-200 bg-white p-1 text-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white"
+        aria-label="Files to back up"
+        className="box-content w-68 border border-neutral-200 bg-white p-1 text-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white"
       >
         {(item: Tree.DefaultItem) => (
-          <Tree.Item itemId={item.id} className={ITEM_CLASS}>
-            <Tree.ItemContent className="flex w-full min-w-0 items-[inherit] gap-[inherit]">
-              {/* @highlight-start @focus @padding 2 */}
-              <Tree.ItemCheckbox className="inline-flex shrink-0 items-center justify-center">
-                <Tree.ItemCheckboxIndicator className={INDICATOR_CLASS} keepMounted>
-                  <CheckIcon className="hidden size-3 group-data-checked:block" />
-                  <MinusIcon className="hidden size-3 group-data-indeterminate:block" />
-                </Tree.ItemCheckboxIndicator>
-              </Tree.ItemCheckbox>
+          // @highlight-start
+          <Tree.CheckboxItem itemId={item.id} className={ITEM_CLASS}>
+            {/* @highlight-end */}
+            <Tree.ItemIndicator
+              keepMounted
+              className="inline-flex w-3 shrink-0 items-center justify-center text-neutral-500 dark:text-neutral-400 [&_svg]:size-3 [&_svg]:transition-transform data-expanded:[&_svg]:rotate-90"
+            >
+              <ChevronIcon />
+            </Tree.ItemIndicator>
+            <span className={CHECKBOX_CLASS}>
+              {/* @highlight-start */}
+              <Tree.CheckboxItemIndicator className="group/indicator flex">
+                <CheckIcon className="size-2.5 group-data-indeterminate/indicator:hidden" />
+                <MinusIcon className="hidden size-2.5 group-data-indeterminate/indicator:block" />
+              </Tree.CheckboxItemIndicator>
               {/* @highlight-end */}
-              <div className={HIERARCHY_CLASS}>
-                <Tree.ItemExpansionTrigger className={TRIGGER_CLASS}>
-                  <ChevronIcon />
-                </Tree.ItemExpansionTrigger>
-                <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                  {item.label}
-                </span>
-              </div>
-            </Tree.ItemContent>
-          </Tree.Item>
+            </span>
+            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+              {item.label}
+            </span>
+          </Tree.CheckboxItem>
         )}
       </Tree.List>
-      {/* @highlight-start */}
       {/* Screen readers don't reliably announce selection changes in a tree */}
       <Tree.Status className="sr-only" />
-      {/* @highlight-end */}
     </Tree.Root>
   );
 }
 
-function ChevronIcon(props: React.ComponentProps<'svg'>) {
+function ChevronIcon() {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path
-        d="M4.5 2L8.5 6L4.5 10"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M4.5 2 8.5 6l-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
 
 function CheckIcon(props: React.ComponentProps<'svg'>) {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path d="M9.854 3.146a.5.5 0 010 .708l-4.5 4.5a.5.5 0 01-.708 0l-2-2a.5.5 0 01.708-.708L5 7.293l4.146-4.147a.5.5 0 01.708 0z" />
+    <svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M9.1603 1.12218C9.50684 1.34873 9.60427 1.81354 9.37792 2.16038L5.13603 8.66012C5.01614 8.8438 4.82192 8.96576 4.60451 8.99384C4.3871 9.02194 4.1683 8.95335 4.00574 8.80615L1.24664 6.30769C0.939709 6.02975 0.916013 5.55541 1.19372 5.24822C1.47142 4.94102 1.94536 4.91731 2.2523 5.19524L4.36085 7.10461L8.12299 1.33999C8.34934 0.993152 8.81376 0.895638 9.1603 1.12218Z" />
     </svg>
   );
 }
 
 function MinusIcon(props: React.ComponentProps<'svg'>) {
   return (
-    <svg viewBox="0 0 12 12" fill="currentColor" {...props}>
-      <path d="M2.5 6a.5.5 0 01.5-.5h6a.5.5 0 010 1H3a.5.5 0 01-.5-.5z" />
+    <svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" {...props}>
+      <rect x="1.5" y="4.25" width="7" height="1.5" rx="0.75" />
     </svg>
   );
 }

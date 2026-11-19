@@ -16,7 +16,7 @@ export const collapsed = 'data-collapsed';
  */
 export const selected = 'data-selected';
 /**
- * Present when the item is highlighted: it has focus, or one of its controls does.
+ * Present when the item has focus.
  */
 export const highlighted = 'data-highlighted';
 /**

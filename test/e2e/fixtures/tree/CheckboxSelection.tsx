@@ -19,37 +19,36 @@ export default function CheckboxSelectionTree() {
       <Tree.Label>Files to share</Tree.Label>
       <Tree.List>
         {(item: Tree.DefaultItem) => (
-          <Tree.Item itemId={item.id}>
-            <Tree.ItemContent
+          <Tree.CheckboxItem
+            itemId={item.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              paddingInlineStart: 'calc((var(--tree-item-level) - 1) * 1.5rem)',
+            }}
+          >
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                paddingInlineStart: 'calc((var(--tree-item-level) - 1) * 1.5rem)',
+                display: 'inline-flex',
+                width: '0.875rem',
+                height: '0.875rem',
+                border: '1px solid',
               }}
             >
-              <Tree.ItemCheckbox
-                style={{
-                  display: 'inline-flex',
-                  width: '0.875rem',
-                  height: '0.875rem',
-                  border: '1px solid',
-                }}
-              >
-                <Tree.ItemCheckboxIndicator>
-                  <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-                    <path
-                      d="M2.5 6.5 5 9l4.5-6"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                </Tree.ItemCheckboxIndicator>
-              </Tree.ItemCheckbox>
-              {item.label}
-            </Tree.ItemContent>
-          </Tree.Item>
+              <Tree.CheckboxItemIndicator>
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                  <path
+                    d="M2.5 6.5 5 9l4.5-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </Tree.CheckboxItemIndicator>
+            </span>
+            {item.label}
+          </Tree.CheckboxItem>
         )}
       </Tree.List>
     </Tree.Root>

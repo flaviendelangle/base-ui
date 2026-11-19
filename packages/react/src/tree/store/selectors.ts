@@ -385,19 +385,11 @@ const flatListIndexLookupSelector = createSelectorMemoized(flatListSelector, bui
 
 const defaultFocusableItemIdSelector = createSelectorMemoized(
   (state: TreeState) => state.selectedItems,
-  (state: TreeState) => state.activeLinkCounts,
   viewSelector,
   itemMetaLookupSelector,
   (state: TreeState) => state.itemFocusableWhenDisabled,
   (state: TreeState) => state.disabled,
-  (
-    selectedItems,
-    activeLinkCounts,
-    view,
-    metaLookup,
-    disabledFocusable,
-    treeDisabled,
-  ): TreeItemId | null => {
+  (selectedItems, view, metaLookup, disabledFocusable, treeDisabled): TreeItemId | null => {
     // A tree-wide `disabled` disables every item, so unless disabled items stay
     // focusable there is nothing to focus.
     if (treeDisabled && !disabledFocusable) {
@@ -416,17 +408,6 @@ const defaultFocusableItemIdSelector = createSelectorMemoized(
         ) {
           return selectedId;
         }
-      }
-    }
-
-    // Then the row linking to the current page, as in the APG navigation tree view.
-    for (const itemKey of Object.keys(activeLinkCounts)) {
-      const meta = metaLookup[itemKey];
-      if (
-        isMetaFocusable(meta, treeDisabled, disabledFocusable) &&
-        isMetaInView(view, metaLookup, meta)
-      ) {
-        return meta!.id;
       }
     }
 

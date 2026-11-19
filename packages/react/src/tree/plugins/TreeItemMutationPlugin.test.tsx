@@ -6,6 +6,7 @@ import { createRenderer } from '#test-utils';
 import { TreeStoreTap } from '../../../test/describeTree';
 import { Tree } from '..';
 import type { TreeStore } from '../store/TreeStore';
+import { selectors } from '../store/selectors';
 import type { TreeItemId, TreeItemChange } from '../store/types';
 import { getItemIdKey, getParentKey } from '../utils/itemIdKey';
 import { selectAncestorLastChildFlags } from '../item-indent-guide/selectAncestorLastChildFlags';
@@ -74,13 +75,7 @@ function TestTree({
       actionsRef={actionsRef}
       defaultExpandedItems={['a', 'b']}
     >
-      <Tree.List>
-        {(item) => (
-          <Tree.Item itemId={item.id}>
-            <Tree.ItemContent>{item.label}</Tree.ItemContent>
-          </Tree.Item>
-        )}
-      </Tree.List>
+      <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
     </Tree.Root>
   );
 }
@@ -109,7 +104,7 @@ function UncontrolledTree({
       <Tree.List>
         {(item) => (
           <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-            <Tree.ItemContent>{item.label}</Tree.ItemContent>
+            {item.label}
           </Tree.Item>
         )}
       </Tree.List>
@@ -858,13 +853,7 @@ describe('mutations against the live tree', () => {
         actionsRef={actionsRef}
       >
         <TreeStoreTap storeRef={storeRef} />
-        <Tree.List>
-          {(item) => (
-            <Tree.Item itemId={item.id}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
-            </Tree.Item>
-          )}
-        </Tree.List>
+        <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
       </Tree.Root>,
     );
 
@@ -1107,7 +1096,7 @@ describe('removal selection/expansion pruning', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
+              {item.label}
             </Tree.Item>
           )}
         </Tree.List>
@@ -1141,7 +1130,7 @@ describe('removal selection/expansion pruning', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
+              {item.label}
             </Tree.Item>
           )}
         </Tree.List>
@@ -1184,7 +1173,7 @@ describe('removal selection/expansion pruning', () => {
             <Tree.List>
               {(item) => (
                 <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                  <Tree.ItemContent>{item.label}</Tree.ItemContent>
+                  {item.label}
                 </Tree.Item>
               )}
             </Tree.List>
@@ -1237,7 +1226,7 @@ describe('removal selection/expansion pruning', () => {
           <Tree.List>
             {(item) => (
               <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
+                {item.label}
               </Tree.Item>
             )}
           </Tree.List>
@@ -1267,13 +1256,7 @@ describe('removal selection/expansion pruning', () => {
         checkboxSelectionPropagation={{ descendants: true }}
         onSelectedItemsChange={onSelectedItemsChange}
       >
-        <Tree.List>
-          {(item) => (
-            <Tree.Item itemId={item.id}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
-            </Tree.Item>
-          )}
-        </Tree.List>
+        <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
       </Tree.Root>,
     );
 
@@ -1309,13 +1292,7 @@ describe('removal selection/expansion pruning', () => {
         checkboxSelectionPropagation={{ parents: true }}
         onSelectedItemsChange={onSelectedItemsChange}
       >
-        <Tree.List>
-          {(item) => (
-            <Tree.Item itemId={item.id}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
-            </Tree.Item>
-          )}
-        </Tree.List>
+        <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
       </Tree.Root>,
     );
 
@@ -1346,7 +1323,7 @@ describe('removal selection/expansion pruning', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
+              {item.label}
             </Tree.Item>
           )}
         </Tree.List>
@@ -1386,7 +1363,7 @@ describe('removal selection/expansion pruning', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>{item.label}</Tree.ItemContent>
+              {item.label}
             </Tree.Item>
           )}
         </Tree.List>
@@ -1420,13 +1397,7 @@ describe('removal selection/expansion pruning', () => {
             }
           }}
         >
-          <Tree.List>
-            {(item) => (
-              <Tree.Item itemId={item.id}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
-              </Tree.Item>
-            )}
-          </Tree.List>
+          <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
         </Tree.Root>
       );
     }
@@ -1464,7 +1435,7 @@ describe('removal selection/expansion pruning', () => {
           <Tree.List>
             {(row) => (
               <Tree.Item itemId={row.id} data-testid={`item-${row.id}`}>
-                <Tree.ItemContent>{row.label}</Tree.ItemContent>
+                {row.label}
               </Tree.Item>
             )}
           </Tree.List>
@@ -1494,7 +1465,7 @@ describe('removal selection/expansion pruning', () => {
           <Tree.List>
             {(item) => (
               <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
+                {item.label}
               </Tree.Item>
             )}
           </Tree.List>
@@ -1512,7 +1483,7 @@ describe('removal selection/expansion pruning', () => {
       );
     });
 
-    expect(screen.getAllByRole('row').map((item) => item.dataset.itemId)).toEqual(['a', 'b']);
+    expect(screen.getAllByRole('treeitem').map((item) => item.dataset.itemId)).toEqual(['a', 'b']);
   });
 });
 
@@ -1532,10 +1503,8 @@ describe('lookups tolerate Object.prototype ids', () => {
         <Tree.List>
           {(item) => (
             <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-              <Tree.ItemContent>
-                {item.label}
-                <Tree.ItemIndentGuide />
-              </Tree.ItemContent>
+              {item.label}
+              <Tree.ItemIndentGuide />
             </Tree.Item>
           )}
         </Tree.List>
@@ -1610,13 +1579,7 @@ describe('controlled mutation lookup reuse', () => {
         return (
           <Tree.Root items={items} actionsRef={actionsRef} onItemsChange={onItemsChange}>
             <TreeStoreTap storeRef={storeRef} />
-            <Tree.List>
-              {(item) => (
-                <Tree.Item itemId={item.id}>
-                  <Tree.ItemContent>{item.label}</Tree.ItemContent>
-                </Tree.Item>
-              )}
-            </Tree.List>
+            <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
           </Tree.Root>
         );
       }
@@ -1626,8 +1589,8 @@ describe('controlled mutation lookup reuse', () => {
           transaction.update('c', { label: 'Renamed' }),
         );
       });
-      expect(screen.getByRole('row', { name: 'C' })).toBeVisible();
-      expect(screen.queryByRole('row', { name: 'Renamed' })).toBeNull();
+      expect(screen.getByRole('treeitem', { name: 'C' })).toBeVisible();
+      expect(screen.queryByRole('treeitem', { name: 'Renamed' })).toBeNull();
       const proposed = onItemsChange.mock.calls[0][0] as Item[];
       if (mode === 'lookups changed') {
         act(() =>
@@ -1646,9 +1609,11 @@ describe('controlled mutation lookup reuse', () => {
           )}
         />,
       );
-      expect(
-        screen.getByRole('row', { name: mode === 'accessors changed' ? 'Renamed!' : 'Renamed' }),
-      ).toBeVisible();
+      expect(screen.getByRole('treeitem', { name: 'Renamed' })).toBeVisible();
+      // Items are named by their content, so read the label the store derived.
+      expect(selectors.itemLabel(storeRef.current!.state, 'c')).toBe(
+        mode === 'accessors changed' ? 'Renamed!' : 'Renamed',
+      );
       const reader = mode === 'accessors changed' ? changedLabel : getLabel;
       expect(reader.mock.calls.length > 0).toBe(mode !== 'exact');
     },
@@ -1704,7 +1669,7 @@ function TreeRows() {
     <Tree.List>
       {(item) => (
         <Tree.Item itemId={item.id} data-testid={`item-${item.id}`}>
-          <Tree.ItemContent>{item.label}</Tree.ItemContent>
+          {item.label}
         </Tree.Item>
       )}
     </Tree.List>
@@ -2134,13 +2099,7 @@ describe('deep item mutations', () => {
             setItems([cloned]);
           }}
         >
-          <Tree.List>
-            {(item) => (
-              <Tree.Item itemId={item.id}>
-                <Tree.ItemContent>{item.label}</Tree.ItemContent>
-              </Tree.Item>
-            )}
-          </Tree.List>
+          <Tree.List>{(item) => <Tree.Item itemId={item.id}>{item.label}</Tree.Item>}</Tree.List>
         </Tree.Root>
       );
     }

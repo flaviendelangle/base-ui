@@ -2,12 +2,10 @@ import { ReactStore } from '@base-ui/utils/store';
 import { EMPTY_ARRAY, EMPTY_OBJECT } from '@base-ui/utils/empty';
 import { warn } from '@base-ui/utils/warn';
 import { TimeoutManager } from '../../internals/TimeoutManager';
-import { getItemIdKey } from '../utils/itemIdKey';
 import type {
   TreeState,
   TreeStoreContext,
   TreeDefaultItem,
-  TreeItemId,
   TreeRootActions,
   TreeStoreParameters,
 } from './types';
@@ -70,7 +68,6 @@ export class TreeStore<
       onItemSelectionToggle,
       multiple,
       disableEmptySelection,
-      expandOnClick,
       checkboxSelectionPropagation,
       itemFocusableWhenDisabled,
       onItemHighlighted,
@@ -91,7 +88,6 @@ export class TreeStore<
         ...initialItemsState,
         expandedItems: expandedItems ?? defaultExpandedItems ?? EMPTY_ARRAY,
         expandedItemsProp: expandedItems,
-        expandOnClick,
         transactionThrottle: 0,
         selectedItems: selectedItems ?? defaultSelectedItems ?? (multiple ? EMPTY_ARRAY : null),
         selectedItemsProp: selectedItems,
@@ -103,7 +99,6 @@ export class TreeStore<
         itemFocusableWhenDisabled,
         direction,
         animatingGroups: EMPTY_OBJECT,
-        activeLinkCounts: EMPTY_OBJECT,
         hasItemsChangeHandler: false,
         hasItemSelectionToggleHandler: false,
         statusChange: null,
@@ -228,19 +223,6 @@ export class TreeStore<
     ...this.selection.actions,
     ...this.interaction.actions,
   };
-
-  /** Adds `delta` to an item's count in a counter lookup, dropping the entry at zero. */
-  public updateItemCount(field: 'activeLinkCounts', itemId: TreeItemId, delta: number): void {
-    const key = getItemIdKey(itemId);
-    const count = (this.state[field][key] ?? 0) + delta;
-    const next = { ...this.state[field] };
-    if (count > 0) {
-      next[key] = count;
-    } else {
-      delete next[key];
-    }
-    this.set(field, next);
-  }
 
   public getActions = (): TreeRootActions<TItem> => {
     return this.actions;

@@ -1,11 +1,9 @@
 .Tree {
-  list-style: none;
+  width: 17rem;
   padding: 0.25rem;
-  margin: 0;
-  width: 14rem;
   color: oklch(14.5% 0 0deg);
-  border: 1px solid oklch(92.2% 0 0deg);
   background: white;
+  border: 1px solid oklch(92.2% 0 0deg);
 
   @media (prefers-color-scheme: dark) {
     color: white;
@@ -15,28 +13,21 @@
 }
 
 .Item {
-  --indent: 1.5rem;
-  --trigger-width: 1.5rem;
-  --leaf-offset: 0rem;
-
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-inline-start: 2px solid transparent;
+  gap: 0.5rem;
+  padding-block: 0.25rem;
+  padding-inline: calc(0.5rem + 1.25rem * (var(--tree-item-level) - 1)) 0.5rem;
+  cursor: default;
   -webkit-user-select: none;
   user-select: none;
-  outline: none;
   font-size: 0.875rem;
   line-height: 1.5;
-  color: oklch(14.5% 0 0deg);
+  outline: none;
 
-  @media (prefers-color-scheme: dark) {
-    color: white;
-  }
-
+  /* Line leaves up with the checkboxes of expandable siblings. */
   &:not([data-expandable]) {
-    --leaf-offset: var(--trigger-width);
+    padding-inline-start: calc(1.75rem + 1.25rem * (var(--tree-item-level) - 1));
   }
 
   @media (hover: hover) {
@@ -57,51 +48,13 @@
       outline: 2px solid white;
     }
   }
-
-  &[data-selected] {
-    background: oklch(92.2% 0 0deg);
-    border-inline-start-color: oklch(14.5% 0 0deg);
-
-    @media (prefers-color-scheme: dark) {
-      background: oklch(37.1% 0 0deg);
-      border-inline-start-color: white;
-    }
-  }
-
-  &[data-disabled] {
-    opacity: 0.5;
-    cursor: default;
-  }
-
-  @media (forced-colors: active) {
-    border-inline-start-color: Canvas;
-
-    &[data-selected] {
-      border-inline-start-color: Highlight;
-    }
-  }
 }
 
-.Hierarchy {
-  display: flex;
-  align-items: inherit;
-  gap: inherit;
-  min-width: 0;
-  flex: 1;
-  margin-inline-start: calc(var(--indent) * (var(--tree-item-level) - 1));
-  padding-inline-start: var(--leaf-offset);
-}
-
-.ExpansionTrigger {
-  position: relative;
+.Chevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  padding: 0;
-  border: none;
-  background: none;
+  width: 0.75rem;
   color: oklch(55.6% 0 0deg);
   flex-shrink: 0;
 
@@ -109,101 +62,75 @@
     color: oklch(70.8% 0 0deg);
   }
 
-  @media (hover: hover) {
-    &:hover {
-      background: oklch(92.2% 0 0deg);
-      color: oklch(14.5% 0 0deg);
-
-      @media (prefers-color-scheme: dark) {
-        background: oklch(37.1% 0 0deg);
-        color: white;
-      }
-    }
-  }
-
   & svg {
     width: 0.75rem;
     height: 0.75rem;
-    transition: transform 150ms ease;
+    transition: transform 150ms;
   }
 
   &[data-expanded] svg {
     transform: rotate(90deg);
   }
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -0.125rem;
-  }
 }
 
-.CheckboxIndicator {
-  display: inline-flex;
+.Checkbox {
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
-  border: 1px solid oklch(14.5% 0 0deg);
-  color: white;
-  background: white;
+  border: 1px solid oklch(87% 0 0deg);
+  background: transparent;
 
   @media (prefers-color-scheme: dark) {
-    border: 1px solid white;
-    color: oklch(14.5% 0 0deg);
-    background: oklch(14.5% 0 0deg);
+    border-color: oklch(43.9% 0 0deg);
   }
 
-  & svg {
-    width: 0.75rem;
-    height: 0.75rem;
-    display: none;
-  }
-
-  &[data-checked],
-  &[data-indeterminate] {
+  .Item[data-checked] &,
+  .Item[data-indeterminate] & {
+    border-color: oklch(14.5% 0 0deg);
     background: oklch(14.5% 0 0deg);
+    color: white;
 
     @media (prefers-color-scheme: dark) {
+      border-color: white;
       background: white;
+      color: oklch(14.5% 0 0deg);
+    }
+  }
+
+  @media (forced-colors: active) {
+    .Item[data-checked] &,
+    .Item[data-indeterminate] & {
+      border-color: Highlight;
+      background: Highlight;
+      color: HighlightText;
     }
   }
 }
 
-.CheckIcon {
-  .CheckboxIndicator[data-checked] & {
-    display: block;
-  }
+.CheckboxIndicator {
+  display: flex;
 }
 
+.CheckIcon,
 .MinusIcon {
-  .CheckboxIndicator[data-indeterminate] & {
-    display: block;
-  }
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.CheckboxIndicator[data-indeterminate] .CheckIcon,
+.CheckboxIndicator:not([data-indeterminate]) .MinusIcon {
+  display: none;
 }
 
 .Label {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ItemContent {
-  display: flex;
-  align-items: inherit;
-  gap: inherit;
-  min-width: 0;
-  width: 100%;
-}
-
-.Checkbox {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
+  flex: 1;
 }
 
 .VisuallyHidden {
@@ -213,7 +140,7 @@
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip-path: inset(50%);
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
 }

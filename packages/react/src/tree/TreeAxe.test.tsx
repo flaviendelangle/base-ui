@@ -33,25 +33,19 @@ const ROW_STYLE: React.CSSProperties = {
 function renderItem(item: Item) {
   return (
     <Tree.Item itemId={item.id} style={ROW_STYLE}>
-      <Tree.ItemContent>
-        <Tree.ItemExpansionTrigger />
-        {item.label}
-      </Tree.ItemContent>
+      <Tree.ItemIndicator keepMounted>▸</Tree.ItemIndicator>
+      {item.label}
     </Tree.Item>
   );
 }
 
 function renderCheckboxItem(item: Item) {
   return (
-    <Tree.Item itemId={item.id}>
-      <Tree.ItemContent>
-        <Tree.ItemCheckbox>
-          <Tree.ItemCheckboxIndicator />
-        </Tree.ItemCheckbox>
-        <Tree.ItemExpansionTrigger />
-        {item.label}
-      </Tree.ItemContent>
-    </Tree.Item>
+    <Tree.CheckboxItem itemId={item.id} style={ROW_STYLE}>
+      <Tree.CheckboxItemIndicator keepMounted>✓</Tree.CheckboxItemIndicator>
+      <Tree.ItemIndicator keepMounted>▸</Tree.ItemIndicator>
+      {item.label}
+    </Tree.CheckboxItem>
   );
 }
 
@@ -88,7 +82,7 @@ describe.skipIf(isJSDOM)('Tree axe checks', () => {
         <Tree.List aria-label="Files">{renderItem}</Tree.List>
       </Tree.Root>,
     );
-    expect(screen.getByRole('row', { name: 'Resume.pdf' })).toHaveAttribute(
+    expect(screen.getByRole('treeitem', { name: 'Resume.pdf' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -107,9 +101,8 @@ describe.skipIf(isJSDOM)('Tree axe checks', () => {
         <Tree.List aria-label="Files">{renderCheckboxItem}</Tree.List>
       </Tree.Root>,
     );
-    expect(screen.getByRole('checkbox', { name: 'Select Documents' })).toHaveAttribute(
-      'aria-checked',
-      'mixed',
+    expect(screen.getByRole('treeitem', { name: 'Documents' })).toHaveAttribute(
+      'data-indeterminate',
     );
 
     await expectNoAxeViolations(container);
@@ -117,17 +110,17 @@ describe.skipIf(isJSDOM)('Tree axe checks', () => {
 
   it('filtering with matches', async () => {
     const { container } = await render(<FilterableTree query="resume" />);
-    expect(screen.getByRole('row', { name: 'Resume.pdf' })).toBeVisible();
-    expect(screen.queryByRole('row', { name: 'Notes.txt' })).toBeNull();
+    expect(screen.getByRole('treeitem', { name: 'Resume.pdf' })).toBeVisible();
+    expect(screen.queryByRole('treeitem', { name: 'Notes.txt' })).toBeNull();
 
     await expectNoAxeViolations(container);
   });
 
-  // axe reports the empty treegrid under "needs review" (aria-required-children), not as a
+  // axe reports the empty tree under "needs review" (aria-required-children), not as a
   // violation.
   it('filtering with no matches', async () => {
     const { container } = await render(<FilterableTree query="nothing matches this" />);
-    expect(screen.queryAllByRole('row')).toHaveLength(0);
+    expect(screen.queryAllByRole('treeitem')).toHaveLength(0);
     expect(screen.getByRole('status')).toHaveTextContent('No results');
 
     await expectNoAxeViolations(container);
@@ -140,7 +133,7 @@ describe.skipIf(isJSDOM)('Tree axe checks', () => {
         <Tree.List>{renderItem}</Tree.List>
       </Tree.Root>,
     );
-    expect(screen.getByRole('treegrid', { name: 'Files' })).toBeVisible();
+    expect(screen.getByRole('tree', { name: 'Files' })).toBeVisible();
 
     await expectNoAxeViolations(container);
   });
