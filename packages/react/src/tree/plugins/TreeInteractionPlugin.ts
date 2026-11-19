@@ -844,15 +844,10 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
 
     const { multiple } = this.store.state;
     const ctrlPressed = event.ctrlKey || event.metaKey;
-    // The second click of a double-click must not toggle the item straight back.
-    const firstClick = event.detail <= 1;
 
     // The expansion indicator only expands or collapses its item, or with Alt (Option on
     // macOS), its whole subtree.
     if (this.indicatorPresses.has(event.nativeEvent)) {
-      if (!firstClick) {
-        return;
-      }
       if (event.altKey) {
         this.store.expansion.toggleSubtreeExpansion(
           itemId,
@@ -891,7 +886,7 @@ export class TreeInteractionPlugin<TItem = TreeDefaultItem> {
 
     // A plain press on a parent item also expands or collapses it, as in the APG file directory
     // tree. A press on a checkbox item, or one that extends the selection, only selects.
-    if (!checkboxItem && !event.shiftKey && !ctrlPressed && firstClick) {
+    if (!checkboxItem && !event.shiftKey && !ctrlPressed) {
       this.store.expansion.toggleItemExpansion(itemId, REASONS.itemPress, event.nativeEvent);
     }
   };

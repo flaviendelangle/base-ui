@@ -386,7 +386,7 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
       expect(onExpandedItemsChange).not.toHaveBeenCalled();
     });
 
-    it('should toggle expansion once when double-clicking a label', async () => {
+    it('should collapse an item on a quick second click of its label', async () => {
       const onExpandedItemsChange = vi.fn();
       const view = await render({
         items: [{ id: '1', children: [{ id: '1.1' }] }, { id: '2' }],
@@ -395,11 +395,12 @@ describeTree('TreeRoot - Expansion', ({ render }) => {
 
       const label = view.getItemText('1')!;
       fireEvent.click(label, { detail: 1 });
-      fireEvent.click(label, { detail: 2 });
-      fireEvent.doubleClick(label, { detail: 2 });
-
       expect(view.isItemExpanded('1')).toBe(true);
-      expect(onExpandedItemsChange).toHaveBeenCalledTimes(1);
+
+      // The browser counts a quick second click as the second click of a double-click.
+      fireEvent.click(label, { detail: 2 });
+      expect(view.isItemExpanded('1')).toBe(false);
+      expect(onExpandedItemsChange).toHaveBeenCalledTimes(2);
     });
 
     it('should expand collapsed item when clicking on an item label', async () => {

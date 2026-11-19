@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { describe, expect, it } from 'vitest';
-import { screen } from '@mui/internal-test-utils';
+import { fireEvent, screen } from '@mui/internal-test-utils';
 import { createRenderer } from '#test-utils';
 import { Tree } from '..';
 
@@ -143,12 +143,15 @@ describe('<Tree.ItemIndicator />', () => {
       expect(getItem('A')).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('does not toggle the item back on the second click of a double-click', async () => {
-      const { user } = await render(<Example indicator={{ keepMounted: true }} />);
+    it('collapses the item on the second click of a double-click', async () => {
+      await render(<Example indicator={{ keepMounted: true }} />);
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'false');
 
-      await user.dblClick(screen.getByTestId('indicator-a'));
+      fireEvent.click(screen.getByTestId('indicator-a'), { detail: 1 });
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'true');
+
+      fireEvent.click(screen.getByTestId('indicator-a'), { detail: 2 });
+      expect(getItem('A')).toHaveAttribute('aria-expanded', 'false');
     });
   });
 });
