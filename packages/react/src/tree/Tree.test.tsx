@@ -263,11 +263,11 @@ describe('Tree.CheckboxItem', () => {
 
     const music = screen.getByTestId('row-music');
     const documents = screen.getByTestId('row-documents');
-    expect(music).toHaveAttribute('aria-selected', 'false');
+    expect(music).toHaveAttribute('aria-checked', 'false');
     expect(music).toHaveAttribute('data-unchecked');
 
     await user.click(music);
-    expect(music).toHaveAttribute('aria-selected', 'true');
+    expect(music).toHaveAttribute('aria-checked', 'true');
     expect(music).toHaveAttribute('data-checked');
 
     await user.click(documents);
@@ -276,7 +276,7 @@ describe('Tree.CheckboxItem', () => {
     );
 
     await user.click(music);
-    expect(music).toHaveAttribute('aria-selected', 'false');
+    expect(music).toHaveAttribute('aria-checked', 'false');
     expect(onSelectedItemsChange.mock.lastCall?.[0]).toEqual(['documents']);
   });
 
@@ -297,7 +297,7 @@ describe('Tree.CheckboxItem', () => {
     const documents = screen.getByTestId('row-documents');
     await user.click(documents);
 
-    expect(documents).toHaveAttribute('aria-selected', 'true');
+    expect(documents).toHaveAttribute('aria-checked', 'true');
     expect(documents).toHaveAttribute('aria-expanded', 'false');
     expect(onExpandedItemsChange).not.toHaveBeenCalled();
   });
@@ -327,17 +327,17 @@ describe('Tree.CheckboxItem', () => {
     act(() => documents.focus());
 
     await user.keyboard(' ');
-    expect(documents).toHaveAttribute('aria-selected', 'true');
+    expect(documents).toHaveAttribute('aria-checked', 'true');
 
     // A plain item would stay selected here, as Space and Enter select it.
     await user.keyboard(' ');
-    expect(documents).toHaveAttribute('aria-selected', 'false');
+    expect(documents).toHaveAttribute('aria-checked', 'false');
 
     await user.keyboard('{Enter}');
-    expect(documents).toHaveAttribute('aria-selected', 'true');
+    expect(documents).toHaveAttribute('aria-checked', 'true');
 
     await user.keyboard('{Enter}');
-    expect(documents).toHaveAttribute('aria-selected', 'false');
+    expect(documents).toHaveAttribute('aria-checked', 'false');
     expect(onSelectedItemsChange).toHaveBeenCalledTimes(4);
   });
 
@@ -355,8 +355,8 @@ describe('Tree.CheckboxItem', () => {
     expect(parent).not.toHaveAttribute('data-checked');
     expect(parent).not.toHaveAttribute('data-unchecked');
     expect(screen.getByTestId('checkbox-documents')).toHaveAttribute('data-indeterminate');
-    // Assistive technology hears the selection of the item, not a separate checkbox.
-    expect(parent).toHaveAttribute('aria-selected', 'false');
+    // Assistive technology hears the partly checked state on the item, not a separate checkbox.
+    expect(parent).toHaveAttribute('aria-checked', 'mixed');
     expect(screen.queryByRole('checkbox')).toBeNull();
 
     await user.click(parent);
@@ -600,7 +600,7 @@ describe('Tree.ItemIndicator', () => {
     await user.click(screen.getByTestId('indicator-documents'));
 
     expect(screen.getByTestId('row-documents')).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('row-documents')).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByTestId('row-documents')).toHaveAttribute('aria-checked', 'false');
     expect(onSelectedItemsChange).not.toHaveBeenCalled();
   });
 

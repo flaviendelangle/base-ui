@@ -638,7 +638,8 @@ type TreeItemIndicatorState = {
 ### CheckboxItem
 
 A tree item with a checkbox. Pressing it toggles whether it's selected, and keeps the
-rest of the selection.
+rest of the selection. It exposes its state with `aria-checked`, which is `mixed` while
+only some of its descendants are selected.
 Use it in place of `<Tree.Item>`.
 Renders a `<div>` element.
 

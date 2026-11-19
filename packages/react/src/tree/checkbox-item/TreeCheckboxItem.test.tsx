@@ -55,12 +55,13 @@ function getItem(name: string) {
 describe('<Tree.CheckboxItem />', () => {
   const { render } = createRenderer();
 
-  it('renders a tree item that exposes its selection with aria-selected', async () => {
+  it('renders a tree item that exposes its selection with aria-checked, not aria-selected', async () => {
     const { user } = await render(<Example multiple />);
-    expect(getItem('B')).toHaveAttribute('aria-selected', 'false');
+    expect(getItem('B')).toHaveAttribute('aria-checked', 'false');
 
     await user.click(screen.getByTestId('label-b'));
-    expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+    expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
+    expect(getItem('B')).not.toHaveAttribute('aria-selected');
   });
 
   describe('data attributes', () => {
@@ -72,9 +73,10 @@ describe('<Tree.CheckboxItem />', () => {
       expect(getItem('A1')).not.toHaveAttribute('data-checked');
     });
 
-    it('marks a parent with a selected descendant data-indeterminate, and neither checked nor unchecked', async () => {
+    it('marks a parent with a selected descendant data-indeterminate and aria-checked="mixed", and neither checked nor unchecked', async () => {
       await render(<Example multiple defaultSelectedItems={['a1']} />);
       expect(getItem('A')).toHaveAttribute('data-indeterminate');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'mixed');
       expect(getItem('A')).not.toHaveAttribute('data-checked');
       expect(getItem('A')).not.toHaveAttribute('data-unchecked');
       expect(getItem('B')).not.toHaveAttribute('data-indeterminate');
@@ -92,7 +94,7 @@ describe('<Tree.CheckboxItem />', () => {
       expect(getItem('A')).not.toHaveAttribute('data-indeterminate');
     });
 
-    it('sets aria-selected to true on a parent that shows as checked because all its descendants are selected', async () => {
+    it('sets aria-checked to true on a parent that shows as checked because all its descendants are selected', async () => {
       await render(
         <Example
           multiple
@@ -101,7 +103,7 @@ describe('<Tree.CheckboxItem />', () => {
         />,
       );
       expect(getItem('A')).toHaveAttribute('data-checked');
-      expect(getItem('A')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'true');
     });
   });
 
@@ -110,12 +112,12 @@ describe('<Tree.CheckboxItem />', () => {
       const { user } = await render(
         <Example multiple checkboxSelectionPropagation={{ descendants: true }} />,
       );
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
 
       await user.click(screen.getByTestId('label-a'));
-      expect(getItem('A')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('A2')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('A2')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('does not propagate a press on a plain Tree.Item, with checkboxSelectionPropagation.descendants', async () => {
@@ -131,30 +133,30 @@ describe('<Tree.CheckboxItem />', () => {
       expect(getItem('A')).toHaveAttribute('aria-selected', 'true');
       // A press on a plain parent also collapses it, so expand it to see its children.
       await user.click(screen.getByTestId('expansion-a'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
     });
 
     it('toggles the item and keeps the rest of the selection with multiple', async () => {
       const { user } = await render(<Example multiple defaultSelectedItems={['b']} />);
 
       await user.click(screen.getByTestId('label-a1'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
 
       await user.click(screen.getByTestId('label-a1'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('toggles the item, replacing the selection, in single selection', async () => {
       const { user } = await render(<Example defaultSelectedItems="b" />);
 
       await user.click(screen.getByTestId('label-a1'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'false');
 
       await user.click(screen.getByTestId('label-a1'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
     });
 
     it('keeps a plain item selected on a second press in single selection', async () => {
@@ -169,8 +171,8 @@ describe('<Tree.CheckboxItem />', () => {
       const { user } = await render(<Example multiple="opt-in" defaultSelectedItems={['b']} />);
 
       await user.click(screen.getByTestId('label-a1'));
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('does not expand or collapse the item', async () => {
@@ -178,7 +180,7 @@ describe('<Tree.CheckboxItem />', () => {
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'true');
 
       await user.click(screen.getByTestId('label-a'));
-      expect(getItem('A')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'true');
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'true');
     });
 
@@ -188,7 +190,7 @@ describe('<Tree.CheckboxItem />', () => {
 
       await user.click(screen.getByTestId('expansion-a'));
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'false');
-      expect(getItem('A')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'false');
     });
   });
 
@@ -201,12 +203,12 @@ describe('<Tree.CheckboxItem />', () => {
       act(() => getItem('A1').focus());
 
       await user.keyboard(key);
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
 
       await user.keyboard(key);
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
-      expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
+      expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
     });
 
     it.each([
@@ -219,8 +221,8 @@ describe('<Tree.CheckboxItem />', () => {
         act(() => getItem('A1').focus());
 
         await user.keyboard(key);
-        expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-        expect(getItem('B')).toHaveAttribute('aria-selected', 'true');
+        expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
+        expect(getItem('B')).toHaveAttribute('aria-checked', 'true');
       },
     );
 
@@ -237,7 +239,7 @@ describe('<Tree.CheckboxItem />', () => {
 
         await user.keyboard(key);
         expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
-        expect(getItem('B')).toHaveAttribute('aria-selected', 'false');
+        expect(getItem('B')).toHaveAttribute('aria-checked', 'false');
       },
     );
 
@@ -246,10 +248,10 @@ describe('<Tree.CheckboxItem />', () => {
       act(() => getItem('A1').focus());
 
       await user.keyboard('[Enter]');
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'true');
 
       await user.keyboard('[Enter]');
-      expect(getItem('A1')).toHaveAttribute('aria-selected', 'false');
+      expect(getItem('A1')).toHaveAttribute('aria-checked', 'false');
     });
 
     it('keeps a plain item selected on a second Enter in single selection', async () => {
@@ -266,7 +268,7 @@ describe('<Tree.CheckboxItem />', () => {
       act(() => getItem('A').focus());
 
       await user.keyboard('[Enter]');
-      expect(getItem('A')).toHaveAttribute('aria-selected', 'true');
+      expect(getItem('A')).toHaveAttribute('aria-checked', 'true');
       expect(getItem('A')).toHaveAttribute('aria-expanded', 'true');
     });
   });

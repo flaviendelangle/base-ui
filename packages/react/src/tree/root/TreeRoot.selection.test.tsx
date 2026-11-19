@@ -1300,16 +1300,16 @@ describeTree('TreeRoot - Selection', ({ render }) => {
         expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
       });
 
-      it('should put `aria-selected` on a checkbox item, not `aria-checked`', async () => {
+      it('should put `aria-checked` on a checkbox item, not `aria-selected`', async () => {
         const view = await render({
           items: [{ id: '1' }, { id: '2' }],
           checkboxSelection: true,
           defaultSelectedItems: '1',
         });
 
-        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-checked');
-        expect(view.getItemRoot('1')).toHaveAttribute('aria-selected', 'true');
-        expect(view.getItemRoot('2')).toHaveAttribute('aria-selected', 'false');
+        expect(view.getItemRoot('1')).not.toHaveAttribute('aria-selected');
+        expect(view.getItemRoot('1')).toHaveAttribute('aria-checked', 'true');
+        expect(view.getItemRoot('2')).toHaveAttribute('aria-checked', 'false');
       });
     });
 

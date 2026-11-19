@@ -32,7 +32,8 @@ const indeterminateMapping: StateAttributesMapping<TreeCheckboxItemState> = {
 
 /**
  * A tree item with a checkbox. Pressing it toggles whether it's selected, and keeps the
- * rest of the selection.
+ * rest of the selection. It exposes its state with `aria-checked`, which is `mixed` while
+ * only some of its descendants are selected.
  * Use it in place of `<Tree.Item>`.
  * Renders a `<div>` element.
  *
@@ -66,9 +67,13 @@ export const TreeCheckboxItem = fastComponentRef(function TreeCheckboxItem(
     props: [
       store.interaction.itemEventHandlers,
       sharedItemResponse.props,
-      // Matches the checkbox: a parent whose descendants are all selected shows as checked
-      // with `checkboxSelectionPropagation.parents`, before it's selected itself.
-      selectionSupported ? { 'aria-selected': checked } : undefined,
+      // A checkbox item exposes its checkbox state rather than `aria-selected`, including a
+      // parent whose descendants are only partly selected. A parent whose descendants are all
+      // selected shows as checked with `checkboxSelectionPropagation.parents`, before it's
+      // selected itself.
+      selectionSupported
+        ? { 'aria-checked': indeterminate ? ('mixed' as const) : checked }
+        : undefined,
       elementProps,
     ],
     stateAttributesMapping: indeterminate ? indeterminateMapping : checkedMapping,

@@ -38,7 +38,7 @@ import { Tree } from '@base-ui/react/tree';
 </Tree.Root>;
 ```
 
-Use `<Tree.CheckboxItem>` in place of `<Tree.Item>` for items with a checkbox:
+Use `<Tree.CheckboxItem>` in place of `<Tree.Item>` for items with a checkbox. A checkbox item exposes its state with `aria-checked` instead of `aria-selected`, so use one kind of item throughout a tree:
 
 ```jsx title="Checkbox items"
 <Tree.CheckboxItem itemId={item.id}>
@@ -89,7 +89,7 @@ import { DemoTreeFileDirectory } from './demos/file-directory';
 
 ### Checkbox items
 
-Render `<Tree.CheckboxItem>` with `multiple` to select items with checkboxes. `checkboxSelectionPropagation` selects a parent's descendants with it, and marks a partly selected parent `data-indeterminate`.
+Render `<Tree.CheckboxItem>` with `multiple` to select items with checkboxes. `checkboxSelectionPropagation` selects a parent's descendants with it, and marks a partly selected parent `data-indeterminate` and `aria-checked="mixed"`.
 
 import { DemoTreeCheckboxItems } from './demos/checkbox-items';
 

@@ -64,13 +64,13 @@ test('announces the selection of a checkbox item', async ({ page, screenReader }
 
   await screenReader.clearSpokenPhraseLog();
   await screenReader.press('Space');
-  await expect(resume).toHaveAttribute('aria-selected', 'true');
-  await waitForPhrase(screenReader, /(?<!not )selected/i);
+  await expect(resume).toHaveAttribute('aria-checked', 'true');
+  await waitForPhrase(screenReader, /(?<!not )checked/i);
 
   await screenReader.clearSpokenPhraseLog();
   await screenReader.press('Space');
-  await expect(resume).toHaveAttribute('aria-selected', 'false');
-  await waitForPhrase(screenReader, /not selected/i);
+  await expect(resume).toHaveAttribute('aria-checked', 'false');
+  await waitForPhrase(screenReader, /not checked/i);
 });
 
 test('names the tree from Tree.Label', async ({ page, screenReader }) => {
